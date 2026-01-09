@@ -43,8 +43,17 @@ Events::on('pre_system', static function (): void {
      * If you delete, they will no longer be collected.
      */
     if (CI_DEBUG && ! is_cli()) {
-        Events::on('DBQuery', 'CodeIgniter\Debug\Toolbar\Collectors\Database::collect');
-        Services::toolbar()->respond();
+        // Skip Debug Toolbar untuk route backend/rapor
+        // Karena data rapor sangat besar dan menyebabkan Xdebug error "stack depth 512"
+        $request = \Config\Services::request();
+        $currentUri = $request->getUri()->getPath();
+        $skipToolbar = (strpos($currentUri, 'backend/rapor') !== false);
+        
+        if (!$skipToolbar) {
+            Events::on('DBQuery', 'CodeIgniter\Debug\Toolbar\Collectors\Database::collect');
+            Services::toolbar()->respond();
+        }
+        
         // Hot Reload route - for framework use on the hot reloader.
         if (ENVIRONMENT === 'development') {
             Services::routes()->get('__hot-reload', static function (): void {

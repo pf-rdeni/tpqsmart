@@ -133,5 +133,14 @@ class Filters extends BaseFilters
      *
      * @var array<string, array<string, list<string>>>
      */
-    public array $filters = [];
+    public array $filters = [
+        // Exclude backend/rapor dari Debug Toolbar
+        // Karena data rapor sangat besar dan menyebabkan Xdebug error "stack depth 512"
+        'toolbar' => [
+            'except' => [
+                'backend/rapor',
+                'backend/rapor/*',
+            ]
+        ],
+    ];
 }

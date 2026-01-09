@@ -1107,13 +1107,22 @@ class Rapor extends BaseController
             
             // Check if stream parameter is set (for modal preview)
             $isStream = $this->request->getGet('stream') === 'true';
+
+            // Bersihkan buffer output sebelum generate PDF untuk mencegah error header di server
+            // Ini menangani error 500 jika ada output tak terduga (spasi, notice, dll) sebelumnya
+            if (ob_get_level()) {
+                ob_end_clean();
+            }
             
             if ($isStream) {
                 // Stream PDF inline (for preview in modal/iframe)
                 $dompdf->stream($filename, ["Attachment" => false]);
+                exit(); // Hentikan eksekusi script segera setelah stream
             } else {
                 // Download PDF (original behavior)
                 $this->outputPdf($dompdf, $filename);
+                // outputPdf mungkin melakukan exit() sendiri, tapi kalau tidak, aman untuk stop disini jika diperlukan
+                // Namun kita ikuti existing pattern untuk download
             }
         } catch (\Exception $e) {
             log_message('error', 'Rapor: printPdf - Error: ' . $e->getMessage());
