@@ -45,9 +45,91 @@
                                             'sekali' => '<span class="badge badge-secondary">Sekali</span>',
                                             'harian' => '<span class="badge badge-success">Harian</span>',
                                             'mingguan' => '<span class="badge badge-primary">Mingguan</span>',
-                                            'bulanan' => '<span class="badge badge-warning">Bulanan</span>'
+                                            'bulanan' => '<span class="badge badge-warning">Bulanan</span>',
+                                            'tahunan' => '<span class="badge badge-info">Tahunan</span>'
                                         ];
                                         echo $jenisLabel[$item['JenisJadwal'] ?? 'sekali'] ?? '<span class="badge badge-secondary">Sekali</span>';
+                                        
+                                        // Detail Pola
+                                        $type = $item['JenisJadwal'] ?? 'sekali';
+                                        if ($type !== 'sekali') {
+                                            echo '<div class="small text-muted mt-1">';
+                                            
+                                            // Interval Info
+                                            $interval = $item['Interval'] ?? 1;
+                                            $unit = match($type) {
+                                                'harian' => 'hari',
+                                                'mingguan' => 'minggu',
+                                                'bulanan' => 'bulan',
+                                                'tahunan' => 'tahun',
+                                                default => ''
+                                            };
+                                            
+                                            if ($interval > 1) {
+                                                echo "Setiap $interval $unit<br>";
+                                            } else {
+                                                // Optional: "Setiap hari/minggu/bulan" implied
+                                            }
+
+                                            // Pattern Details
+                                            if ($type == 'harian') {
+                                                 if (($item['OpsiPola'] ?? 'Interval') == 'Weekday') {
+                                                     echo "Setiap Hari Kerja (Senin-Jumat)";
+                                                 } elseif ($interval == 1) {
+                                                     echo "Setiap Hari";
+                                                 }
+                                            } elseif ($type == 'mingguan') {
+                                                $days = explode(',', $item['HariDalamMinggu'] ?? '');
+                                                $names = array_map(function($d) {
+                                                    return ['', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'][(int)$d] ?? '-';
+                                                }, $days);
+                                                echo 'Setiap Hari ' . implode(', ', array_filter($names));
+                                            } elseif ($type == 'bulanan') {
+                                                if (($item['OpsiPola'] ?? 'Tanggal') == 'Tanggal') {
+                                                    echo 'Setiap Tanggal ' . ($item['TanggalDalamBulan'] ?? '-');
+                                                } else {
+                                                    $pos = ['', 'Ke-1', 'Ke-2', 'Ke-3', 'Ke-4', 'Terakhir'][$item['PosisiMinggu'] ?? 1] ?? '';
+                                                    $dIdx = $item['HariDalamMinggu'] ?? 1;
+                                                    $dName = ['', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'][(int)$dIdx] ?? '';
+                                                    echo "Setiap Hari $dName Minggu $pos setiap Bulannya";
+                                                }
+                                            } elseif ($type == 'tahunan') {
+                                                // Format English Month to Indonesian if needed, or just use English for now
+                                                // Assuming setlocale is irrelevant here, stick to English or mapping
+                                                $monthNum = $item['BulanTahun'] ?? 1;
+                                                $monthName = date('F', mktime(0,0,0, $monthNum, 1));
+                                                
+                                                if (($item['OpsiPola'] ?? 'Tanggal') == 'Tanggal') {
+                                                    echo 'Setiap Tanggal ' . ($item['TanggalDalamBulan'] ?? '-') . " Bulan $monthName";
+                                                } else {
+                                                    $pos = ['', 'Pertama', 'Kedua', 'Ketiga', 'Keempat', 'Terakhir'][$item['PosisiMinggu'] ?? 1] ?? '';
+                                                    $dIdx = $item['HariDalamMinggu'] ?? 1;
+                                                    // Handle array case for HariDalamMinggu
+                                                    if(is_array($dIdx)) $dIdx = reset($dIdx);
+                                                    
+                                                    $dName = ['', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'][(int)$dIdx] ?? '';
+                                                    echo "Setiap Hari $dName Minggu $pos Bulan $monthName";
+                                                }
+                                            }
+                                            
+                                            // Rentang Waktu
+                                            if (!empty($item['TanggalMulaiRutin'])) {
+                                                echo '<br><span class="text-muted border-top pt-1 mt-1 d-block">';
+                                                echo '<i class="far fa-clock mr-1"></i>';
+                                                echo date('d M Y', strtotime($item['TanggalMulaiRutin']));
+                                                
+                                                $endType = $item['JenisBatasAkhir'] ?? 'Tanggal';
+                                                if ($endType == 'Tanggal' && !empty($item['TanggalAkhirRutin'])) {
+                                                    echo ' - ' . date('d M Y', strtotime($item['TanggalAkhirRutin']));
+                                                } elseif ($endType == 'Kejadian') {
+                                                    echo ' (' . ($item['JumlahKejadian'] ?? 0) . 'x)';
+                                                } elseif ($endType == 'Selamanya') {
+                                                    echo ' (Tanpa Batas)';
+                                                }
+                                                echo '</span>';
+                                            }
+                                            echo '</div>';
+                                        }
                                         ?>
                                     </td>
                                     <td>

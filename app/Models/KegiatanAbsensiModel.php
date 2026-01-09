@@ -25,10 +25,16 @@ class KegiatanAbsensiModel extends Model
         'CreatedBy',
         'Token',
         'JenisJadwal',
+        'Interval',
         'TanggalMulaiRutin',
         'TanggalAkhirRutin',
+        'JenisBatasAkhir',
+        'JumlahKejadian',
         'HariDalamMinggu',
-        'TanggalDalamBulan'
+        'TanggalDalamBulan',
+        'OpsiPola',
+        'PosisiMinggu',
+        'BulanTahun',
     ];
 
     // Dates

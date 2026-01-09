@@ -112,50 +112,83 @@ class KegiatanAbsensi extends BaseController
         // Override for Operator and Guru - force TPQ scope
         $sessionIdTpq = session()->get('IdTpq');
         if ((session()->get('active_role') == 'operator' || in_groups('Guru')) && !in_groups('Admin')) {
-            $lingkup = 'TPQ';
+            $scope = 'TPQ';
             $idTpq = $sessionIdTpq;
         }
         
         // Save Event
+        // Create
         $data = [
             'NamaKegiatan' => $this->request->getPost('NamaKegiatan'),
             'Tanggal'      => $this->request->getPost('Tanggal'),
             'JamMulai'     => $this->request->getPost('JamMulai'),
             'JamSelesai'   => $this->request->getPost('JamSelesai'),
-            'Lingkup'      => $lingkup,
-            'IdTpq'        => $idTpq,
             'Tempat'       => $this->request->getPost('Tempat'),
             'Detail'       => $this->request->getPost('Detail'),
-            'IsActive'     => 0, // Default inactive
-            'CreatedBy'    => user()->username,
-            'Token'        => bin2hex(random_bytes(32)), // Generate 64-char hex token
+            'Lingkup'      => $scope,
+            'IdTpq'        => $idTpq,
+            'CreatedBy'    => session()->get('id_user'),
+            'Token'        => bin2hex(random_bytes(16)),
+            'IsActive'     => 1, // Default active
+            'JenisJadwal'       => $this->request->getPost('JenisJadwal'),
+            'Interval'          => $this->request->getPost('Interval') ?: 1,
+            'TanggalMulaiRutin' => $this->request->getPost('TanggalMulaiRutin') ?: null,
+            'TanggalAkhirRutin' => $this->request->getPost('TanggalAkhirRutin') ?: null,
+            'JenisBatasAkhir'   => $this->request->getPost('JenisBatasAkhir') ?: 'Tanggal',
+            'JumlahKejadian'    => $this->request->getPost('JumlahKejadian') ?: null,
+            'TanggalDalamBulan' => $this->request->getPost('TanggalDalamBulan') ?: null,
+            'OpsiPola'          => $this->request->getPost('OpsiPola') ?: 'Tanggal',
+            'PosisiMinggu'      => $this->request->getPost('PosisiMinggu') ?: null,
+            'BulanTahun'        => $this->request->getPost('BulanTahun') ?: null,
         ];
 
-        $idKegiatan = $this->kegiatanModel->insert($data, true);
-
-        if ($idKegiatan) {
-            // Batch Insert Absensi Guru with 'Alfa'
-            $this->generateAbsensiLog($idKegiatan, $lingkup, $idTpq);
-            
-            return redirect()->to(base_url('backend/kegiatan-absensi'))->with('success', 'Kegiatan berhasil dibuat dan data absensi telah di-generate.');
+        // Handle HariDalamMinggu (Array to CSV)
+        $hari = $this->request->getPost('HariDalamMinggu');
+        if (is_array($hari)) {
+            $data['HariDalamMinggu'] = implode(',', $hari);
         } else {
-            return redirect()->back()->withInput()->with('error', 'Gagal membuat kegiatan.');
+            $data['HariDalamMinggu'] = $hari ?: null;
         }
+
+        // Handle Nth Day Target for Bulanan/Tahunan (Override if HariKe)
+        if ($data['OpsiPola'] == 'HariKe') {
+            if ($data['JenisJadwal'] == 'bulanan') {
+                $data['HariDalamMinggu'] = $this->request->getPost('HariTarget_Bulanan');
+            } elseif ($data['JenisJadwal'] == 'tahunan') {
+                $data['HariDalamMinggu'] = $this->request->getPost('HariTarget_Tahunan');
+            }
+        }
+        
+        $this->kegiatanModel->save($data);
+        $idKegiatan = $this->kegiatanModel->getInsertID();
+        
+        // Generate initial log if needed (skipping strict generation for recurring patterns on create to save space, 
+        // will be generated on demand or by cron/first access)
+        
+        return redirect()->to(base_url('backend/kegiatan-absensi'))->with('success', 'Kegiatan berhasil dibuat.');
     }
     
     public function edit($id = null)
     {
         $kegiatan = $this->kegiatanModel->find($id);
         if (!$kegiatan) {
-             return redirect()->to(base_url('backend/kegiatan-absensi'))->with('error', 'Data tidak ditemukan.');
+             return redirect()->back()->with('error', 'Data tidak ditemukan.');
         }
-
+        
+        // Convert HariDalamMinggu CSV to Array for View
+        if (!empty($kegiatan['HariDalamMinggu'])) {
+            $kegiatan['HariDalamMinggu'] = explode(',', $kegiatan['HariDalamMinggu']);
+        } else {
+            $kegiatan['HariDalamMinggu'] = [];
+        }
+        
         $data = [
             'page_title' => 'Edit Kegiatan Absensi',
-            'kegiatan'   => $kegiatan,
+            'kegiatan' => $kegiatan,
             'tpq_list'   => $this->helpFunctionModel->getDataTpq(),
             'isGuru'     => in_groups('Guru') && !in_groups('Admin'),
         ];
+        
         return view('backend/kegiatan_absensi/form', $data);
     }
     
@@ -183,11 +216,33 @@ class KegiatanAbsensi extends BaseController
             'Tempat'       => $this->request->getPost('Tempat'),
             'Detail'       => $this->request->getPost('Detail'),
             'JenisJadwal'       => $this->request->getPost('JenisJadwal'),
+            'Interval'          => $this->request->getPost('Interval') ?: 1,
             'TanggalMulaiRutin' => $this->request->getPost('TanggalMulaiRutin') ?: null,
             'TanggalAkhirRutin' => $this->request->getPost('TanggalAkhirRutin') ?: null,
-            'HariDalamMinggu'   => $this->request->getPost('HariDalamMinggu') ?: null,
+            'JenisBatasAkhir'   => $this->request->getPost('JenisBatasAkhir') ?: 'Tanggal',
+            'JumlahKejadian'    => $this->request->getPost('JumlahKejadian') ?: null,
             'TanggalDalamBulan' => $this->request->getPost('TanggalDalamBulan') ?: null,
+            'OpsiPola'          => $this->request->getPost('OpsiPola') ?: 'Tanggal',
+            'PosisiMinggu'      => $this->request->getPost('PosisiMinggu') ?: null,
+            'BulanTahun'        => $this->request->getPost('BulanTahun') ?: null,
         ];
+        
+        // Handle HariDalamMinggu (Array to CSV)
+        $hari = $this->request->getPost('HariDalamMinggu');
+        if (is_array($hari)) {
+            $data['HariDalamMinggu'] = implode(',', $hari);
+        } else {
+             $data['HariDalamMinggu'] = $hari ?: null;
+        }
+
+        // Handle Nth Day Target for Bulanan/Tahunan (Override if HariKe)
+        if ($data['OpsiPola'] == 'HariKe') {
+             if ($data['JenisJadwal'] == 'bulanan') {
+                 $data['HariDalamMinggu'] = $this->request->getPost('HariTarget_Bulanan');
+             } elseif ($data['JenisJadwal'] == 'tahunan') {
+                 $data['HariDalamMinggu'] = $this->request->getPost('HariTarget_Tahunan');
+             }
+        }
         
         $this->kegiatanModel->update($id, $data);
         

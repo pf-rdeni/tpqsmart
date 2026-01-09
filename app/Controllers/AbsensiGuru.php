@@ -88,12 +88,23 @@ class AbsensiGuru extends BaseController
         }
 
         // 5b. Check if accessing AFTER end time
+        // 5b. Check if accessing AFTER end time
         if ($now > $activityEnd) {
-            return view('frontend/absensi/error', [
+            $errorData = [
                 'errorType' => 'after_end',
                 'kegiatan' => $kegiatan,
                 'page_title' => 'Sudah Berakhir'
-            ]);
+            ];
+
+            // If recurring, calculate next occurrence for info
+            if (($kegiatan['JenisJadwal'] ?? 'sekali') !== 'sekali') {
+                 $nextDate = $this->calculateNextOccurrence($kegiatan);
+                 if ($nextDate) {
+                     $errorData['nextOccurrence'] = $nextDate;
+                 }
+            }
+
+            return view('frontend/absensi/error', $errorData);
         }
 
         // 6. Fetch Attendance Records for current occurrence
@@ -277,41 +288,118 @@ class AbsensiGuru extends BaseController
         $today = date('Y-m-d');
         $jenisJadwal = $kegiatan['JenisJadwal'] ?? 'sekali';
         
+        // Basic date range check
+        if (!empty($kegiatan['TanggalMulaiRutin']) && $today < $kegiatan['TanggalMulaiRutin']) {
+            return null;
+        }
+
+        // Check End Condition
+        $jenisBatas = $kegiatan['JenisBatasAkhir'] ?? 'Tanggal';
+        if ($jenisBatas === 'Tanggal' && !empty($kegiatan['TanggalAkhirRutin']) && $today > $kegiatan['TanggalAkhirRutin']) {
+            return null;
+        }
+        
+        // Interval Logic
+        $interval = max(1, (int)($kegiatan['Interval'] ?? 1));
+        $startDate = $kegiatan['TanggalMulaiRutin'];
+
         switch ($jenisJadwal) {
             case 'sekali':
-                // Original behavior: use the Tanggal field
-                return ['date' => $kegiatan['Tanggal']];
+                return ($kegiatan['Tanggal'] == $today) ? ['date' => $kegiatan['Tanggal']] : null;
                 
             case 'harian':
-                // Check if today is within the recurring period
-                if ($today >= $kegiatan['TanggalMulaiRutin'] && 
-                    (empty($kegiatan['TanggalAkhirRutin']) || $today <= $kegiatan['TanggalAkhirRutin'])) {
-                    return ['date' => $today];
+                // (Diff Days) % Interval == 0
+                $diffDays = (strtotime($today) - strtotime($startDate)) / (60 * 60 * 24);
+                if ($diffDays >= 0 && $diffDays % $interval == 0) {
+                     // Check 'Kejadian' Limit
+                     if ($jenisBatas === 'Kejadian') {
+                         $currentOccurrenceNum = ($diffDays / $interval) + 1;
+                         if ($currentOccurrenceNum > $kegiatan['JumlahKejadian']) return null;
+                     }
+                     return ['date' => $today];
                 }
                 break;
                 
             case 'mingguan':
-                // Check if today's day of week matches
-                $todayDayOfWeek = date('N'); // 1=Monday, 7=Sunday
-                if ($todayDayOfWeek == $kegiatan['HariDalamMinggu'] &&
-                    $today >= $kegiatan['TanggalMulaiRutin'] &&
-                    (empty($kegiatan['TanggalAkhirRutin']) || $today <= $kegiatan['TanggalAkhirRutin'])) {
+                // Check Day Match
+                $allowedDays = explode(',', $kegiatan['HariDalamMinggu'] ?? '');
+                $todayDayOfWeek = date('N'); // 1-7
+                
+                if (!in_array($todayDayOfWeek, $allowedDays)) {
+                    return null;
+                }
+                
+                // Check Week Interval
+                $startWeekMonday = date('Y-m-d', strtotime('last monday', strtotime("$startDate +1 day")));
+                if (date('N', strtotime($startDate)) == 1) $startWeekMonday = $startDate;
+                
+                $todayMonday = date('Y-m-d', strtotime('last monday', strtotime("$today +1 day")));
+                if (date('N', strtotime($today)) == 1) $todayMonday = $today;
+                
+                $diffWeeks = (strtotime($todayMonday) - strtotime($startWeekMonday)) / (60 * 60 * 24 * 7);
+                
+                if ($diffWeeks >= 0 && floor($diffWeeks) == $diffWeeks && $diffWeeks % $interval == 0) {
+                    // Check 'Kejadian' Limit (Simple Approach: Date Limit should be used for safety)
+                    if ($jenisBatas === 'Kejadian') {
+                         // Rough check or assume logic handled elsewhere to set EndDate
+                    }
                     return ['date' => $today];
                 }
                 break;
                 
             case 'bulanan':
-                // Check if today's date matches
-                $todayDate = (int)date('d');
-                if ($todayDate == $kegiatan['TanggalDalamBulan'] &&
-                    $today >= $kegiatan['TanggalMulaiRutin'] &&
-                    (empty($kegiatan['TanggalAkhirRutin']) || $today <= $kegiatan['TanggalAkhirRutin'])) {
-                    return ['date' => $today];
+                // Check Month Interval
+                $startYear = date('Y', strtotime($startDate));
+                $startMonth = date('m', strtotime($startDate));
+                $currYear = date('Y');
+                $currMonth = date('m');
+                
+                $diffMonths = (($currYear - $startYear) * 12) + ($currMonth - $startMonth);
+                
+                if ($diffMonths >= 0 && $diffMonths % $interval == 0) {
+                     // Check Pattern
+                     $opsi = $kegiatan['OpsiPola'] ?? 'Tanggal';
+                     
+                     if ($opsi == 'Tanggal') {
+                         if ((int)date('d') == $kegiatan['TanggalDalamBulan']) {
+                             return ['date' => $today];
+                         }
+                     } else {
+                         // HariKe
+                         $dayIndex = (int)($kegiatan['HariDalamMinggu'] ?? 0);
+                         $target = $this->getNthWeekdayDate($currYear, $currMonth, $kegiatan['PosisiMinggu'], $dayIndex);
+                         if ($target == $today) return ['date' => $today];
+                     }
+                }
+                break;
+
+            case 'tahunan':
+                // Check Year Interval
+                $startYear = date('Y', strtotime($startDate));
+                $currYear = date('Y');
+                $diffYears = $currYear - $startYear;
+                
+                if ($diffYears >= 0 && $diffYears % $interval == 0) {
+                     $targetMonth = $kegiatan['BulanTahun'];
+                     if ((int)date('n') == $targetMonth) {
+                         $opsi = $kegiatan['OpsiPola'] ?? 'Tanggal';
+                         
+                         if ($opsi == 'Tanggal') {
+                             if ((int)date('d') == $kegiatan['TanggalDalamBulan']) {
+                                 return ['date' => $today];
+                             }
+                         } else {
+                             // HariKe
+                             $dayIndex = (int)($kegiatan['HariDalamMinggu'] ?? 0);
+                             $target = $this->getNthWeekdayDate($currYear, $targetMonth, $kegiatan['PosisiMinggu'], $dayIndex);
+                             if ($target == $today) return ['date' => $today];
+                         }
+                     }
                 }
                 break;
         }
         
-        return null; // No valid occurrence today
+        return null;
     }
 
     /**
@@ -323,78 +411,170 @@ class AbsensiGuru extends BaseController
         $jenisJadwal = $kegiatan['JenisJadwal'] ?? 'sekali';
         $startDate = $kegiatan['TanggalMulaiRutin'];
         $endDate = $kegiatan['TanggalAkhirRutin'];
+        $interval = max(1, (int)($kegiatan['Interval'] ?? 1));
+        $jenisBatas = $kegiatan['JenisBatasAkhir'] ?? 'Tanggal';
 
-        // If activity hasn't started yet globally
-        if ($today < $startDate) {
-            // Check if specific logic needs to align with day/date
-            // specific logic below will handle finding the first valid date >= startDate
+        // Check End Date/Limit Global Check
+        if ($jenisBatas === 'Tanggal' && !empty($endDate) && $today >= $endDate) {
+            return null;
         }
 
-        $nextDate = null;
-
+        // Determine Start Search Date: Tomorrow (since we want NEXT occurrence after today)
+        // However, if the activity hasn't started yet, we might want the FIRST occurrence
+        $searchDate = ($today < $startDate) ? $startDate : date('Y-m-d', strtotime('+1 day'));
+        if ($searchDate < $startDate) $searchDate = $startDate;
+        
         switch ($jenisJadwal) {
             case 'sekali':
-                if ($kegiatan['Tanggal'] > $today) {
-                    return $kegiatan['Tanggal'];
-                }
-                break;
+                return ($kegiatan['Tanggal'] > $today) ? $kegiatan['Tanggal'] : null;
 
             case 'harian':
-                // Next day
-                $nextDate = date('Y-m-d', strtotime('+1 day'));
-                // If not started yet, use start date
-                if ($nextDate < $startDate) $nextDate = $startDate;
-                break;
+                $opsi = $kegiatan['OpsiPola'] ?? 'Interval';
+                
+                if ($opsi === 'Weekday') {
+                    // Find next weekday >= searchDate
+                    $nextDate = $searchDate;
+                    while (date('N', strtotime($nextDate)) >= 6) { // 6=Sat, 7=Sun
+                         $nextDate = date('Y-m-d', strtotime("$nextDate +1 day"));
+                    }
+                } else {
+                    // Standard Interval Logic
+                    $diffDays = (strtotime($searchDate) - strtotime($startDate)) / (60 * 60 * 24);
+                    if ($diffDays < 0) $diffDays = 0; // Fix negative diff
+                    
+                    $remainder = $diffDays % $interval;
+                    $daysToAdd = ($remainder == 0) ? 0 : ($interval - $remainder);
+                    
+                    $nextDate = date('Y-m-d', strtotime("$searchDate +$daysToAdd days"));
+                }
+                
+                // Check 'Kejadian' Limit
+                if ($jenisBatas === 'Kejadian') {
+                     $diffTotal = (strtotime($nextDate) - strtotime($startDate)) / (60 * 60 * 24);
+                     $occurrenceNum = ($diffTotal / $interval) + 1;
+                     if ($occurrenceNum > $kegiatan['JumlahKejadian']) return null;
+                }
+                
+                // Check End Date
+                if ($jenisBatas === 'Tanggal' && !empty($endDate) && $nextDate > $endDate) return null;
+                
+                return $nextDate;
 
             case 'mingguan':
-                $targetDay = $kegiatan['HariDalamMinggu'];
-                $currentDay = date('N');
-                $daysToAdd = ($targetDay - $currentDay + 7) % 7;
-                if ($daysToAdd == 0) $daysToAdd = 7; // Next week
-                
-                $nextDate = date('Y-m-d', strtotime("+$daysToAdd days"));
-                
-                // If calculated next date is before start date, we need to find the first occurrence >= startDate
-                if ($nextDate < $startDate) {
-                    // Align start date to the correct day of week
-                    $startDay = date('N', strtotime($startDate));
-                    $diff = ($targetDay - $startDay + 7) % 7;
-                    $nextDate = date('Y-m-d', strtotime("$startDate +$diff days"));
-                }
-                break;
+                 $allowedDays = explode(',', $kegiatan['HariDalamMinggu'] ?? '');
+                 if (empty($allowedDays)) return null;
+                 
+                 $tempDate = strtotime($searchDate);
+                 for ($i = 0; $i < 52 * 5; $i++) { // Max 5 years lookahead
+                     $currDateStr = date('Y-m-d', $tempDate);
+                     
+                     // Check Week Interval
+                     $startWeekMonday = date('Y-m-d', strtotime('last monday', strtotime("$startDate +1 day")));
+                     if (date('N', strtotime($startDate)) == 1) $startWeekMonday = $startDate;
+                     
+                     $currWeekMonday = date('Y-m-d', strtotime('last monday', strtotime("$currDateStr +1 day")));
+                     if (date('N', $tempDate) == 1) $currWeekMonday = $currDateStr;
+                     
+                     $diffWeeks = (strtotime($currWeekMonday) - strtotime($startWeekMonday)) / (60 * 60 * 24 * 7);
+                     
+                     if ($diffWeeks >= 0 && floor($diffWeeks) == $diffWeeks && $diffWeeks % $interval == 0) {
+                         $currDayOfWeek = date('N', $tempDate);
+                         sort($allowedDays);
+                         
+                         foreach ($allowedDays as $day) {
+                             if ($day >= $currDayOfWeek) {
+                                 $daysDiff = $day - $currDayOfWeek;
+                                 $candidateDate = date('Y-m-d', strtotime("+$daysDiff days", $tempDate));
+                                 
+                                 if ($candidateDate >= $searchDate) {
+                                     if ($jenisBatas === 'Tanggal' && !empty($endDate) && $candidateDate > $endDate) return null;
+                                     return $candidateDate;
+                                 }
+                             }
+                         }
+                     }
+                     // Move to next Monday
+                     $tempDate = strtotime('next monday', $tempDate);
+                 }
+                 break;
 
             case 'bulanan':
-                $targetDate = $kegiatan['TanggalDalamBulan'];
-                $currentYear = date('Y');
-                $currentMonth = date('m');
-                
-                // Try this month
-                $candidate1 = "$currentYear-$currentMonth-" . sprintf('%02d', $targetDate);
-                // Try next month
-                $candidate2 = date('Y-m-d', strtotime("$candidate1 +1 month"));
-                
-                if ($candidate1 > $today && $candidate1 >= $startDate) {
-                    $nextDate = $candidate1;
-                } elseif ($candidate2 >= $startDate) {
-                    $nextDate = $candidate2;
-                } else {
-                     // Should be covered, but just in case start date is far future
-                     // Simple fallback: if startDate is valid, use logic relative to startDate
-                     if ($startDate > $today) {
-                         // Find first occurrence after start date
-                         // ... simplistic approach for now:
-                         $nextDate = $candidate2; 
+                 $intervalMonths = $interval;
+                 
+                 $currY = date('Y', strtotime($searchDate));
+                 $currM = date('m', strtotime($searchDate));
+                 $startY = date('Y', strtotime($startDate));
+                 $startM = date('m', strtotime($startDate));
+                 
+                 // Calculate base offset month index
+                 $startMonthIndex = ($startY * 12) + $startM;
+                 $currMonthIndex = ($currY * 12) + $currM;
+                 
+                 // Look ahead
+                 for ($i = 0; $i < 60; $i++) { // Max 5 years lookahead
+                     $checkMonthIndex = $currMonthIndex + $i;
+                     $diff = $checkMonthIndex - $startMonthIndex;
+                     
+                     if ($diff >= 0 && $diff % $intervalMonths == 0) {
+                         // Valid month
+                         $y = floor(($checkMonthIndex - 1) / 12);
+                         $m = (($checkMonthIndex - 1) % 12) + 1;
+                         
+                         $opsi = $kegiatan['OpsiPola'] ?? 'Tanggal';
+                         
+                         if ($opsi == 'Tanggal') {
+                             $candidate = "$y-" . sprintf('%02d', $m) . "-" . sprintf('%02d', $kegiatan['TanggalDalamBulan']);
+                             if (!checkdate($m, $kegiatan['TanggalDalamBulan'], $y)) continue;
+                         } else {
+                             // HariKe
+                             $dayIndex = (int)($kegiatan['HariDalamMinggu'] ?? 0);
+                             $candidate = $this->getNthWeekdayDate($y, $m, $kegiatan['PosisiMinggu'], $dayIndex);
+                         }
+                         
+                         if ($candidate >= $searchDate) {
+                             if ($jenisBatas === 'Tanggal' && !empty($endDate) && $candidate > $endDate) return null;
+                             // Check Kejadian limit if needed
+                             if ($jenisBatas === 'Kejadian') {
+                                 $occ = ($diff / $intervalMonths) + 1;
+                                 if ($occ > $kegiatan['JumlahKejadian']) return null;
+                             }
+                             return $candidate;
+                         }
                      }
-                }
-                break;
+                 }
+                 break;
+
+            case 'tahunan':
+                 $intervalYears = $interval;
+                 $currY = date('Y', strtotime($searchDate));
+                 $startY = date('Y', strtotime($startDate));
+                 
+                 for ($i = 0; $i < 10; $i++) { // Max 10 intervals lookahead
+                     $checkY = $currY + $i;
+                     $diff = $checkY - $startY;
+                     
+                     if ($diff >= 0 && $diff % $intervalYears == 0) {
+                         $targetMonth = $kegiatan['BulanTahun'];
+                         $opsi = $kegiatan['OpsiPola'] ?? 'Tanggal';
+                         
+                         if ($opsi == 'Tanggal') {
+                             $candidate = "$checkY-" . sprintf('%02d', $targetMonth) . "-" . sprintf('%02d', $kegiatan['TanggalDalamBulan']);
+                             if (!checkdate($targetMonth, $kegiatan['TanggalDalamBulan'], $checkY)) continue;
+                         } else {
+                             $dayIndex = (int)($kegiatan['HariDalamMinggu'] ?? 0);
+                             $candidate = $this->getNthWeekdayDate($checkY, $targetMonth, $kegiatan['PosisiMinggu'], $dayIndex);
+                         }
+                         
+                         if ($candidate >= $searchDate) {
+                             if ($jenisBatas === 'Tanggal' && !empty($endDate) && $candidate > $endDate) return null;
+                             return $candidate;
+                         }
+                     }
+                 }
+                 break;
         }
 
-        // Check end date constraint
-        if ($nextDate && (!empty($endDate) && $nextDate > $endDate)) {
-            return null; // Passed end date
-        }
-
-        return $nextDate;
+        return null; // Should not reach here
     }
 
     /**
@@ -443,5 +623,26 @@ class AbsensiGuru extends BaseController
         
         // Fetch and return the newly created records with joined data
         return $this->absensiGuruModel->getAbsensiByKegiatan($idKegiatan, $idTpq, $tanggalOccurrence);
+    }
+    /**
+     * Helper: Calculate Nth Weekday Date
+     * e.g. "Second Friday of January 2024"
+     */
+    private function getNthWeekdayDate($year, $month, $nth, $dayIndex) {
+        // nth: 1=First, 2=Second... 5=Last
+        // dayIndex: 1=Mon, ..., 7=Sun
+        
+        $timestamp = mktime(0, 0, 0, $month, 1, $year);
+        $monthName = date('F', $timestamp);
+        $dayNames = [1=>'Monday', 2=>'Tuesday', 3=>'Wednesday', 4=>'Thursday', 5=>'Friday', 6=>'Saturday', 7=>'Sunday'];
+        $dayName = $dayNames[$dayIndex] ?? 'Monday';
+        
+        if ($nth >= 5) { // Last
+            return date('Y-m-d', strtotime("last $dayName of $monthName $year"));
+        } else {
+            $ordinals = [1=>'first', 2=>'second', 3=>'third', 4=>'fourth'];
+            $ordinal = $ordinals[$nth] ?? 'first';
+            return date('Y-m-d', strtotime("$ordinal $dayName of $monthName $year"));
+        }
     }
 }

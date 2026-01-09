@@ -103,9 +103,44 @@
                     </p>
                     
                     <?php if ($kegiatan['JenisJadwal'] === 'mingguan'): ?>
-                        <p><strong>Jadwal:</strong> Setiap hari <?= ['', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'][$kegiatan['HariDalamMinggu']] ?></p>
+                        <p><strong>Jadwal:</strong> Setiap hari 
+                        <?php 
+                            $daysMap = ['', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+                            $daysIndices = explode(',', $kegiatan['HariDalamMinggu'] ?? '');
+                            $daysNames = [];
+                            foreach ($daysIndices as $idx) {
+                                $idx = (int)$idx;
+                                if (isset($daysMap[$idx])) {
+                                    $daysNames[] = $daysMap[$idx];
+                                }
+                            }
+                            echo implode(', ', $daysNames);
+                        ?>
+                        </p>
                     <?php elseif ($kegiatan['JenisJadwal'] === 'bulanan'): ?>
-                        <p><strong>Jadwal:</strong> Setiap tanggal <?= $kegiatan['TanggalDalamBulan'] ?> setiap bulan</p>
+                        <p><strong>Jadwal:</strong> 
+                        <?php
+                            if (($kegiatan['OpsiPola'] ?? 'Tanggal') == 'Tanggal') {
+                                echo 'Setiap Tanggal ' . ($kegiatan['TanggalDalamBulan'] ?? '-');
+                            } else {
+                                $pos = ['', 'Ke-1', 'Ke-2', 'Ke-3', 'Ke-4', 'Terakhir'][$kegiatan['PosisiMinggu'] ?? 1] ?? '';
+                                $dIdx = $kegiatan['HariDalamMinggu'] ?? 1;
+                                $dName = ['', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'][(int)$dIdx] ?? '';
+                                echo "Setiap Hari $dName Minggu $pos setiap Bulannya";
+                                
+                                // Show specific date info for current month to avoid week confusion
+                                $posMapEng = ['', 'first', 'second', 'third', 'fourth', 'last'];
+                                $posEng = $posMapEng[$kegiatan['PosisiMinggu'] ?? 1] ?? 'first';
+                                $dayMapEng = ['', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+                                $dayEng = $dayMapEng[(int)$dIdx] ?? 'Monday';
+                                
+                                $thisMonthTarget = strtotime("$posEng $dayEng of " . date('F Y'));
+                                $thisMonthDate = date('d F Y', $thisMonthTarget);
+                                
+                                echo "<br><span class='text-muted small'><i class='fas fa-info-circle mr-1'></i>Untuk bulan ini, jadwal jatuh pada tanggal $thisMonthDate</span>";
+                            }
+                        ?>
+                        </p>
                     <?php elseif ($kegiatan['JenisJadwal'] === 'harian'): ?>
                         <p><strong>Jadwal:</strong> Setiap hari</p>
                     <?php endif; ?>
@@ -118,18 +153,23 @@
                 <?php endif; ?>
 
                 <?php if (isset($nextOccurrence) && $nextOccurrence): ?>
-                <div class="mt-4">
-                    <h5 class="text-info font-weight-bold">Sesi Berikutnya:</h5>
-                    <p class="h4 mb-1"><?= date('d F Y', strtotime($nextOccurrence)) ?></p>
-                    <p class="h5">Pukul <?= date('H:i', strtotime($kegiatan['JamMulai'])) ?> WIB</p>
-                    
-                    <?php if (isset($activityStart) && $activityStart): ?>
-                        <div class="countdown-container mt-3 p-3 bg-light rounded border">
-                            <p class="mb-2 text-muted">Akan dimulai dalam:</p>
-                            <div id="countdown-next" class="countdown-timer text-info h3 font-weight-bold">
-                                ---
+                <div class="card shadow-sm mt-4 border-info">
+                    <div class="card-header bg-info text-white text-center">
+                        <h5 class="mb-0 font-weight-bold"><i class="fas fa-calendar-alt mr-2"></i>Sesi Berikutnya</h5>
+                    </div>
+                    <div class="card-body text-center py-4">
+                        <h3 class="font-weight-bold text-dark mb-2"><?= date('d F Y', strtotime($nextOccurrence)) ?></h3>
+                        <h4 class="text-secondary mb-4">Pukul <?= date('H:i', strtotime($kegiatan['JamMulai'])) ?> WIB</h4>
+                        
+                        <?php if (isset($activityStart) && $activityStart): ?>
+                            <div class="countdown-container p-3 bg-light rounded border border-light">
+                                <p class="mb-2 text-muted font-weight-bold text-uppercase" style="letter-spacing: 1px; font-size: 0.9rem;">Akan dimulai dalam</p>
+                                <div id="countdown-next" class="text-info font-weight-bold" style="font-size: 2rem;">
+                                    ---
+                                </div>
                             </div>
-                        </div>
+                    </div>
+                </div>
 
                         <script>
                             // Server time synchronization (reuse if available or define simple version)
@@ -314,6 +354,16 @@
                     <?php if (!empty($kegiatan['Tempat'])): ?>
                     <p><strong>Tempat:</strong> <?= esc($kegiatan['Tempat']) ?></p>
                     <?php endif; ?>
+                </div>
+                <?php endif; ?>
+
+                <?php if (isset($nextOccurrence) && $nextOccurrence): ?>
+                <div class="alert alert-info mt-3">
+                    <h5 class="alert-heading h6 font-weight-bold"><i class="fas fa-calendar-check mr-1"></i> Jadwal Berikutnya</h5>
+                    <p class="mb-0">
+                        Jadwal absensi saat ini sudah selesai.<br>
+                        Jadwal berikutnya: <strong><?= date('d F Y', strtotime($nextOccurrence)) ?></strong> pukul <strong><?= date('H:i', strtotime($kegiatan['JamMulai'])) ?> WIB</strong>.
+                    </p>
                 </div>
                 <?php endif; ?>
 
