@@ -152,6 +152,14 @@
                 </div>
                 <?php endif; ?>
 
+                <!-- Live Current Time -->
+                <div class="alert alert-warning mt-3 mb-3" style="font-size: 1rem; border: 1px solid #ffeeba;">
+                    <div class="text-center">
+                        <i class="fas fa-calendar-day mr-1"></i> <strong>Waktu Saat Ini:</strong><br>
+                        <span id="currentDateTime" style="font-size: 1.1rem; font-weight: 500;"></span>
+                    </div>
+                </div>
+
                 <?php if (isset($nextOccurrence) && $nextOccurrence): ?>
                 <div class="card shadow-sm mt-4 border-info">
                     <div class="card-header bg-info text-white text-center">
@@ -235,103 +243,69 @@
                 </div>
 
                 <!-- Live Current Time -->
-                <div class="alert alert-light mt-3 mb-3" style="font-size: 1rem; border: 1px solid #dee2e6;">
+                <div class="alert alert-warning mt-3 mb-3" style="font-size: 1rem; border: 1px solid #ffeeba;">
                     <div class="text-center">
                         <i class="fas fa-calendar-day mr-1"></i> <strong>Waktu Saat Ini:</strong><br>
                         <span id="currentDateTime" style="font-size: 1.1rem; font-weight: 500;"></span>
                     </div>
                 </div>
 
-                <!-- Countdown Timer -->
-                <div class="alert alert-primary mt-4" style="font-size: 1.2rem;">
-                    <div class="mb-2"><i class="fas fa-clock"></i> <strong>Dimulai dalam:</strong></div>
-                    <div id="countdown" style="font-size: 1.8rem; font-weight: bold;">
-                        <!-- Countdown will be inserted here -->
+                <!-- CARD SESI BERIKUTNYA (Standardized) -->
+                <div class="card shadow-sm mt-4 border-info">
+                    <div class="card-header bg-info text-white text-center">
+                        <h5 class="mb-0 font-weight-bold"><i class="fas fa-calendar-alt mr-2"></i>Sesi Berikutnya</h5>
+                    </div>
+                    <div class="card-body text-center py-4">
+                        <h3 class="font-weight-bold text-dark mb-2"><?= date('d F Y', $activityStart) ?></h3>
+                        <h4 class="text-secondary mb-4">Pukul <?= date('H:i', strtotime($kegiatan['JamMulai'])) ?> WIB</h4>
+                        
+                        <div class="countdown-container p-3 bg-light rounded border border-light">
+                            <p class="mb-2 text-muted font-weight-bold text-uppercase" style="letter-spacing: 1px; font-size: 0.9rem;">Akan dimulai dalam</p>
+                            <div id="countdown-before" class="text-info font-weight-bold" style="font-size: 2rem;">
+                                ---
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 <script>
-                    // Server time synchronization
-                    const serverTime = <?= time() ?> * 1000; // Server time in milliseconds
-                    const clientTime = new Date().getTime();
-                    const timeOffset = serverTime - clientTime; // Offset between server and client
-                    
-                    // Countdown timer
-                    const targetTime = <?= $activityStart ?> * 1000; // Convert to milliseconds
-                    const activityToken = '<?= $kegiatan['Token'] ?? '' ?>';
-                    
-                    function getCurrentTime() {
-                        // Get current time adjusted with server offset
-                        return new Date().getTime() + timeOffset;
-                    }
-                    
-                    function updateCurrentTime() {
-                        const now = new Date(getCurrentTime());
-                        
-                        // Indonesian month names
-                        const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-                                          'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-                        
-                        const day = String(now.getDate()).padStart(2, '0');
-                        const month = monthNames[now.getMonth()];
-                        const year = now.getFullYear();
-                        const hours = String(now.getHours()).padStart(2, '0');
-                        const minutes = String(now.getMinutes()).padStart(2, '0');
-                        const seconds = String(now.getSeconds()).padStart(2, '0');
-                        
-                        const dateTimeStr = `${day} ${month} ${year}, ${hours}:${minutes}:${seconds} WIB`;
-                        document.getElementById('currentDateTime').textContent = dateTimeStr;
-                    }
-                    
-                    function updateCountdown() {
-                        const now = getCurrentTime();
-                        const distance = targetTime - now;
+                    (function() {
+                        const targetTime = <?= $activityStart * 1000 ?>;
+                        const serverTime = <?= time() * 1000 ?>;
+                        const clientTime = new Date().getTime();
+                        const timeOffset = serverTime - clientTime;
 
-                        if (distance < 0) {
-                            // Countdown finished, reload page
-                            location.reload();
-                            return;
+                        function updateCurrentTime() {
+                            // Logic moved to global script
+                        }
+                        // Global script handles this now
+
+
+                        function updateCountdown() {
+                            const now = new Date().getTime() + timeOffset;
+                            const distance = targetTime - now;
+
+                            if (distance < 0) {
+                                location.reload();
+                                return;
+                            }
+
+                            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+                            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+                            let text = '';
+                            if (days > 0) text += days + ' Hari, ';
+                            if (days > 0 || hours > 0) text += hours + ' Jam ';
+                            text += minutes + ' Menit ' + seconds + ' Detik';
+
+                            document.getElementById('countdown-before').textContent = text;
                         }
 
-                        const days = Math.floor(distance / (1000 * 60 * 60 * 24));
-                        const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-                        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-
-                        // Build countdown string based on what's relevant
-                        let countdownText = '';
-                        
-                        if (days > 0) {
-                            countdownText += String(days).padStart(2, '0') + ' Hari, ';
-                        }
-                        
-                        if (days > 0 || hours > 0) {
-                            countdownText += String(hours).padStart(2, '0') + ' Jam ';
-                        }
-                        
-                        countdownText += String(minutes).padStart(2, '0') + ' Menit ';
-                        countdownText += String(seconds).padStart(2, '0') + ' Detik';
-
-                        document.getElementById('countdown').textContent = countdownText;
-                    }
-
-                    // Periodic validation check - verify activity schedule hasn't changed
-                    function checkActivityStatus() {
-                        // Reload page every 30 seconds to check for any schedule changes
-                        // This ensures if admin changes the time, users will see the update
-                        location.reload();
-                    }
-
-                    // Update countdown immediately and then every second
-                    updateCurrentTime();
-                    updateCountdown();
-                    setInterval(function() {
-                        updateCurrentTime();
+                        setInterval(updateCountdown, 1000);
                         updateCountdown();
-                    }, 1000);
-                    
-                    // Check for schedule changes every 30 seconds
-                    setInterval(checkActivityStatus, 30000);
+                    })();
                 </script>
                 <?php endif; ?>
 
@@ -357,14 +331,68 @@
                 </div>
                 <?php endif; ?>
 
-                <?php if (isset($nextOccurrence) && $nextOccurrence): ?>
-                <div class="alert alert-info mt-3">
-                    <h5 class="alert-heading h6 font-weight-bold"><i class="fas fa-calendar-check mr-1"></i> Jadwal Berikutnya</h5>
-                    <p class="mb-0">
-                        Jadwal absensi saat ini sudah selesai.<br>
-                        Jadwal berikutnya: <strong><?= date('d F Y', strtotime($nextOccurrence)) ?></strong> pukul <strong><?= date('H:i', strtotime($kegiatan['JamMulai'])) ?> WIB</strong>.
-                    </p>
+                <!-- Live Current Time -->
+                <div class="alert alert-warning mt-3 mb-3" style="font-size: 1rem; border: 1px solid #ffeeba;">
+                    <div class="text-center">
+                        <i class="fas fa-calendar-day mr-1"></i> <strong>Waktu Saat Ini:</strong><br>
+                        <span id="currentDateTime" style="font-size: 1.1rem; font-weight: 500;"></span>
+                    </div>
                 </div>
+
+                <?php if (isset($nextOccurrence) && $nextOccurrence): ?>
+                <?php 
+                    $nextTimestamp = strtotime("$nextOccurrence " . $kegiatan['JamMulai']);
+                ?>
+                <div class="card shadow-sm mt-4 border-info">
+                    <div class="card-header bg-info text-white text-center">
+                        <h5 class="mb-0 font-weight-bold"><i class="fas fa-calendar-alt mr-2"></i>Sesi Berikutnya</h5>
+                    </div>
+                    <div class="card-body text-center py-4">
+                        <h3 class="font-weight-bold text-dark mb-2"><?= date('d F Y', $nextTimestamp) ?></h3>
+                        <h4 class="text-secondary mb-4">Pukul <?= date('H:i', strtotime($kegiatan['JamMulai'])) ?> WIB</h4>
+                        
+                        <div class="countdown-container p-3 bg-light rounded border border-light">
+                            <p class="mb-2 text-muted font-weight-bold text-uppercase" style="letter-spacing: 1px; font-size: 0.9rem;">Akan dimulai dalam</p>
+                            <div id="countdown-after" class="text-info font-weight-bold" style="font-size: 2rem;">
+                                ---
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <script>
+                    (function() {
+                        const targetTime = <?= $nextTimestamp * 1000 ?>;
+                        const serverTime = <?= time() * 1000 ?>;
+                        const clientTime = new Date().getTime();
+                        const timeOffset = serverTime - clientTime;
+
+                        function updateCountdown() {
+                            const now = new Date().getTime() + timeOffset;
+                            const distance = targetTime - now;
+
+                            if (distance < 0) {
+                                document.getElementById('countdown-after').textContent = "Waktu Tiba!";
+                                return;
+                            }
+
+                            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+                            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+                            let text = '';
+                            if (days > 0) text += days + ' Hari, ';
+                            if (days > 0 || hours > 0) text += hours + ' Jam ';
+                            text += minutes + ' Menit ' + seconds + ' Detik';
+
+                            document.getElementById('countdown-after').textContent = text;
+                        }
+
+                        setInterval(updateCountdown, 1000);
+                        updateCountdown();
+                    })();
+                </script>
                 <?php endif; ?>
 
             <?php elseif ($errorType === 'outside_schedule'): ?>
@@ -392,6 +420,14 @@
                 </div>
                 <?php endif; ?>
 
+                <!-- Live Current Time -->
+                <div class="alert alert-warning mt-3 mb-3" style="font-size: 1rem; border: 1px solid #ffeeba;">
+                    <div class="text-center">
+                        <i class="fas fa-calendar-day mr-1"></i> <strong>Waktu Saat Ini:</strong><br>
+                        <span id="currentDateTime" style="font-size: 1.1rem; font-weight: 500;"></span>
+                    </div>
+                </div>
+
             <?php else: ?>
                 <div class="error-icon text-secondary">
                     <i class="fas fa-question-circle"></i>
@@ -405,4 +441,33 @@
         </div>
     </div>
 
+    <script>
+        (function() {
+            // Global Live Current Time Script
+            const serverTime = <?= time() * 1000 ?>;
+            const clientTime = new Date().getTime();
+            const timeOffset = serverTime - clientTime;
+
+            function updateGlobalCurrentTime() {
+                const el = document.getElementById('currentDateTime');
+                if (!el) return;
+
+                const now = new Date(new Date().getTime() + timeOffset);
+                const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+                                  'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+                const day = String(now.getDate()).padStart(2, '0');
+                const month = monthNames[now.getMonth()];
+                const year = now.getFullYear();
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                const seconds = String(now.getSeconds()).padStart(2, '0');
+                
+                const dateTimeStr = `${day} ${month} ${year}, ${hours}:${minutes}:${seconds} WIB`;
+                el.textContent = dateTimeStr;
+            }
+
+            setInterval(updateGlobalCurrentTime, 1000);
+            updateGlobalCurrentTime();
+        })();
+    </script>
 <?= $this->endSection(); ?>
