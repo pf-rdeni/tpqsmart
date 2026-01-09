@@ -615,7 +615,7 @@ class NilaiModel extends Model
         $startTime = microtime(true);
 
         $builder = $this->db->table('tbl_nilai n');
-        $builder->select('n.IdSantri, n.Semester, SUM(n.Nilai) AS TotalNilai, ROUND(AVG(n.Nilai), 2) AS NilaiRataRata');
+        $builder->select('n.IdSantri, ks.IdKelas, n.Semester, SUM(n.Nilai) AS TotalNilai, ROUND(AVG(n.Nilai), 2) AS NilaiRataRata');
         $builder->join('tbl_kelas_santri ks', 'ks.IdSantri = n.IdSantri AND ks.IdTahunAjaran = n.IdTahunAjaran');
 
         // Apply filters
@@ -632,7 +632,7 @@ class NilaiModel extends Model
         $builder->where('n.Semester', $semester);
         $builder->where('n.IdTpq', $IdTpq);
 
-        $builder->groupBy(['n.IdSantri', 'n.Semester']);
+        $builder->groupBy(['n.IdSantri', 'ks.IdKelas', 'n.Semester']);
 
         $result = $builder->get()->getResult();
 
