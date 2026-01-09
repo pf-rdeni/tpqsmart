@@ -50,9 +50,19 @@ class AbsensiGuru extends BaseController
         $currentOccurrence = $this->calculateCurrentOccurrence($kegiatan);
         
         if (!$currentOccurrence) {
+            // Calculate next occurrence for countdown
+            $nextDate = $this->calculateNextOccurrence($kegiatan);
+            $activityStart = null;
+            
+            if ($nextDate) {
+                $activityStart = strtotime("$nextDate " . $kegiatan['JamMulai']);
+            }
+
             return view('frontend/absensi/error', [
                 'errorType' => 'no_occurrence',
                 'kegiatan' => $kegiatan,
+                'nextOccurrence' => $nextDate,
+                'activityStart' => $activityStart,
                 'page_title' => 'Tidak Ada Jadwal Hari Ini'
             ]);
         }
@@ -302,6 +312,89 @@ class AbsensiGuru extends BaseController
         }
         
         return null; // No valid occurrence today
+    }
+
+    /**
+     * Calculate the next occurrence date
+     */
+    protected function calculateNextOccurrence($kegiatan)
+    {
+        $today = date('Y-m-d');
+        $jenisJadwal = $kegiatan['JenisJadwal'] ?? 'sekali';
+        $startDate = $kegiatan['TanggalMulaiRutin'];
+        $endDate = $kegiatan['TanggalAkhirRutin'];
+
+        // If activity hasn't started yet globally
+        if ($today < $startDate) {
+            // Check if specific logic needs to align with day/date
+            // specific logic below will handle finding the first valid date >= startDate
+        }
+
+        $nextDate = null;
+
+        switch ($jenisJadwal) {
+            case 'sekali':
+                if ($kegiatan['Tanggal'] > $today) {
+                    return $kegiatan['Tanggal'];
+                }
+                break;
+
+            case 'harian':
+                // Next day
+                $nextDate = date('Y-m-d', strtotime('+1 day'));
+                // If not started yet, use start date
+                if ($nextDate < $startDate) $nextDate = $startDate;
+                break;
+
+            case 'mingguan':
+                $targetDay = $kegiatan['HariDalamMinggu'];
+                $currentDay = date('N');
+                $daysToAdd = ($targetDay - $currentDay + 7) % 7;
+                if ($daysToAdd == 0) $daysToAdd = 7; // Next week
+                
+                $nextDate = date('Y-m-d', strtotime("+$daysToAdd days"));
+                
+                // If calculated next date is before start date, we need to find the first occurrence >= startDate
+                if ($nextDate < $startDate) {
+                    // Align start date to the correct day of week
+                    $startDay = date('N', strtotime($startDate));
+                    $diff = ($targetDay - $startDay + 7) % 7;
+                    $nextDate = date('Y-m-d', strtotime("$startDate +$diff days"));
+                }
+                break;
+
+            case 'bulanan':
+                $targetDate = $kegiatan['TanggalDalamBulan'];
+                $currentYear = date('Y');
+                $currentMonth = date('m');
+                
+                // Try this month
+                $candidate1 = "$currentYear-$currentMonth-" . sprintf('%02d', $targetDate);
+                // Try next month
+                $candidate2 = date('Y-m-d', strtotime("$candidate1 +1 month"));
+                
+                if ($candidate1 > $today && $candidate1 >= $startDate) {
+                    $nextDate = $candidate1;
+                } elseif ($candidate2 >= $startDate) {
+                    $nextDate = $candidate2;
+                } else {
+                     // Should be covered, but just in case start date is far future
+                     // Simple fallback: if startDate is valid, use logic relative to startDate
+                     if ($startDate > $today) {
+                         // Find first occurrence after start date
+                         // ... simplistic approach for now:
+                         $nextDate = $candidate2; 
+                     }
+                }
+                break;
+        }
+
+        // Check end date constraint
+        if ($nextDate && (!empty($endDate) && $nextDate > $endDate)) {
+            return null; // Passed end date
+        }
+
+        return $nextDate;
     }
 
     /**

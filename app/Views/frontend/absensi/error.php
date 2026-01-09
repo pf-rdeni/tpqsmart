@@ -117,6 +117,63 @@
                 </div>
                 <?php endif; ?>
 
+                <?php if (isset($nextOccurrence) && $nextOccurrence): ?>
+                <div class="mt-4">
+                    <h5 class="text-info font-weight-bold">Sesi Berikutnya:</h5>
+                    <p class="h4 mb-1"><?= date('d F Y', strtotime($nextOccurrence)) ?></p>
+                    <p class="h5">Pukul <?= date('H:i', strtotime($kegiatan['JamMulai'])) ?> WIB</p>
+                    
+                    <?php if (isset($activityStart) && $activityStart): ?>
+                        <div class="countdown-container mt-3 p-3 bg-light rounded border">
+                            <p class="mb-2 text-muted">Akan dimulai dalam:</p>
+                            <div id="countdown-next" class="countdown-timer text-info h3 font-weight-bold">
+                                ---
+                            </div>
+                        </div>
+
+                        <script>
+                            // Server time synchronization (reuse if available or define simple version)
+                            // Assuming similar logic to before_start but specific for this block if needed
+                            // For simplicity, we'll use a self-contained script here or reuse the logic if we extract it.
+                            // Let's copy the robust logic to ensure it works independently.
+
+                            (function() {
+                                const targetTime = <?= $activityStart * 1000 ?>;
+                                const serverTime = <?= time() * 1000 ?>;
+                                const clientTime = new Date().getTime();
+                                const timeOffset = serverTime - clientTime;
+
+                                function updateCountdown() {
+                                    const now = new Date().getTime() + timeOffset;
+                                    const distance = targetTime - now;
+
+                                    if (distance < 0) {
+                                        document.getElementById('countdown-next').innerHTML = "Waktu Tiba!";
+                                        setTimeout(() => location.reload(), 2000);
+                                        return;
+                                    }
+
+                                    const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+                                    const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                                    const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                                    const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+                                    let text = '';
+                                    if (days > 0) text += days + ' Hari, ';
+                                    if (days > 0 || hours > 0) text += hours + ' Jam ';
+                                    text += minutes + ' Menit ' + seconds + ' Detik';
+
+                                    document.getElementById('countdown-next').textContent = text;
+                                }
+
+                                setInterval(updateCountdown, 1000);
+                                updateCountdown();
+                            })();
+                        </script>
+                    <?php endif; ?>
+                </div>
+                <?php endif; ?>
+
             <?php elseif ($errorType === 'before_start'): ?>
                 <div class="error-icon text-primary">
                     <i class="fas fa-hourglass-start"></i>
