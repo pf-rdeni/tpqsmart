@@ -683,6 +683,275 @@ class NilaiModel extends Model
     }
 
     /**
+     * Menghitung total nilai dan rata-rata per santri dengan mempertimbangkan GroupKategoriNilai
+     * Method ini akan menerapkan grouping logic yang sama seperti di cetak rapor
+     * 
+     * @param int $IdTpq
+     * @param mixed $IdKelas (int atau array)
+     * @param int $IdTahunAjaran
+     * @param string $semester
+     * @return array Array of objects dengan struktur: [IdSantri, IdKelas, Semester, TotalNilai, NilaiRataRata]
+     */
+    public function calculateNilaiAggregationWithGrouping($IdTpq, $IdKelas, $IdTahunAjaran, $semester)
+    {
+        $startTime = microtime(true);
+        
+        // Load models yang diperlukan
+        $toolsModel = new \App\Models\ToolsModel();
+        $helpFunctionModel = new \App\Models\HelpFunctionModel();
+        $groupKategoriModel = new \App\Models\RaporGroupKategoriModel();
+        
+        // Cek apakah fitur grouping aktif
+        $isGroupingEnabled = $toolsModel->getSettingAsBool($IdTpq, 'GroupKategoriNilai', false);
+        
+        // Jika grouping tidak aktif, gunakan method standar
+        if (!$isGroupingEnabled) {
+            log_message('debug', 'GroupKategoriNilai tidak aktif, menggunakan perhitungan standar');
+            return $this->calculateNilaiAggregation($IdTpq, $IdKelas, $IdTahunAjaran, $semester);
+        }
+        
+        // Ambil daftar kelas yang menggunakan grouping
+        $kelasGroupingString = $toolsModel->getSettingAsString($IdTpq, 'GroupKategoriNilaiKelas', '');
+        $kelasGrouping = [];
+        if (!empty($kelasGroupingString)) {
+            $kelasGrouping = array_map('trim', explode(',', $kelasGroupingString));
+            $kelasGrouping = array_filter($kelasGrouping, function ($item) {
+                return !empty($item);
+            });
+            $kelasGrouping = array_values($kelasGrouping);
+        }
+        
+        // Ambil konfigurasi grouping kategori
+        $groupConfigs = $groupKategoriModel->getActiveByTpq($IdTpq);
+        
+        // Jika tidak ada konfigurasi grouping, gunakan method standar
+        if (empty($groupConfigs)) {
+            log_message('debug', 'Tidak ada konfigurasi grouping, menggunakan perhitungan standar');
+            return $this->calculateNilaiAggregation($IdTpq, $IdKelas, $IdTahunAjaran, $semester);
+        }
+        
+        // Buat mapping kategori -> nama materi baru
+        $kategoriMapping = [];
+        foreach ($groupConfigs as $config) {
+            $kategoriMapping[$config['KategoriAsal']] = [
+                'NamaMateriBaru' => $config['NamaMateriBaru'],
+                'Urutan' => $config['Urutan']
+            ];
+        }
+        
+        // Ambil semua nilai dari database
+        $builder = $this->db->table('tbl_nilai n');
+        $builder->select('n.IdSantri, ks.IdKelas, n.IdMateri, n.Nilai, m.Kategori, n.Semester');
+        $builder->join('tbl_kelas_santri ks', 'ks.IdSantri = n.IdSantri AND ks.IdTahunAjaran = n.IdTahunAjaran');
+        $builder->join('tbl_materi_pelajaran m', 'm.IdMateri = n.IdMateri');
+        
+        // Apply filters
+        if (is_array($IdKelas)) {
+            $builder->whereIn('ks.IdKelas', $IdKelas);
+        } else {
+            $builder->where('ks.IdKelas', $IdKelas);
+        }
+        if (is_array($IdTahunAjaran)) {
+            $builder->whereIn('ks.IdTahunAjaran', $IdTahunAjaran);
+        } else {
+            $builder->where('ks.IdTahunAjaran', $IdTahunAjaran);
+        }
+        $builder->where('n.Semester', $semester);
+        $builder->where('n.IdTpq', $IdTpq);
+        
+        $allNilai = $builder->get()->getResult();
+        
+        // Ambil nama kelas untuk semua IdKelas yang ada
+        $kelasIds = is_array($IdKelas) ? $IdKelas : [$IdKelas];
+        $namaKelasMap = $helpFunctionModel->getNamaKelasBulk($kelasIds);
+        
+        // Group nilai per santri dan per kelas
+        $nilaiPerSantri = [];
+        foreach ($allNilai as $nilai) {
+            $idSantri = $nilai->IdSantri;
+            $idKelasNilai = $nilai->IdKelas;
+            $kategori = $nilai->Kategori ?? '';
+            
+            if (!isset($nilaiPerSantri[$idSantri])) {
+                $nilaiPerSantri[$idSantri] = [];
+            }
+            
+            if (!isset($nilaiPerSantri[$idSantri][$idKelasNilai])) {
+                $nilaiPerSantri[$idSantri][$idKelasNilai] = [
+                    'semester' => $nilai->Semester,
+                    'nilai_by_kategori' => []
+                ];
+            }
+            
+            if (!isset($nilaiPerSantri[$idSantri][$idKelasNilai]['nilai_by_kategori'][$kategori])) {
+                $nilaiPerSantri[$idSantri][$idKelasNilai]['nilai_by_kategori'][$kategori] = [];
+            }
+            
+            $nilaiPerSantri[$idSantri][$idKelasNilai]['nilai_by_kategori'][$kategori][] = floatval($nilai->Nilai);
+        }
+        
+        // Hitung agregasi untuk setiap santri
+        $result = [];
+        foreach ($nilaiPerSantri as $idSantri => $kelasData) {
+            foreach ($kelasData as $idKelasNilai => $data) {
+                // Cek apakah kelas ini termasuk dalam daftar grouping
+                $namaKelas = $namaKelasMap[$idKelasNilai] ?? null;
+                $applyGroupingForKelas = false;
+                
+                if (!empty($kelasGrouping) && $namaKelas) {
+                    $namaKelasNormalized = strtoupper(trim($namaKelas));
+                    
+                    foreach ($kelasGrouping as $kelasGroup) {
+                        $kelasGroupNormalized = strtoupper(trim($kelasGroup));
+                        
+                        // Check berbagai pattern matching seperti di Rapor.php
+                        if ($namaKelasNormalized === $kelasGroupNormalized ||
+                            stripos($namaKelasNormalized, $kelasGroupNormalized) !== false ||
+                            stripos($kelasGroupNormalized, $namaKelasNormalized) !== false) {
+                            $applyGroupingForKelas = true;
+                            break;
+                        }
+                        
+                        // Pattern match untuk TPQ + angka
+                        if (strpos($kelasGroupNormalized, 'TPQ') !== false) {
+                            $tpqKelasWithoutPrefix = str_replace('TPQ', '', $kelasGroupNormalized);
+                            if (!empty($tpqKelasWithoutPrefix)) {
+                                if (preg_match('/TPQ\s*' . preg_quote($tpqKelasWithoutPrefix, '/') . '/i', $namaKelasNormalized)) {
+                                    $applyGroupingForKelas = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                } else if (empty($kelasGrouping)) {
+                    // Jika tidak ada daftar kelas spesifik, apply grouping untuk semua kelas
+                    $applyGroupingForKelas = true;
+                }
+                
+                $nilaiList = [];
+                
+                if ($applyGroupingForKelas) {
+                    // Apply grouping: hitung rata-rata per kategori yang di-group
+                    foreach ($data['nilai_by_kategori'] as $kategori => $nilaiKategori) {
+                        if (isset($kategoriMapping[$kategori])) {
+                            // Kategori ini perlu di-group, hitung rata-rata
+                            $count = count($nilaiKategori);
+                            $rata = $count > 0 ? array_sum($nilaiKategori) / $count : 0;
+                            $nilaiList[] = $rata;
+                        } else {
+                            // Kategori tidak di-group, masukkan semua nilai individual
+                            $nilaiList = array_merge($nilaiList, $nilaiKategori);
+                        }
+                    }
+                } else {
+                    // Tidak apply grouping, gunakan semua nilai mentah
+                    foreach ($data['nilai_by_kategori'] as $nilaiKategori) {
+                        $nilaiList = array_merge($nilaiList, $nilaiKategori);
+                    }
+                }
+                
+                // Hitung total dan rata-rata
+                $totalNilai = array_sum($nilaiList);
+                $count = count($nilaiList);
+                $nilaiRataRata = $count > 0 ? round($totalNilai / $count, 2) : 0;
+                
+                $result[] = (object)[
+                    'IdSantri' => $idSantri,
+                    'IdKelas' => $idKelasNilai,
+                    'Semester' => $data['semester'],
+                    'TotalNilai' => round($totalNilai, 2),
+                    'NilaiRataRata' => $nilaiRataRata
+                ];
+            }
+        }
+        
+        $endTime = microtime(true);
+        $executionTime = ($endTime - $startTime) * 1000;
+        
+        log_message('debug', "Tahap 3 - Perhitungan Agregasi dengan Grouping: {$executionTime}ms");
+        
+        return $result;
+    }
+
+    /**
+     * Menghitung ranking per kelas berdasarkan nilai agregasi yang sudah di-group
+     * Method ini menerima hasil dari calculateNilaiAggregationWithGrouping
+     * 
+     * @param array $nilaiAggregation Array hasil dari calculateNilaiAggregationWithGrouping
+     * @return array Array of objects dengan struktur: [IdSantri, IdKelas, Rangking]
+     */
+    public function calculateRankingPerKelasWithGrouping($nilaiAggregation)
+    {
+        $startTime = microtime(true);
+        
+        // Group data per kelas
+        $dataPerKelas = [];
+        foreach ($nilaiAggregation as $item) {
+            $idKelas = $item->IdKelas;
+            if (!isset($dataPerKelas[$idKelas])) {
+                $dataPerKelas[$idKelas] = [];
+            }
+            $dataPerKelas[$idKelas][] = $item;
+        }
+        
+        $result = [];
+        
+        // Hitung ranking untuk setiap kelas
+        foreach ($dataPerKelas as $idKelas => $items) {
+            // Sort berdasarkan NilaiRataRata descending
+            usort($items, function($a, $b) {
+                // Nilai 0 dianggap tidak ada nilai, taruh di akhir
+                if ($a->NilaiRataRata == 0 && $b->NilaiRataRata == 0) {
+                    return 0;
+                }
+                if ($a->NilaiRataRata == 0) {
+                    return 1; // a di akhir
+                }
+                if ($b->NilaiRataRata == 0) {
+                    return -1; // b di akhir
+                }
+                return $b->NilaiRataRata <=> $a->NilaiRataRata;
+            });
+            
+            // Assign ranking dengan handle nilai sama (tie)
+            $currentRank = 1;
+            $prevNilai = null;
+            $sameRankCount = 0;
+            
+            foreach ($items as $item) {
+                if ($item->NilaiRataRata > 0) {
+                    // Jika nilai sama dengan sebelumnya, ranking sama
+                    if ($prevNilai !== null && $item->NilaiRataRata == $prevNilai) {
+                        $ranking = $currentRank - $sameRankCount;
+                        $sameRankCount++;
+                    } else {
+                        $ranking = $currentRank;
+                        $sameRankCount = 1;
+                    }
+                    $prevNilai = $item->NilaiRataRata;
+                    $currentRank++;
+                } else {
+                    // Nilai 0 tidak diberi ranking
+                    $ranking = null;
+                }
+                
+                $result[] = (object)[
+                    'IdSantri' => $item->IdSantri,
+                    'IdKelas' => $item->IdKelas,
+                    'Rangking' => $ranking
+                ];
+            }
+        }
+        
+        $endTime = microtime(true);
+        $executionTime = ($endTime - $startTime) * 1000;
+        
+        log_message('debug', "Tahap 4 - Perhitungan Ranking dengan Grouping: {$executionTime}ms");
+        
+        return $result;
+    }
+
+    /**
      * Fungsi utama yang menggabungkan semua tahap dengan monitoring waktu
      * Versi ini memecah query kompleks menjadi beberapa tahap untuk monitoring performa
      */
@@ -740,11 +1009,13 @@ class NilaiModel extends Model
             ];
         }
 
-        // Tahap 3: Perhitungan Agregasi
-        $nilaiAggregation = $this->calculateNilaiAggregation($IdTpq, $IdKelas, $IdTahunAjaran, $semester);
+        // Tahap 3: Perhitungan Agregasi dengan GroupKategoriNilai
+        // Gunakan method baru yang mendukung grouping
+        $nilaiAggregation = $this->calculateNilaiAggregationWithGrouping($IdTpq, $IdKelas, $IdTahunAjaran, $semester);
 
-        // Tahap 4: Perhitungan Ranking
-        $rankingData = $this->calculateRankingPerKelas($IdTpq, $IdKelas, $IdTahunAjaran, $semester);
+        // Tahap 4: Perhitungan Ranking dengan GroupKategoriNilai
+        // Gunakan method baru yang menghitung ranking dari nilai yang sudah di-group
+        $rankingData = $this->calculateRankingPerKelasWithGrouping($nilaiAggregation);
 
         // Tahap 5: Penggabungan Data (Manual Join)
         $startTime = microtime(true);

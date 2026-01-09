@@ -83,6 +83,9 @@ if (!function_exists('getAlphabetKelasSettings')) {
 if (!function_exists('angkaKeKata')) {
     function angkaKeKata($angka)
     {
+        // Hapus pemisah ribuan (koma) sebelum konversi ke float
+        // Karena floatval() bisa salah interpret koma sebagai decimal separator tergantung locale
+        $angka = str_replace(',', '', $angka);
         $angka = floatval($angka);
         $bilangan = array(
             '',
@@ -172,6 +175,9 @@ if (!function_exists('angkaKeOrdinal')) {
 if (!function_exists('formatTerbilang')) {
     function formatTerbilang($angka)
     {
+        // Hapus pemisah ribuan (koma) sebelum konversi ke float
+        // Karena floatval() bisa salah interpret koma sebagai decimal separator tergantung locale
+        $angka = str_replace(',', '', $angka);
         $angka = floatval($angka);
         $bagian_bulat = floor($angka);
         $bagian_desimal = $angka - $bagian_bulat;
@@ -453,6 +459,9 @@ if (!function_exists('konversiTerbilangArabic')) {
 if (!function_exists('angkaKeTerbilangArab')) {
     function angkaKeTerbilangArab($angka)
     {
+        // Hapus pemisah ribuan (koma) sebelum konversi ke float
+        // Karena floatval() bisa salah interpret koma sebagai decimal separator tergantung locale
+        $angka = str_replace(',', '', $angka);
         $angka = floatval($angka);
         $bilangan = [
             0 => '',
@@ -556,6 +565,9 @@ if (!function_exists('angkaKeTerbilangArab')) {
 if (!function_exists('formatTerbilangArab')) {
     function formatTerbilangArab($angka)
     {
+        // Hapus pemisah ribuan (koma) sebelum konversi ke float
+        // Karena floatval() bisa salah interpret koma sebagai decimal separator tergantung locale
+        $angka = str_replace(',', '', $angka);
         $angka = floatval($angka);
         $bagian_bulat = floor($angka);
         $bagian_desimal = $angka - $bagian_bulat;

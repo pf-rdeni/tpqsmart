@@ -469,8 +469,8 @@
                                                             <div><?= $nilaiDetail->NamaSantri ?></div>
                                                             <small class="text-muted">NIS: <?= $nilaiDetail->IdSantri ?></small>
                                                         </td>
-                                                        <td><?= $nilaiDetail->TotalNilai ?></td>
-                                                        <td><?= $nilaiDetail->NilaiRataRata ?></td>
+                                                        <td><?= number_format($nilaiDetail->TotalNilai, 0) ?></td>
+                                                        <td><?= number_format($nilaiDetail->NilaiRataRata, 1) ?></td>
                                                         <td><?= $nilaiDetail->Rangking ?></td>
                                                     </tr>
                                             <?php

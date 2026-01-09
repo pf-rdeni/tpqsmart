@@ -260,10 +260,10 @@ helper('nilai');
                     <td><?= $no++ ?></td>
                     <td><?= htmlspecialchars(toTitleCase($n->NamaMateri)) ?></td>
                     <td><?= htmlspecialchars(toTitleCase($n->Kategori)) ?></td>
-                    <td><?= konversiNilaiAngkaArabic($n->Nilai) ?></td>
+                    <td><?= konversiNilaiAngkaArabic(number_format($n->Nilai, 0)) ?></td>
                     <td><?= konversiHurufArabic(konversiNilaiHuruf($n->Nilai)) ?></td>
-                    <td><?= konversiNilaiAngkaArabic(number_format($n->RataKelas, 2)) ?></td>
-                    <td class="terbilang-arabic"><?= konversiTerbilangArabic($n->Nilai) ?></td>
+                    <td><?= konversiNilaiAngkaArabic(number_format($n->RataKelas, 0)) ?></td>
+                    <td class="terbilang-arabic"><?= konversiTerbilangArabic(number_format($n->Nilai, 0)) ?></td>
                 </tr>
             <?php endforeach; ?>
             <?php
@@ -275,13 +275,13 @@ helper('nilai');
                 $total += floatval($n->Nilai);
                 $totalRataKelas += floatval($n->RataKelas);
             }
-            $rata_rata = $count > 0 ? $total / $count : 0;
-            $rata_rata = number_format($rata_rata, 1);
-            $rata_rata_kelas = $count > 0 ? $totalRataKelas / $count : 0;
+            $rata_rata = number_format($count > 0 ? $total / $count : 0, 1);
+            $rata_rata_kelas = number_format($count > 0 ? $totalRataKelas / $count : 0, 0);
+            $total=number_format($total, 0);
             ?>
             <tr style="font-weight: bold;">
                 <td colspan="3" style="text-align: right;">Total Nilai:</td>
-                <td><?= konversiNilaiAngkaArabic(number_format($total, 0)) ?></td>
+                <td><?= konversiNilaiAngkaArabic($total) ?></td>
                 <td></td>
                 <td></td>
                 <td class="terbilang-arabic"><?= konversiTerbilangArabic($total) ?></td>
@@ -290,7 +290,7 @@ helper('nilai');
                 <td colspan="3" style="text-align: right;">Rata-Rata:</td>
                 <td><?= konversiNilaiAngkaArabic($rata_rata) ?></td>
                 <td><?= konversiHurufArabic(konversiNilaiHuruf($rata_rata)) ?></td>
-                <td><?= konversiNilaiAngkaArabic(number_format($rata_rata_kelas, 1)) ?></td>
+                <td><?= konversiNilaiAngkaArabic($rata_rata_kelas) ?></td>
                 <td class="terbilang-arabic"><?= konversiTerbilangArabic($rata_rata) ?></td>
             </tr>
         </tbody>
