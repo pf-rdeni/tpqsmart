@@ -54,7 +54,7 @@
                                         if ($type !== 'sekali') {
                                             echo '<div class="small text-muted mt-1">';
                                             
-                                            // Interval Info
+                                            // Info Interval
                                             $interval = $item['Interval'] ?? 1;
                                             $unit = match($type) {
                                                 'harian' => 'hari',
@@ -67,10 +67,10 @@
                                             if ($interval > 1) {
                                                 echo "Setiap $interval $unit<br>";
                                             } else {
-                                                // Optional: "Setiap hari/minggu/bulan" implied
+                                                // Opsional: "Setiap hari/minggu/bulan" tersirat
                                             }
 
-                                            // Pattern Details
+                                            // Detail Pola
                                             if ($type == 'harian') {
                                                  if (($item['OpsiPola'] ?? 'Interval') == 'Weekday') {
                                                      echo "Setiap Hari Kerja (Senin-Jumat)";
@@ -93,8 +93,8 @@
                                                     echo "Setiap Hari $dName Minggu $pos setiap Bulannya";
                                                 }
                                             } elseif ($type == 'tahunan') {
-                                                // Format English Month to Indonesian if needed, or just use English for now
-                                                // Assuming setlocale is irrelevant here, stick to English or mapping
+                                                // Format Bulan Inggris ke Indonesia jika diperlukan, atau gunakan Inggris untuk saat ini
+                                                // Asumsikan setlocale tidak relevan di sini, tetap gunakan Inggris atau pemetaan
                                                 $monthNum = $item['BulanTahun'] ?? 1;
                                                 $monthName = date('F', mktime(0,0,0, $monthNum, 1));
                                                 
@@ -103,7 +103,7 @@
                                                 } else {
                                                     $pos = ['', 'Pertama', 'Kedua', 'Ketiga', 'Keempat', 'Terakhir'][$item['PosisiMinggu'] ?? 1] ?? '';
                                                     $dIdx = $item['HariDalamMinggu'] ?? 1;
-                                                    // Handle array case for HariDalamMinggu
+                                                    // Menangani kasus array untuk HariDalamMinggu
                                                     if(is_array($dIdx)) $dIdx = reset($dIdx);
                                                     
                                                     $dName = ['', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'][(int)$dIdx] ?? '';
@@ -170,7 +170,7 @@
                                         <a href="<?= base_url('backend/kegiatan-absensi/' . $item['Id'] . '/edit') ?>" class="btn btn-warning btn-sm" title="Edit">
                                             <i class="fas fa-edit"></i>
                                         </a>
-                                        <!-- Form Delete using helper or standard form -->
+                                        <!-- Form Hapus menggunakan helper atau form standar -->
                                         <form action="<?= base_url('backend/kegiatan-absensi/' . $item['Id']) ?>" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin menghapus?');">
                                             <?= csrf_field() ?>
                                             <input type="hidden" name="_method" value="DELETE">
@@ -239,21 +239,31 @@
 <?= $this->section('scripts'); ?>
 <script>
     $(function() {
-        // Initialize Select2
-        // dropdownParent is required for search to work within a Bootstrap modal
+        // Penjelasan Proses:
+        // Saat halaman dimuat (document ready), inisialisasi semua library dan event listener.
+        // - Select2 untuk dropdown pencarian.
+        // - Event 'change' untuk switch aktif/nonaktif.
+        // - Event 'change' untuk pilihan Guru di modal WA.
+        // - Event 'change' untuk checkbox Group/Manual di modal WA.
+        // - Event 'click' untuk tombol buka modal WA.
+        // Inisialisasi Select2
+        // dropdownParent diperlukan agar pencarian berfungsi di dalam modal Bootstrap
         $('.select2').select2({
             theme: 'bootstrap4',
             dropdownParent: $('#waModal')
         });
 
-        // Toggle Active
+        // Toggle Aktif
+        // Penjelasan Proses:
+        // Mengirim AJAX request untuk mengubah status aktif/nonaktif kegiatan.
+        // Jika sukses, reload halaman.
         $('.switch-active').change(function() {
             var id = $(this).data('id');
             // ... (rest of the code)
             var isChecked = $(this).is(':checked');
             
-            // If checking (turning ON), others might turn OFF, so we might reload or handle UI.
-            // AJAX call
+            // Jika dicentang (mengaktifkan), yang lain mungkin nonaktif, jadi kita mungkin perlu memuat ulang atau menangani UI.
+            // Panggilan AJAX
             $.ajax({
                 url: '<?= base_url('backend/kegiatan-absensi/active') ?>/' + id,
                 type: 'POST',
@@ -263,7 +273,7 @@
                 success: function(response) {
                     if (response.success) {
                         toastr.success('Status kegiatan berhasil diubah.');
-                        // Reload to reflect that others might have been deactivated
+                        // Muat ulang untuk mencerminkan bahwa yang lain mungkin telah dinonaktifkan
                         setTimeout(function(){ location.reload(); }, 500);
                     } else {
                         toastr.error('Gagal mengubah status.');
@@ -272,12 +282,12 @@
             });
         });
 
-        // Initialize Message on Guru Change
+        // Inisialisasi Pesan saat Guru Berubah
         $('#waGuru').change(function(){
             updateWaMessage();
         });
 
-        // Toggle Group Checkbox
+        // Toggle Checkbox Grup
         $('#checkGroup').change(function() {
             if($(this).is(':checked')) {
                 $('#waGuru').prop('disabled', true);
@@ -287,7 +297,7 @@
             updateWaMessage();
         });
 
-        // Open WA Modal via class listener (Using event delegation for DataTables compatibility)
+        // Buka Modal WA melalui event listener kelas (Menggunakan delegasi event untuk kompatibilitas DataTables)
         $(document).on('click', '.btn-wa-modal', function() {
             var link = $(this).data('link');
             var nama = $(this).data('nama');
@@ -296,9 +306,11 @@
     });
 
     function copyLink(elementId) {
+        // Penjelasan Proses:
+        // Menyalin URL absensi dari input text ke clipboard pengguna.
         var copyText = document.getElementById(elementId);
         copyText.select();
-        copyText.setSelectionRange(0, 99999); /* For mobile devices */
+        copyText.setSelectionRange(0, 99999); /* Untuk perangkat seluler */
         document.execCommand("copy");
         toastr.success('Link berhasil disalin ke clipboard');
     }
@@ -306,20 +318,26 @@
     var currentKegiatanName = '';
 
     function openWaModal(link, kegiatanName) {
+        // Penjelasan Proses:
+        // Membuka modal pop-up untuk kirim WA.
+        // Mereset form input di dalam modal ke kondisi awal.
         $('#waLink').val(link);
         currentKegiatanName = kegiatanName;
         
-        // Reset state
+        // Reset status
         $('#checkGroup').prop('checked', false);
         $('#waGuru').prop('disabled', false).val('').trigger('change');
         
-        // Default Message handled by updateWaMessage trigger or manual init
+        // Pesan Default ditangani oleh trigger updateWaMessage atau inisialisasi manual
         updateWaMessage();
         
         $('#waModal').modal('show');
     }
     
     function updateWaMessage() {
+        // Penjelasan Proses:
+        // Membuat template pesan WA secara otomatis berdasarkan pilihan (Grup/Personal).
+        // Format: Salam + Nama Guru (jika personal) + Link + Pesan Penutup.
          var link = $('#waLink').val();
          var isGroup = $('#checkGroup').is(':checked');
          var greeting = "Assalamualaikum";
@@ -338,12 +356,16 @@
     }
 
     function sendWa() {
+        // Penjelasan Proses:
+        // Membuka URL WhatsApp API (wa.me) di tab baru.
+        // Jika Grup: Buka wa.me/?text=... (User pilih kontak sendiri).
+        // Jika Personal: Buka wa.me/62xxx?text=... (Langsung ke chat guru).
         var isGroup = $('#checkGroup').is(':checked');
         var message = $('#waMessage').val();
         var url = "";
 
         if (isGroup) {
-            // No phone number, just text. User picks contact/group in WA.
+            // Tanpa nomor telepon, hanya teks. Pengguna memilih kontak/grup di WA.
             url = "https://wa.me/?text=" + encodeURIComponent(message);
         } else {
             var noHp = $('#waGuru').val();

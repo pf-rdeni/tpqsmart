@@ -579,6 +579,15 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     
     $routes->resource('kegiatan-absensi', ['controller' => 'KegiatanAbsensi']);
     $routes->post('kegiatan-absensi/active/(:num)', 'KegiatanAbsensi::setActive/$1');
+
+    // Documentation Routes
+    $routes->get('dokumentasi/absensi-guru', 'Dokumentasi::alurAbsensiGuru');
+    $routes->get('dokumentasi/membuat-absensi', 'Dokumentasi::prosesMembuatAbsensi');
+    
+    // Dokumentasi Perlombaan
+    $routes->get('dokumentasi/perlombaan', 'Dokumentasi::perlombaan');
+    $routes->get('dokumentasi/perlombaan/setup', 'Dokumentasi::perlombaanSetup');
+    $routes->get('dokumentasi/perlombaan/pelaksanaan', 'Dokumentasi::perlombaanPelaksanaan');
 });
 
 $routes->get('logout', 'Dashboard::logout');

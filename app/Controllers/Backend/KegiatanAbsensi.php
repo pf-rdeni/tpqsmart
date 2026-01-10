@@ -68,7 +68,7 @@ class KegiatanAbsensi extends BaseController
             'guruList'   => $guruList
         ];
 
-        return view('backend/kegiatan_absensi/index', $data);
+        return view('backend/absensiGuru/index', $data);
     }
 
     public function new()
@@ -78,7 +78,7 @@ class KegiatanAbsensi extends BaseController
             'tpq_list'   => $this->helpFunctionModel->getDataTpq(),
             'isGuru'     => in_groups('Guru') && !in_groups('Admin'),
         ];
-        return view('backend/kegiatan_absensi/form', $data);
+        return view('backend/absensiGuru/form', $data);
     }
 
     public function create()
@@ -190,7 +190,7 @@ class KegiatanAbsensi extends BaseController
             'isGuru'     => in_groups('Guru') && !in_groups('Admin'),
         ];
         
-        return view('backend/kegiatan_absensi/form', $data);
+        return view('backend/absensiGuru/form', $data);
     }
     
     public function update($id = null)

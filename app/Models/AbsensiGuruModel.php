@@ -9,7 +9,7 @@ class AbsensiGuruModel extends Model
     protected $table            = 'tbl_absensi_guru';
     protected $primaryKey       = 'Id';
     protected $useAutoIncrement = true;
-    protected $returnType       = 'object'; // Using object for easier usage in views
+    protected $returnType       = 'object'; // Menggunakan objek untuk penggunaan yang lebih mudah di view
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
     protected $allowedFields    = [
@@ -23,16 +23,21 @@ class AbsensiGuruModel extends Model
         'Longitude'
     ];
 
-    // Dates
+    // Tanggal
     protected $useTimestamps = true;
     protected $dateFormat    = 'datetime';
     protected $createdField  = 'created_at';
     protected $updatedField  = 'updated_at';
 
-    // Relationships or Helpers can be added here
+    // Relasi atau Helper dapat ditambahkan di sini
+
+    // Penjelasan Proses:
+    // Fungsi ini mengambil data absensi lengkap dengan join ke tabel Guru dan TPQ.
+    // Menggunakan RAW QUERY untuk mengatasi masalah collation (charset) yang berbeda antar tabel jika ada.
+    // Filter berdasarkan Kegiatan, TanggalOccurrence (opsional), dan IdTPQ (opsional).
     public function getAbsensiByKegiatan($idKegiatan, $idTpq = null, $tanggalOccurrence = null)
     {
-        // Use raw query to handle collation mismatch safely
+        // Gunakan raw query untuk menangani ketidakcocokan collation dengan aman
         $sql = "SELECT tbl_absensi_guru.*, tbl_guru.Nama as NamaGuru, tbl_guru.NoHp, tbl_guru.KelurahanDesa, tbl_guru.JenisKelamin, tbl_tpq.NamaTpq
                 FROM tbl_absensi_guru
                 JOIN tbl_guru ON CONVERT(tbl_guru.IdGuru USING utf8) = CONVERT(tbl_absensi_guru.IdGuru USING utf8)

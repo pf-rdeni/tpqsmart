@@ -128,7 +128,7 @@
                                 $dName = ['', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'][(int)$dIdx] ?? '';
                                 echo "Setiap Hari $dName Minggu $pos setiap Bulannya";
                                 
-                                // Show specific date info for current month to avoid week confusion
+                                // Tampilkan info tanggal spesifik untuk bulan ini untuk menghindari kebingungan minggu
                                 $posMapEng = ['', 'first', 'second', 'third', 'fourth', 'last'];
                                 $posEng = $posMapEng[$kegiatan['PosisiMinggu'] ?? 1] ?? 'first';
                                 $dayMapEng = ['', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -152,7 +152,7 @@
                 </div>
                 <?php endif; ?>
 
-                <!-- Live Current Time -->
+                <!-- Waktu Saat Ini -->
                 <div class="alert alert-warning mt-3 mb-3" style="font-size: 1rem; border: 1px solid #ffeeba;">
                     <div class="text-center">
                         <i class="fas fa-calendar-day mr-1"></i> <strong>Waktu Saat Ini:</strong><br>
@@ -180,12 +180,17 @@
                 </div>
 
                         <script>
-                            // Server time synchronization (reuse if available or define simple version)
-                            // Assuming similar logic to before_start but specific for this block if needed
-                            // For simplicity, we'll use a self-contained script here or reuse the logic if we extract it.
-                            // Let's copy the robust logic to ensure it works independently.
+                            // Sinkronisasi waktu server (gunakan kembali jika tersedia atau definisikan versi sederhana)
+                            // Asumsikan logika serupa dengan before_start tetapi khusus untuk blok ini jika diperlukan
+                            // Untuk kesederhanaan, kita akan menggunakan skrip mandiri di sini atau menggunakan kembali logikanya jika kita mengekstraknya.
+                            // Mari kita salin logika yang kuat untuk memastikannya bekerja secara independen.
 
                             (function() {
+                                // Penjelasan Proses:
+                                // Skrip ini menangani hitung mundur untuk Sesi Berikutnya pada error type 'no_occurrence'.
+                                // 1. Hitung selisih waktu antara Server dan Client (timeOffset) agar akurat.
+                                // 2. Update setiap detik: Kurangi target waktu dengan waktu sekarang (+offset).
+                                // 3. Jika waktu habis, reload halaman.
                                 const targetTime = <?= $activityStart * 1000 ?>;
                                 const serverTime = <?= time() * 1000 ?>;
                                 const clientTime = new Date().getTime();
@@ -242,7 +247,7 @@
                     <?php endif; ?>
                 </div>
 
-                <!-- Live Current Time -->
+                <!-- Waktu Saat Ini -->
                 <div class="alert alert-warning mt-3 mb-3" style="font-size: 1rem; border: 1px solid #ffeeba;">
                     <div class="text-center">
                         <i class="fas fa-calendar-day mr-1"></i> <strong>Waktu Saat Ini:</strong><br>
@@ -250,7 +255,7 @@
                     </div>
                 </div>
 
-                <!-- CARD SESI BERIKUTNYA (Standardized) -->
+                <!-- KARTU SESI BERIKUTNYA (Distandarisasi) -->
                 <div class="card shadow-sm mt-4 border-info">
                     <div class="card-header bg-info text-white text-center">
                         <h5 class="mb-0 font-weight-bold"><i class="fas fa-calendar-alt mr-2"></i>Sesi Berikutnya</h5>
@@ -275,10 +280,14 @@
                         const clientTime = new Date().getTime();
                         const timeOffset = serverTime - clientTime;
 
+                        // Penjelasan Proses:
+                        // Skrip ini menangani hitung mundur untuk Sesi Berikutnya pada error type 'before_start'.
+                        // Logika sama dengan di atas: Sinkronisasi waktu -> Hitung Mundur -> Reload saat 0.
+
                         function updateCurrentTime() {
-                            // Logic moved to global script
+                            // Logika dipindahkan ke skrip global
                         }
-                        // Global script handles this now
+                        // Skrip global menanganinya sekarang
 
 
                         function updateCountdown() {
@@ -331,7 +340,7 @@
                 </div>
                 <?php endif; ?>
 
-                <!-- Live Current Time -->
+                <!-- Waktu Saat Ini -->
                 <div class="alert alert-warning mt-3 mb-3" style="font-size: 1rem; border: 1px solid #ffeeba;">
                     <div class="text-center">
                         <i class="fas fa-calendar-day mr-1"></i> <strong>Waktu Saat Ini:</strong><br>
@@ -366,6 +375,10 @@
                         const serverTime = <?= time() * 1000 ?>;
                         const clientTime = new Date().getTime();
                         const timeOffset = serverTime - clientTime;
+
+                        // Penjelasan Proses:
+                        // Skrip ini menangani hitung mundur untuk Sesi Berikutnya pada error type 'after_end'.
+                        // Menampilkan kapan sesi berikutnya dimulai jika kegiatan berulang.
 
                         function updateCountdown() {
                             const now = new Date().getTime() + timeOffset;
@@ -420,7 +433,7 @@
                 </div>
                 <?php endif; ?>
 
-                <!-- Live Current Time -->
+                <!-- Waktu Saat Ini -->
                 <div class="alert alert-warning mt-3 mb-3" style="font-size: 1rem; border: 1px solid #ffeeba;">
                     <div class="text-center">
                         <i class="fas fa-calendar-day mr-1"></i> <strong>Waktu Saat Ini:</strong><br>
@@ -443,10 +456,14 @@
 
     <script>
         (function() {
-            // Global Live Current Time Script
+            // Skrip Waktu Saat Ini Global
             const serverTime = <?= time() * 1000 ?>;
             const clientTime = new Date().getTime();
             const timeOffset = serverTime - clientTime;
+
+            // Penjelasan Proses:
+            // Skrip Global untuk menampilkan Jam Digital "Waktu Saat Ini" di semua halaman error.
+            // Menggunakan timeOffset agar jam yang tampil sesuai dengan waktu Server, bukan waktu HP/Laptop user (antisipasi jam user ngaco).
 
             function updateGlobalCurrentTime() {
                 const el = document.getElementById('currentDateTime');

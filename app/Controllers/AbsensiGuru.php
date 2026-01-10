@@ -21,14 +21,20 @@ class AbsensiGuru extends BaseController
 
     public function index($token = null)
     {
+        // Penjelasan Proses:
+        // 1. Validasi Token: Memastikan token ada dan valid.
+        // 2. Cek Aktif: Memastikan kegiatan statusnya aktif.
+        // 3. Hitung Jadwal: Menentukan apakah hari ini jadwalnya (calculateCurrentOccurrence).
+        // 4. Validasi Waktu: Memastikan akses dilakukan dalam rentang jam mulai - jam selesai.
+        // 5. Persiapan Data: Jika valid, ambil/buat data absensi (getOrCreateAttendanceForOccurrence) dan siapkan untuk view.
         if (!$token) {
             throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
         }
 
-        // 1. Find activity by Token (regardless of IsActive status)
+        // 1. Cari kegiatan berdasarkan Token (terlepas dari status IsActive)
         $kegiatan = $this->kegiatanModel->where('Token', $token)->first();
 
-        // 2. Validate: Token Not Found/Invalid
+        // 2. Validasi: Token Tidak Ditemukan/Tidak Valid
         if (!$kegiatan) {
             return view('frontend/absensi/error', [
                 'errorType' => 'invalid_token',
@@ -37,7 +43,7 @@ class AbsensiGuru extends BaseController
             ]);
         }
 
-        // 3. Validate: Activity Not Active
+        // 3. Validasi: Kegiatan Belum Aktif
         if ($kegiatan['IsActive'] != 1) {
             return view('frontend/absensi/error', [
                 'errorType' => 'inactive',
@@ -46,11 +52,11 @@ class AbsensiGuru extends BaseController
             ]);
         }
 
-        // 4. Calculate current occurrence date
+        // 4. Hitung tanggal kejadian saat ini
         $currentOccurrence = $this->calculateCurrentOccurrence($kegiatan);
         
         if (!$currentOccurrence) {
-            // Calculate next occurrence for countdown
+            // Hitung kejadian berikutnya untuk hitung mundur
             $nextDate = $this->calculateNextOccurrence($kegiatan);
             $activityStart = null;
             
@@ -67,7 +73,7 @@ class AbsensiGuru extends BaseController
             ]);
         }
 
-        // 5. Validate: Time Range for current occurrence
+        // 5. Validasi: Rentang Waktu untuk kejadian saat ini
         $occurrenceDate = $currentOccurrence['date'];
         $startTime = $kegiatan['JamMulai'];
         $endTime = $kegiatan['JamSelesai'];
@@ -76,7 +82,7 @@ class AbsensiGuru extends BaseController
         $activityEnd = strtotime("$occurrenceDate $endTime");
         $now = time();
 
-        // 5a. Check if accessing BEFORE start time
+        // 5a. Periksa jika mengakses SEBELUM waktu mulai
         if ($now < $activityStart) {
             return view('frontend/absensi/error', [
                 'errorType' => 'before_start',
@@ -88,7 +94,7 @@ class AbsensiGuru extends BaseController
         }
 
         // 5b. Check if accessing AFTER end time
-        // 5b. Check if accessing AFTER end time
+        // 5b. Periksa jika mengakses SETELAH waktu selesai
         if ($now > $activityEnd) {
             $errorData = [
                 'errorType' => 'after_end',
@@ -96,7 +102,7 @@ class AbsensiGuru extends BaseController
                 'page_title' => 'Sudah Berakhir'
             ];
 
-            // If recurring, calculate next occurrence for info
+            // Jika berulang, hitung kejadian berikutnya untuk info
             if (($kegiatan['JenisJadwal'] ?? 'sekali') !== 'sekali') {
                  $nextDate = $this->calculateNextOccurrence($kegiatan);
                  if ($nextDate) {
@@ -107,7 +113,7 @@ class AbsensiGuru extends BaseController
             return view('frontend/absensi/error', $errorData);
         }
 
-        // 6. Fetch Attendance Records for current occurrence
+        // 6. Ambil Data Absensi untuk kejadian saat ini
         $idKegiatan = $kegiatan['Id'];
         $idTpqFilter = null;
         
@@ -115,7 +121,7 @@ class AbsensiGuru extends BaseController
             $idTpqFilter = $kegiatan['IdTpq'];
         }
 
-        // Get or create attendance records for this occurrence
+        // Ambil atau buat data absensi untuk kejadian ini
         $attendanceRecords = $this->getOrCreateAttendanceForOccurrence(
             $idKegiatan,
             $occurrenceDate,
@@ -123,24 +129,24 @@ class AbsensiGuru extends BaseController
             $idTpqFilter
         );
 
-        // 3. Separate into Present (Hadir) and Not Present (Alfa, Izin, Sakit)
-        // NOTE: Plan said default default 'Alfa'. When user clicks 'Hadir', status becomes 'Hadir'.
-        // What if status is 'Izin' or 'Sakit'? Should they be in "Sudah Absen" list?
-        // Usually "Sudah Absen" implies "Hadir".
-        // But let's assume "Belum Hadir" list contains 'Alfa'.
-        // "Sudah Hadir" list contains 'Hadir'.
-        // What about 'Izin'/'Sakit'?
-        // Flowchart said: Display List: Belum Hadir -> Click Hadir -> Update Status.
-        // So simple logic: Status == 'Alfa' -> Belum Hadir list.
-        // Status != 'Alfa' -> Sudah Hadir list.
+        // 3. Pisahkan menjadi Hadir dan Belum Hadir (Alfa, Izin, Sakit)
+        // CATATAN: Rencana mengatakan default 'Alfa'. Ketika pengguna mengklik 'Hadir', status menjadi 'Hadir'.
+        // Bagaimana jika statusnya 'Izin' atau 'Sakit'? Haruskah mereka ada di daftar "Sudah Absen"?
+        // Biasanya "Sudah Absen" menyiratkan "Hadir".
+        // Tapi mari kita asumsikan daftar "Belum Hadir" berisi 'Alfa'.
+        // Daftar "Sudah Hadir" berisi 'Hadir'.
+        // Bagaimana dengan 'Izin'/'Sakit'?
+        // Flowchart mengatakan: Tampilkan Daftar: Belum Hadir -> Klik Hadir -> Update Status.
+        // Jadi logika sederhana: Status == 'Alfa' -> Daftar Belum Hadir.
+        // Status != 'Alfa' -> Daftar Sudah Hadir.
 
         $belumHadir = [];
         $sudahHadir = [];
 
         foreach ($attendanceRecords as $record) {
-            // Check status. Accessing object properties as getAbsensiByKegiatan returns array of OBJECTS
-            // Wait, getAbsensiByKegiatan uses findAll() in Model which respects returnType.
-            // AbsensiGuruModel returnType defined as 'object'.
+            // Periksa status. Mengakses properti objek karena getAbsensiByKegiatan mengembalikan array OBJECT
+            // Tunggu, getAbsensiByKegiatan menggunakan findAll() di Model yang menghormati returnType.
+            // AbsensiGuruModel returnType didefinisikan sebagai 'object'.
             $status = $record->StatusKehadiran;
 
             if ($status == 'Alfa') {
@@ -184,20 +190,20 @@ class AbsensiGuru extends BaseController
                 $stats['sakit']++;
                 $statsTpq[$tpqName]['sakit']++;
             } else {
-                // Assuming Alfa or empty is Alfa
+                // Asumsikan Alfa atau kosong adalah Alfa
                 $stats['alfa']++;
                 $statsTpq[$tpqName]['alfa']++;
             }
         }
 
 
-        // Sort TPQ stats by name (optional)
+        // Urutkan statistik TPQ berdasarkan nama (opsional)
         ksort($statsTpq);
 
-        // Prepare location data for map visualization
+        // Siapkan data lokasi untuk visualisasi peta
         $locationData = [];
         foreach ($sudahHadir as $guru) {
-            // Only include records with valid coordinates
+            // Hanya sertakan data dengan koordinat yang valid
             if (!empty($guru->Latitude) && !empty($guru->Longitude)) {
                 $locationData[] = [
                     'lat' => floatval($guru->Latitude),
@@ -213,11 +219,11 @@ class AbsensiGuru extends BaseController
         $data = [
             'hasAction'  => true,
             'kegiatan'   => $kegiatan,
-            'belumHadir' => $belumHadir, // Still used for list display
-            'sudahHadir' => $sudahHadir, // Still used for list display
+            'belumHadir' => $belumHadir, // Masih digunakan untuk tampilan daftar
+            'sudahHadir' => $sudahHadir, // Masih digunakan untuk tampilan daftar
             'stats'      => $stats,
-            'statsTpq'   => $statsTpq,   // Passed to view
-            'locationData' => $locationData, // For map visualization
+            'statsTpq'   => $statsTpq,   // Diserahkan ke view
+            'locationData' => $locationData, // Untuk visualisasi peta
             'page_title' => 'Absensi Guru'
         ];
 
@@ -226,6 +232,12 @@ class AbsensiGuru extends BaseController
 
     public function hadir()
     {
+        // Penjelasan Proses:
+        // 1. Validasi Request: Harus berupa AJAX request.
+        // 2. Ambil Input: ID Absensi, Status (Hadir/Izin/Sakit), Lokasi (Lat/Long).
+        // 3. Validasi Data: Pastikan status valid.
+        // 4. Update Database: Simpan status kehadiran dan waktu saat ini ke database.
+        // 5. Response: Kembalikan JSON success/biar UI bisa update.
         if (!$this->request->isAJAX()) {
             return $this->response->setStatusCode(400)->setJSON(['success' => false, 'message' => 'Invalid Request']);
         }
@@ -242,12 +254,12 @@ class AbsensiGuru extends BaseController
         $latitude = $this->request->getPost('latitude');
         $longitude = $this->request->getPost('longitude');
 
-        // Default to Hadir if not specified (backward compatibility)
+        // Default ke Hadir jika tidak ditentukan (kompatibilitas mundur)
         if (!$status) {
             $status = 'Hadir';
         }
 
-        // Validate status
+        // Validasi status
         if (!in_array($status, ['Hadir', 'Izin', 'Sakit'])) {
             return $this->response->setJSON(['success' => false, 'message' => 'Status tidak valid']);
         }
@@ -258,9 +270,9 @@ class AbsensiGuru extends BaseController
             'Keterangan'      => $keterangan
         ];
 
-        // Add location data if provided
+        // Tambahkan data lokasi jika disediakan
         if ($latitude !== null && $latitude !== '' && $longitude !== null && $longitude !== '') {
-            // Basic validation for latitude and longitude ranges
+            // Validasi dasar untuk rentang latitude dan longitude
             $lat = floatval($latitude);
             $lng = floatval($longitude);
             
@@ -280,26 +292,34 @@ class AbsensiGuru extends BaseController
     }
 
     /**
-     * Calculate the current occurrence date for a given activity
-     * Returns array with 'date' key or null if no valid occurrence today
+     * Hitung tanggal kejadian saat ini untuk kegiatan tertentu
+     * Mengembalikan array dengan kunci 'date' atau null jika tidak ada kejadian valid hari ini
      */
     protected function calculateCurrentOccurrence($kegiatan)
     {
+        // Penjelasan Proses:
+        // Fungsi ini menentukan apakah "Hari Ini" adalah jadwal kegiatan yang valid berdasarkan pola jadwal.
+        // 1. Cek Tanggal & Batas: Apakah hari ini dalam rentang tanggal mulai/akhir.
+        // 2. Cek Pola Jadwal:
+        //    - Sekali: Apakah tanggal hari ini == tanggal kegiatan.
+        //    - Harian: Apakah selisih hari cocok dengan interval.
+        //    - Mingguan: Apakah hari ini (Senin-Minggu) ada dalam daftar hari yang dipilih DAN interval minggu cocok.
+        //    - Bulanan/Tahunan: Apakah tanggal/hari ke-n bulan ini cocok.
         $today = date('Y-m-d');
         $jenisJadwal = $kegiatan['JenisJadwal'] ?? 'sekali';
         
-        // Basic date range check
+        // Cek rentang tanggal dasar
         if (!empty($kegiatan['TanggalMulaiRutin']) && $today < $kegiatan['TanggalMulaiRutin']) {
             return null;
         }
 
-        // Check End Condition
+        // Cek Kondisi Akhir
         $jenisBatas = $kegiatan['JenisBatasAkhir'] ?? 'Tanggal';
         if ($jenisBatas === 'Tanggal' && !empty($kegiatan['TanggalAkhirRutin']) && $today > $kegiatan['TanggalAkhirRutin']) {
             return null;
         }
         
-        // Interval Logic
+        // Logika Interval
         $interval = max(1, (int)($kegiatan['Interval'] ?? 1));
         $startDate = $kegiatan['TanggalMulaiRutin'];
 
@@ -308,10 +328,10 @@ class AbsensiGuru extends BaseController
                 return ($kegiatan['Tanggal'] == $today) ? ['date' => $kegiatan['Tanggal']] : null;
                 
             case 'harian':
-                // (Diff Days) % Interval == 0
+                // (Selisih Hari) % Interval == 0
                 $diffDays = (strtotime($today) - strtotime($startDate)) / (60 * 60 * 24);
                 if ($diffDays >= 0 && $diffDays % $interval == 0) {
-                     // Check 'Kejadian' Limit
+                     // Cek Batas 'Kejadian'
                      if ($jenisBatas === 'Kejadian') {
                          $currentOccurrenceNum = ($diffDays / $interval) + 1;
                          if ($currentOccurrenceNum > $kegiatan['JumlahKejadian']) return null;
@@ -321,7 +341,7 @@ class AbsensiGuru extends BaseController
                 break;
                 
             case 'mingguan':
-                // Check Day Match
+                // Cek Kecocokan Hari
                 $allowedDays = explode(',', $kegiatan['HariDalamMinggu'] ?? '');
                 $todayDayOfWeek = date('N'); // 1-7
                 
@@ -329,7 +349,7 @@ class AbsensiGuru extends BaseController
                     return null;
                 }
                 
-                // Check Week Interval
+                // Cek Interval Minggu
                 $startWeekMonday = date('Y-m-d', strtotime('last monday', strtotime("$startDate +1 day")));
                 if (date('N', strtotime($startDate)) == 1) $startWeekMonday = $startDate;
                 
@@ -339,16 +359,16 @@ class AbsensiGuru extends BaseController
                 $diffWeeks = (strtotime($todayMonday) - strtotime($startWeekMonday)) / (60 * 60 * 24 * 7);
                 
                 if ($diffWeeks >= 0 && floor($diffWeeks) == $diffWeeks && $diffWeeks % $interval == 0) {
-                    // Check 'Kejadian' Limit (Simple Approach: Date Limit should be used for safety)
+                    // Cek Batas 'Kejadian' (Pendekatan Sederhana: Batas Tanggal harus digunakan untuk keamanan)
                     if ($jenisBatas === 'Kejadian') {
-                         // Rough check or assume logic handled elsewhere to set EndDate
+                         // Cek kasar atau asumsikan logika ditangani di tempat lain untuk mengatur Tanggal Akhir
                     }
                     return ['date' => $today];
                 }
                 break;
                 
             case 'bulanan':
-                // Check Month Interval
+                // Cek Interval Bulan
                 $startYear = date('Y', strtotime($startDate));
                 $startMonth = date('m', strtotime($startDate));
                 $currYear = date('Y');
@@ -357,7 +377,7 @@ class AbsensiGuru extends BaseController
                 $diffMonths = (($currYear - $startYear) * 12) + ($currMonth - $startMonth);
                 
                 if ($diffMonths >= 0 && $diffMonths % $interval == 0) {
-                     // Check Pattern
+                     // Cek Pola
                      $opsi = $kegiatan['OpsiPola'] ?? 'Tanggal';
                      
                      if ($opsi == 'Tanggal') {
@@ -374,7 +394,7 @@ class AbsensiGuru extends BaseController
                 break;
 
             case 'tahunan':
-                // Check Year Interval
+                // Cek Interval Tahun
                 $startYear = date('Y', strtotime($startDate));
                 $currYear = date('Y');
                 $diffYears = $currYear - $startYear;
@@ -403,10 +423,14 @@ class AbsensiGuru extends BaseController
     }
 
     /**
-     * Calculate the next occurrence date
+     * Hitung tanggal kejadian berikutnya
      */
     protected function calculateNextOccurrence($kegiatan)
     {
+        // Penjelasan Proses:
+        // Fungsi ini mencari tanggal jadwal BERIKUTNYA mulai dari besok (atau hari ini jika belum mulai).
+        // Digunakan untuk menampilkan "Sesi Berikutnya: [Tanggal]" jika hari ini bukan jadwalnya atau sudah lewat.
+        // Logikanya meloop ke depan (hari demi hari / minggu demi minggu) sampai menemukan tanggal yang cocok dengan pola.
         $today = date('Y-m-d');
         $jenisJadwal = $kegiatan['JenisJadwal'] ?? 'sekali';
         $startDate = $kegiatan['TanggalMulaiRutin'];
@@ -414,13 +438,13 @@ class AbsensiGuru extends BaseController
         $interval = max(1, (int)($kegiatan['Interval'] ?? 1));
         $jenisBatas = $kegiatan['JenisBatasAkhir'] ?? 'Tanggal';
 
-        // Check End Date/Limit Global Check
+        // Cek Batas Tanggal Akhir/Batas Global
         if ($jenisBatas === 'Tanggal' && !empty($endDate) && $today >= $endDate) {
             return null;
         }
 
-        // Determine Start Search Date: Tomorrow (since we want NEXT occurrence after today)
-        // However, if the activity hasn't started yet, we might want the FIRST occurrence
+        // Tentukan Tanggal Mulai Pencarian: Besok (karena kita menginginkan kejadian BERIKUTNYA setelah hari ini)
+        // Namun, jika kegiatan belum dimulai, kita mungkin menginginkan kejadian PERTAMA
         $searchDate = ($today < $startDate) ? $startDate : date('Y-m-d', strtotime('+1 day'));
         if ($searchDate < $startDate) $searchDate = $startDate;
         
@@ -432,13 +456,13 @@ class AbsensiGuru extends BaseController
                 $opsi = $kegiatan['OpsiPola'] ?? 'Interval';
                 
                 if ($opsi === 'Weekday') {
-                    // Find next weekday >= searchDate
+                    // Cari hari kerja berikutnya >= searchDate
                     $nextDate = $searchDate;
                     while (date('N', strtotime($nextDate)) >= 6) { // 6=Sat, 7=Sun
                          $nextDate = date('Y-m-d', strtotime("$nextDate +1 day"));
                     }
                 } else {
-                    // Standard Interval Logic
+                    // Logika Interval Standar
                     $diffDays = (strtotime($searchDate) - strtotime($startDate)) / (60 * 60 * 24);
                     if ($diffDays < 0) $diffDays = 0; // Fix negative diff
                     
@@ -455,7 +479,7 @@ class AbsensiGuru extends BaseController
                      if ($occurrenceNum > $kegiatan['JumlahKejadian']) return null;
                 }
                 
-                // Check End Date
+                // Cek Tanggal Akhir
                 if ($jenisBatas === 'Tanggal' && !empty($endDate) && $nextDate > $endDate) return null;
                 
                 return $nextDate;
@@ -465,10 +489,10 @@ class AbsensiGuru extends BaseController
                  if (empty($allowedDays)) return null;
                  
                  $tempDate = strtotime($searchDate);
-                 for ($i = 0; $i < 52 * 5; $i++) { // Max 5 years lookahead
+                 for ($i = 0; $i < 52 * 5; $i++) { // Maksimal 5 tahun ke depan
                      $currDateStr = date('Y-m-d', $tempDate);
                      
-                     // Check Week Interval
+                     // Cek Interval Minggu
                      $startWeekMonday = date('Y-m-d', strtotime('last monday', strtotime("$startDate +1 day")));
                      if (date('N', strtotime($startDate)) == 1) $startWeekMonday = $startDate;
                      
@@ -493,7 +517,7 @@ class AbsensiGuru extends BaseController
                              }
                          }
                      }
-                     // Move to next Monday
+                     // Pindah ke Senin berikutnya
                      $tempDate = strtotime('next monday', $tempDate);
                  }
                  break;
@@ -506,17 +530,16 @@ class AbsensiGuru extends BaseController
                  $startY = date('Y', strtotime($startDate));
                  $startM = date('m', strtotime($startDate));
                  
-                 // Calculate base offset month index
+                 // Hitung indeks bulan offset dasar
                  $startMonthIndex = ($startY * 12) + $startM;
                  $currMonthIndex = ($currY * 12) + $currM;
                  
-                 // Look ahead
-                 for ($i = 0; $i < 60; $i++) { // Max 5 years lookahead
+                 for ($i = 0; $i < 60; $i++) { // Maksimal 5 tahun ke depan
                      $checkMonthIndex = $currMonthIndex + $i;
                      $diff = $checkMonthIndex - $startMonthIndex;
                      
                      if ($diff >= 0 && $diff % $intervalMonths == 0) {
-                         // Valid month
+                         // Bulan valid
                          $y = floor(($checkMonthIndex - 1) / 12);
                          $m = (($checkMonthIndex - 1) % 12) + 1;
                          
@@ -533,7 +556,7 @@ class AbsensiGuru extends BaseController
                          
                          if ($candidate >= $searchDate) {
                              if ($jenisBatas === 'Tanggal' && !empty($endDate) && $candidate > $endDate) return null;
-                             // Check Kejadian limit if needed
+                             // Cek batas Kejadian jika diperlukan
                              if ($jenisBatas === 'Kejadian') {
                                  $occ = ($diff / $intervalMonths) + 1;
                                  if ($occ > $kegiatan['JumlahKejadian']) return null;
@@ -549,7 +572,7 @@ class AbsensiGuru extends BaseController
                  $currY = date('Y', strtotime($searchDate));
                  $startY = date('Y', strtotime($startDate));
                  
-                 for ($i = 0; $i < 10; $i++) { // Max 10 intervals lookahead
+                 for ($i = 0; $i < 10; $i++) { // Maksimal 10 interval ke depan
                      $checkY = $currY + $i;
                      $diff = $checkY - $startY;
                      
@@ -574,35 +597,43 @@ class AbsensiGuru extends BaseController
                  break;
         }
 
-        return null; // Should not reach here
+        return null; // Seharusnya tidak sampai ke sini
     }
 
     /**
-     * Get or create attendance records for a specific occurrence
+     * Ambil atau buat data absensi untuk kejadian tertentu
      */
     protected function getOrCreateAttendanceForOccurrence($idKegiatan, $tanggalOccurrence, $lingkup, $idTpq)
     {
-        // Check if attendance records exist for this occurrence
+        // Penjelasan Proses:
+        // 1. Cek DB: Apakah sudah ada data absensi untuk (ID Kegiatan + Tanggal Ini)?
+        // 2. Jika Ada: Langsung kembalikan datanya.
+        // 3. Jika Belum:
+        //    - Ambil semua Guru yang sesuai lingkup (Semua Guru atau Guru TPQ tertentu).
+        //    - Buat data awal untuk setiap guru dengan status 'Alfa'.
+        //    - Insert Batch ke database.
+        //    - Kembalikan data yang baru dibuat.
+        // Periksa apakah data absensi ada untuk kejadian ini
         $existing = $this->absensiGuruModel
             ->where('IdKegiatan', $idKegiatan)
             ->where('TanggalOccurrence', $tanggalOccurrence)
             ->findAll();
         
         if (!empty($existing)) {
-            // Records exist, return them with joined data
+            // Data ada, kembalikan dengan data gabungan
             return $this->absensiGuruModel->getAbsensiByKegiatan($idKegiatan, $idTpq, $tanggalOccurrence);
         }
         
-        // No records exist, generate them
-        // Get guru list based on lingkup
+        // Tidak ada data, buat baru
+        // Ambil daftar guru berdasarkan lingkup
         if ($lingkup == 'Umum') {
             $guruList = $this->guruModel->findAll();
         } else {
-            // TPQ specific
+            // Khusus TPQ
             $guruList = $this->guruModel->where('IdTpq', $idTpq)->findAll();
         }
         
-        // Generate attendance records
+        // Buat data absensi
         $absensiData = [];
         foreach ($guruList as $guru) {
             $absensiData[] = [
@@ -621,16 +652,19 @@ class AbsensiGuru extends BaseController
             $this->absensiGuruModel->insertBatch($absensiData);
         }
         
-        // Fetch and return the newly created records with joined data
+        // Ambil dan kembalikan data yang baru dibuat dengan data gabungan
         return $this->absensiGuruModel->getAbsensiByKegiatan($idKegiatan, $idTpq, $tanggalOccurrence);
     }
     /**
-     * Helper: Calculate Nth Weekday Date
-     * e.g. "Second Friday of January 2024"
+     * Helper: Hitung Tanggal Hari Kerja ke-N
+     * mis. "Jumat Kedua bulan Januari 2024"
      */
     private function getNthWeekdayDate($year, $month, $nth, $dayIndex) {
-        // nth: 1=First, 2=Second... 5=Last
-        // dayIndex: 1=Mon, ..., 7=Sun
+        // Penjelasan Proses:
+        // Helper untuk mencari tanggal spesifik seperti "Jumat Kedua bulan Januari".
+        // Digunakan untuk pola Bulanan/Tahunan tipe "HariKe".
+        // nth: 1=Pertama, 2=Kedua... 5=Terakhir
+        // dayIndex: 1=Senin, ..., 7=Minggu
         
         $timestamp = mktime(0, 0, 0, $month, 1, $year);
         $monthName = date('F', $timestamp);
