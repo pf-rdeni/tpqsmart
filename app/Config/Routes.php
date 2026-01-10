@@ -589,7 +589,12 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->get('dokumentasi/perlombaan/setup', 'Dokumentasi::perlombaanSetup');
     $routes->get('dokumentasi/perlombaan/pelaksanaan', 'Dokumentasi::perlombaanPelaksanaan');
     $routes->get('dokumentasi/perlombaan/juri', 'Dokumentasi::perlombaanJuri');
-    $routes->get('dokumentasi/perlombaan/sertifikat', 'Dokumentasi::perlombaanSertifikat');
+    // Dokumentasi Munaqosah
+    $routes->get('dokumentasi/munaqosah', 'Dokumentasi::munaqosah');
+    $routes->get('dokumentasi/munaqosah/setup', 'Dokumentasi::munaqosahSetup');
+    $routes->get('dokumentasi/munaqosah/registrasi', 'Dokumentasi::munaqosahRegistrasi');
+    $routes->get('dokumentasi/munaqosah/penilaian', 'Dokumentasi::munaqosahPenilaian');
+    $routes->get('dokumentasi/munaqosah/kelulusan-public', 'Dokumentasi::munaqosahKelulusan');
 });
 
 $routes->get('logout', 'Dashboard::logout');

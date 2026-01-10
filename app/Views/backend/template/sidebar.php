@@ -1049,6 +1049,47 @@
                                                 </li>
                                             </ul>
                                         </li>
+                                        <li class="nav-item">
+                                            <a href="#" class="nav-link">
+                                                <i class="far fa-circle nav-icon"></i>
+                                                <p>
+                                                    Munaqosah
+                                                    <i class="right fas fa-angle-left"></i>
+                                                </p>
+                                            </a>
+                                            <ul class="nav nav-treeview" style="display: none;">
+                                                <li class="nav-item">
+                                                    <a href="<?= base_url('backend/dokumentasi/munaqosah') ?>" class="nav-link">
+                                                        <i class="far fa-dot-circle nav-icon"></i>
+                                                        <p>Alur Utama</p>
+                                                    </a>
+                                                </li>
+                                                <li class="nav-item">
+                                                    <a href="<?= base_url('backend/dokumentasi/munaqosah/setup') ?>" class="nav-link">
+                                                        <i class="far fa-dot-circle nav-icon"></i>
+                                                        <p>Setup</p>
+                                                    </a>
+                                                </li>
+                                                <li class="nav-item">
+                                                    <a href="<?= base_url('backend/dokumentasi/munaqosah/registrasi') ?>" class="nav-link">
+                                                        <i class="far fa-dot-circle nav-icon"></i>
+                                                        <p>Registrasi & Antrian</p>
+                                                    </a>
+                                                </li>
+                                                <li class="nav-item">
+                                                    <a href="<?= base_url('backend/dokumentasi/munaqosah/penilaian') ?>" class="nav-link">
+                                                        <i class="far fa-dot-circle nav-icon"></i>
+                                                        <p>Penilaian</p>
+                                                    </a>
+                                                </li>
+                                                <li class="nav-item">
+                                                    <a href="<?= base_url('backend/dokumentasi/munaqosah/kelulusan-public') ?>" class="nav-link">
+                                                        <i class="far fa-dot-circle nav-icon"></i>
+                                                        <p>Cek Kelulusan</p>
+                                                    </a>
+                                                </li>
+                                            </ul>
+                                        </li>
                                     </ul>
                                 </li>
                             <?php endif; ?>

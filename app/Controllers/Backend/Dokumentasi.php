@@ -63,4 +63,45 @@ class Dokumentasi extends BaseController
         ];
         return view('backend/dokumentasi/perlombaan/sertifikat', $data);
     }
+
+    // Munaqosah Documentation
+    public function munaqosah()
+    {
+        $data = [
+            'page_title' => 'Dokumentasi: Modul Munaqosah',
+        ];
+        return view('backend/dokumentasi/munaqosah/index', $data);
+    }
+
+    public function munaqosahSetup()
+    {
+        $data = [
+            'page_title' => 'Dokumentasi: Setup Munaqosah',
+        ];
+        return view('backend/dokumentasi/munaqosah/setup', $data);
+    }
+
+    public function munaqosahRegistrasi()
+    {
+        $data = [
+            'page_title' => 'Dokumentasi: Registrasi & Antrian',
+        ];
+        return view('backend/dokumentasi/munaqosah/registrasi', $data);
+    }
+
+    public function munaqosahPenilaian()
+    {
+        $data = [
+            'page_title' => 'Dokumentasi: Penilaian Munaqosah',
+        ];
+        return view('backend/dokumentasi/munaqosah/penilaian', $data);
+    }
+
+    public function munaqosahKelulusan()
+    {
+        $data = [
+            'page_title' => 'Dokumentasi: Cek Kelulusan Publik',
+        ];
+        return view('backend/dokumentasi/munaqosah/kelulusan_public', $data);
+    }
 }
