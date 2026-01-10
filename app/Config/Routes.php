@@ -588,6 +588,8 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->get('dokumentasi/perlombaan', 'Dokumentasi::perlombaan');
     $routes->get('dokumentasi/perlombaan/setup', 'Dokumentasi::perlombaanSetup');
     $routes->get('dokumentasi/perlombaan/pelaksanaan', 'Dokumentasi::perlombaanPelaksanaan');
+    $routes->get('dokumentasi/perlombaan/juri', 'Dokumentasi::perlombaanJuri');
+    $routes->get('dokumentasi/perlombaan/sertifikat', 'Dokumentasi::perlombaanSertifikat');
 });
 
 $routes->get('logout', 'Dashboard::logout');

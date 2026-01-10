@@ -68,6 +68,23 @@
                     </li>
                     <li>Berikan kredensial ini kepada Juri untuk login saat pelaksanaan.</li>
                 </ul>
+
+                <hr>
+                <h5>Diagram Alur Setup</h5>
+                <div class="mermaid">
+graph LR
+    A[Start: Daftar Lomba] --> B[Buat Lomba Baru]
+    B --> C[Detail Lomba]
+    C --> D[Tambah Cabang]
+    D --> E{Konfigurasi Cabang}
+    E --> F[Kriteria Penilaian]
+    E --> G[Akun Juri]
+    E --> H[Sertifikat Template]
+    F --> I[Selesai]
+    G --> I
+    H --> I
+                </div>
+
             </div>
             <div class="card-footer">
                 <a href="<?= base_url('backend/dokumentasi/perlombaan') ?>" class="btn btn-default">Kembali</a>
@@ -76,4 +93,9 @@
         </div>
     </div>
 </section>
+
+<script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: true });
+</script>
 <?= $this->endSection(); ?>

@@ -47,4 +47,20 @@ class Dokumentasi extends BaseController
         ];
         return view('backend/dokumentasi/perlombaan/pelaksanaan', $data);
     }
+
+    public function perlombaanJuri()
+    {
+        $data = [
+            'page_title' => 'Dokumentasi: Panduan Juri',
+        ];
+        return view('backend/dokumentasi/perlombaan/juri', $data);
+    }
+
+    public function perlombaanSertifikat()
+    {
+        $data = [
+            'page_title' => 'Dokumentasi: Pembuatan Sertifikat',
+        ];
+        return view('backend/dokumentasi/perlombaan/sertifikat', $data);
+    }
 }

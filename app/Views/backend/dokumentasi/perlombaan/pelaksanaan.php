@@ -60,12 +60,39 @@
                     <li><strong>Cetak Sertifikat</strong> langsung dari halaman Peringkat.</li>
                 </ol>
 
+                <hr>
+                <h5>Diagram Alur Pelaksanaan</h5>
+                <div class="mermaid">
+graph TD
+    subgraph Pendaftaran
+    A[Pilih Cabang] --> B[Filter Santri Layak]
+    B --> C[Daftarkan Peserta]
+    end
+
+    subgraph Hari_H
+    C --> D[Peserta Hadir]
+    D --> E[Pengundian / Daftar Ulang]
+    E --> F[Dapat Nomor Tampil]
+    F --> G[Juri Login]
+    G --> H[Input Nilai per Kriteria]
+    H --> I[Kunci Nilai]
+    end
+
+    I --> J[Peringkat & Sertifikat]
+                </div>
+
+
             </div>
             <div class="card-footer">
                 <a href="<?= base_url('backend/dokumentasi/perlombaan/setup') ?>" class="btn btn-default"><i class="fas fa-arrow-left"></i> Kembali: Setup</a>
-                <a href="<?= base_url('backend/dokumentasi/perlombaan') ?>" class="btn btn-default float-right">Ke Menu Utama</a>
+                <a href="<?= base_url('backend/dokumentasi/perlombaan/juri') ?>" class="btn btn-primary float-right">Lanjut: Halaman Juri <i class="fas fa-arrow-right"></i></a>
             </div>
         </div>
     </div>
 </section>
+
+<script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: true });
+</script>
 <?= $this->endSection(); ?>

@@ -1035,6 +1035,18 @@
                                                         <p>Pelaksanaan</p>
                                                     </a>
                                                 </li>
+                                                <li class="nav-item">
+                                                    <a href="<?= base_url('backend/dokumentasi/perlombaan/juri') ?>" class="nav-link">
+                                                        <i class="far fa-dot-circle nav-icon"></i>
+                                                        <p>Halaman Juri</p>
+                                                    </a>
+                                                </li>
+                                                <li class="nav-item">
+                                                    <a href="<?= base_url('backend/dokumentasi/perlombaan/sertifikat') ?>" class="nav-link">
+                                                        <i class="far fa-dot-circle nav-icon"></i>
+                                                        <p>Sertifikat</p>
+                                                    </a>
+                                                </li>
                                             </ul>
                                         </li>
                                     </ul>

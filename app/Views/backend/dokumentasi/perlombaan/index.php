@@ -49,9 +49,18 @@
                                             Registrasi, Undian & Penilaian Juri
                                         </span>
                                     </div>
-                                     <a href="<?= base_url('backend/dokumentasi/perlombaan/pelaksanaan') ?>" class="small-box-footer text-center p-1" style="z-index: 10; position: inherit; display: block; width: 100%; cursor: pointer;">
-                                        Lihat Detail <i class="fas fa-arrow-circle-right"></i>
-                                    </a>
+                                    <div class="row">
+                                        <div class="col-6">
+                                             <a href="<?= base_url('backend/dokumentasi/perlombaan/pelaksanaan') ?>" class="small-box-footer text-center p-1 border-top" style="display: block; cursor: pointer;">
+                                                Alur Utama <i class="fas fa-arrow-circle-right"></i>
+                                            </a>
+                                        </div>
+                                        <div class="col-6">
+                                             <a href="<?= base_url('backend/dokumentasi/perlombaan/juri') ?>" class="small-box-footer text-center p-1 border-top border-left" style="display: block; cursor: pointer;">
+                                                Panduan Juri <i class="fas fa-gavel"></i>
+                                            </a>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
@@ -68,6 +77,9 @@
                                             Peringkat & Sertifikat
                                         </span>
                                     </div>
+                                    <a href="<?= base_url('backend/dokumentasi/perlombaan/sertifikat') ?>" class="small-box-footer text-center p-1" style="z-index: 10; position: inherit; display: block; width: 100%; cursor: pointer;">
+                                        Buat Sertifikat <i class="fas fa-arrow-circle-right"></i>
+                                    </a>
                                 </div>
                             </div>
                         </div>
