@@ -45,7 +45,7 @@
                             Data dapat diurutkan dengan mengklik header kolom.
                         </li>
                         <li class="mb-2">
-                            <strong>Lihat Profil:</strong> Klik foto profil atau kolom "Profil" untuk melihat foto profil dalam ukuran lebih besar (popup).
+                            <strong>Lihat & Ubah Profil:</strong> Klik foto profil untuk melihat dalam ukuran lebih besar (popup). <strong class="text-primary">Double-klik pada foto profil untuk mengubah/upload foto baru.</strong>
                         </li>
                         <li class="mb-2">
                             <strong>Ubah Status Verifikasi:</strong> Gunakan dropdown di kolom "Verifikasi" untuk mengubah status:
@@ -171,7 +171,7 @@
                             <th>Active</th>
                         <?php endif; ?>
                         <th>Verifikasi</th>
-                        <th>Profil</th>
+                        <th title="Klik: Lihat foto | Double-klik: Ubah foto">Profil <i class="fas fa-info-circle text-info" style="font-size: 0.8em; cursor: help;" data-toggle="tooltip" data-placement="top" title="Klik untuk melihat foto. Double-klik untuk mengubah foto profil."></i></th>
                         <th>Aksi</th>
                         <th>IdSantri</th>
                         <th>Nama</th>
@@ -305,7 +305,7 @@
                             <th>Active</th>
                         <?php endif; ?>
                         <th>Verifikasi</th>
-                        <th>Profil</th>
+                        <th title="Klik: Lihat foto | Double-klik: Ubah foto">Profil</th>
                         <th>Aksi</th>
                         <th>IdSantri</th>
                         <th>Nama</th>

@@ -2939,18 +2939,78 @@ class Guru extends BaseController
         $filterTanggalSampai = $this->request->getGet('tanggal_sampai');
         $filterKegiatan = $this->request->getGet('kegiatan');
         $filterTpq = $this->request->getGet('tpq');
+        $filterPeriode = $this->request->getGet('periode') ?? 'bulanan'; // harian, mingguan, bulanan, semester, tahunan
+        $filterTipeKegiatan = $this->request->getGet('tipe_kegiatan'); // sekali, harian, mingguan, bulanan, tahunan
+        $filterLingkup = $this->request->getGet('lingkup'); // Umum atau TPQ
+
+
+        // Set default date range based on periode filter
+        if (!$filterTanggalDari || !$filterTanggalSampai) {
+            $today = date('Y-m-d');
+            switch ($filterPeriode) {
+                case 'harian':
+                    $filterTanggalDari = $filterTanggalDari ?: date('Y-m-d', strtotime('-7 days'));
+                    $filterTanggalSampai = $filterTanggalSampai ?: $today;
+                    break;
+                case 'mingguan':
+                    $filterTanggalDari = $filterTanggalDari ?: date('Y-m-d', strtotime('-4 weeks'));
+                    $filterTanggalSampai = $filterTanggalSampai ?: $today;
+                    break;
+                case 'semester':
+                    $month = (int)date('m');
+                    if ($month >= 7) {
+                        $filterTanggalDari = $filterTanggalDari ?: date('Y-07-01');
+                        $filterTanggalSampai = $filterTanggalSampai ?: date('Y-12-31');
+                    } else {
+                        $filterTanggalDari = $filterTanggalDari ?: date('Y-01-01');
+                        $filterTanggalSampai = $filterTanggalSampai ?: date('Y-06-30');
+                    }
+                    break;
+                case 'tahunan':
+                    $month = (int)date('m');
+                    if ($month >= 7) {
+                        $filterTanggalDari = $filterTanggalDari ?: date('Y-07-01');
+                        $filterTanggalSampai = $filterTanggalSampai ?: date('Y-06-30', strtotime('+1 year'));
+                    } else {
+                        $filterTanggalDari = $filterTanggalDari ?: date('Y-07-01', strtotime('-1 year'));
+                        $filterTanggalSampai = $filterTanggalSampai ?: date('Y-06-30');
+                    }
+                    break;
+                case 'bulanan':
+                default:
+                    $filterTanggalDari = $filterTanggalDari ?: date('Y-m-01');
+                    $filterTanggalSampai = $filterTanggalSampai ?: date('Y-m-t');
+                    break;
+            }
+        }
 
         // Get list of kegiatan for dropdown - filtered by TPQ for Operator/Guru
-        if ($isAdmin) {
-            // Admin sees all kegiatan
-            $kegiatanList = $kegiatanModel->orderBy('Tanggal', 'DESC')->findAll();
-        } else {
-            // Operator/Guru only see kegiatan from their TPQ and Umum
-            $kegiatanList = $kegiatanModel
-                ->where('(IdTpq = ' . $sessionIdTpq . ' OR IdTpq IS NULL OR IdTpq = "")')
-                ->orderBy('Tanggal', 'DESC')
-                ->findAll();
+        $kegiatanBuilder = $kegiatanModel->builder();
+        if (!$isAdmin) {
+            $kegiatanBuilder->where('(IdTpq = ' . $sessionIdTpq . ' OR IdTpq IS NULL OR IdTpq = "")');
         }
+        if ($filterTipeKegiatan) {
+            $kegiatanBuilder->where('JenisJadwal', $filterTipeKegiatan);
+        }
+        // Apply Lingkup filter
+        if ($filterLingkup == 'Umum') {
+            $kegiatanBuilder->where('Lingkup', 'Umum');
+        } elseif ($filterLingkup == 'TPQ') {
+            $kegiatanBuilder->where('Lingkup', 'TPQ');
+            if (!$isAdmin && $sessionIdTpq) {
+                $kegiatanBuilder->where('IdTpq', $sessionIdTpq);
+            }
+        }
+        $kegiatanList = $kegiatanBuilder->orderBy('Tanggal', 'DESC')->get()->getResultArray();
+
+        // Get list of kegiatan rutin (non-sekali) for separate dropdown
+        $kegiatanRutinBuilder = $kegiatanModel->builder();
+        if (!$isAdmin) {
+            $kegiatanRutinBuilder->where('(IdTpq = ' . $sessionIdTpq . ' OR IdTpq IS NULL OR IdTpq = "")');
+        }
+        $kegiatanRutinBuilder->where('JenisJadwal !=', 'sekali');
+        $kegiatanRutinList = $kegiatanRutinBuilder->orderBy('NamaKegiatan', 'ASC')->get()->getResultArray();
+
 
         // Get list of TPQ for dropdown (Admin only)
         $tpqList = [];
@@ -2968,68 +3028,170 @@ class Guru extends BaseController
             'alfa' => 0
         ];
         $selectedKegiatan = null;
+        $trendData = [];
+        $perKegiatanStats = [];
+        $guruRanking = [];
+        $summaryStats = [
+            'totalHariEfektif' => 0,
+            'rataRataKehadiran' => 0,
+            'totalKegiatan' => 0
+        ];
 
-        // Fetch data if filters are applied
-        if ($filterKegiatan) {
-            $selectedKegiatan = $kegiatanModel->find($filterKegiatan);
-            
-            if ($selectedKegiatan) {
-                // Build query
-                $builder = $absensiModel->db->table('tbl_absensi_guru');
-                $builder->select('tbl_absensi_guru.*, tbl_guru.Nama as NamaGuru, tbl_guru.JenisKelamin, tbl_tpq.NamaTpq');
-                $builder->join('tbl_guru', 'CONVERT(tbl_guru.IdGuru USING utf8) = CONVERT(tbl_absensi_guru.IdGuru USING utf8)');
-                $builder->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_guru.IdTpq', 'left');
-                $builder->where('tbl_absensi_guru.IdKegiatan', $filterKegiatan);
+        // --- AGGREGATED STATISTICS FOR ROUTINE ATTENDANCE ---
+        $allAttendanceBuilder = $absensiModel->db->table('tbl_absensi_guru');
+        $allAttendanceBuilder->select('tbl_absensi_guru.*, tbl_guru.Nama as NamaGuru, tbl_guru.IdTpq as GuruIdTpq, tbl_tpq.NamaTpq, tbl_kegiatan_absensi.NamaKegiatan, tbl_kegiatan_absensi.JenisJadwal');
+        $allAttendanceBuilder->join('tbl_guru', 'CONVERT(tbl_guru.IdGuru USING utf8) = CONVERT(tbl_absensi_guru.IdGuru USING utf8)');
+        $allAttendanceBuilder->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_guru.IdTpq', 'left');
+        $allAttendanceBuilder->join('tbl_kegiatan_absensi', 'tbl_kegiatan_absensi.Id = tbl_absensi_guru.IdKegiatan', 'left');
 
-                // Apply TPQ filter
-                if ($isAdmin && $filterTpq) {
-                    $builder->where('tbl_guru.IdTpq', $filterTpq);
-                } elseif (!$isAdmin && $sessionIdTpq) {
-                    $builder->where('tbl_guru.IdTpq', $sessionIdTpq);
-                }
-
-                // Apply date filter if provided
-                if ($filterTanggalDari && $filterTanggalSampai) {
-                    $builder->where('tbl_absensi_guru.WaktuAbsen >=', $filterTanggalDari . ' 00:00:00');
-                    $builder->where('tbl_absensi_guru.WaktuAbsen <=', $filterTanggalSampai . ' 23:59:59');
-                }
-
-                $builder->orderBy('tbl_guru.Nama', 'ASC');
-                $attendanceRecords = $builder->get()->getResult();
-
-                // Process data
-                foreach ($attendanceRecords as $record) {
-                    $stats['total']++;
-                    
-                    if ($record->StatusKehadiran == 'Hadir') {
-                        $stats['hadir']++;
-                    } elseif ($record->StatusKehadiran == 'Izin') {
-                        $stats['izin']++;
-                    } elseif ($record->StatusKehadiran == 'Sakit') {
-                        $stats['sakit']++;
-                    } else {
-                        $stats['alfa']++;
-                    }
-
-                    // Collect location data (only for non-Alfa status with valid coordinates)
-                    if ($record->StatusKehadiran != 'Alfa' && !empty($record->Latitude) && !empty($record->Longitude)) {
-                        $locationData[] = [
-                            'lat' => floatval($record->Latitude),
-                            'lng' => floatval($record->Longitude),
-                            'nama' => $record->NamaGuru,
-                            'status' => $record->StatusKehadiran,
-                            'waktu' => date('d/m/Y H:i', strtotime($record->WaktuAbsen ?? 'now')),
-                            'tpq' => $record->NamaTpq ?? '-',
-                            'keterangan' => $record->Keterangan ?? ''
-                        ];
-                    }
-                }
-            }
+        // Apply TPQ filter
+        if ($isAdmin && $filterTpq) {
+            $allAttendanceBuilder->where('tbl_guru.IdTpq', $filterTpq);
+        } elseif (!$isAdmin && $sessionIdTpq) {
+            $allAttendanceBuilder->where('tbl_guru.IdTpq', $sessionIdTpq);
         }
+
+        // Apply date filter
+        if ($filterTanggalDari && $filterTanggalSampai) {
+            $allAttendanceBuilder->where('DATE(tbl_absensi_guru.WaktuAbsen) >=', $filterTanggalDari);
+            $allAttendanceBuilder->where('DATE(tbl_absensi_guru.WaktuAbsen) <=', $filterTanggalSampai);
+        }
+
+        // Apply tipe kegiatan filter
+        if ($filterTipeKegiatan) {
+            $allAttendanceBuilder->where('tbl_kegiatan_absensi.JenisJadwal', $filterTipeKegiatan);
+        }
+
+        // Apply lingkup filter
+        if ($filterLingkup == 'Umum') {
+            $allAttendanceBuilder->where('tbl_kegiatan_absensi.Lingkup', 'Umum');
+        } elseif ($filterLingkup == 'TPQ') {
+            $allAttendanceBuilder->where('tbl_kegiatan_absensi.Lingkup', 'TPQ');
+        }
+
+        // Apply specific kegiatan filter
+        if ($filterKegiatan) {
+            $allAttendanceBuilder->where('tbl_absensi_guru.IdKegiatan', $filterKegiatan);
+            $selectedKegiatan = $kegiatanModel->find($filterKegiatan);
+        }
+
+
+        $allAttendanceBuilder->orderBy('tbl_absensi_guru.WaktuAbsen', 'ASC');
+        $allAttendanceRecords = $allAttendanceBuilder->get()->getResult();
+
+        // Process all attendance data
+        $trendByDate = [];
+        $statsByKegiatan = [];
+        $statsByGuru = [];
+        $uniqueDates = [];
+
+        foreach ($allAttendanceRecords as $record) {
+            $stats['total']++;
+            $dateKey = date('Y-m-d', strtotime($record->WaktuAbsen));
+            $uniqueDates[$dateKey] = true;
+
+            // Count by status
+            if ($record->StatusKehadiran == 'Hadir') {
+                $stats['hadir']++;
+            } elseif ($record->StatusKehadiran == 'Izin') {
+                $stats['izin']++;
+            } elseif ($record->StatusKehadiran == 'Sakit') {
+                $stats['sakit']++;
+            } else {
+                $stats['alfa']++;
+            }
+
+            // Collect location data
+            if ($record->StatusKehadiran != 'Alfa' && !empty($record->Latitude) && !empty($record->Longitude)) {
+                $locationData[] = [
+                    'lat' => floatval($record->Latitude),
+                    'lng' => floatval($record->Longitude),
+                    'nama' => $record->NamaGuru,
+                    'status' => $record->StatusKehadiran,
+                    'waktu' => date('d/m/Y H:i', strtotime($record->WaktuAbsen ?? 'now')),
+                    'tpq' => $record->NamaTpq ?? '-',
+                    'keterangan' => $record->Keterangan ?? ''
+                ];
+            }
+
+            // Trend data by date
+            if (!isset($trendByDate[$dateKey])) {
+                $trendByDate[$dateKey] = ['hadir' => 0, 'izin' => 0, 'sakit' => 0, 'alfa' => 0, 'total' => 0];
+            }
+            $trendByDate[$dateKey]['total']++;
+            $trendByDate[$dateKey][strtolower($record->StatusKehadiran)]++;
+
+            // Stats by kegiatan
+            $kegiatanId = $record->IdKegiatan;
+            if (!isset($statsByKegiatan[$kegiatanId])) {
+                $statsByKegiatan[$kegiatanId] = [
+                    'nama' => $record->NamaKegiatan ?? 'Kegiatan #' . $kegiatanId,
+                    'jenisJadwal' => $record->JenisJadwal ?? 'sekali',
+                    'hadir' => 0, 'izin' => 0, 'sakit' => 0, 'alfa' => 0, 'total' => 0
+                ];
+            }
+            $statsByKegiatan[$kegiatanId]['total']++;
+            $statsByKegiatan[$kegiatanId][strtolower($record->StatusKehadiran)]++;
+
+            // Stats by guru
+            $guruId = $record->IdGuru;
+            if (!isset($statsByGuru[$guruId])) {
+                $statsByGuru[$guruId] = [
+                    'nama' => $record->NamaGuru,
+                    'tpq' => $record->NamaTpq ?? '-',
+                    'idTpq' => $record->GuruIdTpq ?? '',
+                    'hadir' => 0, 'izin' => 0, 'sakit' => 0, 'alfa' => 0, 'total' => 0
+                ];
+            }
+
+            $statsByGuru[$guruId]['total']++;
+            $statsByGuru[$guruId][strtolower($record->StatusKehadiran)]++;
+        }
+
+        // Sort and format trend data
+        ksort($trendByDate);
+        $trendLabels = [];
+        $trendHadir = [];
+        $trendPersentase = [];
+
+        foreach ($trendByDate as $date => $data) {
+            $trendLabels[] = date('d M', strtotime($date));
+            $trendHadir[] = $data['hadir'];
+            $trendPersentase[] = $data['total'] > 0 ? round(($data['hadir'] / $data['total']) * 100, 1) : 0;
+        }
+
+        $trendData = [
+            'labels' => $trendLabels,
+            'hadir' => $trendHadir,
+            'persentase' => $trendPersentase
+        ];
+
+        // Format per-kegiatan stats
+        foreach ($statsByKegiatan as $id => $data) {
+            $persentase = $data['total'] > 0 ? round(($data['hadir'] / $data['total']) * 100, 1) : 0;
+            $perKegiatanStats[] = array_merge(['id' => $id, 'persentase' => $persentase], $data);
+        }
+        usort($perKegiatanStats, fn($a, $b) => $b['total'] - $a['total']);
+
+        // Format guru ranking
+        foreach ($statsByGuru as $id => $data) {
+            $persentase = $data['total'] > 0 ? round(($data['hadir'] / $data['total']) * 100, 1) : 0;
+            $guruRanking[] = array_merge(['id' => $id, 'persentase' => $persentase], $data);
+        }
+        usort($guruRanking, fn($a, $b) => $b['persentase'] <=> $a['persentase']);
+
+        // Calculate summary stats
+        $summaryStats = [
+            'totalHariEfektif' => count($uniqueDates),
+            'rataRataKehadiran' => $stats['total'] > 0 ? round(($stats['hadir'] / $stats['total']) * 100, 1) : 0,
+            'totalKegiatan' => count($statsByKegiatan),
+            'totalGuru' => count($statsByGuru)
+        ];
 
         $data = [
             'page_title' => 'Statistik Presensi Guru',
             'kegiatanList' => $kegiatanList,
+            'kegiatanRutinList' => $kegiatanRutinList,
             'tpqList' => $tpqList,
             'locationData' => $locationData,
             'stats' => $stats,
@@ -3038,8 +3200,16 @@ class Guru extends BaseController
             'filterTanggalSampai' => $filterTanggalSampai,
             'filterKegiatan' => $filterKegiatan,
             'filterTpq' => $filterTpq,
-            'isAdmin' => $isAdmin
+            'filterPeriode' => $filterPeriode,
+            'filterTipeKegiatan' => $filterTipeKegiatan,
+            'filterLingkup' => $filterLingkup,
+            'isAdmin' => $isAdmin,
+            'trendData' => $trendData,
+            'perKegiatanStats' => $perKegiatanStats,
+            'guruRanking' => $guruRanking,
+            'summaryStats' => $summaryStats
         ];
+
 
         return view('backend/guru/statistikPresensi', $data);
     }
