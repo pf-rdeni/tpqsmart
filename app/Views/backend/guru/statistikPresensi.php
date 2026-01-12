@@ -5,56 +5,17 @@
     <div class="card">
         <div class="card-header bg-gradient-primary">
             <h3 class="card-title"><i class="fas fa-chart-line mr-2"></i>Statistik Presensi Guru</h3>
+            <div class="card-tools">
+                <a href="<?= base_url('backend/guru/ubah-absensi') ?>" class="btn btn-warning btn-sm text-dark">
+                    <i class="fas fa-edit"></i> Edit Absensi
+                </a>
+            </div>
         </div>
         <div class="card-body">
             <!-- Filter Form -->
             <form method="GET" action="<?= base_url('backend/guru/statistik-presensi') ?>">
                 <div class="row">
-                    <!-- Periode Filter -->
-                    <div class="col-md-2">
-                        <div class="form-group">
-                            <label for="periode"><i class="fas fa-calendar-alt mr-1"></i>Periode</label>
-                            <select name="periode" id="periode" class="form-control" onchange="this.form.submit()">
-                                <option value="harian" <?= ($filterPeriode ?? '') == 'harian' ? 'selected' : '' ?>>Per Hari (7 Hari)</option>
-                                <option value="mingguan" <?= ($filterPeriode ?? '') == 'mingguan' ? 'selected' : '' ?>>Per Minggu (4 Minggu)</option>
-                                <option value="bulanan" <?= ($filterPeriode ?? 'bulanan') == 'bulanan' ? 'selected' : '' ?>>Per Bulan</option>
-                                <option value="semester" <?= ($filterPeriode ?? '') == 'semester' ? 'selected' : '' ?>>Per Semester</option>
-                                <option value="tahunan" <?= ($filterPeriode ?? '') == 'tahunan' ? 'selected' : '' ?>>Per Tahun Ajaran</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- Tipe Kegiatan Filter -->
-                    <div class="col-md-2">
-                        <div class="form-group">
-                            <label for="tipe_kegiatan"><i class="fas fa-tags mr-1"></i>Jenis Jadwal</label>
-                            <select name="tipe_kegiatan" id="tipe_kegiatan" class="form-control">
-                                <option value="">-- Semua --</option>
-                                <option value="harian" <?= ($filterTipeKegiatan ?? '') == 'harian' ? 'selected' : '' ?>>Harian</option>
-                                <option value="mingguan" <?= ($filterTipeKegiatan ?? '') == 'mingguan' ? 'selected' : '' ?>>Mingguan</option>
-                                <option value="bulanan" <?= ($filterTipeKegiatan ?? '') == 'bulanan' ? 'selected' : '' ?>>Bulanan</option>
-                                <option value="tahunan" <?= ($filterTipeKegiatan ?? '') == 'tahunan' ? 'selected' : '' ?>>Tahunan</option>
-                                <option value="sekali" <?= ($filterTipeKegiatan ?? '') == 'sekali' ? 'selected' : '' ?>>Sekali</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- Kegiatan Filter -->
-                    <div class="col-md-2">
-                        <div class="form-group">
-                            <label for="kegiatan"><i class="fas fa-clipboard-list mr-1"></i>Kegiatan</label>
-                            <select name="kegiatan" id="kegiatan" class="form-control select2" style="width: 100%;">
-                                <option value="">-- Semua Kegiatan --</option>
-                                <?php foreach ($kegiatanList as $kegiatan): ?>
-                                    <option value="<?= $kegiatan['Id'] ?>" <?= ($filterKegiatan == $kegiatan['Id']) ? 'selected' : '' ?>>
-                                        <?= esc($kegiatan['NamaKegiatan']) ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- Lingkup Filter -->
+                    <!-- 1. Lingkup Filter -->
                     <div class="col-md-2">
                         <div class="form-group">
                             <label for="lingkup"><i class="fas fa-globe mr-1"></i>Lingkup</label>
@@ -66,6 +27,7 @@
                         </div>
                     </div>
 
+                    <!-- 2. TPQ Filter (Admin Only) -->
                     <?php if ($isAdmin && !empty($tpqList)): ?>
                     <div class="col-md-2">
                         <div class="form-group">
@@ -82,6 +44,51 @@
                     </div>
                     <?php endif; ?>
 
+                    <!-- 3. Kegiatan Filter -->
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label for="kegiatan"><i class="fas fa-clipboard-list mr-1"></i>Kegiatan</label>
+                            <select name="kegiatan" id="kegiatan" class="form-control select2" style="width: 100%;">
+                                <option value="">-- Semua Kegiatan --</option>
+                                <?php foreach ($kegiatanList as $kegiatan): ?>
+                                    <option value="<?= $kegiatan['Id'] ?>" <?= ($filterKegiatan == $kegiatan['Id']) ? 'selected' : '' ?>>
+                                        <?= esc($kegiatan['NamaKegiatan']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 4. Periode Filter -->
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label for="periode"><i class="fas fa-calendar-alt mr-1"></i>Periode</label>
+                            <select name="periode" id="periode" class="form-control" onchange="this.form.submit()">
+                                <option value="harian" <?= ($filterPeriode ?? '') == 'harian' ? 'selected' : '' ?>>Per Hari (7 Hari)</option>
+                                <option value="mingguan" <?= ($filterPeriode ?? '') == 'mingguan' ? 'selected' : '' ?>>Per Minggu (4 Minggu)</option>
+                                <option value="bulanan" <?= ($filterPeriode ?? 'bulanan') == 'bulanan' ? 'selected' : '' ?>>Per Bulan</option>
+                                <option value="semester" <?= ($filterPeriode ?? '') == 'semester' ? 'selected' : '' ?>>Per Semester</option>
+                                <option value="tahunan" <?= ($filterPeriode ?? '') == 'tahunan' ? 'selected' : '' ?>>Per Tahun Ajaran</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 5. Jenis Jadwal Filter -->
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label for="tipe_kegiatan"><i class="fas fa-tags mr-1"></i>Jenis Jadwal</label>
+                            <select name="tipe_kegiatan" id="tipe_kegiatan" class="form-control">
+                                <option value="">-- Semua --</option>
+                                <option value="harian" <?= ($filterTipeKegiatan ?? '') == 'harian' ? 'selected' : '' ?>>Harian</option>
+                                <option value="mingguan" <?= ($filterTipeKegiatan ?? '') == 'mingguan' ? 'selected' : '' ?>>Mingguan</option>
+                                <option value="bulanan" <?= ($filterTipeKegiatan ?? '') == 'bulanan' ? 'selected' : '' ?>>Bulanan</option>
+                                <option value="tahunan" <?= ($filterTipeKegiatan ?? '') == 'tahunan' ? 'selected' : '' ?>>Tahunan</option>
+                                <option value="sekali" <?= ($filterTipeKegiatan ?? '') == 'sekali' ? 'selected' : '' ?>>Sekali</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 6. Tanggal Dari -->
                     <div class="col-md-2">
                         <div class="form-group">
                             <label for="tanggal_dari"><i class="fas fa-calendar mr-1"></i>Dari</label>
@@ -89,6 +96,7 @@
                         </div>
                     </div>
 
+                    <!-- 7. Tanggal Sampai -->
                     <div class="col-md-2">
                         <div class="form-group">
                             <label for="tanggal_sampai"><i class="fas fa-calendar mr-1"></i>Sampai</label>
@@ -96,6 +104,7 @@
                         </div>
                     </div>
                 </div>
+
                 <div class="row">
                     <div class="col-md-12 text-right">
                         <button type="submit" class="btn btn-primary">
@@ -222,43 +231,63 @@
 
             <!-- Charts Row -->
             <div class="row">
-                <!-- Trend Chart -->
-                <div class="col-md-4">
-                    <div class="card card-outline card-primary">
-                        <div class="card-header">
-                            <h3 class="card-title"><i class="fas fa-chart-line mr-2"></i>Tren Kehadiran</h3>
-                        </div>
-                        <div class="card-body">
-                            <canvas id="trendChart" style="min-height: 300px;"></canvas>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- Distribution Chart -->
-                <div class="col-md-4">
-                    <div class="card card-outline card-success">
+                <div class="col-md-12">
+                    <div class="card card-outline card-success collapsed-card">
                         <div class="card-header">
                             <h3 class="card-title"><i class="fas fa-chart-pie mr-2"></i>Distribusi Status</h3>
+                            <div class="card-tools">
+                                <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
                         </div>
                         <div class="card-body">
                             <canvas id="distributionChart" style="min-height: 300px;"></canvas>
                         </div>
                     </div>
                 </div>
-                <!-- Per-Kegiatan Chart -->
-                <div class="col-md-4">
-                    <div class="card card-outline card-warning">
-                        <div class="card-header">
-                            <h3 class="card-title"><i class="fas fa-chart-bar mr-2"></i>Kehadiran Per Kegiatan</h3>
-                        </div>
-                        <div class="card-body">
-                            <?php if (!empty($perKegiatanStats)): ?>
-                                <canvas id="perKegiatanChart" style="min-height: 250px;"></canvas>
-                            <?php else: ?>
-                                <div class="alert alert-info">
-                                    <i class="fas fa-info-circle"></i> Tidak ada data kegiatan dalam rentang tanggal ini.
+            </div>
+
+            <div class="row">
+
+                    <!-- Trend Chart -->
+                    <div class="col-md-12">
+                        <div class="card card-outline card-primary collapsed-card">
+                            <div class="card-header">
+                                <h3 class="card-title"><i class="fas fa-chart-line mr-2"></i>Tren Kehadiran</h3>
+                                <div class="card-tools">
+                                    <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
                                 </div>
-                            <?php endif; ?>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="trendChart" style="min-height: 300px;"></canvas>
+                            </div>
+                        </div>
+                    </div>
+    
+                    <!-- Per-Kegiatan Chart -->
+                    <div class="col-md-12">
+                        <div class="card card-outline card-warning collapsed-card">
+                            <div class="card-header">
+                                <h3 class="card-title"><i class="fas fa-chart-bar mr-2"></i>Kehadiran Per Kegiatan</h3>
+                                <div class="card-tools">
+                                    <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <?php if (!empty($perKegiatanStats)): ?>
+                                    <canvas id="perKegiatanChart" style="min-height: 250px;"></canvas>
+                                <?php else: ?>
+                                    <div class="alert alert-info">
+                                        <i class="fas fa-info-circle"></i> Tidak ada data kegiatan dalam rentang tanggal ini.
+                                    </div>
+                                <?php endif; ?>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -714,32 +743,79 @@ $(document).ready(function() {
 
     // Chart.js - Distribution Chart (Doughnut)
     var distCtx = document.getElementById('distributionChart').getContext('2d');
+    var totalStats = <?= $stats['total'] ?>;
+    
+    // Calculate Summary Data
+    var statsHadir = <?= $stats['hadir'] ?>;
+    var statsDetailTidakHadir = <?= $stats['izin'] ?> + <?= $stats['sakit'] ?> + <?= $stats['alfa'] ?>;
+
     new Chart(distCtx, {
         type: 'doughnut',
         data: {
             labels: ['Hadir', 'Izin', 'Sakit', 'Alfa'],
-            datasets: [{
-                data: [<?= $stats['hadir'] ?>, <?= $stats['izin'] ?>, <?= $stats['sakit'] ?>, <?= $stats['alfa'] ?>],
-                backgroundColor: ['#28a745', '#ffc107', '#17a2b8', '#dc3545'],
-                borderWidth: 2,
-                borderColor: '#fff'
-            }]
+            datasets: [
+                // Dataset 0 (Outer Ring): Detail
+                {
+                    data: [statsHadir, <?= $stats['izin'] ?>, <?= $stats['sakit'] ?>, <?= $stats['alfa'] ?>],
+                    backgroundColor: ['#28a745', '#ffc107', '#17a2b8', '#dc3545'],
+                    labels: ['Hadir', 'Izin', 'Sakit', 'Alfa'],
+                    circumference: 360,
+                    radius: '100%',
+                    cutout: '65%',
+                    borderWidth: 2,
+                    borderColor: '#ffffff'
+                },
+                // Dataset 1 (Inner Pie): Summary
+                {
+                    data: [statsHadir, statsDetailTidakHadir],
+                    backgroundColor: ['#28a745', '#e9ecef'], // Green match, Gray for total loss
+                    labels: ['Hadir', 'Tidak Hadir'],
+                    circumference: 360,
+                    radius: '60%', 
+                    cutout: '0%', // Full pie
+                    borderWidth: 2,
+                    borderColor: '#ffffff'
+                }
+            ]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
                 legend: {
-                    position: 'bottom'
+                    display: true,
+                    position: 'bottom',
+                    labels: {
+                        generateLabels: function(chart) {
+                             // Custom Labels: Show Hadir, Izin, Sakit, Alfa (from Outer), plus maybe Tidak Hadir?
+                             // User wants breakdown of "Tidak Hadir".
+                             return [
+                                 { text: 'Hadir', fillStyle: '#28a745', hidden: false, index: 0 },
+                                 { text: 'Detail Tidak Hadir:', fillStyle: 'transparent', hidden: false, index: -1 }, // Header-like
+                                 { text: 'Izin', fillStyle: '#ffc107', hidden: false, index: 1 },
+                                 { text: 'Sakit', fillStyle: '#17a2b8', hidden: false, index: 2 },
+                                 { text: 'Alfa', fillStyle: '#dc3545', hidden: false, index: 3 }
+                             ];
+                        }
+                    }
                 },
                 tooltip: {
                     callbacks: {
-                        label: function(context) {
-                            var total = context.dataset.data.reduce((a, b) => a + b, 0);
-                            var value = context.parsed;
-                            var percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
-                            return context.label + ': ' + value + ' (' + percentage + '%)';
-                        }
+                         label: function(context) {
+                             var label = '';
+                             // Dataset 0 is Outer (Detail)
+                             if (context.datasetIndex === 0) {
+                                 // Use default labels
+                                 label = context.chart.data.labels[context.dataIndex];
+                             } else {
+                                 // Dataset 1 is Inner (Summary)
+                                 label = context.dataIndex === 0 ? 'Hadir' : 'Tidak Hadir (Total)';
+                             }
+                             
+                             var value = context.parsed;
+                             var percentage = totalStats > 0 ? ((value / totalStats) * 100).toFixed(1) + '%' : '0%';
+                             return label + ': ' + value + ' (' + percentage + ')';
+                         }
                     }
                 }
             }
@@ -763,7 +839,7 @@ $(document).ready(function() {
             }]
         },
         options: {
-            indexAxis: 'y',
+            // indexAxis: 'x', // Default is 'x' (Vertical Bar) which puts Activity on X, Percent on Y
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
@@ -773,18 +849,24 @@ $(document).ready(function() {
                 tooltip: {
                     callbacks: {
                         label: function(context) {
-                            return 'Kehadiran: ' + context.parsed.x + '%';
+                            return 'Kehadiran: ' + context.parsed.y + '%';
                         }
                     }
                 }
             },
             scales: {
-                x: {
+                y: {
                     beginAtZero: true,
                     max: 100,
                     title: {
                         display: true,
                         text: 'Persentase Kehadiran (%)'
+                    }
+                },
+                 x: {
+                    title: {
+                        display: true,
+                        text: 'Kegiatan'
                     }
                 }
             }

@@ -11,6 +11,8 @@ use App\Models\GuruBerkasModel;
 use App\Models\TpqModel;
 use Dompdf\Dompdf;
 use Dompdf\Options;
+use App\Models\AbsensiGuruModel;
+use App\Models\KegiatanAbsensiModel;
 
 class Guru extends BaseController
 {
@@ -3051,11 +3053,12 @@ class Guru extends BaseController
             $allAttendanceBuilder->where('tbl_guru.IdTpq', $sessionIdTpq);
         }
 
-        // Apply date filter
+        // Apply date filter - use TanggalOccurrence instead of WaktuAbsen to include Alfa records
         if ($filterTanggalDari && $filterTanggalSampai) {
-            $allAttendanceBuilder->where('DATE(tbl_absensi_guru.WaktuAbsen) >=', $filterTanggalDari);
-            $allAttendanceBuilder->where('DATE(tbl_absensi_guru.WaktuAbsen) <=', $filterTanggalSampai);
+            $allAttendanceBuilder->where('DATE(tbl_absensi_guru.TanggalOccurrence) >=', $filterTanggalDari);
+            $allAttendanceBuilder->where('DATE(tbl_absensi_guru.TanggalOccurrence) <=', $filterTanggalSampai);
         }
+
 
         // Apply tipe kegiatan filter
         if ($filterTipeKegiatan) {
@@ -3087,8 +3090,10 @@ class Guru extends BaseController
 
         foreach ($allAttendanceRecords as $record) {
             $stats['total']++;
-            $dateKey = date('Y-m-d', strtotime($record->WaktuAbsen));
+            // Use TanggalOccurrence for date key (WaktuAbsen may be NULL for Alfa)
+            $dateKey = date('Y-m-d', strtotime($record->TanggalOccurrence ?? $record->WaktuAbsen));
             $uniqueDates[$dateKey] = true;
+
 
             // Count by status
             if ($record->StatusKehadiran == 'Hadir') {
@@ -3212,5 +3217,428 @@ class Guru extends BaseController
 
 
         return view('backend/guru/statistikPresensi', $data);
+    }
+
+    /**
+     * Halaman untuk mengubah absensi guru
+     */
+    public function ubahAbsensi()
+    {
+        $kegiatanModel = new KegiatanAbsensiModel();
+        $isAdmin = in_groups('Admin');
+        $sessionIdTpq = session()->get('IdTpq');
+
+        // Get list of kegiatan for dropdown - filtered by TPQ for Operator/Guru
+        $kegiatanBuilder = $kegiatanModel->builder();
+        if (!$isAdmin) {
+            $kegiatanBuilder->where('(IdTpq = ' . $sessionIdTpq . ' OR IdTpq IS NULL OR IdTpq = "")');
+        }
+        $kegiatanList = $kegiatanBuilder->where('IsActive', 1)->orderBy('NamaKegiatan', 'ASC')->get()->getResultArray();
+        
+        $tpqList = [];
+        if ($isAdmin) {
+             $tpqModel = new TpqModel();
+             $tpqList = $tpqModel->orderBy('NamaTpq', 'ASC')->findAll();
+        }
+
+        $data = [
+            'page_title' => 'Ubah Absensi Guru',
+            'kegiatanList' => $kegiatanList,
+            'tpqList' => $tpqList,
+            'isAdmin' => $isAdmin
+        ];
+        return view('backend/guru/ubahAbsensi', $data);
+    }
+
+    /**
+     * AJAX endpoint search guru
+     */
+    public function searchGuru()
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Invalid request']);
+        }
+
+        $keyword = $this->request->getGet('keyword');
+        $filterTpq = $this->request->getGet('IdTpq'); // New param for Admin filter
+        
+        $IdTpqSession = session()->get('IdTpq');
+        $isAdmin = in_groups('Admin');
+
+        // Logic: 
+        // 1. If Admin and filterTpq is set -> search in that TPQ (allow empty keyword).
+        // 2. If Operator -> auto filter by IdTpqSession (allow empty keyword to show all).
+        // 3. Otherwise (Global search for Admin without filter) -> require keyword.
+
+        if (!$isAdmin) {
+             // Operator: Force filter by Session TPQ
+             $filterTpq = $IdTpqSession;
+        }
+
+        // If no TPQ filter is active (Admin global search), require keyword length
+        if (empty($filterTpq) && (empty($keyword) || strlen($keyword) < 2)) {
+            return $this->response->setJSON(['success' => true, 'data' => []]);
+        }
+
+        $guruModel = new GuruModel();
+        $builder = $guruModel->builder();
+        $builder->select('tbl_guru.IdGuru, tbl_guru.Nama, tbl_tpq.NamaTpq');
+        $builder->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_guru.IdTpq', 'left');
+        
+        if (!empty($keyword)) {
+            $builder->like('tbl_guru.Nama', $keyword);
+        }
+        
+        if (!empty($filterTpq)) {
+            $builder->where('tbl_guru.IdTpq', $filterTpq);
+        }
+
+        // $builder->where('tbl_guru.Active', 1); // Column Active not found in GuruModel, skipping
+        $builder->orderBy('tbl_guru.Nama', 'ASC');
+        $builder->limit(50); // Increased limit since we might show all
+        $data = $builder->get()->getResult();
+
+        return $this->response->setJSON(['success' => true, 'data' => $data]);
+    }
+    
+    /**
+     * AJAX endpoint get dates by kegiatan
+     */
+    public function getDatesByKegiatan()
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Invalid request']);
+        }
+
+        $IdKegiatan = $this->request->getGet('IdKegiatan');
+        if (empty($IdKegiatan)) {
+            return $this->response->setJSON(['success' => false, 'message' => 'IdKegiatan required']);
+        }
+
+        $absensiModel = new AbsensiGuruModel();
+        // Use safer query construction
+        $query = $absensiModel->select('DATE(TanggalOccurrence) as Tanggal')
+                              ->where('IdKegiatan', $IdKegiatan)
+                              ->groupBy('DATE(TanggalOccurrence)')
+                              ->orderBy('Tanggal', 'DESC')
+                              ->limit(20)
+                              ->get();
+
+        $results = $query->getResultArray();
+        $dates = array_column($results, 'Tanggal');
+
+        return $this->response->setJSON(['success' => true, 'data' => $dates ?: []]);
+    }
+
+    /**
+     * AJAX endpoint get schedule list for DataTable
+     */
+    public function getScheduleList()
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Invalid request']);
+        }
+
+        $filterType = $this->request->getGet('type'); // 'Rutin', 'Sekali', or empty for All
+
+        $absensiModel = new AbsensiGuruModel();
+        $builder = $absensiModel->builder();
+        $builder->select('
+            tbl_kegiatan_absensi.NamaKegiatan,
+            tbl_kegiatan_absensi.JenisJadwal,
+            tbl_kegiatan_absensi.JamMulai,
+            tbl_kegiatan_absensi.JamSelesai,
+            tbl_kegiatan_absensi.IdTpq,
+            DATE(tbl_absensi_guru.TanggalOccurrence) as Tanggal,
+            tbl_absensi_guru.IdKegiatan,
+            tbl_tpq.NamaTpq
+        ');
+        $builder->join('tbl_kegiatan_absensi', 'tbl_kegiatan_absensi.Id = tbl_absensi_guru.IdKegiatan');
+        $builder->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_kegiatan_absensi.IdTpq', 'left');
+        
+        if (!empty($filterType)) {
+            if ($filterType === 'Rutin') {
+                 $builder->where('tbl_kegiatan_absensi.JenisJadwal !=', 'Sekali');
+            } elseif ($filterType === 'Sekali') {
+                 $builder->where('tbl_kegiatan_absensi.JenisJadwal', 'Sekali');
+            }
+        }
+
+        $builder->groupBy('tbl_absensi_guru.IdKegiatan, DATE(tbl_absensi_guru.TanggalOccurrence)');
+        $builder->orderBy('Tanggal', 'DESC');
+        $builder->orderBy('tbl_kegiatan_absensi.NamaKegiatan', 'ASC');
+        
+        $results = $builder->get()->getResultArray();
+        
+        // Format for DataTable
+        $data = [];
+        foreach ($results as $index => $row) {
+            $lingkup = $row['NamaTpq'] ? $row['NamaTpq'] : 'Kecamatan';
+            $data[] = [
+                'no' => $index + 1,
+                'kegiatan' => $row['NamaKegiatan'],
+                'lingkup' => $lingkup,
+                'jenis' => $row['JenisJadwal'],
+                'tanggal' => $row['Tanggal'],
+                'jam' => $row['JamMulai'] . ' - ' . $row['JamSelesai'],
+                'aksi' => '<button class="btn btn-sm btn-primary btn-pilih" data-id="'.$row['IdKegiatan'].'" data-tanggal="'.$row['Tanggal'].'" data-kegiatan="'.$row['NamaKegiatan'].'"><i class="fas fa-edit"></i> Pilih</button>'
+            ];
+        }
+
+        return $this->response->setJSON(['data' => $data]);
+    }
+
+    /**
+     * AJAX endpoint get bulk absensi data (Multi-Guru, Single Activity)
+     */
+    public function getBulkAbsensiData()
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Invalid request']);
+        }
+
+        $IdKegiatan = $this->request->getGet('IdKegiatan');
+        $Tanggal = $this->request->getGet('Tanggal');
+        $IdTpq = $this->request->getGet('IdTpq');
+        $keyword = $this->request->getGet('keyword');
+        
+        $sessionTpq = session()->get('IdTpq');
+        $isAdmin = in_groups('Admin');
+
+        if (empty($IdKegiatan) || empty($Tanggal)) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Kegiatan dan Tanggal wajib dipilih']);
+        }
+
+        // 1. Prepare Query for Gurus
+        $guruModel = new GuruModel();
+        $builder = $guruModel->builder();
+        $builder->select('tbl_guru.IdGuru, tbl_guru.Nama, tbl_guru.NoHp, tbl_tpq.NamaTpq, tbl_tpq.Alamat as AlamatTpq');
+        $builder->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_guru.IdTpq', 'left');
+
+        // Access Control & Filters
+        if (!$isAdmin) {
+             // Operator: Force Session TPQ
+             $builder->where('tbl_guru.IdTpq', $sessionTpq);
+        } else {
+             // Admin: Filter by IdTpq if provided
+             if (!empty($IdTpq)) {
+                 $builder->where('tbl_guru.IdTpq', $IdTpq);
+             }
+        }
+
+        // Keyword search (Name)
+        if (!empty($keyword)) {
+            $builder->like('tbl_guru.Nama', $keyword);
+        }
+
+        // Optimization: Don't fetch if no filter applied (unless Operator)
+        // BUT allow loading if IdKegiatan and Tanggal are specific (user selected a session)
+        // We still limit to 100 to avoid performance issues if no search term
+        if ($isAdmin && empty($IdTpq) && (empty($keyword) || strlen($keyword) < 2)) {
+             // Let it pass but limit result? Or just rely on limit 100 below.
+             // If we really want to prevent "All Data" loading, we can keep this, 
+             // but user complains they see nothing.
+             // We will allow it but keep the limit.
+             // return $this->response->setJSON(['success' => true, 'data' => []]); 
+        }
+        
+        $builder->orderBy('tbl_guru.Nama', 'ASC');
+        $builder->limit(100); 
+        $gurus = $builder->get()->getResultArray();
+
+        if (empty($gurus)) {
+            return $this->response->setJSON(['success' => true, 'data' => []]);
+        }
+
+        // 2. Fetch Attendance for these Gurus on this Date/Activity
+        $guruIds = array_column($gurus, 'IdGuru');
+        
+        $absensiModel = new AbsensiGuruModel();
+        $absensiRecords = $absensiModel->whereIn('IdGuru', $guruIds)
+                                       ->where('IdKegiatan', $IdKegiatan)
+                                       ->where('DATE(TanggalOccurrence)', $Tanggal)
+                                       ->findAll();
+
+        // 3. Merge Data
+        $result = [];
+        foreach ($gurus as $guru) {
+            $attendance = null;
+            foreach ($absensiRecords as $rec) {
+                // Handle object/array return types safely
+                $recIdGuru = is_object($rec) ? $rec->IdGuru : $rec['IdGuru'];
+                if ($recIdGuru == $guru['IdGuru']) {
+                    $attendance = $rec;
+                    break;
+                }
+            }
+
+            $result[] = [
+                'IdGuru' => $guru['IdGuru'],
+                'Nama' => $guru['Nama'],
+                'NamaTpq' => $guru['NamaTpq'],
+                'AlamatTpq' => $guru['AlamatTpq'],
+                'AbsensiId' => $attendance ? (is_object($attendance) ? $attendance->Id : $attendance['Id']) : null,
+                'StatusKehadiran' => $attendance ? (is_object($attendance) ? $attendance->StatusKehadiran : $attendance['StatusKehadiran']) : null,
+                'WaktuAbsen' => $attendance ? (is_object($attendance) ? $attendance->WaktuAbsen : $attendance['WaktuAbsen']) : null,
+                'Keterangan' => $attendance ? (is_object($attendance) ? $attendance->Keterangan : $attendance['Keterangan']) : null
+            ];
+        }
+
+        return $this->response->setJSON(['success' => true, 'data' => $result]);
+    }
+
+    /**
+     * AJAX endpoint get absensi guru data
+     */
+    public function getAbsensiGuruData()
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Invalid request']);
+        }
+
+        $IdGuru = $this->request->getGet('IdGuru');
+        $tanggal = $this->request->getGet('tanggal');
+        $IdKegiatan = $this->request->getGet('IdKegiatan'); // New Parameter
+        $IdTpqSession = session()->get('IdTpq');
+        $isAdmin = in_groups('Admin');
+
+        if (empty($IdGuru) || empty($tanggal)) {
+           return $this->response->setJSON(['success' => false, 'message' => 'Parameter incomplete']);
+        }
+
+        // Validate permissions
+        $guruModel = new GuruModel();
+        $guru = $guruModel->find($IdGuru);
+        if (!$guru) {
+             return $this->response->setJSON(['success' => false, 'message' => 'Guru not found']);
+        }
+
+        // Use IdTpq from Guru data to fetch relevant activities
+        $guruTpq = is_object($guru) ? $guru->IdTpq : $guru['IdTpq'];
+
+         if (!$isAdmin && $IdTpqSession && $guruTpq != $IdTpqSession) {
+             return $this->response->setJSON(['success' => false, 'message' => 'Unauthorized access']);
+         }
+         
+         // Get Guru Name and TPQ Name
+         $tpqModel = new TpqModel();
+         $tpq = $tpqModel->find($guruTpq);
+         $guruData = [
+             'IdGuru' => is_object($guru) ? $guru->IdGuru : $guru['IdGuru'],
+             'Nama' => is_object($guru) ? $guru->Nama : $guru['Nama'],
+             'NamaTpq' => $tpq ? (is_object($tpq) ? $tpq->NamaTpq : $tpq['NamaTpq']) : '-' 
+         ];
+
+        // Get Available Activities for this Guru/TPQ
+        $kegiatanModel = new KegiatanAbsensiModel();
+        $kegiatanBuilder = $kegiatanModel->groupStart()
+                        ->where('Lingkup', 'Umum')
+                        ->orGroupStart()
+                            ->where('Lingkup', 'TPQ')
+                            ->where('IdTpq', $guruTpq)
+                        ->groupEnd()
+                    ->groupEnd()
+                    ->where('IsActive', 1);
+        
+        // If IdKegiatan provided, filter specifically (or ensure it's in the list)
+        if (!empty($IdKegiatan)) {
+             $kegiatanBuilder->where('Id', $IdKegiatan);
+        }
+
+        $activities = $kegiatanBuilder->findAll();
+        
+        // Fetch existing attendance records
+        $absensiModel = new AbsensiGuruModel();
+        $absensiBuilder = $absensiModel->where('IdGuru', $IdGuru)
+                                       ->where('DATE(TanggalOccurrence)', $tanggal);
+        
+        if (!empty($IdKegiatan)) {
+            $absensiBuilder->where('IdKegiatan', $IdKegiatan);
+        }
+
+        $absensiRecords = $absensiBuilder->findAll();
+                                       
+        // Merge data
+        $result = [];
+        foreach ($activities as $act) {
+            $existing = null;
+            $actId = is_object($act) ? $act->Id : $act['Id'];
+            
+            // Find in absensiRecords
+            foreach ($absensiRecords as $rec) {
+                 $recIdKegiatan = is_object($rec) ? $rec->IdKegiatan : $rec['IdKegiatan'];
+                 if ($recIdKegiatan == $actId) {
+                     $existing = $rec;
+                     break;
+                 }
+            }
+            
+            $result[] = [
+                'IdKegiatan' => $actId,
+                'NamaKegiatan' => is_object($act) ? $act->NamaKegiatan : $act['NamaKegiatan'],
+                'JenisJadwal' => is_object($act) ? $act->JenisJadwal : $act['JenisJadwal'],
+                'Id' => $existing ? (is_object($existing) ? $existing->Id : $existing['Id']) : null,
+                'StatusKehadiran' => $existing ? (is_object($existing) ? $existing->StatusKehadiran : $existing['StatusKehadiran']) : null, 
+                'Keterangan' => $existing ? (is_object($existing) ? $existing->Keterangan : $existing['Keterangan']) : null
+            ];
+        }
+
+        return $this->response->setJSON(['success' => true, 'guru' => $guruData, 'absensi' => $result]);
+    }
+
+    /**
+     * AJAX endpoint update absensi guru
+     */
+    public function updateAbsensiGuru()
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Invalid request']);
+        }
+        
+        $Id = $this->request->getPost('Id'); 
+        $IdGuru = $this->request->getPost('IdGuru');
+        $IdKegiatan = $this->request->getPost('IdKegiatan');
+        $Tanggal = $this->request->getPost('Tanggal');
+        $Kehadiran = $this->request->getPost('Kehadiran');
+        $Keterangan = $this->request->getPost('Keterangan');
+        
+        if (empty($IdGuru) || empty($IdKegiatan) || empty($Tanggal) || empty($Kehadiran)) {
+             return $this->response->setJSON(['success' => false, 'message' => 'Data incomplete']);
+        }
+        
+        $absensiModel = new AbsensiGuruModel();
+        
+        $data = [
+            'IdGuru' => $IdGuru,
+            'IdKegiatan' => $IdKegiatan,
+            'TanggalOccurrence' => $Tanggal, 
+            'WaktuAbsen' => date('Y-m-d H:i:s'), 
+            'StatusKehadiran' => $Kehadiran,
+            'Keterangan' => $Keterangan
+        ];
+        
+        try {
+            if (!empty($Id)) {
+                $absensiModel->update($Id, $data);
+                $newId = $Id;
+            } else {
+                 $existing = $absensiModel->where('IdGuru', $IdGuru)
+                                           ->where('IdKegiatan', $IdKegiatan)
+                                           ->where('DATE(TanggalOccurrence)', $Tanggal)
+                                           ->first();
+                 if ($existing) {
+                     $idToUpdate = is_object($existing) ? $existing->Id : $existing['Id'];
+                     $absensiModel->update($idToUpdate, $data);
+                     $newId = $idToUpdate;
+                 } else {
+                     $absensiModel->insert($data);
+                     $newId = $absensiModel->getInsertID();
+                 }
+            }
+            
+            return $this->response->setJSON(['success' => true, 'newId' => $newId]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON(['success' => false, 'message' => $e->getMessage()]);
+        }
     }
 }

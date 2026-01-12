@@ -577,6 +577,15 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     // Guru Statistik Presensi
     $routes->get('guru/statistik-presensi', 'Guru::statistikPresensi');
     
+    // Guru Ubah Absensi
+    $routes->get('guru/ubah-absensi', 'Guru::ubahAbsensi');
+    $routes->get('guru/search-guru', 'Guru::searchGuru');
+    $routes->get('guru/get-absensi-data', 'Guru::getAbsensiGuruData');
+    $routes->get('guru/get-dates-by-kegiatan', 'Guru::getDatesByKegiatan');
+    $routes->get('guru/get-schedule-list', 'Guru::getScheduleList');
+    $routes->get('guru/get-bulk-absensi-data', 'Guru::getBulkAbsensiData');
+    $routes->post('guru/update-absensi', 'Guru::updateAbsensiGuru');
+    
     $routes->resource('kegiatan-absensi', ['controller' => 'KegiatanAbsensi']);
     $routes->post('kegiatan-absensi/active/(:num)', 'KegiatanAbsensi::setActive/$1');
 
