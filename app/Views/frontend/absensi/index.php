@@ -152,6 +152,9 @@
                     <?php if (empty($santri)): ?>
                         <div class="alert alert-info">
                             <i class="fas fa-info-circle"></i> Semua santri di kelas ini sudah diabsen pada tanggal <?= date('d-m-Y', strtotime($tanggal_dipilih)) ?>.
+                            <?php if (!empty($absensi_recorder)): ?>
+                                <br><small><i class="fas fa-user-check text-success"></i> Diabsensi oleh: <strong><?= esc($absensi_recorder) ?></strong></small>
+                            <?php endif; ?>
                         </div>
                     <?php else: ?>
                         <div id="santri-list">

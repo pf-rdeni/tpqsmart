@@ -196,6 +196,34 @@ class AbsensiSantri extends BaseController
                 }
             }
         }
+        // Cek siapa yang sudah mengabsensi kelas ini hari ini
+        $absensiRecorder = null;
+        if (empty($santri) && $selectedKelasId) {
+            // Ambil guru yang mengajar kelas ini untuk mendapatkan NamaGuru
+            $db = \Config\Database::connect();
+            $absensiRecord = $db->table('tbl_guru_kelas')
+                ->select('tbl_guru.Nama, tbl_guru.JenisKelamin')
+                ->join('tbl_guru', 'tbl_guru.IdGuru = tbl_guru_kelas.IdGuru', 'left')
+                ->where('tbl_guru_kelas.IdKelas', $selectedKelasId)
+                ->where('tbl_guru_kelas.IdTpq', $IdTpq)
+                ->get()
+                ->getRowArray();
+            
+            if ($absensiRecord && !empty($absensiRecord['Nama'])) {
+                // Format nama: capitalize first letter
+                $namaGuru = ucwords(strtolower($absensiRecord['Nama']));
+                
+                // Tambahkan prefix berdasarkan jenis kelamin
+                $jenisKelaminLower = strtolower($absensiRecord['JenisKelamin'] ?? '');
+                if (stripos($jenisKelaminLower, 'l') === 0 || stripos($jenisKelaminLower, 'laki') !== false) {
+                    $namaGuru = 'Ustadz ' . $namaGuru;
+                } elseif (stripos($jenisKelaminLower, 'p') === 0 || stripos($jenisKelaminLower, 'perempuan') !== false) {
+                    $namaGuru = 'Ustadzah ' . $namaGuru;
+                }
+                
+                $absensiRecorder = $namaGuru;
+            }
+        }
         
         $data = [
             'page_title' => 'Absensi Santri Public',
@@ -208,6 +236,7 @@ class AbsensiSantri extends BaseController
             'guru_nama' => $this->getGuruName($IdGuru),
             'IdGuru' => $IdGuru,
             'IdTahunAjaran' => $IdTahunAjaran,
+            'absensi_recorder' => $absensiRecorder,
             'IdTpq' => $IdTpq
         ];
         
