@@ -1,18 +1,18 @@
 <?php
 
-namespace App\Models\Frontend;
+namespace App\Models\Frontend\Absensi;
 
 use CodeIgniter\Model;
 
-class AbsensiDeviceModel extends Model
+class AbsensiSantriLinkModel extends Model
 {
-    protected $table            = 'tbl_absensi_device';
+    protected $table            = 'tbl_absensi_santri_link';
     protected $primaryKey       = 'Id';
     protected $useAutoIncrement = true;
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['DeviceToken', 'IdGuru', 'LastAccess', 'UserAgent', 'CreatedAt'];
+    protected $allowedFields    = ['IdTpq', 'IdTahunAjaran', 'HashKey', 'CreatedAt'];
 
     // Dates
     protected $useTimestamps = false;
@@ -21,8 +21,8 @@ class AbsensiDeviceModel extends Model
     protected $updatedField  = '';
     protected $deletedField  = '';
 
-    public function getDevice($token)
+    public function getLinkByKey($hashKey)
     {
-        return $this->where('DeviceToken', $token)->first();
+        return $this->where('HashKey', $hashKey)->first();
     }
 }

@@ -56,6 +56,37 @@
                     Silakan hubungi admin untuk mendapatkan link yang benar.
                 </p>
 
+            <?php elseif ($errorType === 'tahun_ajaran_mismatch'): ?>
+                <div class="error-icon text-warning">
+                    <i class="fas fa-calendar-exclamation"></i>
+                </div>
+                <h2 class="error-title text-warning">Tahun Ajaran Tidak Sesuai</h2>
+                <p class="error-message">
+                    Link absensi ini terdaftar untuk <strong>Tahun Ajaran <?= esc($linkTahunAjaran ?? '-') ?></strong>, 
+                    sedangkan tahun ajaran saat ini adalah <strong><?= esc($currentTahunAjaran ?? '-') ?></strong>.
+                </p>
+                
+                <div class="activity-info text-left">
+                    <h5><i class="fas fa-info-circle"></i> Informasi</h5>
+                    <p>Silakan hubungi <strong>Operator TPQ</strong> untuk memperbarui pengaturan link absensi agar sesuai dengan tahun ajaran yang sedang berjalan.</p>
+                    <p class="mb-0"><i class="fas fa-arrow-right text-primary"></i> Operator dapat mengubah pengaturan di menu <strong>Santri → Link Absensi Public</strong>.</p>
+                </div>
+
+            <?php elseif ($errorType === 'tpq_mismatch'): ?>
+                <div class="error-icon text-danger">
+                    <i class="fas fa-ban"></i>
+                </div>
+                <h2 class="error-title text-danger">Akses Ditolak</h2>
+                <p class="error-message">
+                    Anda tidak memiliki akses ke halaman absensi ini karena Anda terdaftar di TPQ yang berbeda.
+                </p>
+                
+                <div class="activity-info text-left">
+                    <h5><i class="fas fa-exclamation-triangle text-warning"></i> Peringatan</h5>
+                    <p>Link absensi ini hanya dapat diakses oleh Guru yang terdaftar di TPQ yang sama.</p>
+                    <p class="mb-0">Jika Anda merasa ini adalah kesalahan, silakan hubungi <strong>Admin</strong> untuk memverifikasi data Anda.</p>
+                </div>
+
             <?php elseif ($errorType === 'inactive'): ?>
                 <div class="error-icon text-warning">
                     <i class="fas fa-pause-circle"></i>

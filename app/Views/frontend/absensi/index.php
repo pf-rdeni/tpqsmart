@@ -81,8 +81,13 @@
       
       <div class="collapse navbar-collapse order-3" id="navbarCollapse">
          <ul class="navbar-nav ml-auto">
-          <li class="nav-item">
+           <li class="nav-item d-none d-sm-inline-block">
             <span class="nav-link">Guru: <strong><?= isset($guru_nama) ? esc($guru_nama) : 'Guru' ?></strong></span>
+          </li>
+          <li class="nav-item">
+            <a href="<?= base_url('absensi/haskey/logout/' . $hash_key) ?>" class="nav-link text-danger">
+                <i class="fas fa-sign-out-alt"></i> Keluar
+            </a>
           </li>
         </ul>
       </div>
@@ -137,8 +142,8 @@
                      </div>
                  </div>
 
-                 <!-- Absensi Form -->
-                <form action="<?= base_url('absensi/link/simpan') ?>" method="post" id="formAbsensi">
+                <!-- Absensi Form -->
+                <form action="<?= base_url('absensi/haskey/simpan') ?>" method="post" id="formAbsensi">
                     <input type="hidden" name="IdTpq" value="<?= $IdTpq ?>">
                     <input type="hidden" name="IdTahunAjaran" value="<?= $IdTahunAjaran ?>">
                     <input type="hidden" name="IdKelas" value="<?= $selected_kelas ?>">
@@ -157,40 +162,67 @@
                                             <?php 
                                             $photoProfil = $row->PhotoProfil ?? '';
                                             $thumbnailPath = base_url('uploads/santri/thumbnails/thumb_' . $photoProfil);
-                                            // Fallback Logic
+                                            
+                                            // Generate Initials (Acronym)
+                                            $namaWords = explode(' ', trim($row->NamaSantri));
+                                            $acronym = '';
+                                            foreach ($namaWords as $w) {
+                                                $acronym .= mb_substr($w, 0, 1);
+                                            }
+                                            $acronym = strtoupper(substr($acronym, 0, 2));
+
+                                            // Deterministic Color based on Name
+                                            $bgColors = ['#007bff', '#6c757d', '#28a745', '#dc3545', '#ffc107', '#17a2b8', '#6610f2', '#e83e8c', '#fd7e14', '#20c997'];
+                                            $colorIndex = crc32($row->NamaSantri) % count($bgColors);
+                                            $bgColor = $bgColors[abs($colorIndex)];
                                             ?>
-                                            <?php if($photoProfil): ?>
-                                                 <img src="<?= $thumbnailPath ?>" class="photo-profil-thumbnail" onerror="this.src='https://via.placeholder.com/50'">
-                                            <?php else: ?>
-                                                 <div class="photo-profil-thumbnail d-flex align-items-center justify-content-center bg-light">
-                                                     <i class="fas fa-user text-secondary" style="font-size: 24px;"></i>
-                                                 </div>
-                                            <?php endif; ?>
+
+                                            <div class="mr-3 position-relative">
+                                                <?php if($photoProfil): ?>
+                                                    <!-- Image with fallback handling -->
+                                                    <img src="<?= $thumbnailPath ?>" 
+                                                         class="photo-profil-thumbnail" 
+                                                         onerror="this.style.display='none'; document.getElementById('avatar-fallback-<?= $row->IdSantri ?>').style.display='flex';">
+                                                    
+                                                    <!-- Hidden fallback for onerror key -->
+                                                    <div id="avatar-fallback-<?= $row->IdSantri ?>"
+                                                         class="photo-profil-thumbnail d-flex align-items-center justify-content-center text-white" 
+                                                         style="display: none; background-color: <?= $bgColor ?>; font-weight: bold; font-size: 1.1rem; margin-right: 0;">
+                                                        <?= $acronym ?>
+                                                    </div>
+                                                <?php else: ?>
+                                                    <!-- Default Avatar (Initials) -->
+                                                    <div class="photo-profil-thumbnail d-flex align-items-center justify-content-center text-white" 
+                                                         style="background-color: <?= $bgColor ?>; font-weight: bold; font-size: 1.1rem; margin-right: 0;">
+                                                        <?= $acronym ?>
+                                                    </div>
+                                                <?php endif; ?>
+                                            </div>
                                             
                                             <h5 class="m-0 santri-name text-dark"><?= esc($row->NamaSantri) ?></h5>
                                         </div>
 
                                         <!-- Option Buttons Styles like Backend -->
                                         <div class="btn-group btn-group-toggle w-100" data-toggle="buttons">
-                                          <label class="btn btn-outline-success absensi-btn-mobile active">
+                                          <label class="btn btn-outline-success absensi-btn-mobile active" onclick="toggleKeterangan(<?= $row->IdSantri ?>, 'Hadir')">
                                             <input type="radio" name="kehadiran[<?= $row->IdSantri ?>]" value="Hadir" checked autocomplete="off"> 
                                             <i class="fas fa-check-circle"></i> Hadir
                                           </label>
-                                          <label class="btn btn-outline-warning absensi-btn-mobile">
+                                          <label class="btn btn-outline-warning absensi-btn-mobile" onclick="toggleKeterangan(<?= $row->IdSantri ?>, 'Izin')">
                                             <input type="radio" name="kehadiran[<?= $row->IdSantri ?>]" value="Izin" autocomplete="off"> 
                                             <i class="fas fa-envelope"></i> Izin
                                           </label>
-                                          <label class="btn btn-outline-info absensi-btn-mobile">
+                                          <label class="btn btn-outline-info absensi-btn-mobile" onclick="toggleKeterangan(<?= $row->IdSantri ?>, 'Sakit')">
                                             <input type="radio" name="kehadiran[<?= $row->IdSantri ?>]" value="Sakit" autocomplete="off"> 
                                             <i class="fas fa-clinic-medical"></i> Sakit
                                           </label>
-                                          <label class="btn btn-outline-danger absensi-btn-mobile">
+                                          <label class="btn btn-outline-danger absensi-btn-mobile" onclick="toggleKeterangan(<?= $row->IdSantri ?>, 'Alfa')">
                                             <input type="radio" name="kehadiran[<?= $row->IdSantri ?>]" value="Alfa" autocomplete="off"> 
                                             <i class="fas fa-times-circle"></i> Alfa
                                           </label>
                                         </div>
                                         
-                                        <div class="form-group mt-2">
+                                        <div class="form-group mt-2" id="keterangan-box-<?= $row->IdSantri ?>" style="display: none;">
                                             <input type="text" name="keterangan[<?= $row->IdSantri ?>]" class="form-control form-control-sm" placeholder="Keterangan (Opsional)">
                                         </div>
                                     </div>
@@ -242,6 +274,9 @@
         $('input[value="Hadir"]').prop('checked', true).trigger('change');
         $('.btn-group-toggle label').removeClass('active');
         $('input[value="Hadir"]').parent('label').addClass('active');
+
+        // Hide all keterangan boxes
+        $('div[id^="keterangan-box-"]').hide();
         
         Swal.fire({
             icon: 'success',
@@ -250,6 +285,15 @@
             timer: 1000,
             showConfirmButton: false
         });
+    }
+
+    function toggleKeterangan(idSantri, status) {
+        var box = $('#keterangan-box-' + idSantri);
+        if (status === 'Hadir') {
+            box.slideUp();
+        } else {
+            box.slideDown();
+        }
     }
 
     $(document).ready(function() {

@@ -3,8 +3,8 @@
 namespace App\Controllers\Frontend;
 
 use App\Controllers\BaseController;
-use App\Models\Frontend\AbsensiSantriLinkModel;
-use App\Models\Frontend\AbsensiDeviceModel;
+use App\Models\Frontend\Absensi\AbsensiSantriLinkModel;
+use App\Models\Frontend\Absensi\AbsensiDeviceModel;
 use App\Models\AbsensiModel;
 use App\Models\GuruModel;
 use App\Models\SantriModel;
@@ -37,7 +37,10 @@ class AbsensiSantri extends BaseController
         // 1. Validasi Link
         $linkData = $this->linkModel->getLinkByKey($hashKey);
         if (!$linkData) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound("Link Absensi tidak valid.");
+            return view('frontend/absensi/error', [
+                'errorType' => 'invalid_token',
+                'page_title' => 'Link Tidak Valid'
+            ]);
         }
 
         // 2. Identify IdGuru for the session
@@ -114,9 +117,35 @@ class AbsensiSantri extends BaseController
              }
         }
 
-        // 3. Render View (IdGuru sudah didapat)
+        // 3. Get Link Data Context
         $IdTpq = $linkData['IdTpq'];
         $IdTahunAjaran = $linkData['IdTahunAjaran'];
+        
+        // 4. Validasi Tahun Ajaran - Link harus sesuai dengan tahun ajaran saat ini
+        $tahunAjaranSaatIni = $this->helpFunction->getTahunAjaranSaatIni(); // Format: 20252026
+        if ($IdTahunAjaran != $tahunAjaranSaatIni) {
+            // Format untuk display: 20252026 -> 2025/2026
+            $displayLinkTA = substr($IdTahunAjaran, 0, 4) . '/' . substr($IdTahunAjaran, 4);
+            $displayCurrentTA = substr($tahunAjaranSaatIni, 0, 4) . '/' . substr($tahunAjaranSaatIni, 4);
+            
+            return view('frontend/absensi/error', [
+                'errorType' => 'tahun_ajaran_mismatch',
+                'page_title' => 'Tahun Ajaran Tidak Valid',
+                'linkTahunAjaran' => $displayLinkTA,
+                'currentTahunAjaran' => $displayCurrentTA
+            ]);
+        }
+        
+        // 5. Validasi TPQ - Guru harus dari TPQ yang sama dengan Link
+        $guru = $this->guruModel->find($IdGuru);
+        if ($guru && isset($guru['IdTpq']) && $guru['IdTpq'] != $IdTpq) {
+            return view('frontend/absensi/error', [
+                'errorType' => 'tpq_mismatch',
+                'page_title' => 'Akses Ditolak',
+                'guruTpq' => $guru['IdTpq'] ?? 'Unknown',
+                'linkTpq' => $IdTpq
+            ]);
+        }
 
         $tanggalDipilih = $this->request->getGet('tanggal');
         $tanggalHariIni = date('Y-m-d');
@@ -269,6 +298,29 @@ class AbsensiSantri extends BaseController
         }
     }
     
+    public function logout($hashKey)
+    {
+        // 1. Hapus Cookie Device Token
+        if (isset($_COOKIE['device_token'])) {
+            // Delete from DB ? Optional, but good for cleanup
+            // $this->deviceModel->where('DeviceToken', $_COOKIE['device_token'])->delete();
+            
+            unset($_COOKIE['device_token']); 
+            setcookie('device_token', '', time() - 3600, '/'); // empty value and old timestamp
+        }
+
+        // 2. Logout Session Standard (Myth/Auth)
+        // Kita paksa logout agar user bisa login ulang dengan akun lain
+        $auth = service('authentication');
+        if ($auth->check()) {
+            $auth->logout();
+        }
+        
+        // 3. Redirect kembali ke Link Absensi
+        // Karena cookie & session sudah hilang, index() akan redirect ke Login Page
+        return redirect()->to(base_url('absensi/haskey/' . $hashKey))->with('message', 'Anda telah keluar. Silakan login kembali untuk ganti akun.');
+    }
+
     private function getGuruName($idGuru)
     {
         $guru = $this->guruModel->find($idGuru);

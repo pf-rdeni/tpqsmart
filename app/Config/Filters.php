@@ -100,6 +100,7 @@ class Filters extends BaseFilters
                     'helpers/js/(:segment)', // JavaScript helper files dengan segment (public access)
                     'presensi',            // Absensi Guru (Public)
                     'presensi/*',          // Absensi Guru Actions (Public)
+                    'absensi/haskey/*',    // Public Absensi Link
                 ]
             ],
         ],

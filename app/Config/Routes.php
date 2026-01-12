@@ -573,8 +573,9 @@ $routes->get('presensi/(:segment)', 'AbsensiGuru::index/$1');
 $routes->post('presensi/hadir', 'AbsensiGuru::hadir');
 
 // Public Student Attendance (Link)
-$routes->get('absensi/link/(:segment)', 'Frontend\AbsensiSantri::index/$1');
-$routes->post('absensi/link/simpan', 'Frontend\AbsensiSantri::simpanAbsensi');
+$routes->get('absensi/haskey/logout/(:segment)', 'Frontend\AbsensiSantri::logout/$1');
+$routes->get('absensi/haskey/(:segment)', 'Frontend\AbsensiSantri::index/$1');
+$routes->post('absensi/haskey/simpan', 'Frontend\AbsensiSantri::simpanAbsensi');
 
 // Admin/Operator Activity/Event Routes
 $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function ($routes) {
@@ -589,6 +590,15 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->get('guru/get-schedule-list', 'Guru::getScheduleList');
     $routes->get('guru/get-bulk-absensi-data', 'Guru::getBulkAbsensiData');
     $routes->post('guru/update-absensi', 'Guru::updateAbsensiGuru');
+    
+    // Absensi Link Management
+    $routes->get('absensi/link', 'Absensi::linkIndex');
+    $routes->get('absensi/link/new', 'Absensi::linkNew');
+    $routes->post('absensi/link/create', 'Absensi::linkCreate');
+    $routes->get('absensi/link/edit/(:num)', 'Absensi::linkEdit/$1');
+    $routes->post('absensi/link/update/(:num)', 'Absensi::linkUpdate/$1');
+    $routes->get('absensi/link/delete/(:num)', 'Absensi::linkDelete/$1');
+    $routes->get('absensi/link/regenerate/(:num)', 'Absensi::linkRegenerate/$1');
     
     $routes->resource('kegiatan-absensi', ['controller' => 'KegiatanAbsensi']);
     $routes->post('kegiatan-absensi/active/(:num)', 'KegiatanAbsensi::setActive/$1');

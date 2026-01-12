@@ -5,6 +5,8 @@ use App\Models\SantriModel;
 use App\Models\KelasModel;
 use App\Models\AbsensiModel;
 use App\Models\HelpFunctionModel;
+use App\Models\Frontend\Absensi\AbsensiSantriLinkModel;
+use App\Models\TpqModel;
 
 class Absensi extends BaseController
 {
@@ -1494,5 +1496,162 @@ class Absensi extends BaseController
             'persenSakit' => $total > 0 ? round(($sakit / $total) * 100, 1) : 0,
             'persenAlfa' => $total > 0 ? round(($alfa / $total) * 100, 1) : 0
         ];
+    }
+
+    // =================================================================================================
+    // LINK ABSENSI PUBLIC MANAGEMENT
+    // =================================================================================================
+
+    public function linkIndex()
+    {
+        $linkModel = new AbsensiSantriLinkModel();
+        $idTpq = session()->get('IdTpq'); // Filter for Operator/Guru
+        
+        // Build Query
+        $builder = $linkModel->builder();
+        $builder->select('tbl_absensi_santri_link.*, tbl_tpq.NamaTpq, tbl_tpq.KelurahanDesa');
+        $builder->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_absensi_santri_link.IdTpq', 'left');
+        
+        if (!empty($idTpq)) {
+            $builder->where('tbl_absensi_santri_link.IdTpq', $idTpq);
+        }
+        
+        $data['links'] = $builder->get()->getResultArray();
+        $data['page_title'] = 'Manajemen Link Absensi Public';
+        $data['isAdmin'] = empty($idTpq); // Admin if no IdTpq in session
+        
+        // Use renamed view
+        return view('backend/absensi/linkIndex', $data);
+    }
+
+    public function linkNew()
+    {
+        $tpqModel = new TpqModel();
+        $idTpq = session()->get('IdTpq');
+        
+        $data = [
+            'page_title' => 'Buat Link Absensi Baru',
+            'tpqList' => empty($idTpq) ? $tpqModel->findAll() : $tpqModel->where('IdTpq', $idTpq)->findAll(),
+            'tahunAjaranList' => $this->getTahunAjaranList(),
+            'link' => null
+        ];
+        
+        // Use renamed view
+        return view('backend/absensi/linkForm', $data);
+    }
+
+    public function linkCreate()
+    {
+        $linkModel = new AbsensiSantriLinkModel();
+        $rules = [
+            'IdTpq' => 'required',
+            'IdTahunAjaran' => 'required',
+        ];
+
+        if (!$this->validate($rules)) {
+            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+        }
+
+        // Generate Secure HashKey
+        $hashKey = bin2hex(random_bytes(16)); // 32 chars hex
+        
+        // Ensure uniqueness
+        while($linkModel->where('HashKey', $hashKey)->countAllResults() > 0) {
+            $hashKey = bin2hex(random_bytes(16));
+        }
+
+        $linkModel->insert([
+            'IdTpq' => $this->request->getPost('IdTpq'),
+            'IdTahunAjaran' => $this->request->getVar('IdTahunAjaran', FILTER_DEFAULT),
+            'HashKey' => $hashKey,
+            'CreatedAt' => date('Y-m-d H:i:s')
+        ]);
+
+        return redirect()->to(base_url('backend/absensi/link'))->with('success', 'Link Absensi berhasil dibuat.');
+    }
+
+    public function linkEdit($id)
+    {
+        $linkModel = new AbsensiSantriLinkModel();
+        $tpqModel = new TpqModel();
+        
+        $link = $linkModel->find($id);
+        if (!$link) {
+            return redirect()->back()->with('error', 'Data tidak ditemukan.');
+        }
+
+        $idTpq = session()->get('IdTpq');
+        // Security check for Operator
+        if(!empty($idTpq) && $link['IdTpq'] != $idTpq) {
+             return redirect()->back()->with('error', 'Akses ditolak.');
+        }
+
+        $data = [
+            'page_title' => 'Edit Link Absensi',
+            'tpqList' => empty($idTpq) ? $tpqModel->findAll() : $tpqModel->where('IdTpq', $idTpq)->findAll(),
+            'tahunAjaranList' => $this->getTahunAjaranList(),
+            'link' => $link
+        ];
+        
+        return view('backend/absensi/linkForm', $data);
+    }
+
+    public function linkUpdate($id)
+    {
+        $linkModel = new AbsensiSantriLinkModel();
+        $link = $linkModel->find($id);
+        if (!$link) return redirect()->back()->with('error', 'Data tidak ditemukan.');
+
+        $rules = [
+            'IdTpq' => 'required',
+            'IdTahunAjaran' => 'required',
+        ];
+
+        if (!$this->validate($rules)) {
+            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+        }
+        
+        $linkModel->update($id, [
+            'IdTpq' => $this->request->getPost('IdTpq'),
+            'IdTahunAjaran' => $this->request->getPost('IdTahunAjaran'),
+        ]);
+
+        return redirect()->to(base_url('backend/absensi/link'))->with('success', 'Data berhasil diperbarui.');
+    }
+    
+    public function linkDelete($id)
+    {
+        $linkModel = new AbsensiSantriLinkModel();
+        $link = $linkModel->find($id);
+        if (!$link) return redirect()->back()->with('error', 'Data tidak ditemukan.');
+        
+        $linkModel->delete($id);
+        return redirect()->to(base_url('backend/absensi/link'))->with('success', 'Link berhasil dihapus.');
+    }
+    
+    public function linkRegenerate($id)
+    {
+        $linkModel = new AbsensiSantriLinkModel();
+        $link = $linkModel->find($id);
+        if (!$link) return redirect()->back();
+
+        $newKey = bin2hex(random_bytes(16));
+        $linkModel->update($id, ['HashKey' => $newKey]);
+        
+        return redirect()->back()->with('success', 'HashKey berhasil diperbarui (Link lama sudah tidak berlaku).');
+    }
+
+    private function getTahunAjaranList()
+    {
+       $currentYear = date('Y');
+       $list = [];
+       for($i = $currentYear - 2; $i <= $currentYear + 2; $i++) {
+           // Store value without / for database, display with /
+           $list[] = [
+               'value' => $i . ($i+1),          // 20252026
+               'display' => $i . '/' . ($i+1)   // 2025/2026
+           ];
+       }
+       return $list; 
     }
 }

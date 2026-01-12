@@ -817,6 +817,14 @@
                                     </a>
                                 </li>
                             <?php endif; ?>
+                            <?php if (in_groups('Admin') || $isActiveOperator): ?>
+                                <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/absensi/link') ?> class="nav-link">
+                                        <i class="fas fa-link nav-icon text-warning"></i>
+                                        <p>Link Absensi Public</p>
+                                    </a>
+                                </li>
+                            <?php endif; ?>
                         </ul>
                     </li>
                     <!--  Raport Santri-->
@@ -1306,6 +1314,7 @@
                                     <i class="fas fa-chart-pie nav-icon text-warning"></i>
                                     <p>Statistik</p>
                                 </a>
+                            </li>
                             </li>
                         </ul>
                     </li>
