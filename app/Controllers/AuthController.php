@@ -92,14 +92,14 @@ class AuthController extends MythAuthController
             $this->setGuruSessionData($idGuru);
         }
 
-        // Hapus redirect_url dari session jika ada (untuk cleanup)
-        // Selalu redirect ke dashboard setelah login untuk konsistensi dan keamanan
-        // Ini mencegah user diarahkan ke halaman terakhir yang dibuka user lain
+        // Cek apakah ada redirect_url yang disimpan sebelumnya
         if (session()->has('redirect_url')) {
+            $redirectUrl = session()->get('redirect_url');
             unset($_SESSION['redirect_url']);
+            return $redirectUrl;
         }
 
-        // Selalu redirect ke dashboard (home) setelah login
+        // Default: redirect ke dashboard (home)
         return site_url('/');
     }
 

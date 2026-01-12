@@ -572,6 +572,10 @@ $routes->group('backend/perlombaan', ['namespace' => 'App\Controllers\Backend'],
 $routes->get('presensi/(:segment)', 'AbsensiGuru::index/$1');
 $routes->post('presensi/hadir', 'AbsensiGuru::hadir');
 
+// Public Student Attendance (Link)
+$routes->get('absensi/link/(:segment)', 'Frontend\AbsensiSantri::index/$1');
+$routes->post('absensi/link/simpan', 'Frontend\AbsensiSantri::simpanAbsensi');
+
 // Admin/Operator Activity/Event Routes
 $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function ($routes) {
     // Guru Statistik Presensi
