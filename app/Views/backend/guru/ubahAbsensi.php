@@ -416,11 +416,20 @@
             },
             success: function(response) {
                 if(response.success) {
-                   // Success
+                   // Show success toast at top-right corner
+                   Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'success',
+                        title: 'Berhasil menyimpan',
+                        timer: 2000,
+                        showConfirmButton: false,
+                        timerProgressBar: true
+                   });
                 }
             },
             error: function() {
-                 Swal.fire({ toast: true, position: 'top-end', icon: 'error', title: 'Gagal Menympan', timer: 2000, showConfirmButton: false });
+                 Swal.fire({ toast: true, position: 'top-end', icon: 'error', title: 'Gagal Menyimpan', timer: 2000, showConfirmButton: false });
             }
         });
     }
