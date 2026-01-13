@@ -189,7 +189,7 @@
                                                     
                                                     <!-- Hidden fallback for onerror key -->
                                                     <div id="avatar-fallback-<?= $row->IdSantri ?>"
-                                                         class="photo-profil-thumbnail d-flex align-items-center justify-content-center text-white" 
+                                                         class="photo-profil-thumbnail align-items-center justify-content-center text-white" 
                                                          style="display: none; background-color: <?= $bgColor ?>; font-weight: bold; font-size: 1.1rem; margin-right: 0;">
                                                         <?= $acronym ?>
                                                     </div>
