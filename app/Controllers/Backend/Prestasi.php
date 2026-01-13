@@ -6,7 +6,7 @@ use App\Controllers\BaseController;
 use App\Models\PrestasiModel;
 use App\Models\EncryptModel;
 use App\Models\HelpFunctionModel;
-use App\Models\SantriModel;
+use App\Models\SantriBaruModel;
 
 class Prestasi extends BaseController
 {
@@ -21,7 +21,7 @@ class Prestasi extends BaseController
         $this->prestasiModel = new PrestasiModel();
         $this->encryptModel = new EncryptModel();
         $this->helpFunction = new HelpFunctionModel();
-        $this->dataSantri = new SantriModel();
+        $this->dataSantri = new SantriBaruModel();
     }
 
     public function index()

@@ -8,7 +8,7 @@ use App\Models\KelasModel;
 use App\Models\SantriBaruModel;
 use App\Models\KelasMateriPelajaranModel;
 use App\Models\NilaiModel;
-use App\Models\SantriModel;
+
 class Kelas extends BaseController
 {
     protected $santriBaruModel;
@@ -17,7 +17,7 @@ class Kelas extends BaseController
     protected $nilaiModel;
     protected $helpFunction;
     protected $IdTpq;
-    protected $santriModel;
+
 
     public function __construct()
     {
@@ -27,7 +27,7 @@ class Kelas extends BaseController
         $this->kelasMateriPelajaranModel = new KelasMateriPelajaranModel();
         $this->nilaiModel = new NilaiModel();
         $this->helpFunction = new HelpFunctionModel();
-        $this->santriModel = new SantriModel();
+
 
         $this->IdTpq = session()->get('IdTpq');
     }
@@ -266,7 +266,7 @@ class Kelas extends BaseController
 
         // update tabel santri dengan IdSantri dan IdKelas baru  
         if (!empty($dataSantri)) {
-            $this->santriModel->updateBatch($dataSantri, 'IdSantri');
+            $this->santriBaruModel->updateBatch($dataSantri, 'IdSantri');
         }
 
         // Insert semua santri naik kelas sekaligus
@@ -381,7 +381,7 @@ class Kelas extends BaseController
             ];
         }
         if (!empty($dataUpdateSantri)) {
-            $this->santriModel->updateBatch($dataUpdateSantri, 'IdSantri');
+            $this->santriBaruModel->updateBatch($dataUpdateSantri, 'IdSantri');
         }
 
         // Validasi apakah ada data yang valid untuk diproses

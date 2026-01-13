@@ -8,7 +8,7 @@ use App\Models\MunaqosahAntrianModel;
 use App\Models\MunaqosahBobotNilaiModel;
 use App\Models\MunaqosahMateriModel;
 use App\Models\MunaqosahPesertaModel;
-use App\Models\SantriModel;
+
 use App\Models\TpqModel;
 use App\Models\GuruModel;
 use App\Models\MateriPelajaranModel;
@@ -36,7 +36,7 @@ class Munaqosah extends BaseController
     protected $bobotNilaiMunaqosahModel;
     protected $materiMunaqosahModel;
     protected $pesertaMunaqosahModel;
-    protected $santriModel;
+
     protected $tpqModel;
     protected $guruModel;
     protected $materiPelajaranModel;
@@ -65,7 +65,7 @@ class Munaqosah extends BaseController
         $this->bobotNilaiMunaqosahModel = new MunaqosahBobotNilaiModel();
         $this->materiMunaqosahModel = new MunaqosahMateriModel();
         $this->pesertaMunaqosahModel = new MunaqosahPesertaModel();
-        $this->santriModel = new SantriModel();
+
         $this->tpqModel = new TpqModel();
         $this->guruModel = new GuruModel();
         $this->materiPelajaranModel = new MateriPelajaranModel();

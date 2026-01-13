@@ -4,7 +4,7 @@ namespace App\Controllers\Backend;
 
 use App\Controllers\BaseController;
 use App\Models\TabunganModel;
-use App\Models\SantriModel;
+use App\Models\SantriBaruModel;
 use App\Models\HelpFunctionModel;
 use App\Models\UserModel;
 use App\Models\GuruModel;
@@ -21,7 +21,7 @@ class Pages extends BaseController
     public function __construct()
     {
         $this->tabunganModel = new TabunganModel();
-        $this->santriModel = new SantriModel();
+        $this->santriModel = new SantriBaruModel();
         $this->helpFunctionModel = new HelpFunctionModel();
         $this->userModel = new UserModel();
         $this->guruModel = new GuruModel();

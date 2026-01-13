@@ -6,7 +6,7 @@ use App\Controllers\BaseController;
 use App\Models\TabunganModel;
 use App\Models\EncryptModel;
 use App\Models\HelpFunctionModel;
-use App\Models\SantriModel;
+use App\Models\SantriBaruModel;
 
 class Tabungan extends BaseController
 {
@@ -18,7 +18,7 @@ class Tabungan extends BaseController
     public function __construct()
     {
         $this->encryptModel = new EncryptModel();
-        $this->dataSantri = new SantriModel();
+        $this->dataSantri = new SantriBaruModel();
         $this->helpFunction = new HelpFunctionModel();
         $this->tabunganModel = new TabunganModel();
     }
@@ -205,7 +205,7 @@ class Tabungan extends BaseController
     public function showMutasi($IdSantri, $IdTahunAjaran = null)
     {
         // Fetch student details
-        $santriModel = new \App\Models\SantriModel(); // Assuming SantriModel is in \App\Models namespace
+        $santriModel = new \App\Models\SantriBaruModel(); // Assuming SantriModel is in \App\Models namespace
         // Fetch student details
         $santri = $santriModel->where('IdSantri', $IdSantri)->first();
 

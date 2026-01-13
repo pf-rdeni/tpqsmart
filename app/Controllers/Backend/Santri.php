@@ -3,7 +3,6 @@
 namespace App\Controllers\Backend;
 
 use App\Controllers\BaseController;
-use App\Models\SantriModel;
 use App\Models\EncryptModel;
 use App\Models\HelpFunctionModel;
 use App\Models\SantriBaruModel;
@@ -35,7 +34,7 @@ class Santri extends BaseController
     public function __construct()
     {
         $this->encryptModel = new EncryptModel();
-        $this->DataSantri = new SantriModel();
+        $this->DataSantri = new SantriBaruModel();
         $this->DataSantriBaru = new SantriBaruModel();
         $this->helpFunction = new HelpFunctionModel();
         $this->nilaiModel = new NilaiModel();
@@ -709,7 +708,7 @@ class Santri extends BaseController
     public function show()
     {
         $IdTpq = session()->get('IdTpq');
-        $santri = $this->DataSantri->GetData($IdTpq);
+        $santri = $this->DataSantri->GetDataPerKelasTpq($IdTpq);
 
         $kelas = $this->helpFunction->getDataKelas();
         $data = [
@@ -1343,7 +1342,7 @@ class Santri extends BaseController
 
     public function viewDetailSantriBaru($IdSantri = null)
     {
-        $santri = $this->DataSantriBaru->GetData($IdSantri);
+        $santri = $this->DataSantriBaru->getDetailSantriById($IdSantri);
         return view('backend/santri/detailSantriBaru', $santri);
     }
 

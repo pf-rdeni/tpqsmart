@@ -3,7 +3,7 @@
 namespace App\Controllers;
 
 use App\Controllers\BaseController;
-use App\Models\SantriModel;
+
 use App\Models\EncryptModel;
 use App\Models\HelpFunctionModel;
 use App\Models\SantriBaruModel;
@@ -14,7 +14,7 @@ use Dompdf\Options;
 
 class SantriPendaftaran extends BaseController
 {
-    public $DataSantri;
+
     protected $encryptModel;
     protected $helpFunction;
     protected $DataSantriBaru;
@@ -24,7 +24,7 @@ class SantriPendaftaran extends BaseController
     public function __construct()
     {
         $this->encryptModel = new EncryptModel();
-        $this->DataSantri = new SantriModel();
+
         $this->DataSantriBaru = new SantriBaruModel();
         $this->helpFunction = new HelpFunctionModel();
         $this->nilaiModel = new NilaiModel();

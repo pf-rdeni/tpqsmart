@@ -3,7 +3,7 @@
 namespace App\Controllers\Frontend;
 
 use App\Models\SignatureModel;
-use App\Models\SantriModel;
+use App\Models\SantriBaruModel;
 use App\Models\GuruModel;
 use App\Models\KelasModel;
 use App\Models\TpqModel;
@@ -21,7 +21,7 @@ class Signature extends \App\Controllers\BaseController
     public function __construct()
     {
         $this->signatureModel = new SignatureModel();
-        $this->santriModel = new SantriModel();
+        $this->santriModel = new SantriBaruModel();
         $this->guruModel = new GuruModel();
         $this->kelasModel = new KelasModel();
         $this->tpqModel = new TpqModel();

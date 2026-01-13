@@ -1,7 +1,7 @@
 <?php namespace App\Controllers\Backend;
 
 use App\Controllers\BaseController;
-use App\Models\SantriModel;
+use App\Models\SantriBaruModel;
 use App\Models\KelasModel;
 use App\Models\AbsensiModel;
 use App\Models\HelpFunctionModel;
@@ -19,7 +19,7 @@ class Absensi extends BaseController
 
     public function index()
     {
-        $santriModel = new SantriModel();
+        $santriModel = new SantriBaruModel();
         $kelasModel = new KelasModel();
         $absensiModel = new AbsensiModel();
 
@@ -213,7 +213,7 @@ class Absensi extends BaseController
 
     public function statistikKehadiran()
     {
-        $santriModel = new SantriModel();
+        $santriModel = new SantriBaruModel();
         $absensiModel = new AbsensiModel();
 
         // Ambil data session
@@ -416,7 +416,7 @@ class Absensi extends BaseController
             ]);
         }
 
-        $santriModel = new SantriModel();
+        $santriModel = new SantriBaruModel();
         $absensiModel = new AbsensiModel();
 
         // Ambil data dari request
@@ -849,7 +849,7 @@ class Absensi extends BaseController
         }
 
         try {
-            $santriModel = new SantriModel();
+            $santriModel = new SantriBaruModel();
             $absensiModel = new AbsensiModel();
             $helpFunction = new HelpFunctionModel();
             $db = db_connect();
@@ -1001,7 +1001,7 @@ class Absensi extends BaseController
             ]);
         }
 
-        $santriModel = new SantriModel();
+        $santriModel = new SantriBaruModel();
         $absensiModel = new AbsensiModel();
         $helpFunction = new HelpFunctionModel();
         $db = db_connect();
@@ -1106,7 +1106,7 @@ class Absensi extends BaseController
             ->first();
 
         // Ambil data santri
-        $santriModel = new SantriModel();
+        $santriModel = new SantriBaruModel();
         $db = db_connect();
         $builder = $db->table('tbl_kelas_santri ks');
         $builder->select('
@@ -1188,7 +1188,7 @@ class Absensi extends BaseController
         }
 
         // Ambil data kelas santri
-        $santriModel = new SantriModel();
+        $santriModel = new SantriBaruModel();
         $db = db_connect();
         $builder = $db->table('tbl_kelas_santri ks');
         $builder->select('k.IdKelas');

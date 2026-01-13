@@ -26,7 +26,7 @@ class PrestasiModel extends Model
     public function getSantriWithPrestasi($IdTpq, $IdTahunAjaran, $IdKelas, $IdGuru)
     {
         // Ambil data santri per kelas
-        $santriModel = new SantriModel();
+        $santriModel = new SantriBaruModel();
         $santriList = $santriModel->GetDataSantriPerKelas($IdTpq, $IdTahunAjaran, $IdKelas, $IdGuru);
 
         // Load the PrestasiModel
@@ -84,7 +84,7 @@ class PrestasiModel extends Model
 
         try {
             // 1. Get santri data
-            $santriModel = new SantriModel();
+            $santriModel = new SantriBaruModel();
             $santriList = $santriModel->GetDataSantriPerKelas($IdTpq, $IdTahunAjaran, $IdKelas, $IdGuru);
 
             if (empty($santriList)) {

@@ -7,7 +7,7 @@ use App\Models\Frontend\Absensi\AbsensiSantriLinkModel;
 use App\Models\Frontend\Absensi\AbsensiDeviceModel;
 use App\Models\AbsensiModel;
 use App\Models\GuruModel;
-use App\Models\SantriModel;
+use App\Models\SantriBaruModel;
 use App\Models\KelasModel;
 use App\Models\HelpFunctionModel;
 
@@ -27,7 +27,7 @@ class AbsensiSantri extends BaseController
         $this->deviceModel = new AbsensiDeviceModel();
         $this->absensiModel = new AbsensiModel();
         $this->guruModel = new GuruModel();
-        $this->santriModel = new SantriModel();
+        $this->santriModel = new SantriBaruModel();
         $this->kelasModel = new KelasModel();
         $this->helpFunction = new HelpFunctionModel();
     }

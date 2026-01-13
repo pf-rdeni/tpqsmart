@@ -9,7 +9,7 @@ use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
 use Psr\Log\LoggerInterface;
 use App\Models\HelpFunctionModel;
-use App\Models\SantriModel;
+use App\Models\SantriBaruModel;
 use App\Models\TabunganModel;
 use App\Models\ToolsModel;
 
@@ -28,7 +28,7 @@ class Dashboard extends BaseController
     public function __construct()
     {
         $this->helpFunctionModel = new HelpFunctionModel();
-        $this->santriModel = new SantriModel();
+        $this->santriModel = new SantriBaruModel();
         $this->tabunganModel = new TabunganModel();
         $this->toolsModel = new ToolsModel();
         $this->db = \Config\Database::connect();

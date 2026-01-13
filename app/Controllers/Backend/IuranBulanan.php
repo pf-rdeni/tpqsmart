@@ -6,7 +6,7 @@ use App\Controllers\BaseController;
 use App\Models\IuranBulananModel;
 use App\Models\EncryptModel;
 use App\Models\HelpFunctionModel;
-use App\Models\SantriModel;
+use App\Models\SantriBaruModel;
 
 class IuranBulanan extends BaseController
 {
@@ -18,7 +18,7 @@ class IuranBulanan extends BaseController
     public function __construct()
     {
         $this->encryptModel = new EncryptModel();
-        $this->dataSantri = new SantriModel();
+        $this->dataSantri = new SantriBaruModel();
         $this->helpFunction = new HelpFunctionModel();
         $this->iuranBulananModel = new IuranBulananModel();
     }
