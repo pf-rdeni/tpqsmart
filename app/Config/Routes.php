@@ -272,6 +272,13 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->get('santri/generatePDFAllProfilSantri', 'Santri::generatePDFAllProfilSantri');
     $routes->post('santri/ttdBulkKepsekProfil', 'Santri::ttdBulkKepsekProfil');
     $routes->post('santri/cancelBulkKepsekProfil', 'Santri::cancelBulkKepsekProfil');
+    $routes->get('santri/verifikasiDataSantri', 'Santri::verifikasiDataSantri');
+    $routes->get('santri/perbandinganDataSantri/(:segment)', 'Santri::perbandinganDataSantri/$1');
+    $routes->post('santri/processVerifikasi', 'Santri::processVerifikasi');
+    $routes->post('santri/updateDataSantri', 'Santri::updateDataSantri');
+    $routes->post('santri/updateFileKk', 'Santri::updateFileKk');
+    $routes->post('santri/uploadNewKk', 'Santri::uploadNewKk');
+    $routes->post('santri/checkNikUnique', 'Santri::checkNikUnique');
 
     // Munaqosah Routes
     $routes->get('munaqosah/nilai', 'Munaqosah::nilai');

@@ -14,6 +14,7 @@ use App\Models\MdaModel;
 use App\Models\TpqModel;
 use App\Models\KelasMateriPelajaranModel;
 use App\Models\SignatureModel;
+use App\Models\Backend\Santri\VerifikasiSantriModel;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 
@@ -29,6 +30,7 @@ class Santri extends BaseController
     protected $mdaModel;
     protected $tpqModel;
     protected $signatureModel;
+    protected $verifikasiSantriModel;
 
     public function __construct()
     {
@@ -42,6 +44,7 @@ class Santri extends BaseController
         $this->mdaModel = new MdaModel();
         $this->tpqModel = new TpqModel();
         $this->signatureModel = new SignatureModel();
+        $this->verifikasiSantriModel = new VerifikasiSantriModel();
     }
 
     // fungsi untuk menampilkan form tambah santri
@@ -3782,5 +3785,441 @@ class Santri extends BaseController
                 'message' => 'Terjadi kesalahan: ' . $e->getMessage()
             ]);
         }
+    }
+
+    // Verifikasi Data Santri
+    public function verifikasiDataSantri()
+    {
+        $idTpq = session()->get('IdTpq');
+        
+        // Use the new model to fetch data
+        $dataSantri = $this->verifikasiSantriModel->getSantriForVerification($idTpq);
+
+        $operatorName = ucwords(strtolower(user()->fullname ?? user()->username));
+
+        $data = [
+            'page_title' => 'Verifikasi Data Santri',
+            'dataSantri' => $dataSantri,
+            'operatorName' => $operatorName
+        ];
+
+        return view('backend/santri/verifikasiDataSantri', $data);
+    }
+
+    // Halaman Detail Verifikasi - Perbandingan Data Santri dengan KK
+    public function perbandinganDataSantri($id = null)
+    {
+        if (!$id) {
+            return redirect()->to('backend/santri/verifikasiDataSantri')->with('error', 'ID Santri tidak valid');
+        }
+
+        // Get santri data - use direct query with LEFT JOIN to handle null IdKelas/IdTpq
+        $builder = $this->DataSantriBaru->builder();
+        $builder->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq')
+            ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas', 'left')
+            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq', 'left')
+            ->where('tbl_santri_baru.id', $id);
+        $santri = $builder->get()->getRowArray();
+
+        if (!$santri) {
+            return redirect()->to('backend/santri/verifikasiDataSantri')->with('error', 'Data Santri tidak ditemukan');
+        }
+
+        // Process KK file - convert PDF to JPG if needed
+        $kkImageUrl = null;
+        $kkError = null;
+        $fileKk = $santri['FileKkSantri'] ?? null;
+        
+        if ($fileKk) {
+            $kkPath = FCPATH . 'uploads/santri/' . $fileKk;
+            
+            if (file_exists($kkPath)) {
+                // Check if it's a PDF
+                $extension = strtolower(pathinfo($fileKk, PATHINFO_EXTENSION));
+                
+                if ($extension === 'pdf') {
+                    try {
+                        // Convert PDF to image
+                        $base64Image = $this->convertPdfToImage($kkPath);
+                        $kkImageUrl = $base64Image;
+                    } catch (\Exception $e) {
+                        log_message('error', 'Santri perbandinganDataSantri: PDF conversion failed - ' . $e->getMessage());
+                        $kkError = 'Gagal mengkonversi PDF: ' . $e->getMessage();
+                    }
+                } else {
+                    // It's already an image
+                    $kkImageUrl = base_url('uploads/santri/' . $fileKk);
+                }
+            } else {
+                $kkError = 'File KK tidak ditemukan di server';
+            }
+        }
+
+        $data = [
+            'page_title' => 'Verifikasi Data Santri - ' . ($santri['NamaSantri'] ?? ''),
+            'santri' => $santri,
+            'kkImageUrl' => $kkImageUrl,
+            'kkError' => $kkError
+        ];
+
+        return view('backend/santri/perbandinganDataSantri', $data);
+    }
+
+    /**
+     * Convert PDF to Image (first page only)
+     * Uses Imagick extension OR Ghostscript binary to convert PDF to JPEG
+     */
+    private function convertPdfToImage($pdfPath)
+    {
+        if (!file_exists($pdfPath)) {
+            throw new \Exception('File PDF tidak ditemukan');
+        }
+
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        $mimeType = finfo_file($finfo, $pdfPath);
+        finfo_close($finfo);
+
+        if ($mimeType !== 'application/pdf') {
+            throw new \Exception('File bukan PDF yang valid');
+        }
+
+        // 1. Try Imagick Extension (Best Quality)
+        if (extension_loaded('imagick')) {
+            try {
+                $imagick = new \Imagick();
+                $imagick->setResolution(300, 300);
+                $imagick->readImage($pdfPath . '[0]');
+                $imagick->setImageFormat('jpeg');
+                $imagick->setImageCompressionQuality(90);
+                $imagick->setImageBackgroundColor('white');
+                $imagick = $imagick->flattenImages();
+                $imageBlob = $imagick->getImageBlob();
+                $imagick->clear();
+                $imagick->destroy();
+                return 'data:image/jpeg;base64,' . base64_encode($imageBlob);
+            } catch (\Exception $e) {
+                log_message('error', 'Santri: convertPdfToImage - Imagick failed, trying Ghostscript. Error: ' . $e->getMessage());
+            }
+        }
+
+        // 2. Try Ghostscript Binary (Fallback)
+        $gsBin = $this->getGhostscriptBinary();
+        if ($gsBin) {
+            return $this->convertPdfWithGhostscript($pdfPath, $gsBin);
+        }
+
+        throw new \Exception('Server tidak mendukung konversi PDF. Ekstensi Imagick tidak tersedia dan Ghostscript tidak ditemukan.');
+    }
+
+    /**
+     * Get Ghostscript binary path
+     */
+    private function getGhostscriptBinary()
+    {
+        $binaries = ['gswin64c', 'gswin32c', 'gs'];
+        
+        foreach ($binaries as $binary) {
+            $output = [];
+            $returnVar = -1;
+            $cmd = (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') ? "where $binary" : "which $binary";
+            exec($cmd, $output, $returnVar);
+            
+            if ($returnVar === 0) {
+                return $binary;
+            }
+        }
+
+        // Check common default install locations on Windows
+        $commonPaths = [
+            'C:\\Program Files\\gs\\gs10.04.0\\bin\\gswin64c.exe',
+            'C:\\Program Files\\gs\\gs10.03.1\\bin\\gswin64c.exe',
+            'C:\\Program Files\\gs\\gs10.03.0\\bin\\gswin64c.exe',
+            'C:\\Program Files\\gs\\gs10.02.1\\bin\\gswin64c.exe',
+            'C:\\Program Files\\gs\\gs10.02.0\\bin\\gswin64c.exe',
+            'C:\\Program Files\\gs\\gs10.01.2\\bin\\gswin64c.exe',
+            'C:\\Program Files\\gs\\gs10.01.1\\bin\\gswin64c.exe', 
+            'C:\\Program Files\\gs\\gs10.01.0\\bin\\gswin64c.exe',
+            'C:\\Program Files\\gs\\gs10.00.0\\bin\\gswin64c.exe',
+            'C:\\Program Files\\gs\\gs9.56.1\\bin\\gswin64c.exe',
+        ];
+
+        foreach ($commonPaths as $path) {
+            if (file_exists($path)) {
+                return '"' . $path . '"';
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Convert PDF to Image using Ghostscript CLI
+     */
+    private function convertPdfWithGhostscript($pdfPath, $gsBin)
+    {
+        try {
+            $outputFile = tempnam(sys_get_temp_dir(), 'gs_conv_') . '.jpg';
+            
+            $cmd = "$gsBin -dSAFER -dBATCH -dNOPAUSE -sDEVICE=jpeg -dTextAlphaBits=4 -dGraphicsAlphaBits=4 -r300 -dFirstPage=1 -dLastPage=1 -sOutputFile=\"$outputFile\" \"$pdfPath\"";
+            $cmd .= ' 2>&1';
+            
+            $output = [];
+            $returnVar = -1;
+            exec($cmd, $output, $returnVar);
+            
+            if ($returnVar !== 0) {
+                log_message('error', 'Santri: convertPdfWithGhostscript - Failed. Output: ' . implode("\n", $output));
+                if (file_exists($outputFile)) @unlink($outputFile);
+                throw new \Exception('Ghostscript conversion failed (Exit Code: ' . $returnVar . ')');
+            }
+            
+            if (!file_exists($outputFile) || filesize($outputFile) === 0) {
+                throw new \Exception('Ghostscript did not generate output file');
+            }
+            
+            $imageData = file_get_contents($outputFile);
+            $base64 = base64_encode($imageData);
+            @unlink($outputFile);
+            
+            return 'data:image/jpeg;base64,' . $base64;
+            
+        } catch (\Exception $e) {
+            log_message('error', 'Santri: convertPdfWithGhostscript - Error: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    // Update Status Verifikasi
+    public function processVerifikasi()
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setStatusCode(403)->setJSON(['status' => 'error', 'message' => 'Invalid request']);
+        }
+
+        $id = $this->request->getPost('idSantri'); // This is the primary key 'id'
+        $status = $this->request->getPost('status'); // 1 = Valid, 2 = Revisi
+
+        if (!$id || !in_array($status, ['1', '2'])) {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'Parameter tidak valid']);
+        }
+
+        try {
+            // Map status to ENUM values
+            $statusEnum = ($status == '1') ? 'Sudah Diverifikasi' : 'Perlu Perbaikan';
+
+            // Update directly by primary key
+            $this->DataSantriBaru->update($id, ['Status' => $statusEnum]);
+            $statusLabel = $status == '1' ? 'Valid' : 'Perlu Perbaikan';
+            return $this->response->setJSON(['status' => 'success', 'message' => 'Status berhasil diupdate menjadi ' . $statusLabel]);
+        } catch (\Exception $e) {
+            log_message('error', 'Santri processVerifikasi: ' . $e->getMessage());
+            return $this->response->setJSON(['status' => 'error', 'message' => 'Gagal mengupdate status']);
+        }
+    }
+
+    public function updateDataSantri()
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setStatusCode(403)->setJSON(['status' => 'error', 'message' => 'Invalid request']);
+        }
+
+        $id = $this->request->getPost('idSantri'); // This is the primary key 'id'
+        if (!$id) {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'ID Santri tidak valid']);
+        }
+
+        $updateData = [
+            'IdKartuKeluarga' => $this->request->getPost('IdKartuKeluarga'),
+            'NikSantri' => $this->request->getPost('NikSantri'),
+            'NamaSantri' => $this->request->getPost('NamaSantri'),
+            'TempatLahirSantri' => $this->request->getPost('TempatLahirSantri'),
+            'TanggalLahirSantri' => $this->request->getPost('TanggalLahirSantri'),
+            'JenisKelamin' => $this->request->getPost('JenisKelamin'),
+            'NamaAyah' => $this->request->getPost('NamaAyah'),
+            'NamaIbu' => $this->request->getPost('NamaIbu'),
+            'KelurahanDesaSantri' => $this->request->getPost('KelurahanDesaSantri'),
+        ];
+
+        // Filter out empty values
+        $updateData = array_filter($updateData, fn($v) => $v !== null && $v !== '');
+
+        try {
+            // Update directly by primary key
+            $this->DataSantriBaru->update($id, $updateData);
+            return $this->response->setJSON(['status' => 'success', 'message' => 'Data berhasil diupdate']);
+        } catch (\Exception $e) {
+            log_message('error', 'Santri updateDataSantri: ' . $e->getMessage());
+            return $this->response->setJSON(['status' => 'error', 'message' => 'Gagal mengupdate data']);
+        }
+    }
+
+    // Update File KK (Save cropped/edited image)
+    public function updateFileKk()
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setStatusCode(403)->setJSON(['status' => 'error', 'message' => 'Invalid request']);
+        }
+
+        $id = $this->request->getPost('idSantri'); // This is the primary key 'id'
+        $croppedImageData = $this->request->getPost('croppedImageData');
+
+        if (!$id || !$croppedImageData) {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'Parameter tidak valid']);
+        }
+
+        try {
+            // Find santri by primary key
+            $santri = $this->DataSantriBaru->find($id);
+            if (!$santri) {
+                return $this->response->setJSON(['status' => 'error', 'message' => 'Data santri tidak ditemukan']);
+            }
+
+            // Decode base64 image
+            if (preg_match('/^data:image\/(\w+);base64,/', $croppedImageData, $matches)) {
+                $imageData = substr($croppedImageData, strpos($croppedImageData, ',') + 1);
+                $imageData = base64_decode($imageData);
+                
+                if ($imageData === false) {
+                    throw new \Exception('Gagal decode data gambar');
+                }
+
+                $oldFile = $santri['FileKkSantri'] ?? null;
+
+                // Generate new filename using primary key id
+                $newFileName = 'kk_' . $id . '_' . time() . '.jpg';
+                $uploadPath = FCPATH . 'uploads/santri/';
+                
+                // Create directory if not exists
+                if (!is_dir($uploadPath)) {
+                    mkdir($uploadPath, 0755, true);
+                }
+
+                // Save new file
+                if (file_put_contents($uploadPath . $newFileName, $imageData)) {
+                    // Update database by primary key
+                    $this->DataSantriBaru->update($id, ['FileKkSantri' => $newFileName]);
+                    
+                    // Delete old file if exists and different
+                    if ($oldFile && $oldFile !== $newFileName && file_exists($uploadPath . $oldFile)) {
+                        @unlink($uploadPath . $oldFile);
+                    }
+
+                    return $this->response->setJSON([
+                        'status' => 'success', 
+                        'message' => 'File KK berhasil disimpan',
+                        'newFileUrl' => base_url('uploads/santri/' . $newFileName)
+                    ]);
+                } else {
+                    throw new \Exception('Gagal menyimpan file');
+                }
+            } else {
+                throw new \Exception('Format data gambar tidak valid');
+            }
+        } catch (\Exception $e) {
+            log_message('error', 'Santri updateFileKk: ' . $e->getMessage());
+            return $this->response->setJSON(['status' => 'error', 'message' => 'Gagal menyimpan file: ' . $e->getMessage()]);
+        }
+    }
+
+    // Upload New KK File
+    public function uploadNewKk()
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setStatusCode(403)->setJSON(['status' => 'error', 'message' => 'Invalid request']);
+        }
+
+        $id = $this->request->getPost('idSantri'); // Primary key 'id'
+        $file = $this->request->getFile('fileKk');
+
+        if (!$id) {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'ID Santri tidak valid']);
+        }
+
+        if (!$file || !$file->isValid()) {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'File tidak valid']);
+        }
+
+        try {
+            // Find santri by primary key
+            $santri = $this->DataSantriBaru->find($id);
+            if (!$santri) {
+                return $this->response->setJSON(['status' => 'error', 'message' => 'Data santri tidak ditemukan']);
+            }
+            
+            $uploadPath = FCPATH . 'uploads/santri/';
+            if (!is_dir($uploadPath)) {
+                mkdir($uploadPath, 0755, true);
+            }
+
+            $oldFile = $santri['FileKkSantri'] ?? null;
+            $mimeType = $file->getMimeType();
+            $newFileName = 'kk_' . $id . '_' . time();
+
+            if ($mimeType === 'application/pdf') {
+                // Convert PDF to JPG
+                $tempPath = $file->getTempName();
+                $base64Image = $this->convertPdfToImage($tempPath);
+                
+                // Save the converted image
+                $imageData = base64_decode(str_replace('data:image/jpeg;base64,', '', $base64Image));
+                $newFileName .= '.jpg';
+                file_put_contents($uploadPath . $newFileName, $imageData);
+            } else {
+                // It's an image, just move it
+                $ext = $file->getExtension();
+                $newFileName .= '.' . $ext;
+                $file->move($uploadPath, $newFileName);
+            }
+
+            // Update database by primary key
+            $this->DataSantriBaru->update($id, ['FileKkSantri' => $newFileName]);
+            
+            // Delete old file if exists and different
+            if ($oldFile && $oldFile !== $newFileName && file_exists($uploadPath . $oldFile)) {
+                @unlink($uploadPath . $oldFile);
+            }
+
+            return $this->response->setJSON([
+                'status' => 'success',
+                'message' => 'File KK berhasil diupload',
+                'newFileUrl' => base_url('uploads/santri/' . $newFileName)
+            ]);
+
+        } catch (\Exception $e) {
+            log_message('error', 'Santri uploadNewKk: ' . $e->getMessage());
+            return $this->response->setJSON(['status' => 'error', 'message' => 'Gagal upload: ' . $e->getMessage()]);
+        }
+    }
+
+    // Check NIK Uniqueness
+    public function checkNikUnique()
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setStatusCode(403)->setJSON(['status' => 'error', 'message' => 'Invalid request']);
+        }
+
+        $nik = $this->request->getPost('nik');
+        $idSantri = $this->request->getPost('idSantri');
+
+        if (!$nik || strlen($nik) !== 16) {
+            return $this->response->setJSON(['isUnique' => false, 'message' => 'NIK tidak valid']);
+        }
+
+        // Check if NIK exists in database (excluding current santri)
+        $builder = $this->DataSantriBaru->builder();
+        $builder->where('NikSantri', $nik);
+        if ($idSantri) {
+            $builder->where('id !=', $idSantri);
+        }
+        $existing = $builder->get()->getRowArray();
+
+        if ($existing) {
+            return $this->response->setJSON([
+                'isUnique' => false,
+                'usedBy' => $existing['NamaSantri'] ?? 'Santri lain'
+            ]);
+        }
+
+        return $this->response->setJSON(['isUnique' => true]);
     }
 }

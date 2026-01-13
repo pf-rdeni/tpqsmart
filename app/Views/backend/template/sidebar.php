@@ -777,7 +777,15 @@
                                         <i class="fas fa-clipboard-check nav-icon text-warning"></i>
                                         <p>Registrasi Santri Baru</p>
                                     </a>
-                                </li>
+                            </li>
+                            <?php endif; ?>
+                            <?php if (in_groups('Admin') || $isActiveOperator): ?>
+                            <li class="nav-item">
+                                <a href=<?php echo base_url('backend/santri/verifikasiDataSantri') ?> class="nav-link">
+                                    <i class="fas fa-check-double nav-icon text-warning"></i>
+                                    <p>Verifikasi Data Santri</p>
+                                </a>
+                            </li>
                             <?php endif; ?>
                             <li class="nav-item">
                                 <a href=<?php echo base_url('backend/santri/showProfilSantri') ?> class="nav-link">
