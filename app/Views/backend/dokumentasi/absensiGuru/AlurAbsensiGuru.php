@@ -123,25 +123,48 @@
                     O --> P[Pindah ke List 'Sudah Hadir']
                 </div>
 
-                <div class="alert alert-info mt-4">
-                    <h5><i class="icon fas fa-info"></i> Ringkasan Teknis (File Terkait)</h5>
-                    <ul>
-                        <li><strong>Controller</strong>: <code>app/Controllers/AbsensiGuru.php</code></li>
-                        <li><strong>Model</strong>: <code>app/Models/AbsensiGuruModel.php</code> (Data Absensi), <code>app/Models/KegiatanAbsensiModel.php</code> (Config Kegiatan)</li>
-                        <li><strong>View (Frontend)</strong>: <code>app/Views/frontend/absensi/index.php</code> (Form Absensi), <code>app/Views/frontend/absensi/error.php</code> (Halaman Error)</li>
-                        <li><strong>View (Backend)</strong>: <code>app/Views/backend/absensiGuru/index.php</code> (Manajemen Kegiatan)</li>
-                    </ul>
-                </div>
+                <!-- Technical Info -->
             </div>
             <!-- /.card-body -->
         </div>
         <!-- /.card -->
+
+        <!-- Card: Technical Info -->
+        <div class="card collapsed-card">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-code mr-2"></i>Informasi Teknis (Untuk Developer)</h3>
+                <div class="card-tools">
+                    <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Expand">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                 <div class="row">
+                    <div class="col-md-6">
+                        <div class="callout callout-info" style="border-left-color: #17a2b8;">
+                            <h5>Backend Components</h5>
+                            <p>Controller: <code>app/Controllers/AbsensiGuru.php</code></p>
+                            <ul class="text-sm">
+                                <li><code>index()</code> - Main Page (Validation Logic)</li>
+                                <li><code>hadir()</code> - AJAX Handler for Attendance</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="callout callout-warning" style="border-left-color: #ffc107;">
+                            <h5>Database & Model</h5>
+                            <p>Table: <code>tbl_absensi_guru</code></p>
+                            <ul class="text-sm">
+                                <li><code>StatusKehadiran</code>: ENUM('Hadir', 'Izin', 'Sakit', 'Alfa')</li>
+                            </ul>
+                            <p>Model: <code>App\Models\AbsensiGuruModel</code>, <code>App\Models\KegiatanAbsensiModel</code></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </section>
-
-<script type="module">
-    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
-    mermaid.initialize({ startOnLoad: true });
-</script>
 
 <?= $this->endSection(); ?>

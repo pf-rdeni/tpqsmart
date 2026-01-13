@@ -115,4 +115,15 @@ class Dokumentasi extends BaseController
         ];
         return view('backend/dokumentasi/absensiSantri/AbsensiSantriPublic', $data);
     }
+
+    // Santri Verifikasi Documentation
+    public function santriVerifikasi()
+    {
+        $data = [
+            'page_title' => 'Dokumentasi: Verifikasi Data Santri',
+            'menu_open' => 'dokumentasi',
+            'menu_active' => 'santri-verifikasi'
+        ];
+        return view('backend/dokumentasi/santri/verifikasi', $data);
+    }
 }

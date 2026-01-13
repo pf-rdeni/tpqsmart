@@ -81,6 +81,44 @@ graph TD
     I --> J[Peringkat & Sertifikat]
                 </div>
 
+                <!-- Card: Technical Info -->
+                <div class="card collapsed-card mt-4">
+                    <div class="card-header">
+                        <h3 class="card-title"><i class="fas fa-code mr-2"></i>Informasi Teknis (Untuk Developer)</h3>
+                        <div class="card-tools">
+                            <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Expand">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="callout callout-info" style="border-left-color: #17a2b8;">
+                                    <h5>Backend Components</h5>
+                                    <p>Controller: <code>Backend/Perlombaan.php</code></p>
+                                    <ul class="text-sm">
+                                        <li>Logic Pendaftaran (Registrasi Peserta)</li>
+                                        <li>Logic Pengundian (Nomor Tampil)</li>
+                                        <li>Logic Penilaian (Score Input)</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="callout callout-warning" style="border-left-color: #ffc107;">
+                                    <h5>Database & Model</h5>
+                                    <p>Primary Models:</p>
+                                    <ul class="text-sm">
+                                        <li><code>LombaRegistrasiModel</code> (<code>tbl_lomba_registrasi</code>)</li>
+                                        <li><code>LombaRegistrasiAnggotaModel</code> (Detail Anggota Tim)</li>
+                                        <li><code>LombaNilaiModel</code> (<code>tbl_lomba_nilai</code>)</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
 
             </div>
             <div class="card-footer">
@@ -91,8 +129,5 @@ graph TD
     </div>
 </section>
 
-<script type="module">
-    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
-    mermaid.initialize({ startOnLoad: true });
-</script>
+
 <?= $this->endSection(); ?>

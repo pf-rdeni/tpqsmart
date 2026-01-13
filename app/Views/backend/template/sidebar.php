@@ -991,7 +991,7 @@
                                     <p>QR</p>
                                 </a>
                             </li>
-                            <?php if (in_groups('Admin')): ?>
+                            <?php if (in_groups('Admin') || in_groups('Operator')): ?>
                                 <li class="nav-item">
                                     <a href="#" class="nav-link">
                                         <i class="fas fa-book nav-icon text-warning"></i>
@@ -1001,6 +1001,23 @@
                                         </p>
                                     </a>
                                     <ul class="nav nav-treeview" style="display: none;">
+                                        <li class="nav-item">
+                                            <a href="#" class="nav-link">
+                                                <i class="far fa-circle nav-icon"></i>
+                                                <p>
+                                                    Data Santri
+                                                    <i class="right fas fa-angle-left"></i>
+                                                </p>
+                                            </a>
+                                            <ul class="nav nav-treeview" style="display: none;">
+                                                <li class="nav-item">
+                                                    <a href="<?= base_url('backend/dokumentasi/santri-verifikasi') ?>" class="nav-link">
+                                                        <i class="far fa-dot-circle nav-icon"></i>
+                                                        <p>Verifikasi Data</p>
+                                                    </a>
+                                                </li>
+                                            </ul>
+                                        </li>
                                         <li class="nav-item">
                                             <a href="#" class="nav-link">
                                                 <i class="far fa-circle nav-icon"></i>

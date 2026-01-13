@@ -697,3 +697,27 @@
         });
     });
 </script>
+
+<script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: true });
+
+    // Global listener for AdminLTE card expansion to re-render Mermaid diagrams
+    document.addEventListener('DOMContentLoaded', function() {
+        $(document).on('expanded.lte.cardwidget', function(event) {
+            const card = $(event.target).closest('.card');
+            const mermaidDivs = card.find('.mermaid');
+            
+            mermaidDivs.each(function() {
+                const el = $(this);
+                if (!el.find('svg').length) {
+                    const content = el.text().trim();
+                    if (content) {
+                        el.removeAttr('data-processed');
+                        mermaid.init(undefined, el[0]);
+                    }
+                }
+            });
+        });
+    });
+</script>

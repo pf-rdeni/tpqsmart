@@ -109,14 +109,42 @@ graph TD
 
                         <hr>
 
-                        <div class="alert alert-secondary">
-                            <h5><i class="icon fas fa-code"></i> Ringkasan Teknis</h5>
-                            <ul>
-                                <li><strong>Controller</strong>: <code>app/Controllers/Backend/KegiatanAbsensi.php</code> (<code>new()</code>, <code>create()</code>)</li>
-                                <li><strong>View</strong>: <code>app/Views/backend/absensiGuru/form.php</code></li>
-                                <li><strong>Database</strong>: <code>tbl_kegiatan_absensi</code></li>
+                        <!-- Card: Technical Info -->
+        <div class="card collapsed-card">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-code mr-2"></i>Informasi Teknis (Untuk Developer)</h3>
+                <div class="card-tools">
+                    <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Expand">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                    <div class="row">
+                    <div class="col-md-6">
+                        <div class="callout callout-info" style="border-left-color: #17a2b8;">
+                            <h5>Backend Components</h5>
+                            <p>Controller: <code>app/Controllers/Backend/KegiatanAbsensi.php</code></p>
+                            <ul class="text-sm">
+                                <li><code>new()</code> - Display Form</li>
+                                <li><code>create()</code> - Process Save & Logic</li>
                             </ul>
                         </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="callout callout-warning" style="border-left-color: #ffc107;">
+                            <h5>Database & Model</h5>
+                            <p>Table: <code>tbl_kegiatan_absensi</code></p>
+                            <ul class="text-sm">
+                                    <li><code>JenisJadwal</code>: Sekali/Rutin</li>
+                                    <li><code>Interval</code>, <code>OpsiPola</code>: Recurrence Logic</li>
+                            </ul>
+                            <p>View: <code>app/Views/backend/absensiGuru/form.php</code></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
                     </div>
                     <div class="card-footer">
@@ -127,10 +155,4 @@ graph TD
         </div>
     </div>
 </section>
-
-<!-- Include Mermaid JS -->
-<script type="module">
-    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
-    mermaid.initialize({ startOnLoad: true });
-</script>
 <?= $this->endSection(); ?>

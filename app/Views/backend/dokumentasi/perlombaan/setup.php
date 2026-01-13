@@ -85,6 +85,46 @@ graph LR
     H --> I
                 </div>
 
+                <!-- Card: Technical Info -->
+                <div class="card collapsed-card mt-4">
+                    <div class="card-header">
+                        <h3 class="card-title"><i class="fas fa-code mr-2"></i>Informasi Teknis (Untuk Developer)</h3>
+                        <div class="card-tools">
+                            <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Expand">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="callout callout-info" style="border-left-color: #17a2b8;">
+                                    <h5>Backend Components</h5>
+                                    <p>Controller: <code>Backend/Perlombaan.php</code></p>
+                                    <ul class="text-sm">
+                                        <li><code>storeLomba()</code> - Create Event</li>
+                                        <li><code>setCabang()</code>, <code>storeCabang()</code></li>
+                                        <li><code>setKriteria()</code>, <code>storeKriteria()</code></li>
+                                        <li><code>setJuri()</code>, <code>storeJuri()</code> - Auto-create User</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="callout callout-warning" style="border-left-color: #ffc107;">
+                                    <h5>Database & Model</h5>
+                                    <p>Tables (Hierarchy):</p>
+                                    <ul class="text-sm">
+                                        <li><code>tbl_lomba_master</code> (Event)</li>
+                                        <li>-> <code>tbl_lomba_cabang</code> (Category)</li>
+                                        <li>--> <code>tbl_lomba_kriteria</code> (Scoring Rules)</li>
+                                        <li>--> <code>tbl_lomba_juri</code> (Linked to <code>users</code>)</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             </div>
             <div class="card-footer">
                 <a href="<?= base_url('backend/dokumentasi/perlombaan') ?>" class="btn btn-default">Kembali</a>
@@ -94,8 +134,5 @@ graph LR
     </div>
 </section>
 
-<script type="module">
-    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
-    mermaid.initialize({ startOnLoad: true });
-</script>
+
 <?= $this->endSection(); ?>

@@ -133,15 +133,41 @@
                     J --> K[Copy/Share Link ke Guru]
                 </div>
 
-                <div class="alert alert-info mt-4">
-                    <h5><i class="icon fas fa-info"></i> Ringkasan Teknis (File Terkait)</h5>
-                    <ul>
-                        <li><strong>Controller</strong>: <code>app/Controllers/Backend/Absensi.php</code> (Method: linkIndex, linkNew, linkCreate, linkEdit, linkUpdate, linkDelete, linkRegenerate)</li>
-                        <li><strong>Model</strong>: <code>app/Models/Frontend/Absensi/AbsensiSantriLinkModel.php</code></li>
-                        <li><strong>View (List)</strong>: <code>app/Views/backend/absensi/linkIndex.php</code></li>
-                        <li><strong>View (Form)</strong>: <code>app/Views/backend/absensi/linkForm.php</code></li>
-                        <li><strong>Route</strong>: <code>backend/absensi/link</code>, <code>backend/absensi/link/new</code>, <code>backend/absensi/link/create</code>, dll.</li>
-                    </ul>
+                <!-- Card: Technical Info -->
+                <div class="card collapsed-card">
+                    <div class="card-header">
+                        <h3 class="card-title"><i class="fas fa-code mr-2"></i>Informasi Teknis (Untuk Developer)</h3>
+                        <div class="card-tools">
+                            <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Expand">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="callout callout-info" style="border-left-color: #17a2b8;">
+                                    <h5>Backend Components</h5>
+                                    <p>Controller: <code>app/Controllers/Backend/Absensi.php</code></p>
+                                    <ul class="text-sm">
+                                        <li><code>linkIndex()</code>, <code>linkNew()</code>, <code>linkCreate()</code></li>
+                                        <li><code>linkRegenerate()</code> - HashKey Logic</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="callout callout-warning" style="border-left-color: #ffc107;">
+                                    <h5>Database & Model</h5>
+                                    <p>Models: <code>AbsensiSantriLinkModel</code></p>
+                                    <p>Views:</p>
+                                    <ul class="text-sm">
+                                        <li><code>backend/absensi/linkIndex.php</code> (List)</li>
+                                        <li><code>backend/absensi/linkForm.php</code> (Form)</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="alert alert-success mt-3">
@@ -253,15 +279,45 @@
                     L --> M[Update UI / Selesai]
                 </div>
 
-                <div class="alert alert-info mt-4">
-                    <h5><i class="icon fas fa-info"></i> Ringkasan Teknis (File Terkait)</h5>
-                    <ul>
-                        <li><strong>Controller (Frontend)</strong>: <code>app/Controllers/Frontend/AbsensiSantri.php</code></li>
-                        <li><strong>Controller (Backend)</strong>: <code>app/Controllers/Backend/Absensi.php</code> (Method: linkIndex, linkNew, linkCreate, dll)</li>
-                        <li><strong>Model</strong>: <code>app/Models/Frontend/Absensi/AbsensiSantriLinkModel.php</code>, <code>app/Models/Frontend/Absensi/AbsensiDeviceModel.php</code></li>
-                        <li><strong>View (Frontend)</strong>: <code>app/Views/frontend/absensi/index.php</code> (Form Absensi), <code>app/Views/frontend/absensi/error.php</code> (Halaman Error)</li>
-                        <li><strong>View (Backend)</strong>: <code>app/Views/backend/absensi/linkIndex.php</code> (Manajemen Link), <code>app/Views/backend/absensi/linkForm.php</code> (Form)</li>
-                    </ul>
+                <!-- Card: Technical Info -->
+                <div class="card collapsed-card">
+                    <div class="card-header">
+                        <h3 class="card-title"><i class="fas fa-code mr-2"></i>Informasi Teknis (Untuk Developer)</h3>
+                        <div class="card-tools">
+                            <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Expand">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="callout callout-info" style="border-left-color: #17a2b8;">
+                                    <h5>Backend Components</h5>
+                                    <p><strong>Controllers:</strong></p>
+                                    <ul class="text-sm">
+                                        <li><code>Frontend/AbsensiSantri.php</code> (Public Logic)</li>
+                                        <li><code>Backend/Absensi.php</code> (Link Management: <code>linkIndex</code>, <code>linkCreate</code>)</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="callout callout-warning" style="border-left-color: #ffc107;">
+                                    <h5>Database & Model</h5>
+                                    <p>Models:</p>
+                                    <ul class="text-sm">
+                                        <li><code>AbsensiSantriLinkModel</code> (Table: <code>tbl_absensi_santri_link</code>)</li>
+                                        <li><code>AbsensiDeviceModel</code> (Token Auth: <code>tbl_absensi_device</code>)</li>
+                                    </ul>
+                                    <p>Views:</p>
+                                    <ul class="text-sm">
+                                        <li>Frontend: <code>frontend/absensi/index.php</code></li>
+                                        <li>Backend: <code>backend/absensi/linkIndex.php</code></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="alert alert-warning mt-4">
@@ -279,31 +335,6 @@
     </div>
 </section>
 
-<script type="module">
-    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
-    mermaid.initialize({ startOnLoad: true });
-    
-    // Re-render Mermaid when collapsed card is expanded
-    document.addEventListener('DOMContentLoaded', function() {
-        // Listen for AdminLTE card expand event
-        $(document).on('expanded.lte.cardwidget', function(event) {
-            // Find all mermaid diagrams inside the expanded card that haven't been rendered
-            const card = $(event.target).closest('.card');
-            const mermaidDivs = card.find('.mermaid');
-            
-            mermaidDivs.each(function() {
-                const el = $(this);
-                // Check if it's already rendered (has svg child)
-                if (!el.find('svg').length) {
-                    const content = el.text().trim();
-                    if (content) {
-                        el.removeAttr('data-processed');
-                        mermaid.init(undefined, el[0]);
-                    }
-                }
-            });
-        });
-    });
-</script>
+
 
 <?= $this->endSection(); ?>
