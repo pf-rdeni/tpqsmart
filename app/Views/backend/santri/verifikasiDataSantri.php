@@ -213,7 +213,10 @@
     $(function () {
         // Define custom initComplete to exclude first 3 columns (No, Photo, Aksi)
         var customInitComplete = function() {
-            this.api().columns().every(function() {
+            var api = this.api();
+            var savedFilters = JSON.parse(localStorage.getItem('verifikasiDataSantri_filters') || '{}');
+
+            api.columns().every(function() {
                 var column = this;
                 var colIdx = column.index();
 
@@ -223,9 +226,18 @@
                 var select = $('<select class="form-control form-control-sm mt-1"><option value="">Semua</option></select>')
                     .appendTo($(column.header()))
                     .on('change', function() {
-                        var val = $.fn.dataTable.util.escapeRegex(
-                            $(this).val()
-                        );
+                        var rawVal = $(this).val();
+                        var val = $.fn.dataTable.util.escapeRegex(rawVal);
+                        
+                        // Save to localStorage
+                        var currentFilters = JSON.parse(localStorage.getItem('verifikasiDataSantri_filters') || '{}');
+                        if (rawVal === "") {
+                            delete currentFilters[colIdx];
+                        } else {
+                            currentFilters[colIdx] = rawVal;
+                        }
+                        localStorage.setItem('verifikasiDataSantri_filters', JSON.stringify(currentFilters));
+
                         // Use partial match search instead of exact match to handle HTML tags around text
                         // Or rely on smart search if we are searching for text content
                         column
@@ -254,7 +266,23 @@
                         select.append('<option value="' + val + '">' + text + '</option>');
                     }
                 });
+
+                // Restore saved filter
+                if (savedFilters[colIdx]) {
+                    var savedVal = savedFilters[colIdx];
+                    // Check if value actually exists in options to avoid setting invalid state
+                    if (select.find('option[value="' + savedVal + '"]').length > 0) {
+                        select.val(savedVal);
+                        var searchVal = $.fn.dataTable.util.escapeRegex(savedVal);
+                        column.search(searchVal ? searchVal : '', true, false);
+                    }
+                }
             });
+
+            // Draw table once after restoring filters if any
+            if (Object.keys(savedFilters).length > 0) {
+                api.draw();
+            }
         };
 
         if (typeof initializeDataTableWithFilter === 'function') {

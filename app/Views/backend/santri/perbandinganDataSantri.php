@@ -11,6 +11,34 @@
             <div class="card-body">
                 <form id="formDataSantri">
                     <input type="hidden" id="idSantri" value="<?= esc($santri['id']) ?>">
+
+                    <div class="row justify-content-center mb-3">
+                        <div class="col-md-12 text-center">
+                            <?php
+                            $photoUrl = !empty($santri['PhotoProfil']) && file_exists(FCPATH . 'uploads/santri/' . $santri['PhotoProfil'])
+                                ? base_url('uploads/santri/' . $santri['PhotoProfil'])
+                                : base_url('images/no-photo.jpg');
+                            ?>
+                            <div class="position-relative mx-auto" style="max-width: 150px; width: 100%;">
+                                <img id="previewPhotoSantri" src="<?= $photoUrl ?>" alt="Foto Santri"
+                                    class="img-thumbnail d-block w-100 shadow-sm" style="aspect-ratio: 3/4; object-fit: cover;">
+                            </div>
+                            
+                            <div class="mt-2 d-flex justify-content-center" style="gap: 5px;">
+                                <input type="file" id="photo_profil_input" accept="image/*" style="display: none;">
+                                <button type="button" class="btn btn-xs btn-info" onclick="document.getElementById('photo_profil_input').click()">
+                                    <i class="fas fa-upload"></i> Upload
+                                </button>
+                                <button type="button" class="btn btn-xs btn-success" onclick="openCameraSantri()">
+                                    <i class="fas fa-camera"></i> Kamera
+                                </button>
+                                <button type="button" class="btn btn-xs btn-warning" id="btnEditPhotoSantri" onclick="editExistingPhotoSantri()" style="display: <?= (strpos($photoUrl, 'no-photo') !== false) ? 'none' : 'inline-block' ?>;">
+                                    <i class="fas fa-edit"></i> Edit
+                                </button>
+                            </div>
+                            <small class="text-muted d-block mt-1" style="font-size: 0.8rem;">Format: 3:4 (Wajah terlihat jelas)</small>
+                        </div>
+                    </div>
                     
                     <div class="form-group">
                         <label>No. KK <span class="text-danger">*</span></label>
@@ -91,7 +119,7 @@
         </div>
     </div>
     
-    <!-- Right Column: KK Viewer -->
+    <!-- Right Column: KK Viewer & Photo -->
     <div class="col-md-8">
         <div class="card card-success">
             <div class="card-header">
@@ -206,14 +234,273 @@
         </div>
     </div>
 </div>
+
+<!-- Modal Crop Photo Profil -->
+<div class="modal fade" id="modalCropPhoto" tabindex="-1" role="dialog" data-backdrop="static" data-keyboard="false">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-warning">
+                <h5 class="modal-title"><i class="fas fa-crop"></i> Sesuaikan Foto Profil</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="img-container-crop" style="max-height: 500px;">
+                    <img id="imageToCropPhoto" src="" alt="Foto untuk di-crop" style="max-width: 100%; display: block;">
+                </div>
+                <div class="row mt-3">
+                    <div class="col-md-12 text-center">
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-outline-info" onclick="cropperPhoto.rotate(-90)">
+                                <i class="fas fa-undo"></i> Putar Kiri
+                            </button>
+                            <button type="button" class="btn btn-outline-info" onclick="cropperPhoto.rotate(90)">
+                                <i class="fas fa-redo"></i> Putar Kanan
+                            </button>
+                            <button type="button" class="btn btn-outline-primary" onclick="cropperPhoto.zoom(0.1)">
+                                <i class="fas fa-search-plus"></i> Zoom In
+                            </button>
+                            <button type="button" class="btn btn-outline-primary" onclick="cropperPhoto.zoom(-0.1)">
+                                <i class="fas fa-search-minus"></i> Zoom Out
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="cropperPhoto.reset()">
+                                <i class="fas fa-sync-alt"></i> Reset
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
+                <button type="button" class="btn btn-primary" id="btnSaveCroppedPhoto">
+                    <i class="fas fa-save"></i> Simpan Foto
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <?= $this->endSection(); ?>
 
 <?= $this->section('scripts'); ?>
+<script src="<?= base_url('helpers/js/image-upload-helper.js') ?>"></script>
 <script>
 let cropper = null;
 let isEditMode = false;
 const idSantri = document.getElementById('idSantri').value;
 let nikValid = true;
+
+// --- Photo Profil Logic ---
+let cropperPhoto = null;
+let selectedPhotoFile = null;
+
+$(document).ready(function() {
+    // Check local cropper.js availability, similar to profil.php
+    if (typeof Cropper === 'undefined') {
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js';
+        script.crossOrigin = 'anonymous';
+        script.onload = () => console.log('Cropper.js loaded via CDN');
+        document.head.appendChild(script);
+        
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = 'https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css';
+        document.head.appendChild(link);
+    }
+
+    $('#photo_profil_input').on('change', function(e) {
+        if (this.files && this.files[0]) {
+            processSelectedPhoto(this.files[0]);
+        }
+    });
+
+    $('#btnSaveCroppedPhoto').on('click', uploadCroppedPhoto);
+});
+
+function processSelectedPhoto(file) {
+    if (!file.type.match(/^image\//)) {
+        Swal.fire('Error', 'File harus berupa gambar', 'error');
+        return;
+    }
+
+    if (!window.ImageUploadHelper) {
+         Swal.fire('Error', 'Image Helper missing', 'error'); 
+         return; 
+    }
+
+    // Use Helper to resize before crop if needed
+    window.ImageUploadHelper.resizeImageBeforeCrop(file, 1200, 1200, 0.9, function(processedFile) {
+        selectedPhotoFile = processedFile;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            initPhotoCropper(e.target.result);
+        };
+        reader.readAsDataURL(processedFile);
+    });
+}
+
+function initPhotoCropper(imageUrl) {
+    const image = document.getElementById('imageToCropPhoto');
+    image.src = imageUrl;
+    
+    $('#modalCropPhoto').modal('show').on('shown.bs.modal', function() {
+        if (cropperPhoto) {
+            cropperPhoto.destroy();
+        }
+        
+        cropperPhoto = new Cropper(image, {
+            aspectRatio: 3 / 4,
+            viewMode: 1,
+            autoCropArea: 0.9,
+            dragMode: 'move',
+            responsive: true,
+        });
+    }).on('hidden.bs.modal', function() {
+        if (cropperPhoto) {
+            cropperPhoto.destroy();
+            cropperPhoto = null;
+        }
+    });
+}
+
+function editExistingPhotoSantri() {
+    const currentSrc = document.getElementById('previewPhotoSantri').src;
+    if (currentSrc && !currentSrc.includes('no-photo')) {
+        // Cross-origin might be an issue if image is from different domain/protocol, 
+        // but here it's likely same domain.
+        // For existing image, we need to convert it to valid usage for cropper.
+        // Or just pass URL.
+        // However, retrieving file from URL might be needed for 'ProcessSelectedPhoto' logic if we strictly follow file flow.
+        // Simpler: Just init cropper with URL.
+        initPhotoCropper(currentSrc);
+    } else {
+        Swal.fire('Info', 'Belum ada foto untuk diedit', 'info');
+    }
+}
+
+function uploadCroppedPhoto() {
+    if (!cropperPhoto) return;
+
+    const canvas = cropperPhoto.getCroppedCanvas({
+        width: 600,
+        height: 800, // 3:4 High Res
+        imageSmoothingEnabled: true,
+        imageSmoothingQuality: 'high'
+    });
+
+    canvas.toBlob(function(blob) {
+        // Prepare file for Helper
+        const file = new File([blob], "photo.jpg", { type: "image/jpeg" });
+        
+        // Compress/Optimize using Helper
+        window.ImageUploadHelper.resizeImageFile(file, {
+            maxWidth: 600,
+            maxHeight: 800,
+            quality: 0.9,
+            maxFileSize: 500 * 1024 // 500KB
+        }).then(function(optimizedFile) {
+            
+            // Upload
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const base64data = e.target.result;
+                
+                const formData = new FormData();
+                formData.append('idSantri', idSantri);
+                formData.append('photo_profil_cropped', base64data);
+
+                Swal.fire({
+                    title: 'Menyimpan...',
+                    didOpen: () => Swal.showLoading()
+                });
+
+                fetch('<?= base_url('backend/santri/updateSantriPhoto') ?>', {
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    body: formData
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire('Berhasil', data.message, 'success');
+                        document.getElementById('previewPhotoSantri').src = data.photo_url;
+                        document.getElementById('btnEditPhotoSantri').style.display = 'inline-block';
+                        $('#modalCropPhoto').modal('hide');
+                    } else {
+                        Swal.fire('Gagal', data.message, 'error');
+                    }
+                })
+                .catch(err => {
+                    Swal.fire('Error', 'Gagal upload', 'error');
+                });
+            };
+            reader.readAsDataURL(optimizedFile);
+        });
+    }, 'image/jpeg', 0.95);
+}
+
+function openCameraSantri() {
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        // Create video element overlay
+        const overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;';
+        
+        const video = document.createElement('video');
+        video.autoplay = true;
+        video.style.cssText = 'max-width:100%;max-height:80vh;border:2px solid #fff;';
+        
+        const btnCapture = document.createElement('button');
+        btnCapture.className = 'btn btn-success mt-3';
+        btnCapture.innerHTML = '<i class="fas fa-camera"></i> Ambil Gambar';
+        
+        const btnClose = document.createElement('button');
+        btnClose.className = 'btn btn-danger mt-3 ml-2';
+        btnClose.innerHTML = 'Batal';
+        
+        const controls = document.createElement('div');
+        controls.appendChild(btnCapture);
+        controls.appendChild(btnClose);
+        
+        overlay.appendChild(video);
+        overlay.appendChild(controls);
+        document.body.appendChild(overlay);
+        
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => {
+                video.srcObject = stream;
+                
+                btnCapture.onclick = () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    canvas.getContext('2d').drawImage(video, 0, 0);
+                    
+                    stream.getTracks().forEach(track => track.stop());
+                    document.body.removeChild(overlay);
+                    
+                    canvas.toBlob(blob => {
+                        const file = new File([blob], "camera.jpg", { type: "image/jpeg" });
+                        processSelectedPhoto(file);
+                    }, 'image/jpeg');
+                };
+                
+                btnClose.onclick = () => {
+                    stream.getTracks().forEach(track => track.stop());
+                    document.body.removeChild(overlay);
+                };
+            })
+            .catch(err => {
+                Swal.fire('Error', 'Gagal akses kamera: ' + err.message, 'error');
+                document.body.removeChild(overlay);
+            });
+    } else {
+        Swal.fire('Error', 'Browser tidak mendukung kamera', 'error');
+    }
+}
+
+// --- End Photo Profil Logic ---
 
 // NIK Validation - Auto check on input
 const nikInput = document.getElementById('nikSantri');

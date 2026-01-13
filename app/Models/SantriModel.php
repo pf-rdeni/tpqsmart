@@ -16,7 +16,8 @@ class SantriModel extends Model
     protected $allowedFields = [
         'Active',
         'IdKelas',
-        'Status'
+        'Status',
+        'PhotoProfil'
     ];
 
     public function GetData($id = false)

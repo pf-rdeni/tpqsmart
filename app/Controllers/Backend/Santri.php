@@ -47,6 +47,144 @@ class Santri extends BaseController
         $this->verifikasiSantriModel = new VerifikasiSantriModel();
     }
 
+    /**
+     * Update foto profil santri
+     */
+    public function updateSantriPhoto()
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Invalid request'
+            ]);
+        }
+
+        // Validasi ID Santri
+        $idSantri = $this->request->getPost('idSantri');
+        if (!$idSantri) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'ID Santri tidak ditemukan'
+            ]);
+        }
+
+        try {
+            // Tentukan path berdasarkan environment (sesuai uploadFile)
+            if (ENVIRONMENT === 'production') {
+                $uploadPath = '/home/u1525344/public_html/tpqsmart/uploads/santri/';
+                $thumbnailPath = $uploadPath . 'thumbnails/';
+            } else {
+                $uploadPath = ROOTPATH . 'public/uploads/santri/';
+                $thumbnailPath = $uploadPath . 'thumbnails/';
+            }
+
+            // Buat direktori jika belum ada
+            if (!is_dir($uploadPath)) {
+                mkdir($uploadPath, 0755, true);
+            }
+
+            // Ambil data santri untuk mendapatkan foto lama
+            $santri = $this->DataSantri->find($idSantri);
+            if (!$santri) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Data santri tidak ditemukan'
+                ]);
+            }
+
+            $oldPhoto = $santri['PhotoProfil'] ?? null;
+
+            // Hapus foto lama jika ada
+            if ($oldPhoto) {
+                $oldFilePath = $uploadPath . $oldPhoto;
+                $oldThumbnailPath = $thumbnailPath . 'thumb_' . $oldPhoto;
+                
+                if (file_exists($oldFilePath)) {
+                    unlink($oldFilePath);
+                }
+                if (file_exists($oldThumbnailPath)) {
+                    unlink($oldThumbnailPath);
+                }
+            }
+
+            // Cek apakah input adalah base64 image (hasil crop)
+            $photoCropped = $this->request->getPost('photo_profil_cropped');
+
+            if (!empty($photoCropped)) {
+                // Handle base64 image dari crop
+                if (preg_match('/^data:image\/(\w+);base64,/', $photoCropped, $type)) {
+                    $data = substr($photoCropped, strpos($photoCropped, ',') + 1);
+                    $data = base64_decode($data);
+
+                    if ($data === false) {
+                        return $this->response->setJSON([
+                            'success' => false,
+                            'message' => 'Gagal decode base64 image'
+                        ]);
+                    }
+
+                    $extension = strtolower($type[1] ?? 'jpg');
+                    if ($extension === 'jpeg') {
+                        $extension = 'jpg';
+                    }
+
+                    // Generate nama file baru sesuai standar uploadFile
+                    $randomNumber = uniqid();
+                    $newFileName = 'Profile_' . $idSantri . '_' . $randomNumber . '.' . $extension;
+                    $filePath = $uploadPath . $newFileName;
+
+                    // Simpan file
+                    if (file_put_contents($filePath, $data)) {
+                        // Buat thumbnail
+                        if (!is_dir($thumbnailPath)) {
+                            mkdir($thumbnailPath, 0777, true);
+                        }
+                        $thumbnailTarget = $thumbnailPath . 'thumb_' . $newFileName;
+                        
+                        try {
+                            $image = \Config\Services::image();
+                            $image->withFile($filePath)
+                                ->fit(30, 40, 'center')
+                                ->save($thumbnailTarget);
+                        } catch (\Exception $e) {
+                            log_message('error', 'Gagal membuat thumbnail: ' . $e->getMessage());
+                        }
+
+                        // Update database tbl_santri
+                        $this->DataSantri->update($idSantri, ['PhotoProfil' => $newFileName]);
+
+                        return $this->response->setJSON([
+                            'success' => true,
+                            'message' => 'Foto profil berhasil diupload',
+                            'photo_url' => base_url('uploads/santri/' . $newFileName),
+                            'fileName' => $newFileName
+                        ]);
+                    } else {
+                        return $this->response->setJSON([
+                            'success' => false,
+                            'message' => 'Gagal menyimpan foto profil'
+                        ]);
+                    }
+                } else {
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'message' => 'Format base64 tidak valid'
+                    ]);
+                }
+            } else {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Tidak ada data gambar yang dikirim'
+                ]);
+            }
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal mengupload foto profil: ' . $e->getMessage()
+            ]);
+        }
+    }
+
     // fungsi untuk menampilkan form tambah santri
     public function createEmisStep()
     {
