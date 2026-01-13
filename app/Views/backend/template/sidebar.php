@@ -1014,6 +1014,12 @@
                                                         <p>Proses Membuat Absensi</p>
                                                     </a>
                                                 </li>
+                                                <li class="nav-item">
+                                                    <a href="<?= base_url('backend/dokumentasi/absensi-santri-public') ?>" class="nav-link">
+                                                        <i class="far fa-dot-circle nav-icon"></i>
+                                                        <p>Proses Absensi Santri</p>
+                                                    </a>
+                                                </li>
                                             </ul>
                                         </li>
                                         <li class="nav-item">
@@ -1603,7 +1609,7 @@
                     </li>
                 <?php endif; ?>
                 <!-- End Santri -->
-                
+
                 <!-- Logout -->
                 <li class="nav-item">
                     <a href=<?php echo base_url('logout') ?> class="nav-link">

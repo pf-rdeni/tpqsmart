@@ -104,4 +104,15 @@ class Dokumentasi extends BaseController
         ];
         return view('backend/dokumentasi/munaqosah/kelulusan_public', $data);
     }
+
+    // Absensi Santri Documentation
+    public function absensiSantriPublic()
+    {
+        $data = [
+            'page_title' => 'Dokumentasi: Absensi Santri Public',
+            'menu_open' => 'dokumentasi',
+            'menu_active' => 'absensi-santri-public'
+        ];
+        return view('backend/dokumentasi/absensiSantri/AbsensiSantriPublic', $data);
+    }
 }

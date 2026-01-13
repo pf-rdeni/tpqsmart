@@ -618,6 +618,8 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->get('dokumentasi/munaqosah/registrasi', 'Dokumentasi::munaqosahRegistrasi');
     $routes->get('dokumentasi/munaqosah/penilaian', 'Dokumentasi::munaqosahPenilaian');
     $routes->get('dokumentasi/munaqosah/kelulusan-public', 'Dokumentasi::munaqosahKelulusan');
+    // Dokumentasi Absensi Santri
+    $routes->get('dokumentasi/absensi-santri-public', 'Dokumentasi::absensiSantriPublic');
 });
 
 $routes->get('logout', 'Dashboard::logout');
