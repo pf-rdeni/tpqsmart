@@ -178,6 +178,7 @@ class AbsensiSantri extends BaseController
         }
 
         $santri = [];
+        $santriSudahAbsen = []; // Santri yang sudah diabsen
         foreach ($santriList as $santriObj) {
             if ($santriObj->IdKelas == $selectedKelasId) {
                 $cekAbsensi = $this->absensiModel
@@ -185,14 +186,22 @@ class AbsensiSantri extends BaseController
                     ->where('Tanggal', $tanggal)
                     ->first();
 
+                // Map nama kelas
+                $namaKelasOriginal = $santriObj->NamaKelas ?? '';
+                $mdaCheckResult = $this->helpFunction->checkMdaKelasMapping($IdTpq, $namaKelasOriginal);
+                $santriObj->NamaKelas = $this->helpFunction->convertKelasToMda(
+                    $namaKelasOriginal,
+                    $mdaCheckResult['mappedMdaKelas']
+                );
+
                 if (!$cekAbsensi) {
-                    $namaKelasOriginal = $santriObj->NamaKelas ?? '';
-                    $mdaCheckResult = $this->helpFunction->checkMdaKelasMapping($IdTpq, $namaKelasOriginal);
-                    $santriObj->NamaKelas = $this->helpFunction->convertKelasToMda(
-                        $namaKelasOriginal,
-                        $mdaCheckResult['mappedMdaKelas']
-                    );
                     $santri[] = $santriObj;
+                } else {
+                    // Tambahkan data absensi ke objek santri
+                    $santriObj->Kehadiran = is_array($cekAbsensi) ? ($cekAbsensi['Kehadiran'] ?? null) : ($cekAbsensi->Kehadiran ?? null);
+                    $santriObj->Keterangan = is_array($cekAbsensi) ? ($cekAbsensi['Keterangan'] ?? null) : ($cekAbsensi->Keterangan ?? null);
+                    $santriObj->IdAbsensi = is_array($cekAbsensi) ? ($cekAbsensi['Id'] ?? null) : ($cekAbsensi->Id ?? null);
+                    $santriSudahAbsen[] = $santriObj;
                 }
             }
         }
@@ -228,6 +237,7 @@ class AbsensiSantri extends BaseController
         $data = [
             'page_title' => 'Absensi Santri Public',
             'santri' => $santri,
+            'santri_sudah_absen' => $santriSudahAbsen,
             'kelas_list_all' => $kelasListAll,
             'selected_kelas' => $selectedKelasId,
             'tanggal_dipilih' => $tanggal,
@@ -323,6 +333,103 @@ class AbsensiSantri extends BaseController
             return $this->response->setJSON([
                 'success' => false,
                 'message' => 'Gagal menyimpan: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Update single absensi record via AJAX (for edit mode)
+     */
+    public function updateSingleAbsensi()
+    {
+        // Validasi Device Token
+        $deviceToken = isset($_COOKIE['device_token']) ? $_COOKIE['device_token'] : null;
+        
+        $IdGuru = null;
+        if ($deviceToken) {
+            $deviceData = $this->deviceModel->getDevice($deviceToken);
+            if ($deviceData) $IdGuru = $deviceData['IdGuru'];
+        }
+
+        // Fallback ke Login Session jika token invalid/expired
+        if (!$IdGuru) {
+            helper('auth');
+            if (logged_in()) {
+                $user = user();
+                $IdGuru = $user->nik ?? session()->get('IdGuru');
+                
+                if ($IdGuru) {
+                    $guru = $this->guruModel->find($IdGuru);
+                    if ($guru) $IdGuru = $guru['IdGuru'];
+                }
+            }
+        }
+
+        if (!$IdGuru) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Sesi habis, silakan login kembali.']);
+        }
+
+        $IdSantri = $this->request->getPost('IdSantri');
+        $tanggal = $this->request->getPost('tanggal');
+        $kehadiran = $this->request->getPost('kehadiran');
+        $keterangan = $this->request->getPost('keterangan');
+        $IdKelas = $this->request->getPost('IdKelas');
+        $IdTahunAjaran = $this->request->getPost('IdTahunAjaran');
+        $IdTpq = $this->request->getPost('IdTpq');
+
+        if (empty($IdSantri) || empty($tanggal) || empty($kehadiran)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Data tidak lengkap'
+            ]);
+        }
+
+        // Validasi kehadiran
+        $allowedKehadiran = ['Hadir', 'Izin', 'Sakit', 'Alfa'];
+        if (!in_array($kehadiran, $allowedKehadiran)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Status kehadiran tidak valid'
+            ]);
+        }
+
+        try {
+            $absensiModel = new \App\Models\AbsensiModel();
+            
+            $cekAbsensi = $absensiModel
+                ->where('IdSantri', $IdSantri)
+                ->where('Tanggal', $tanggal)
+                ->first();
+
+            $data = [
+                'IdSantri' => $IdSantri,
+                'Tanggal' => $tanggal,
+                'Kehadiran' => $kehadiran,
+                'Keterangan' => $keterangan ?? '',
+                'IdKelas' => $IdKelas,
+                'IdGuru' => $IdGuru,
+                'IdTahunAjaran' => $IdTahunAjaran,
+                'IdTpq' => $IdTpq,
+            ];
+
+            if ($cekAbsensi) {
+                $idAbsensi = is_array($cekAbsensi) ? ($cekAbsensi['Id'] ?? null) : ($cekAbsensi->Id ?? null);
+                if ($idAbsensi) {
+                    $absensiModel->update($idAbsensi, $data);
+                }
+            } else {
+                $absensiModel->insert($data);
+            }
+
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Absensi berhasil diperbarui!'
+            ]);
+
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal memperbarui: ' . $e->getMessage()
             ]);
         }
     }

@@ -262,6 +262,31 @@
                     <li>Ditampilkan juga nama guru yang melakukan absensi: <em>"Oleh: Ustadz/Ustadzah [NAMA]"</em></li>
                 </ul>
 
+                <h4 class="mt-4">6. Ubah Absensi yang Sudah Tercatat</h4>
+                <p>Guru dapat mengubah absensi yang sudah tercatat menggunakan fitur "Ubah Absensi":</p>
+                <ol>
+                    <li><strong>Klik Tombol "Ubah Absensi"</strong>: Tombol berwarna kuning muncul setelah semua santri sudah diabsen.</li>
+                    <li><strong>Section Edit Terbuka</strong>: Menampilkan daftar santri dengan status absensi saat ini.</li>
+                    <li><strong>Pilih Status Baru</strong>: Klik tombol status untuk mengubah (Hadir/Izin/Sakit/Alfa).
+                        <ul>
+                            <li><span class="badge badge-success">Hadir</span> dan <span class="badge badge-danger">Alfa</span>: Langsung tersimpan otomatis.</li>
+                            <li><span class="badge badge-warning">Izin</span> dan <span class="badge badge-info">Sakit</span>: Muncul input keterangan opsional.</li>
+                        </ul>
+                    </li>
+                    <li><strong>Keterangan Opsional</strong>: Untuk status Izin/Sakit, guru dapat mengisi alasan.
+                        <ul>
+                            <li>Input keterangan akan <strong>otomatis tersimpan</strong> saat kursor keluar dari kolom input (blur).</li>
+                            <li>Atau klik tombol <span class="badge badge-primary"><i class="fas fa-save"></i></span> untuk menyimpan manual.</li>
+                        </ul>
+                    </li>
+                    <li><strong>Notifikasi Sukses</strong>: Toast notification muncul setiap kali perubahan berhasil disimpan.</li>
+                </ol>
+                
+                <div class="callout callout-success">
+                    <h5><i class="fas fa-lightbulb"></i> Fitur Auto-Save</h5>
+                    <p>Saat mengisi keterangan untuk status <strong>Izin</strong> atau <strong>Sakit</strong>, data akan otomatis tersimpan saat guru mengklik di luar kolom input. Tidak perlu menekan tombol simpan terlebih dahulu.</p>
+                </div>
+
                 <h4 class="mt-4">Diagram Alur (Flowchart)</h4>
                 <div class="mermaid text-center">
                     graph TD
@@ -274,9 +299,19 @@
                     F -- Ya --> H{Sudah Login?}
                     H -- Tidak --> I[Redirect ke Login]
                     H -- Ya --> J[Tampilkan Daftar Santri]
-                    J --> K[Guru Pilih Status Absensi]
-                    K --> L[Simpan ke Database]
-                    L --> M[Update UI / Selesai]
+                    J --> K{Semua Sudah Diabsen?}
+                    K -- Tidak --> L[Guru Pilih Status Absensi]
+                    L --> M[Simpan ke Database]
+                    M --> N[Update UI]
+                    K -- Ya --> O[Tampil Tombol Ubah Absensi]
+                    O --> P[Klik Ubah Absensi]
+                    P --> Q[Buka Section Edit]
+                    Q --> R{Pilih Status}
+                    R -- Hadir/Alfa --> S[Auto-save AJAX]
+                    R -- Izin/Sakit --> T[Muncul Input Keterangan]
+                    T --> U[Blur / Klik Simpan]
+                    U --> S
+                    S --> V[Toast Notifikasi Sukses]
                 </div>
 
                 <!-- Card: Technical Info -->
