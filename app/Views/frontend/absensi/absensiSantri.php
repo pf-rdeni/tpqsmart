@@ -36,10 +36,10 @@
         }
         
         .photo-profil-thumbnail {
-            width: 50px;
-            height: 50px;
+            width: 33px;
+            height: 35px;
             object-fit: cover;
-            border-radius: 50%;
+            border-radius: 6px;
             margin-right: 15px;
             border: 2px solid #ddd;
         }
