@@ -11,8 +11,8 @@
             <thead>
                 <tr>
                     <th width="5%">No</th>
-                    <th width="10%">Poto Profil</th>
-                    <th width="15%">Aksi</th>
+                    <th width="8%">Poto Profil</th>
+                    <th width="10%">Aksi</th>
                     <th>Nama Santri</th>
                     <th>JK</th>
                     <th>TTL</th>
@@ -30,10 +30,10 @@
                 <tr>
                     <td><?= $no++ ?></td>
                     <td class="text-center">
-                        <?php if (!empty($row['PhotoProfil']) && file_exists(FCPATH . 'uploads/profil/user/' . $row['PhotoProfil'])): ?>
-                            <img src="<?= base_url('uploads/profil/user/' . $row['PhotoProfil']) ?>" alt="Foto" class="img-thumbnail" style="width: 45px; height: 60px; object-fit: cover;">
+                        <?php if (!empty($row['PhotoProfil']) && file_exists(FCPATH . 'uploads/santri/' . $row['PhotoProfil'])): ?>
+                            <img src="<?= base_url('uploads/santri/' . $row['PhotoProfil']) ?>" alt="Foto" class="rounded border" style="width: 45px; height: 60px; object-fit: cover; border-width: 1px !important; padding: 1px;">
                         <?php else: ?>
-                            <img src="<?= base_url('images/no-photo.jpg') ?>" alt="No Foto" class="img-thumbnail" style="width: 45px; height: 60px; object-fit: cover;">
+                            <img src="<?= base_url('images/no-photo.jpg') ?>" alt="No Foto" class="rounded border" style="width: 45px; height: 60px; object-fit: cover; border-width: 1px !important; padding: 1px;">
                         <?php endif; ?>
                     </td>
                     <td>
@@ -50,10 +50,10 @@
                         <?php 
                         $hp = [];
                         if (!empty($row['NoHpAyah'])) {
-                            $hp[] = '<button type="button" class="btn btn-xs btn-success mb-1" onclick="sendWhatsapp(\'' . esc($row['NoHpAyah']) . '\', \'Ayah ' . esc($row['NamaSantri']) . '\', \'' . esc($row['NamaSantri']) . '\')"><i class="fab fa-whatsapp"></i> A: ' . esc($row['NoHpAyah']) . '</button>';
+                            $hp[] = 'A: ' . esc($row['NoHpAyah']);
                         }
                         if (!empty($row['NoHpIbu'])) {
-                            $hp[] = '<button type="button" class="btn btn-xs btn-success" onclick="sendWhatsapp(\'' . esc($row['NoHpIbu']) . '\', \'Ibu ' . esc($row['NamaSantri']) . '\', \'' . esc($row['NamaSantri']) . '\')"><i class="fab fa-whatsapp"></i> I: ' . esc($row['NoHpIbu']) . '</button>';
+                            $hp[] = 'I: ' . esc($row['NoHpIbu']);
                         }
                         echo implode('<br>', $hp);
                         ?>
@@ -98,118 +98,41 @@
 <script>
     const CURRENT_OPERATOR = '<?= esc($operatorName) ?>';
 
-    function sendWhatsapp(number, contactName, santriName) {
-        // Remove non-numeric characters
-        let cleanNumber = number.replace(/\D/g, '');
+
+
+
+    // Fix untuk header DataTable yang tidak align saat sidebar di-toggle
+    $(document).ready(function() {
+        const tableSelector = '#example1';
         
-        // Ensure format 62xxx
-        if (cleanNumber.startsWith('0')) {
-            cleanNumber = '62' + cleanNumber.substring(1);
+        function adjustTable() {
+            if ($.fn.DataTable.isDataTable(tableSelector)) {
+                $(tableSelector).DataTable().columns.adjust();
+            }
         }
 
-        Swal.fire({
-            title: 'Kirim Pesan WhatsApp',
-            html: `
-                <div class="text-left mb-2">
-                    <label>Pilih Template Pesan:</label>
-                    <select id="waTemplate" class="form-control mb-2">
-                        <option value="">-- Tulis Manual --</option>
-                        <option value="valid">Info: Data Valid</option>
-                        <option value="revisi">Info: Perlu Perbaikan</option>
-                    </select>
-                    
-                    <div id="revisiOptions" style="display: none;" class="mb-3 pl-1">
-                        <label class="d-block text-danger small mb-1">Pilih Bagian yang Perlu Diperbaiki:</label>
-                        <div class="custom-control custom-checkbox mb-1">
-                            <input type="checkbox" class="custom-control-input revisi-check" id="checkKk" value="Lampiran Kartu Keluarga">
-                            <label class="custom-control-label font-weight-normal" for="checkKk">Lampiran Kartu Keluarga</label>
-                        </div>
-                        <div class="custom-control custom-checkbox mb-1">
-                            <input type="checkbox" class="custom-control-input revisi-check" id="checkAkte" value="Akte Kelahiran">
-                            <label class="custom-control-label font-weight-normal" for="checkAkte">Akte Kelahiran</label>
-                        </div>
-                        <div class="custom-control custom-checkbox mb-1">
-                            <input type="checkbox" class="custom-control-input revisi-check" id="checkFoto" value="Foto Profil">
-                            <label class="custom-control-label font-weight-normal" for="checkFoto">Foto Profil</label>
-                        </div>
-                         <div class="custom-control custom-checkbox mb-1">
-                            <input type="checkbox" class="custom-control-input revisi-check" id="checkData" value="Data Diri (Nama, TTL, dll)">
-                            <label class="custom-control-label font-weight-normal" for="checkData">Data Diri (Nama, TTL, dll)</label>
-                        </div>
-                        <div class="custom-control custom-checkbox">
-                            <input type="checkbox" class="custom-control-input revisi-check" id="checkLainnya" value="Lainnya">
-                            <label class="custom-control-label font-weight-normal" for="checkLainnya">Lainnya</label>
-                        </div>
-                    </div>
-
-                    <label>Isi Pesan:</label>
-                    <textarea id="waMessage" class="form-control" rows="6" placeholder="Tulis pesan Anda di sini..."></textarea>
-                    <div class="text-muted mt-1"><small>Kirim ke: ${contactName} (${number})</small></div>
-                </div>
-            `,
-            showCancelButton: true,
-            confirmButtonText: '<i class="fab fa-whatsapp"></i> Kirim',
-            cancelButtonText: 'Batal',
-            didOpen: () => {
-                const templateSelect = Swal.getPopup().querySelector('#waTemplate');
-                const messageInput = Swal.getPopup().querySelector('#waMessage');
-                const revisiOptions = Swal.getPopup().querySelector('#revisiOptions');
-                const checkboxes = Swal.getPopup().querySelectorAll('.revisi-check');
-
-                // Function to generate revisi message based on checked items
-                const updateRevisiMessage = () => {
-                    const checkedItems = Array.from(checkboxes)
-                        .filter(cb => cb.checked)
-                        .map(cb => `- ${cb.value}`);
-                    
-                    if (checkedItems.length > 0) {
-                        messageInput.value = `Assalamu'alaikum Warahmatullahi Wabarakatuh.\n\nKami menginformasikan bahwa data santri atas nama *${santriName}* statusnya *PERLU PERBAIKAN* pada bagian:\n${checkedItems.join('\n')}\n\nKirim dengan membalas pesan ini agar kami bantu.\nTerima kasih.\n\nOperator Lembaga : ${CURRENT_OPERATOR}`;
-                    } else {
-                        messageInput.value = `Assalamu'alaikum Warahmatullahi Wabarakatuh.\n\nKami menginformasikan bahwa data santri atas nama *${santriName}* statusnya *PERLU PERBAIKAN*.\nKirim dengan membalas pesan ini agar kami bantu.\nTerima kasih.\n\nOperator Lembaga : ${CURRENT_OPERATOR}`;
-                    }
-                };
-
-                templateSelect.addEventListener('change', () => {
-                    const type = templateSelect.value;
-                    let text = '';
-                    
-                    if (type === 'valid') {
-                        revisiOptions.style.display = 'none';
-                        text = `Assalamu'alaikum Warahmatullahi Wabarakatuh.\n\nKami menginformasikan bahwa data santri atas nama *${santriName}* telah kami verifikasi dan dinyatakan *VALID*.\nTerima kasih.\n\nOperator Lembaga : ${CURRENT_OPERATOR}`;
-                        messageInput.value = text;
-                    } else if (type === 'revisi') {
-                        revisiOptions.style.display = 'block';
-                        // Reset checkboxes when switching to revisi
-                        checkboxes.forEach(cb => cb.checked = false);
-                        updateRevisiMessage();
-                    } else {
-                        revisiOptions.style.display = 'none';
-                        messageInput.value = '';
-                    }
-                });
-
-                // Listen for checkbox changes
-                checkboxes.forEach(cb => {
-                    cb.addEventListener('change', updateRevisiMessage);
-                });
-            },
-            preConfirm: () => {
-                const message = Swal.getPopup().querySelector('#waMessage').value;
-                if (!message) {
-                    Swal.showValidationMessage('Anda perlu menulis pesan!');
-                    return false;
-                }
-                return message;
-            }
-        }).then((result) => {
-            if (result.isConfirmed) {
-                const message = encodeURIComponent(result.value);
-                const url = `https://wa.me/${cleanNumber}?text=${message}`;
-                window.open(url, '_blank');
-            }
+        // 1. Listen to AdminLTE pushmenu events
+        $(document).on('collapsed.lte.pushmenu shown.lte.pushmenu', function() {
+            setTimeout(adjustTable, 300); // Wait for transition to finish
         });
-    }
 
+        // 2. Listen to window resize
+        let resizeTimer;
+        $(window).on('resize', function() {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(adjustTable, 100);
+        });
+
+        // 3. Fallback: Check for container size changes
+        const wrapper = document.querySelector('.content-wrapper');
+        if (wrapper) {
+            const observer = new ResizeObserver(() => {
+                adjustTable();
+            });
+            observer.observe(wrapper);
+        }
+    });
+    
     $(function () {
         // Define custom initComplete to exclude first 3 columns (No, Photo, Aksi)
         var customInitComplete = function() {
@@ -287,11 +210,13 @@
 
         if (typeof initializeDataTableWithFilter === 'function') {
             initializeDataTableWithFilter("#example1", true, ["excel", "pdf", "print", "colvis"], {
-                "initComplete": customInitComplete
+                "initComplete": customInitComplete,
+                "responsive": false,
+                "scrollX": true
             });
         } else {
             $("#example1").DataTable({
-                "responsive": true, 
+                "responsive": false, 
                 "lengthChange": true, 
                 "autoWidth": false,
                 "buttons": ["copy", "csv", "excel", "pdf", "print", "colvis"],

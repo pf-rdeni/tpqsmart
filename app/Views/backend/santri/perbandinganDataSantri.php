@@ -8,7 +8,7 @@
             <div class="card-header">
                 <h3 class="card-title"><i class="fas fa-user"></i> Data Santri</h3>
             </div>
-            <div class="card-body">
+            <div class="card-body" style="max-height: 80vh; overflow-y: auto;">
                 <form id="formDataSantri">
                     <input type="hidden" id="idSantri" value="<?= esc($santri['id']) ?>">
 
@@ -91,12 +91,9 @@
                         <input type="text" class="form-control form-control-sm" name="NamaIbu" value="<?= esc($santri['NamaIbu'] ?? '') ?>" required>
                     </div>
                     
-                    <div class="form-group">
-                        <label>Kelurahan/Desa <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control form-control-sm" name="KelurahanDesaSantri" value="<?= esc($santri['KelurahanDesaSantri'] ?? '') ?>" required>
-                    </div>
+
                     
-                    <button type="button" class="btn btn-info btn-sm btn-block" id="btnSimpanData">
+                    <button type="button" class="btn btn-info btn-sm btn-block" id="btnSimpanData" disabled>
                         <i class="fas fa-save"></i> Simpan Perubahan Data
                     </button>
                 </form>
@@ -112,8 +109,8 @@
                     </button>
                 </div>
                 
-                <a href="<?= base_url('backend/santri/verifikasiDataSantri') ?>" class="btn btn-secondary btn-sm btn-block mt-3">
-                    <i class="fas fa-arrow-left"></i> Kembali ke List
+                <a href="javascript:history.back()" class="btn btn-secondary btn-sm btn-block mt-3">
+                    <i class="fas fa-arrow-left"></i> Kembali
                 </a>
             </div>
         </div>
@@ -621,6 +618,7 @@ if (kkContainer) {
 
     document.addEventListener('mousemove', function(e) {
         if (!isDragging || isEditMode) return;
+        e.preventDefault();
         translateX = e.clientX - startX;
         translateY = e.clientY - startY;
         updateImageTransform();
@@ -630,6 +628,68 @@ if (kkContainer) {
         isDragging = false;
         if (kkContainer) kkContainer.style.cursor = 'grab';
     });
+    
+    // Touch Gestures (Pinch to Zoom & Pan)
+    let initialPinchDistance = null;
+    let lastZoom = currentZoom;
+    let initialTouchX = 0;
+    let initialTouchY = 0;
+    
+    kkContainer.addEventListener('touchstart', function(e) {
+        if (isEditMode) return;
+        
+        if (e.touches.length === 2) {
+            // Pinch start
+            e.preventDefault(); // Prevent page scroll
+            initialPinchDistance = getDistance(e.touches);
+            lastZoom = currentZoom;
+        } else if (e.touches.length === 1) {
+            // Pan start
+            isDragging = true;
+            initialTouchX = e.touches[0].clientX - translateX;
+            initialTouchY = e.touches[0].clientY - translateY;
+        }
+    }, { passive: false });
+    
+    kkContainer.addEventListener('touchmove', function(e) {
+        if (isEditMode) return;
+        
+        if (e.touches.length === 2) {
+            // Pinch move
+            e.preventDefault();
+            const currentDistance = getDistance(e.touches);
+            if (initialPinchDistance > 0) {
+                const zoomFactor = currentDistance / initialPinchDistance;
+                // Limit zoom sensitivity and range
+                let newZoom = lastZoom * zoomFactor;
+                 // Add dampen effect or limits
+                currentZoom = Math.min(Math.max(0.5, newZoom), 5);
+                updateImageTransform();
+            }
+        } else if (e.touches.length === 1 && isDragging) {
+             // Pan move
+             // e.preventDefault(); // Optional: might block scroll if panning vertically
+            translateX = e.touches[0].clientX - initialTouchX;
+            translateY = e.touches[0].clientY - initialTouchY;
+            updateImageTransform();
+        }
+    }, { passive: false });
+    
+    kkContainer.addEventListener('touchend', function(e) {
+        if (e.touches.length < 2) {
+            initialPinchDistance = null;
+        }
+        if (e.touches.length === 0) {
+            isDragging = false;
+        }
+    });
+    
+    function getDistance(touches) {
+        return Math.hypot(
+            touches[0].clientX - touches[1].clientX,
+            touches[0].clientY - touches[1].clientY
+        );
+    }
 }
 
 function updateImageTransform() {
@@ -637,6 +697,7 @@ function updateImageTransform() {
         kkImage.style.transform = `translate(${translateX}px, ${translateY}px) scale(${currentZoom})`;
     }
 }
+
 
 // Zoom In Button
 document.getElementById('btnZoomIn').addEventListener('click', function() {
@@ -726,6 +787,189 @@ document.getElementById('btnSubmitUploadKk')?.addEventListener('click', function
 });
 
 // Simpan Data Santri
+
+const CURRENT_OPERATOR = '<?= esc($operatorName) ?>';
+const noHpAyah = '<?= esc($santri['NoHpAyah'] ?? '') ?>';
+const noHpIbu = '<?= esc($santri['NoHpIbu'] ?? '') ?>';
+const namaSantri = '<?= esc($santri['NamaSantri'] ?? '') ?>';
+
+function sendWhatsapp(number, contactName, santriName, preSelectStatus = '') {
+    // Remove non-numeric characters
+    let cleanNumber = number.replace(/\D/g, '');
+    
+    // Ensure format 62xxx
+    if (cleanNumber.startsWith('0')) {
+        cleanNumber = '62' + cleanNumber.substring(1);
+    }
+
+    Swal.fire({
+        title: 'Kirim Pesan WhatsApp',
+        html: `
+            <div class="text-left mb-2">
+                <label>Pilih Template Pesan:</label>
+                <select id="waTemplate" class="form-control mb-2">
+                    <option value="">-- Tulis Manual --</option>
+                    <option value="valid" ${preSelectStatus === '1' ? 'selected' : ''}>Info: Data Valid</option>
+                    <option value="revisi" ${preSelectStatus === '2' ? 'selected' : ''}>Info: Perlu Perbaikan</option>
+                </select>
+                
+                <div id="revisiOptions" style="display: none;" class="mb-3 pl-1">
+                    <label class="d-block text-danger small mb-1">Pilih Bagian yang Perlu Diperbaiki:</label>
+                    <div class="custom-control custom-checkbox mb-1">
+                        <input type="checkbox" class="custom-control-input revisi-check" id="checkKk" value="Lampiran Kartu Keluarga">
+                        <label class="custom-control-label font-weight-normal" for="checkKk">Lampiran Kartu Keluarga</label>
+                    </div>
+                    <div class="custom-control custom-checkbox mb-1">
+                        <input type="checkbox" class="custom-control-input revisi-check" id="checkAkte" value="Akte Kelahiran">
+                        <label class="custom-control-label font-weight-normal" for="checkAkte">Akte Kelahiran</label>
+                    </div>
+                    <div class="custom-control custom-checkbox mb-1">
+                        <input type="checkbox" class="custom-control-input revisi-check" id="checkFoto" value="Foto Profil">
+                        <label class="custom-control-label font-weight-normal" for="checkFoto">Foto Profil</label>
+                    </div>
+                        <div class="custom-control custom-checkbox mb-1">
+                        <input type="checkbox" class="custom-control-input revisi-check" id="checkData" value="Data Diri (Nama, TTL, dll)">
+                        <label class="custom-control-label font-weight-normal" for="checkData">Data Diri (Nama, TTL, dll)</label>
+                    </div>
+                    <div class="custom-control custom-checkbox">
+                        <input type="checkbox" class="custom-control-input revisi-check" id="checkLainnya" value="Lainnya">
+                        <label class="custom-control-label font-weight-normal" for="checkLainnya">Lainnya</label>
+                    </div>
+                </div>
+
+                <label>Isi Pesan:</label>
+                <textarea id="waMessage" class="form-control" rows="6" placeholder="Tulis pesan Anda di sini..."></textarea>
+                <div class="text-muted mt-1"><small>Kirim ke: ${contactName} (${number})</small></div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: '<i class="fab fa-whatsapp"></i> Kirim & Kembali',
+        cancelButtonText: 'Batal',
+        didOpen: () => {
+            const templateSelect = Swal.getPopup().querySelector('#waTemplate');
+            const messageInput = Swal.getPopup().querySelector('#waMessage');
+            const revisiOptions = Swal.getPopup().querySelector('#revisiOptions');
+            const checkboxes = Swal.getPopup().querySelectorAll('.revisi-check');
+
+            // Function to generate revisi message based on checked items
+            const updateRevisiMessage = () => {
+                const checkedItems = Array.from(checkboxes)
+                    .filter(cb => cb.checked)
+                    .map(cb => `- ${cb.value}`);
+                
+                if (checkedItems.length > 0) {
+                    messageInput.value = `Assalamu'alaikum Warahmatullahi Wabarakatuh.\n\nKami menginformasikan bahwa data santri atas nama *${santriName}* statusnya *PERLU PERBAIKAN* pada bagian:\n${checkedItems.join('\n')}\n\nKirim dengan membalas pesan ini agar kami bantu.\nTerima kasih.\n\nOperator Lembaga : ${CURRENT_OPERATOR}`;
+                } else {
+                    messageInput.value = `Assalamu'alaikum Warahmatullahi Wabarakatuh.\n\nKami menginformasikan bahwa data santri atas nama *${santriName}* statusnya *PERLU PERBAIKAN*.\nKirim dengan membalas pesan ini agar kami bantu.\nTerima kasih.\n\nOperator Lembaga : ${CURRENT_OPERATOR}`;
+                }
+            };
+
+            templateSelect.addEventListener('change', () => {
+                const type = templateSelect.value;
+                let text = '';
+                
+                if (type === 'valid') {
+                    revisiOptions.style.display = 'none';
+                    text = `Assalamu'alaikum Warahmatullahi Wabarakatuh.\n\nKami menginformasikan bahwa data santri atas nama *${santriName}* telah kami verifikasi dan dinyatakan *VALID*.\nTerima kasih.\n\nOperator Lembaga : ${CURRENT_OPERATOR}`;
+                    messageInput.value = text;
+                } else if (type === 'revisi') {
+                    revisiOptions.style.display = 'block';
+                    // Reset checkboxes when switching to revisi
+                    checkboxes.forEach(cb => cb.checked = false);
+                    updateRevisiMessage();
+                } else {
+                    revisiOptions.style.display = 'none';
+                    messageInput.value = '';
+                }
+            });
+
+            // Listen for checkbox changes
+            checkboxes.forEach(cb => {
+                cb.addEventListener('change', updateRevisiMessage);
+            });
+            
+            // Trigger change if value is pre-selected
+            if (templateSelect.value) {
+                templateSelect.dispatchEvent(new Event('change'));
+            }
+        },
+        preConfirm: () => {
+            const message = Swal.getPopup().querySelector('#waMessage').value;
+            if (!message) {
+                Swal.showValidationMessage('Anda perlu menulis pesan!');
+                return false;
+            }
+            return message;
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const message = encodeURIComponent(result.value);
+            const url = `https://wa.me/${cleanNumber}?text=${message}`;
+            window.open(url, '_blank');
+            // Redirect back to list after sending
+            window.location.href = '<?= base_url('backend/santri/verifikasiDataSantri') ?>';
+        }
+    });
+}
+// Initial values storage
+const initialFormValues = {};
+const saveButton = document.getElementById('btnSimpanData');
+
+// Capture initial values on load and setup listeners
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('formDataSantri');
+    if (form) {
+        const inputs = form.querySelectorAll('input, select');
+        inputs.forEach(input => {
+            if (input.name) {
+                // Store using name as key
+                initialFormValues[input.name] = input.value;
+                
+                // Add listeners for real-time check
+                input.addEventListener('input', checkForChanges);
+                input.addEventListener('change', checkForChanges);
+            }
+        });
+    }
+});
+
+function checkForChanges() {
+    const form = document.getElementById('formDataSantri');
+    let hasChanges = false;
+    
+    // Check all tracked fields
+    for (const [name, initialValue] of Object.entries(initialFormValues)) {
+        const input = form.querySelector(`[name="${name}"]`);
+        if (input && input.value !== initialValue) {
+            hasChanges = true;
+            break;
+        }
+    }
+    
+    if (saveButton) {
+        saveButton.disabled = !hasChanges;
+    }
+    return hasChanges;
+}
+
+// Helper to get field label
+function getFieldLabel(inputName) {
+    const input = document.querySelector(`[name="${inputName}"]`);
+    if (input) {
+        // Try to find label in parent element or preceding sibling
+        const formGroup = input.closest('.form-group');
+        if (formGroup) {
+            const label = formGroup.querySelector('label');
+            if (label) {
+                // Return label text without the * (required marker)
+                return label.innerText.replace('*', '').trim();
+            }
+        }
+    }
+    return inputName; // Fallback to name
+}
+
+// Simpan Data Santri
 document.getElementById('btnSimpanData').addEventListener('click', function() {
     // Validate required fields
     const form = document.getElementById('formDataSantri');
@@ -756,10 +1000,79 @@ document.getElementById('btnSimpanData').addEventListener('click', function() {
         nikInput?.focus();
         return;
     }
-    
+
+    // Detect Changes
+    const changes = [];
     const formData = new FormData(form);
+    
+    for (let [key, value] of formData.entries()) {
+        const initialValue = initialFormValues[key] || '';
+        // Strict comparison might be too strict for numbers vs strings, so loose equality for values
+        if (value != initialValue) {
+            changes.push({
+                field: getFieldLabel(key),
+                before: initialValue,
+                after: value
+            });
+        }
+    }
+
+    if (changes.length === 0) {
+        Swal.fire('Info', 'Tidak ada perubahan data yang terdeteksi.', 'info');
+        return;
+    }
+
+    // Build Table for Popup
+    let tableHtml = `
+        <table class="table table-sm table-bordered text-left" style="font-size: 0.9rem;">
+            <thead class="bg-light">
+                <tr>
+                    <th>Field</th>
+                    <th>Sebelumnya</th>
+                    <th>Menjadi</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+    
+    changes.forEach(change => {
+        tableHtml += `
+            <tr>
+                <td><strong>${change.field}</strong></td>
+                <td class="text-danger">${change.before || '-'}</td>
+                <td class="text-success">${change.after || '-'}</td>
+            </tr>
+        `;
+    });
+    
+    tableHtml += `</tbody></table>`;
+
+    // Confirmation Popup
+    Swal.fire({
+        title: 'Konfirmasi Perubahan',
+        html: `Apakah Anda yakin ingin menyimpan perubahan berikut?<br><br>${tableHtml}`,
+        icon: 'warning',
+        width: '600px',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Ya, Simpan',
+        cancelButtonText: 'Batal'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            proceedSaveData(formData);
+        }
+    });
+});
+
+function proceedSaveData(formData) {
     formData.append('idSantri', idSantri);
     
+    Swal.fire({
+        title: 'Menyimpan...',
+        didOpen: () => Swal.showLoading()
+    });
+
     fetch('<?= base_url('backend/santri/updateDataSantri') ?>', {
         method: 'POST',
         headers: { 'X-Requested-With': 'XMLHttpRequest' },
@@ -768,7 +1081,21 @@ document.getElementById('btnSimpanData').addEventListener('click', function() {
     .then(response => response.json())
     .then(data => {
         if (data.status === 'success') {
-            Swal.fire('Berhasil', data.message, 'success');
+            Swal.fire('Berhasil', data.message, 'success').then(() => {
+                // Update initial values to accept current state as new baseline
+                const form = document.getElementById('formDataSantri');
+                const inputs = form.querySelectorAll('input, select');
+                inputs.forEach(input => {
+                    if (input.name) {
+                        initialFormValues[input.name] = input.value;
+                    }
+                });
+                
+                // Disable button again as now current matches initial
+                if (saveButton) {
+                    saveButton.disabled = true;
+                }
+            });
         } else {
             Swal.fire('Error', data.message, 'error');
         }
@@ -776,7 +1103,7 @@ document.getElementById('btnSimpanData').addEventListener('click', function() {
     .catch(err => {
         Swal.fire('Error', 'Terjadi kesalahan', 'error');
     });
-});
+}
 
 // Update Status - Valid
 document.getElementById('btnValid').addEventListener('click', function() {
@@ -811,8 +1138,38 @@ function updateStatus(status) {
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'success') {
-                    Swal.fire('Berhasil', data.message, 'success').then(() => {
-                        window.location.href = '<?= base_url('backend/santri/verifikasiDataSantri') ?>';
+                    Swal.fire({
+                        title: 'Berhasil',
+                        text: data.message,
+                        icon: 'success',
+                        timer: 1500,
+                        timerProgressBar: true,
+                        showConfirmButton: false
+                    }).then(() => {
+                         if (noHpAyah || noHpIbu) {
+                             Swal.fire({
+                                title: 'Kirim Notifikasi WhatsApp?',
+                                text: 'Pilih nomor tujuan untuk mengirim notifikasi status verifikasi.',
+                                icon: 'question',
+                                showCancelButton: true,
+                                showDenyButton: !!(noHpAyah && noHpIbu),
+                                confirmButtonText: noHpAyah ? `Ayah (${noHpAyah})` : `Ibu (${noHpIbu})`,
+                                denyButtonText: (noHpAyah && noHpIbu) ? `Ibu (${noHpIbu})` : undefined,
+                                cancelButtonText: 'Tutup / Kembali'
+                             }).then((waResult) => {
+                                if (waResult.isConfirmed) {
+                                     const targetNumber = noHpAyah ? noHpAyah : noHpIbu;
+                                     const targetName = noHpAyah ? 'Ayah' : 'Ibu';
+                                     sendWhatsapp(targetNumber, targetName, namaSantri, status);
+                                } else if (waResult.isDenied) {
+                                     sendWhatsapp(noHpIbu, 'Ibu', namaSantri, status);
+                                } else {
+                                     window.location.href = '<?= base_url('backend/santri/verifikasiDataSantri') ?>';
+                                }
+                             });
+                        } else {
+                            window.location.href = '<?= base_url('backend/santri/verifikasiDataSantri') ?>';
+                        }
                     });
                 } else {
                     Swal.fire('Error', data.message, 'error');

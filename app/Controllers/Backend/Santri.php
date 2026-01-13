@@ -3993,11 +3993,14 @@ class Santri extends BaseController
             }
         }
 
+        $operatorName = ucwords(strtolower(user()->fullname ?? user()->username));
+
         $data = [
             'page_title' => 'Verifikasi Data Santri - ' . ($santri['NamaSantri'] ?? ''),
             'santri' => $santri,
             'kkImageUrl' => $kkImageUrl,
-            'kkError' => $kkError
+            'kkError' => $kkError,
+            'operatorName' => $operatorName
         ];
 
         return view('backend/santri/perbandinganDataSantri', $data);
