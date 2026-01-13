@@ -309,33 +309,21 @@
                         <input type="hidden" name="BulanTahun" id="h_BulanTahun" value="<?= $kegiatan['BulanTahun'] ?? '' ?>">
                         <!-- Note: HariDalamMinggu[] is handled directly by checkbox name -->
 
-                        <div class="form-group">
-                            <label>Lingkup (Peserta)</label>
-                            <?php 
-                                $activeRole = session()->get('active_role');
-                                $idTpqSession = session()->get('IdTpq');
-                                $isOperator = ($activeRole == 'operator' && !in_groups('Admin'));
-                                $isGuruOnly = ($isGuru ?? false); // From controller
-                                
-                                if (($isOperator || $isGuruOnly) && !empty($idTpqSession)) {
-                                    // Find TPQ Name from the list
-                                    $tpqName = 'TPQ Anda';
-                                    if (!empty($tpq_list)) {
-                                        foreach ($tpq_list as $t) {
-                                            if ($t['IdTpq'] == $idTpqSession) {
-                                                $tpqName = $t['NamaTpq'] . (!empty($t['NamaKelDesa']) ? ' - ' . $t['NamaKelDesa'] : '');
-                                                break;
-                                            }
-                                        }
-                                    }
-                            ?>
-                                <!-- Operator/Guru View: Fixed to their TPQ -->
-                                <input type="text" class="form-control" value="<?= $tpqName ?>" readonly>
-                                <input type="hidden" name="LingkupSelect" value="<?= $idTpqSession ?>">
-                                <small class="text-muted">Kegiatan ini otomatis dikhususkan untuk TPQ Anda.</small>
-                            
-                            <?php } else { ?>
-                                <!-- Admin View: Full Selection -->
+                        <?php 
+                            $activeRole = session()->get('active_role');
+                            $idTpqSession = session()->get('IdTpq');
+                            $isOperator = ($activeRole == 'operator' && !in_groups('Admin'));
+                            $isGuruOnly = ($isGuru ?? false); // From controller
+                            $isNonAdmin = ($isOperator || $isGuruOnly) && !empty($idTpqSession);
+                        ?>
+                        
+                        <?php if ($isNonAdmin): ?>
+                            <!-- Operator/Guru: Hidden input only, no visible field -->
+                            <input type="hidden" name="LingkupSelect" value="<?= $idTpqSession ?>">
+                        <?php else: ?>
+                            <!-- Admin View: Full Selection -->
+                            <div class="form-group">
+                                <label>Lingkup (Peserta)</label>
                                 <select class="form-control select2" name="LingkupSelect" <?= isset($kegiatan) ? 'disabled' : '' ?>>
                                     <option value="Umum" <?= (isset($kegiatan) && $kegiatan['Lingkup'] == 'Umum') || old('LingkupSelect') == 'Umum' ? 'selected' : '' ?>>Umum (Semua Guru)</option>
                                     <?php if (!empty($tpq_list)): ?>
@@ -361,8 +349,8 @@
                                     <input type="hidden" name="LingkupSelect" value="<?= $kegiatan['Lingkup'] == 'Umum' ? 'Umum' : $kegiatan['IdTpq'] ?>">
                                 <?php endif; ?>
                                 <small class="text-muted">Pilih "Umum" untuk semua guru, atau pilih TPQ spesifik.</small>
-                            <?php } ?>
-                        </div>
+                            </div>
+                        <?php endif; ?>
 
                     </div>
                     <div class="card-footer">

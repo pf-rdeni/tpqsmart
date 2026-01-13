@@ -7,6 +7,7 @@ use App\Models\TabunganModel;
 use App\Models\SantriModel;
 use App\Models\HelpFunctionModel;
 use App\Models\UserModel;
+use App\Models\GuruModel;
 use Myth\Auth\Password;
 
 class Pages extends BaseController
@@ -15,6 +16,7 @@ class Pages extends BaseController
     protected $santriModel;
     protected $helpFunctionModel;
     protected $userModel;
+    protected $guruModel;
 
     public function __construct()
     {
@@ -22,6 +24,7 @@ class Pages extends BaseController
         $this->santriModel = new SantriModel();
         $this->helpFunctionModel = new HelpFunctionModel();
         $this->userModel = new UserModel();
+        $this->guruModel = new GuruModel();
     }
 
 
@@ -371,8 +374,18 @@ class Pages extends BaseController
 
                     // Simpan file
                     if (file_put_contents($filePath, $data)) {
-                        // Update database
+                        // Update database users
                         $this->userModel->updateUser(['user_image' => $newFileName], $userId);
+
+                        // Juga update ke tbl_guru jika user ini adalah guru (berdasarkan nik = IdGuru)
+                        $userNik = $user['nik'] ?? null;
+                        if ($userNik) {
+                            $guru = $this->guruModel->find($userNik);
+                            if ($guru) {
+                                // Simpan hanya nama file ke LinkPhoto
+                                $this->guruModel->update($userNik, ['LinkPhoto' => $newFileName]);
+                            }
+                        }
 
                         return $this->response->setJSON([
                             'success' => true,
@@ -425,8 +438,18 @@ class Pages extends BaseController
 
                 // Upload file
                 if ($file->move($uploadPath, $newFileName)) {
-                    // Update database
+                    // Update database users
                     $this->userModel->updateUser(['user_image' => $newFileName], $userId);
+
+                    // Juga update ke tbl_guru jika user ini adalah guru (berdasarkan nik = IdGuru)
+                    $userNik = $user['nik'] ?? null;
+                    if ($userNik) {
+                        $guru = $this->guruModel->find($userNik);
+                        if ($guru) {
+                            // Simpan hanya nama file ke LinkPhoto
+                            $this->guruModel->update($userNik, ['LinkPhoto' => $newFileName]);
+                        }
+                    }
 
                     return $this->response->setJSON([
                         'success' => true,

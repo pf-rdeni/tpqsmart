@@ -72,11 +72,16 @@
                     !cleanLastPageCheck.includes('/login') &&
                     !cleanLastPageCheck.includes('/logout') &&
                     !cleanLastPageCheck.includes('/auth/') &&
-                    !cleanLastPageCheck.includes('/dashboard') &&
+                    // More specific dashboard checks
+                    !(cleanLastPageCheck.endsWith('/dashboard/admin') || 
+                      cleanLastPageCheck.endsWith('/dashboard/operator') ||
+                      cleanLastPageCheck.endsWith('/dashboard/guru') ||
+                      cleanLastPageCheck.endsWith('/dashboard/kepala-tpq') ||
+                      cleanLastPageCheck.endsWith('/dashboard') ||
+                      cleanLastPageCheck.match(/\/dashboard\/?(index)?(\?.*)?$/)) &&
                     cleanLastPageCheck !== currentUrlClean &&
                     cleanLastPageCheck !== currentUrlBase &&
-                    cleanLastPageCheck !== window.location.origin + '/' &&
-                    !cleanLastPageCheck.endsWith('/');
+                    cleanLastPageCheck !== window.location.origin + '/';
 
                 console.log('[LastPage] Has valid last page:', hasValidLastPage, cleanLastPageCheck);
 

@@ -35,7 +35,8 @@ class GuruModel extends Model
         'IdTpq',
         'NoRekBpr',
         'NoRekRiauKepri',
-        'JenisPenerimaInsentif'
+        'JenisPenerimaInsentif',
+        'LinkPhoto'
     ];
     public function GetData()
     {

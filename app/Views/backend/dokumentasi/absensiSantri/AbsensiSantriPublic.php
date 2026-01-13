@@ -5,16 +5,16 @@
 <section class="content">
     <div class="container-fluid">
         <!-- Card 1: Proses Pembuatan Link -->
-        <div class="card card-primary collapsed-card">
+        <div class="card card-primary">
             <div class="card-header">
                 <h3 class="card-title"><i class="fas fa-link mr-2"></i>Proses Pembuatan Link Absensi Public</h3>
                 <div class="card-tools">
-                    <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Expand">
-                        <i class="fas fa-plus"></i>
+                    <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Collapse">
+                        <i class="fas fa-minus"></i>
                     </button>
                 </div>
             </div>
-            <div class="card-body" style="display: none;">
+            <div class="card-body">
                 <h5 class="text-primary"><i class="fas fa-user-shield mr-1"></i> Langkah-langkah (Admin/Operator)</h5>
                 
                 <div class="timeline">
@@ -81,7 +81,70 @@
                     </div>
                 </div>
 
-                <div class="alert alert-info mt-3">
+                <hr>
+                
+                <!-- Penjelasan Teknis -->
+                <h5 class="text-info mt-4"><i class="fas fa-code mr-1"></i> Penjelasan Teknis</h5>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="callout callout-info">
+                            <h5>Backend Process</h5>
+                            <p>Controller: <code>Backend/Absensi.php</code></p>
+                            <ul class="text-sm">
+                                <li><code>linkIndex()</code> - Menampilkan daftar link</li>
+                                <li><code>linkNew()</code> - Form tambah link</li>
+                                <li><code>linkCreate()</code> - Simpan link baru ke DB</li>
+                                <li><code>linkEdit()</code> - Form edit link</li>
+                                <li><code>linkUpdate()</code> - Update link di DB</li>
+                                <li><code>linkDelete()</code> - Hapus link</li>
+                                <li><code>linkRegenerate()</code> - Generate HashKey baru</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="callout callout-warning">
+                            <h5>Database Structure</h5>
+                            <p>Tabel: <code>tbl_absensi_santri_link</code></p>
+                            <table class="table table-sm table-bordered">
+                                <tr><td><code>Id</code></td><td>Primary Key</td></tr>
+                                <tr><td><code>IdTpq</code></td><td>Relasi ke TPQ</td></tr>
+                                <tr><td><code>IdTahunAjaran</code></td><td>Format: 20252026</td></tr>
+                                <tr><td><code>HashKey</code></td><td>32 char random (bin2hex)</td></tr>
+                                <tr><td><code>CreatedAt</code></td><td>Timestamp pembuatan</td></tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <h5 class="text-success mt-4"><i class="fas fa-project-diagram mr-1"></i> Flowchart Pembuatan Link</h5>
+                <div class="mermaid text-center">
+                    graph TD
+                    A[Admin/Operator Login] --> B[Akses Menu Link Absensi]
+                    B --> C[Klik Tambah Link]
+                    C --> D[Pilih TPQ & Tahun Ajaran]
+                    D --> E[Klik Simpan]
+                    E --> F{Validasi Input}
+                    F -- Gagal --> G[Tampilkan Error]
+                    G --> D
+                    F -- Berhasil --> H[Generate HashKey<br/>bin2hex random_bytes 16]
+                    H --> I[Insert ke Database]
+                    I --> J[Redirect ke List Link]
+                    J --> K[Copy/Share Link ke Guru]
+                </div>
+
+                <div class="alert alert-info mt-4">
+                    <h5><i class="icon fas fa-info"></i> Ringkasan Teknis (File Terkait)</h5>
+                    <ul>
+                        <li><strong>Controller</strong>: <code>app/Controllers/Backend/Absensi.php</code> (Method: linkIndex, linkNew, linkCreate, linkEdit, linkUpdate, linkDelete, linkRegenerate)</li>
+                        <li><strong>Model</strong>: <code>app/Models/Frontend/Absensi/AbsensiSantriLinkModel.php</code></li>
+                        <li><strong>View (List)</strong>: <code>app/Views/backend/absensi/linkIndex.php</code></li>
+                        <li><strong>View (Form)</strong>: <code>app/Views/backend/absensi/linkForm.php</code></li>
+                        <li><strong>Route</strong>: <code>backend/absensi/link</code>, <code>backend/absensi/link/new</code>, <code>backend/absensi/link/create</code>, dll.</li>
+                    </ul>
+                </div>
+
+                <div class="alert alert-success mt-3">
                     <i class="fas fa-info-circle"></i> <strong>Tips:</strong> 
                     Pastikan tahun ajaran yang dipilih sesuai dengan tahun ajaran aktif. Link dengan tahun ajaran berbeda akan menampilkan pesan error saat diakses.
                 </div>
@@ -219,6 +282,28 @@
 <script type="module">
     import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
     mermaid.initialize({ startOnLoad: true });
+    
+    // Re-render Mermaid when collapsed card is expanded
+    document.addEventListener('DOMContentLoaded', function() {
+        // Listen for AdminLTE card expand event
+        $(document).on('expanded.lte.cardwidget', function(event) {
+            // Find all mermaid diagrams inside the expanded card that haven't been rendered
+            const card = $(event.target).closest('.card');
+            const mermaidDivs = card.find('.mermaid');
+            
+            mermaidDivs.each(function() {
+                const el = $(this);
+                // Check if it's already rendered (has svg child)
+                if (!el.find('svg').length) {
+                    const content = el.text().trim();
+                    if (content) {
+                        el.removeAttr('data-processed');
+                        mermaid.init(undefined, el[0]);
+                    }
+                }
+            });
+        });
+    });
 </script>
 
 <?= $this->endSection(); ?>

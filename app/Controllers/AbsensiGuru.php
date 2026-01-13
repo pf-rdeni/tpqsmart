@@ -224,10 +224,11 @@ class AbsensiGuru extends BaseController
             'stats'      => $stats,
             'statsTpq'   => $statsTpq,   // Diserahkan ke view
             'locationData' => $locationData, // Untuk visualisasi peta
-            'page_title' => 'Absensi Guru'
+            'page_title' => 'Absensi Guru',
+            'hash_key'   => $token // Untuk link logout
         ];
 
-        return view('frontend/absensi/index', $data);
+        return view('frontend/absensi/absensiGuru', $data);
     }
 
     public function hadir()

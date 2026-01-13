@@ -240,7 +240,7 @@ class AbsensiSantri extends BaseController
             'IdTpq' => $IdTpq
         ];
         
-        return view('frontend/absensi/index', $data);
+        return view('frontend/absensi/absensiSantri', $data);
     }
 
     public function simpanAbsensi()

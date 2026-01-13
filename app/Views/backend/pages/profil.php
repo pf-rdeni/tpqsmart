@@ -25,17 +25,17 @@
                                         : base_url('images/no-photo.jpg');
                                     ?>
                                     <label class="text-center w-100">Photo Profil</label>
-                                    <div class="text-center">
+                                    <div class="text-center mx-auto" style="max-width: 210px; width: 100%;">
                                         <img id="previewPhoto" src="<?= $photoUrl ?>" alt="Preview Photo"
-                                            class="img-thumbnail mx-auto d-block" style="width: 100%; max-width: 215px; height: auto; min-height: 280px; object-fit: cover;">
-                                        <div class="mt-2 d-flex justify-content-between" style="width: 215px; margin: 0 auto; flex-wrap: wrap; gap: 5px;">
-                                            <button type="button" class="btn btn-sm btn-primary flex-grow-1" onclick="document.getElementById('photo_profil').click()" style="min-width: 70px;">
+                                            class="img-thumbnail d-block w-100" style="aspect-ratio: 3/4; object-fit: cover;">
+                                        <div class="mt-2 d-flex justify-content-between w-100" style="flex-wrap: wrap; gap: 5px;">
+                                            <button type="button" class="btn btn-sm btn-primary flex-grow-1" onclick="document.getElementById('photo_profil').click()" style="min-width: 50px;">
                                                 <i class="fas fa-upload"></i> Upload
                                             </button>
-                                            <button type="button" class="btn btn-sm btn-success flex-grow-1" onclick="openCamera()" style="min-width: 70px;">
+                                            <button type="button" class="btn btn-sm btn-success flex-grow-1" onclick="openCamera()" style="min-width: 50px;">
                                                 <i class="fas fa-camera"></i> Ambil
                                             </button>
-                                            <button type="button" class="btn btn-sm btn-warning flex-grow-1" id="btnEditPhoto" onclick="editExistingPhoto()" style="min-width: 70px; display: none;">
+                                            <button type="button" class="btn btn-sm btn-warning flex-grow-1" id="btnEditPhoto" onclick="editExistingPhoto()" style="min-width: 50px; display: none;">
                                                 <i class="fas fa-edit"></i> Edit
                                             </button>
                                         </div>
@@ -201,6 +201,12 @@
                 <div class="row mt-3">
                     <div class="col-md-12 text-center">
                         <div class="btn-group" role="group" aria-label="Kontrol Crop">
+                            <button type="button" class="btn btn-outline-info" id="btnRotateLeft" title="Putar 90° ke kiri">
+                                <i class="fas fa-undo"></i> Putar Kiri
+                            </button>
+                            <button type="button" class="btn btn-outline-info" id="btnRotateRight" title="Putar 90° ke kanan">
+                                <i class="fas fa-redo"></i> Putar Kanan
+                            </button>
                             <button type="button" class="btn btn-outline-primary" id="btnZoomIn" title="Zoom In">
                                 <i class="fas fa-search-plus"></i> Zoom In
                             </button>
@@ -211,7 +217,7 @@
                                 <i class="fas fa-arrows-alt"></i> Geser
                             </button>
                             <button type="button" class="btn btn-outline-secondary" id="btnReset" title="Reset">
-                                <i class="fas fa-redo"></i> Reset
+                                <i class="fas fa-sync-alt"></i> Reset
                             </button>
                         </div>
                     </div>
@@ -899,6 +905,102 @@
         $('#btnCropImage').on('click', function() {
             uploadPhoto();
         });
+
+        // Event listener untuk tombol Rotate Left
+        const btnRotateLeft = document.getElementById('btnRotateLeft');
+        if (btnRotateLeft) {
+            btnRotateLeft.addEventListener('click', function() {
+                if (cropper) {
+                    cropper.rotate(-90);
+                    // Setelah rotate, sesuaikan crop box dengan ukuran gambar yang baru
+                    setTimeout(function() {
+                        if (cropper) {
+                            try {
+                                const canvasData = cropper.getCanvasData();
+                                const containerData = cropper.getContainerData();
+                                
+                                if (canvasData && containerData) {
+                                    // Hitung ukuran crop box optimal dengan aspect ratio 3:4
+                                    const aspectRatio = 3 / 4;
+                                    const maxSize = Math.min(canvasData.width * 0.8, canvasData.height * 0.8, containerData.width, containerData.height);
+                                    
+                                    let cropBoxWidth, cropBoxHeight;
+                                    cropBoxHeight = Math.min(maxSize, containerData.height * 0.8);
+                                    cropBoxWidth = cropBoxHeight * aspectRatio;
+                                    
+                                    // Jika width terlalu besar, sesuaikan
+                                    if (cropBoxWidth > containerData.width * 0.9) {
+                                        cropBoxWidth = containerData.width * 0.9;
+                                        cropBoxHeight = cropBoxWidth / aspectRatio;
+                                    }
+                                    
+                                    // Set posisi crop box di tengah container
+                                    const cropBoxLeft = (containerData.width - cropBoxWidth) / 2;
+                                    const cropBoxTop = (containerData.height - cropBoxHeight) / 2;
+                                    
+                                    cropper.setCropBoxData({
+                                        left: cropBoxLeft,
+                                        top: cropBoxTop,
+                                        width: cropBoxWidth,
+                                        height: cropBoxHeight
+                                    });
+                                }
+                            } catch (e) {
+                                console.log('Error adjusting crop box after rotate:', e);
+                            }
+                        }
+                    }, 100);
+                }
+            });
+        }
+
+        // Event listener untuk tombol Rotate Right
+        const btnRotateRight = document.getElementById('btnRotateRight');
+        if (btnRotateRight) {
+            btnRotateRight.addEventListener('click', function() {
+                if (cropper) {
+                    cropper.rotate(90);
+                    // Setelah rotate, sesuaikan crop box dengan ukuran gambar yang baru
+                    setTimeout(function() {
+                        if (cropper) {
+                            try {
+                                const canvasData = cropper.getCanvasData();
+                                const containerData = cropper.getContainerData();
+                                
+                                if (canvasData && containerData) {
+                                    // Hitung ukuran crop box optimal dengan aspect ratio 3:4
+                                    const aspectRatio = 3 / 4;
+                                    const maxSize = Math.min(canvasData.width * 0.8, canvasData.height * 0.8, containerData.width, containerData.height);
+                                    
+                                    let cropBoxWidth, cropBoxHeight;
+                                    cropBoxHeight = Math.min(maxSize, containerData.height * 0.8);
+                                    cropBoxWidth = cropBoxHeight * aspectRatio;
+                                    
+                                    // Jika width terlalu besar, sesuaikan
+                                    if (cropBoxWidth > containerData.width * 0.9) {
+                                        cropBoxWidth = containerData.width * 0.9;
+                                        cropBoxHeight = cropBoxWidth / aspectRatio;
+                                    }
+                                    
+                                    // Set posisi crop box di tengah container
+                                    const cropBoxLeft = (containerData.width - cropBoxWidth) / 2;
+                                    const cropBoxTop = (containerData.height - cropBoxHeight) / 2;
+                                    
+                                    cropper.setCropBoxData({
+                                        left: cropBoxLeft,
+                                        top: cropBoxTop,
+                                        width: cropBoxWidth,
+                                        height: cropBoxHeight
+                                    });
+                                }
+                            } catch (e) {
+                                console.log('Error adjusting crop box after rotate:', e);
+                            }
+                        }
+                    }, 100);
+                }
+            });
+        }
 
         // Event listener untuk tombol Zoom In
         const btnZoomIn = document.getElementById('btnZoomIn');

@@ -113,7 +113,7 @@ class KegiatanAbsensi extends BaseController
         // Override for Operator and Guru - force TPQ scope
         $sessionIdTpq = session()->get('IdTpq');
         if ((session()->get('active_role') == 'operator' || in_groups('Guru')) && !in_groups('Admin')) {
-            $scope = 'TPQ';
+            $lingkup = 'TPQ';
             $idTpq = $sessionIdTpq;
         }
         
@@ -126,7 +126,7 @@ class KegiatanAbsensi extends BaseController
             'JamSelesai'   => $this->request->getPost('JamSelesai'),
             'Tempat'       => $this->request->getPost('Tempat'),
             'Detail'       => $this->request->getPost('Detail'),
-            'Lingkup'      => $scope,
+            'Lingkup'      => $lingkup,
             'IdTpq'        => $idTpq,
             'CreatedBy'    => session()->get('id_user'),
             'Token'        => bin2hex(random_bytes(16)),

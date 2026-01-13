@@ -38,7 +38,7 @@ class AbsensiGuruModel extends Model
     public function getAbsensiByKegiatan($idKegiatan, $idTpq = null, $tanggalOccurrence = null)
     {
         // Gunakan raw query untuk menangani ketidakcocokan collation dengan aman
-        $sql = "SELECT tbl_absensi_guru.*, tbl_guru.Nama as NamaGuru, tbl_guru.NoHp, tbl_guru.KelurahanDesa, tbl_guru.JenisKelamin, tbl_tpq.NamaTpq
+        $sql = "SELECT tbl_absensi_guru.*, tbl_guru.Nama as NamaGuru, tbl_guru.NoHp, tbl_guru.KelurahanDesa, tbl_guru.JenisKelamin, tbl_guru.LinkPhoto, tbl_tpq.NamaTpq
                 FROM tbl_absensi_guru
                 JOIN tbl_guru ON CONVERT(tbl_guru.IdGuru USING utf8) = CONVERT(tbl_absensi_guru.IdGuru USING utf8)
                 LEFT JOIN tbl_tpq ON tbl_tpq.IdTpq = tbl_guru.IdTpq
