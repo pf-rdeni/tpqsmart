@@ -377,14 +377,11 @@ class Pages extends BaseController
                         // Update database users
                         $this->userModel->updateUser(['user_image' => $newFileName], $userId);
 
-                        // Juga update ke tbl_guru jika user ini adalah guru (berdasarkan nik = IdGuru)
+                        // Jika user adalah guru, gunakan helper untuk sync ke 3 tabel
                         $userNik = $user['nik'] ?? null;
                         if ($userNik) {
-                            $guru = $this->guruModel->find($userNik);
-                            if ($guru) {
-                                // Simpan hanya nama file ke LinkPhoto
-                                $this->guruModel->update($userNik, ['LinkPhoto' => $newFileName]);
-                            }
+                            $helpFunction = new \App\Models\HelpFunctionModel();
+                            $helpFunction->saveGuruProfilPhoto($userNik, $newFileName);
                         }
 
                         return $this->response->setJSON([
@@ -441,14 +438,11 @@ class Pages extends BaseController
                     // Update database users
                     $this->userModel->updateUser(['user_image' => $newFileName], $userId);
 
-                    // Juga update ke tbl_guru jika user ini adalah guru (berdasarkan nik = IdGuru)
+                    // Jika user adalah guru, gunakan helper untuk sync ke 3 tabel
                     $userNik = $user['nik'] ?? null;
                     if ($userNik) {
-                        $guru = $this->guruModel->find($userNik);
-                        if ($guru) {
-                            // Simpan hanya nama file ke LinkPhoto
-                            $this->guruModel->update($userNik, ['LinkPhoto' => $newFileName]);
-                        }
+                        $helpFunction = new \App\Models\HelpFunctionModel();
+                        $helpFunction->saveGuruProfilPhoto($userNik, $newFileName);
                     }
 
                     return $this->response->setJSON([

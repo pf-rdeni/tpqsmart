@@ -2784,5 +2784,142 @@ class HelpFunctionModel extends Model
 
         return $builder->get()->getResultArray();
     }
+
+    /**
+     * Menyimpan foto profil guru ke 3 tabel sekaligus:
+     * 1. tbl_guru.LinkPhoto
+     * 2. users.user_image (jika ada user dengan nik = IdGuru)
+     * 3. tbl_guru_berkas (NamaBerkas = 'Foto Profil')
+     * 
+     * @param string $idGuru ID Guru
+     * @param string $fileName Nama file foto
+     * @param string|null $idTpq ID TPQ (optional, akan diambil dari tbl_guru jika tidak diisi)
+     * @return array ['success' => bool, 'message' => string]
+     */
+    public function saveGuruProfilPhoto($idGuru, $fileName, $idTpq = null)
+    {
+        try {
+            // 1. Update tbl_guru.LinkPhoto
+            $guruModel = new \App\Models\GuruModel();
+            $guru = $guruModel->find($idGuru);
+            
+            if (!$guru) {
+                return ['success' => false, 'message' => 'Data guru tidak ditemukan'];
+            }
+            
+            $guruModel->update($idGuru, ['LinkPhoto' => $fileName]);
+            
+            // Get IdTpq from guru if not provided
+            if ($idTpq === null) {
+                $idTpq = $guru['IdTpq'] ?? null;
+            }
+
+            // 2. Update users.user_image jika ada user dengan nik = IdGuru
+            try {
+                $userModel = new \App\Models\UserModel();
+                $db = \Config\Database::connect();
+                $builder = $db->table('users');
+                $builder->where('nik', $idGuru);
+                $existingUser = $builder->get()->getRowArray();
+                
+                if ($existingUser) {
+                    $userModel->updateUser(['user_image' => $fileName], $existingUser['id']);
+                }
+            } catch (\Exception $e) {
+                log_message('warning', 'HelpFunctionModel: saveGuruProfilPhoto - Gagal update users table: ' . $e->getMessage());
+            }
+
+            // 3. Insert/Update tbl_guru_berkas dengan NamaBerkas = 'Foto Profil'
+            try {
+                $guruBerkasModel = new \App\Models\GuruBerkasModel();
+                
+                // Cek apakah sudah ada record Foto Profil untuk guru ini
+                $existingBerkas = $guruBerkasModel
+                    ->where('IdGuru', $idGuru)
+                    ->where('NamaBerkas', 'Foto Profil')
+                    ->first();
+                
+                if ($existingBerkas) {
+                    // Update existing record
+                    $guruBerkasModel->update($existingBerkas['id'], [
+                        'NamaFile' => $fileName,
+                        'Status' => 1
+                    ]);
+                } else {
+                    // Insert new record
+                    $guruBerkasModel->insert([
+                        'IdGuru' => $idGuru,
+                        'IdTpq' => $idTpq,
+                        'NamaBerkas' => 'Foto Profil',
+                        'DataBerkas' => null,
+                        'NamaFile' => $fileName,
+                        'Status' => 1
+                    ]);
+                }
+            } catch (\Exception $e) {
+                log_message('warning', 'HelpFunctionModel: saveGuruProfilPhoto - Gagal update tbl_guru_berkas: ' . $e->getMessage());
+            }
+
+            return ['success' => true, 'message' => 'Foto profil berhasil disimpan'];
+        } catch (\Exception $e) {
+            log_message('error', 'HelpFunctionModel: saveGuruProfilPhoto - Error: ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Terjadi kesalahan: ' . $e->getMessage()];
+        }
+    }
+
+    /**
+     * Menghapus foto profil guru dari 3 tabel sekaligus:
+     * 1. tbl_guru.LinkPhoto -> null
+     * 2. users.user_image -> null (jika ada user dengan nik = IdGuru)
+     * 3. tbl_guru_berkas -> DELETE record dengan NamaBerkas = 'Foto Profil'
+     * 
+     * @param string $idGuru ID Guru
+     * @return array ['success' => bool, 'message' => string]
+     */
+    public function deleteGuruProfilPhoto($idGuru)
+    {
+        try {
+            // 1. Update tbl_guru.LinkPhoto to null
+            $guruModel = new \App\Models\GuruModel();
+            $guru = $guruModel->find($idGuru);
+            
+            if (!$guru) {
+                return ['success' => false, 'message' => 'Data guru tidak ditemukan'];
+            }
+            
+            $guruModel->update($idGuru, ['LinkPhoto' => null]);
+
+            // 2. Update users.user_image to null jika ada user dengan nik = IdGuru
+            try {
+                $userModel = new \App\Models\UserModel();
+                $db = \Config\Database::connect();
+                $builder = $db->table('users');
+                $builder->where('nik', $idGuru);
+                $existingUser = $builder->get()->getRowArray();
+                
+                if ($existingUser) {
+                    $userModel->updateUser(['user_image' => null], $existingUser['id']);
+                }
+            } catch (\Exception $e) {
+                log_message('warning', 'HelpFunctionModel: deleteGuruProfilPhoto - Gagal update users table: ' . $e->getMessage());
+            }
+
+            // 3. DELETE record dari tbl_guru_berkas dengan NamaBerkas = 'Foto Profil'
+            try {
+                $guruBerkasModel = new \App\Models\GuruBerkasModel();
+                $guruBerkasModel
+                    ->where('IdGuru', $idGuru)
+                    ->where('NamaBerkas', 'Foto Profil')
+                    ->delete();
+            } catch (\Exception $e) {
+                log_message('warning', 'HelpFunctionModel: deleteGuruProfilPhoto - Gagal delete dari tbl_guru_berkas: ' . $e->getMessage());
+            }
+
+            return ['success' => true, 'message' => 'Foto profil berhasil dihapus'];
+        } catch (\Exception $e) {
+            log_message('error', 'HelpFunctionModel: deleteGuruProfilPhoto - Error: ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Terjadi kesalahan: ' . $e->getMessage()];
+        }
+    }
 }
 

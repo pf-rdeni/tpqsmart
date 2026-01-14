@@ -629,6 +629,8 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     // Dokumentasi Absensi Santri
     $routes->get('dokumentasi/absensi-santri-public', 'Dokumentasi::absensiSantriPublic');
     $routes->get('dokumentasi/santri-verifikasi', 'Dokumentasi::santriVerifikasi');
+    // Dokumentasi Guru
+    $routes->get('dokumentasi/guru-berkas-lampiran', 'Dokumentasi::guruBerkasLampiran');
 });
 
 $routes->get('logout', 'Dashboard::logout');

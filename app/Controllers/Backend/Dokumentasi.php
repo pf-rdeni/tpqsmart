@@ -126,4 +126,15 @@ class Dokumentasi extends BaseController
         ];
         return view('backend/dokumentasi/santri/verifikasi', $data);
     }
+
+    // Guru Berkas Lampiran Documentation
+    public function guruBerkasLampiran()
+    {
+        $data = [
+            'page_title' => 'Dokumentasi: Berkas Lampiran Guru',
+            'menu_open' => 'dokumentasi',
+            'menu_active' => 'guru-berkas-lampiran'
+        ];
+        return view('backend/dokumentasi/guru/berkasLampiran', $data);
+    }
 }

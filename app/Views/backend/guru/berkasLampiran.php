@@ -31,6 +31,7 @@
                 <thead>
                     <tr>
                         <th>NIK / Nama / TPQ</th>
+                        <th>Profil</th>
                         <th>KTP</th>
                         <th>KK</th>
                         <th>Buku Rekening</th>
@@ -63,6 +64,30 @@
                                     <?php endif; ?>
                                 </small><br>
                                 <small style="color: #666;">TPQ: <?= esc($namaTpq) ?></small>
+                            </td>
+                            <td>
+                                <?php if (!empty($guru['LinkPhoto'])): ?>
+                                    <div class="mb-2">
+                                        <img src="<?= base_url('uploads/profil/user/' . $guru['LinkPhoto']) ?>"
+                                            alt="Profil Preview"
+                                            class="preview-image profil-preview"
+                                            data-image-url="<?= base_url('uploads/profil/user/' . $guru['LinkPhoto']) ?>"
+                                            style="width: 75px; height: 100px; object-fit: cover; border: 1px solid #ddd; padding: 2px; border-radius: 4px; cursor: pointer;"
+                                            title="Klik sekali untuk memperbesar, double click untuk membuka di tab baru">
+                                    </div>
+                                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                                        <button class="btn btn-sm btn-warning p-1" onclick="editProfilGuru('<?= esc($guru['IdGuru']) ?>', '<?= esc($guru['Nama']) ?>', '<?= esc($guru['LinkPhoto']) ?>')" title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-danger p-1" onclick="deleteProfilGuru('<?= esc($guru['IdGuru']) ?>')" title="Hapus">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                <?php else: ?>
+                                    <button class="btn btn-sm btn-primary" onclick="uploadProfilGuru('<?= esc($guru['IdGuru']) ?>', '<?= esc($guru['Nama']) ?>')" title="Upload Profil">
+                                        <i class="fas fa-upload"></i> Upload
+                                    </button>
+                                <?php endif; ?>
                             </td>
                             <td>
                                 <?php if (isset($berkas['KTP'])): ?>
@@ -295,6 +320,7 @@
                 <tfoot>
                     <tr>
                         <th>NIK / Nama / TPQ</th>
+                        <th>Profil</th>
                         <th>KTP</th>
                         <th>KK</th>
                         <th>Buku Rekening</th>
@@ -561,6 +587,98 @@
                 <div class="text-center mb-3">
                     <img id="previewEnlargedImage" src="" alt="Preview" style="max-width: 100%; max-height: 70vh; height: auto; border: 1px solid #ddd; border-radius: 4px;">
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Upload Profil Guru -->
+<div class="modal fade" id="modalUploadProfil" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document" style="max-width: 900px;">
+        <div class="modal-content" style="height: calc(100vh - 40px); max-height: 900px; display: flex; flex-direction: column;">
+            <div class="modal-header" style="flex-shrink: 0;">
+                <h5 class="modal-title">Upload Foto Profil Guru</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" style="flex: 1; overflow-y: auto; min-height: 0;">
+                <form id="formUploadProfil">
+                    <input type="hidden" id="profilIdGuru" name="IdGuru">
+                    <div class="form-group">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label>Nama Guru</label>
+                                <input type="text" id="profilNamaGuru" class="form-control" readonly>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="fileProfil">File Foto Profil <span class="text-danger">*</span></label>
+                                <input type="file" class="form-control-file" id="fileProfil" accept="image/jpeg,image/jpg,image/png">
+                                <small class="form-text text-muted">Format: JPG, JPEG, PNG. Maksimal 10MB. Rasio 3:4</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="profilExistingImageContainer" style="display: none;">
+                        <label>Foto Saat Ini</label>
+                        <div class="text-center mb-2" style="border: 1px solid #ddd; padding: 10px; background-color: #f9f9f9; min-height: 200px; max-height: 350px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                            <img id="profilExistingImage" src="" alt="Foto Saat Ini" style="max-width: 100%; max-height: 330px; object-fit: contain;">
+                        </div>
+                    </div>
+                    <div id="profilPreviewContainer" style="display: none;">
+                        <label>Preview Hasil Crop</label>
+                        <div class="text-center mb-2" style="border: 1px solid #ddd; padding: 10px; background-color: #f9f9f9; min-height: 200px; max-height: 350px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                            <img id="profilPreviewImage" src="" alt="Preview" style="max-width: 100%; max-height: 330px; object-fit: contain;">
+                        </div>
+                        <button type="button" class="btn btn-sm btn-warning" onclick="removeProfilPreviewImage()">
+                            <i class="fas fa-redo"></i> Pilih File Lain
+                        </button>
+                    </div>
+                    <input type="hidden" id="profilCroppedImageData" name="profilCroppedImageData">
+                </form>
+            </div>
+            <div class="modal-footer" style="flex-shrink: 0; border-top: 1px solid #dee2e6;">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
+                <button type="button" class="btn btn-primary" id="btnUploadProfilFromForm" style="display: none;" onclick="uploadProfilFromForm()">Upload</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Crop Profil -->
+<div class="modal fade" id="modalCropProfil" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-xl" role="document" style="max-width: 95%; margin: 10px auto;">
+        <div class="modal-content" style="height: calc(100vh - 20px); display: flex; flex-direction: column;">
+            <div class="modal-header" style="flex-shrink: 0;">
+                <h5 class="modal-title">Crop Foto Profil (Rasio 3:4)</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="alert alert-info m-0" style="flex-shrink: 0; border-radius: 0; padding: 10px 15px; margin-bottom: 0 !important;">
+                <small>
+                    <i class="fas fa-info-circle"></i> <strong>Panduan:</strong>
+                    Geser (drag) untuk memindahkan area crop • Resize untuk mengubah ukuran •
+                    Gunakan tombol Putar Kiri/Kanan untuk memutar gambar •
+                    Aspect ratio fixed 3:4 •
+                    Klik <strong>Selesai</strong> untuk menyimpan
+                </small>
+            </div>
+            <div class="modal-body" style="flex: 1; overflow: hidden; padding: 15px; display: flex; align-items: center; justify-content: center;">
+                <div id="cropContainerProfil" style="width: 100%; height: 100%; max-height: calc(100vh - 200px); overflow: hidden; display: flex; align-items: center; justify-content: center; position: relative;">
+                    <img id="imageToCropProfil" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+                </div>
+            </div>
+            <div class="modal-footer" style="flex-shrink: 0; border-top: 1px solid #dee2e6;">
+                <div class="mr-auto">
+                    <button type="button" class="btn btn-info btn-sm" id="btnProfilRotateLeft" title="Putar 90° ke kiri">
+                        <i class="fas fa-undo"></i> Putar Kiri
+                    </button>
+                    <button type="button" class="btn btn-info btn-sm" id="btnProfilRotateRight" title="Putar 90° ke kanan">
+                        <i class="fas fa-redo"></i> Putar Kanan
+                    </button>
+                </div>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
+                <button type="button" class="btn btn-primary" id="btnCropProfil">Selesai</button>
             </div>
         </div>
     </div>
@@ -2904,6 +3022,404 @@
         // Clear saved crop data
         window.savedCropNamaBerkas = null;
         window.savedCropDataBerkas = null;
+    });
+
+    // =====================================================
+    // PROFIL GURU FUNCTIONS
+    // =====================================================
+    let cropperProfil = null;
+    let selectedFileProfil = null;
+    let currentProfilIdGuru = null;
+    let isEditModeProfil = false;
+
+    // Function untuk membuka modal upload profil
+    function uploadProfilGuru(idGuru, namaGuru) {
+        currentProfilIdGuru = idGuru;
+        isEditModeProfil = false;
+        $('#profilIdGuru').val(idGuru);
+        $('#profilNamaGuru').val(namaGuru);
+        $('#fileProfil').val('');
+        $('#profilPreviewContainer').hide();
+        $('#profilExistingImageContainer').hide();
+        $('#btnUploadProfilFromForm').hide();
+        $('#profilCroppedImageData').val('');
+
+        // Reset cropper jika ada
+        if (cropperProfil) {
+            cropperProfil.destroy();
+            cropperProfil = null;
+        }
+
+        $('#modalUploadProfil').modal('show');
+    }
+
+    // Function untuk edit profil
+    function editProfilGuru(idGuru, namaGuru, linkPhoto) {
+        currentProfilIdGuru = idGuru;
+        isEditModeProfil = true;
+        $('#profilIdGuru').val(idGuru);
+        $('#profilNamaGuru').val(namaGuru);
+        $('#fileProfil').val('');
+        $('#profilPreviewContainer').hide();
+        $('#btnUploadProfilFromForm').hide();
+        $('#profilCroppedImageData').val('');
+
+        // Reset cropper jika ada
+        if (cropperProfil) {
+            cropperProfil.destroy();
+            cropperProfil = null;
+        }
+
+        // Tampilkan gambar existing
+        const imageUrl = '<?= base_url('uploads/profil/user/') ?>' + linkPhoto;
+        $('#profilExistingImage').attr('src', imageUrl);
+        $('#profilExistingImageContainer').show();
+
+        $('#modalUploadProfil').modal('show');
+    }
+
+    // Function untuk delete profil
+    function deleteProfilGuru(idGuru) {
+        Swal.fire({
+            title: 'Apakah Anda yakin?',
+            text: 'Foto profil yang dihapus tidak dapat dikembalikan!',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Ya, Hapus!',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: '<?= base_url('backend/guru/deleteProfilPhoto') ?>/' + idGuru,
+                    type: 'POST',
+                    success: function(response) {
+                        if (response.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Berhasil',
+                                text: response.message,
+                                timer: 2000,
+                                showConfirmButton: false
+                            }).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Gagal',
+                                text: response.message
+                            });
+                        }
+                    },
+                    error: function() {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Terjadi kesalahan saat menghapus foto profil'
+                        });
+                    }
+                });
+            }
+        });
+    }
+
+    // Handle file input change untuk profil
+    $('#fileProfil').on('change', function(e) {
+        const file = e.target.files[0];
+
+        if (!file) {
+            return;
+        }
+
+        // Validasi ukuran file (max 10MB)
+        const maxSize = 10485760; // 10MB
+        if (file.size > maxSize) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Gagal',
+                text: 'Ukuran file terlalu besar. Maksimal 10MB.'
+            });
+            $(this).val('');
+            return;
+        }
+
+        // Validasi tipe file
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+        if (!allowedTypes.includes(file.type)) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Gagal',
+                text: 'Tipe file tidak diizinkan. Hanya JPG, JPEG, atau PNG'
+            });
+            $(this).val('');
+            return;
+        }
+
+        selectedFileProfil = file;
+
+        // Tutup modal upload dan buka modal crop
+        $('#modalUploadProfil').modal('hide');
+
+        $('#modalUploadProfil').one('hidden.bs.modal', function() {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                $('#imageToCropProfil').attr('src', event.target.result);
+                $('#modalCropProfil').modal('show');
+            };
+            reader.readAsDataURL(file);
+        });
+    });
+
+    // Initialize cropper saat modal crop profil dibuka
+    $('#modalCropProfil').on('shown.bs.modal', function() {
+        const imageElement = document.getElementById('imageToCropProfil');
+
+        // Disable rotate buttons sementara
+        $('#btnProfilRotateLeft').prop('disabled', true);
+        $('#btnProfilRotateRight').prop('disabled', true);
+
+        if (cropperProfil) {
+            cropperProfil.destroy();
+            cropperProfil = null;
+        }
+
+        const currentSrc = imageElement.src;
+        imageElement.src = '';
+        imageElement.src = currentSrc;
+
+        imageElement.onload = function() {
+            setTimeout(function() {
+                if (typeof Cropper === 'undefined') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Library Cropper.js belum dimuat. Silakan refresh halaman.'
+                    });
+                    return;
+                }
+
+                if (!imageElement.src || imageElement.offsetWidth === 0) return;
+
+                if (cropperProfil) {
+                    cropperProfil.destroy();
+                    cropperProfil = null;
+                }
+
+                try {
+                    const cropContainer = document.getElementById('cropContainerProfil');
+                    if (cropContainer) {
+                        const maxHeight = window.innerHeight - 200;
+                        cropContainer.style.maxHeight = maxHeight + 'px';
+                        cropContainer.style.height = maxHeight + 'px';
+                    }
+
+                    // Aspect ratio 3:4 untuk foto profil
+                    cropperProfil = new Cropper(imageElement, {
+                        aspectRatio: 3 / 4, // Fixed 3:4 aspect ratio
+                        viewMode: 1,
+                        dragMode: 'move',
+                        autoCropArea: 0.8,
+                        restore: false,
+                        guides: true,
+                        center: true,
+                        highlight: false,
+                        cropBoxMovable: true,
+                        cropBoxResizable: true,
+                        toggleDragModeOnDblclick: false,
+                        responsive: true,
+                        minContainerWidth: 200,
+                        minContainerHeight: 200,
+                        ready: function() {
+                            console.log('Cropper Profil initialized successfully');
+                            $('#btnProfilRotateLeft').prop('disabled', false);
+                            $('#btnProfilRotateRight').prop('disabled', false);
+                        }
+                    });
+                } catch (error) {
+                    console.error('Error initializing profil cropper:', error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Gagal menginisialisasi cropper: ' + error.message
+                    });
+                }
+            }, 500);
+        };
+
+        if (imageElement.complete) {
+            imageElement.onload();
+        } else {
+            imageElement.addEventListener('load', imageElement.onload, {
+                once: true
+            });
+        }
+    });
+
+    // Rotate buttons for profil
+    $('#btnProfilRotateLeft').on('click', function() {
+        if (cropperProfil) {
+            cropperProfil.rotate(-90);
+        }
+    });
+
+    $('#btnProfilRotateRight').on('click', function() {
+        if (cropperProfil) {
+            cropperProfil.rotate(90);
+        }
+    });
+
+    // Button crop profil selesai
+    $('#btnCropProfil').on('click', function() {
+        if (!cropperProfil) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Cropper belum diinisialisasi'
+            });
+            return;
+        }
+
+        // Get cropped canvas with fixed width for consistent output
+        const canvas = cropperProfil.getCroppedCanvas({
+            width: 300,
+            height: 400,
+            imageSmoothingEnabled: true,
+            imageSmoothingQuality: 'high',
+        });
+
+        if (!canvas) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Gagal membuat canvas'
+            });
+            return;
+        }
+
+        // Convert canvas to base64
+        const base64Image = canvas.toDataURL('image/jpeg', 0.85);
+
+        // Simpan hasil crop
+        $('#profilCroppedImageData').val(base64Image);
+        $('#profilPreviewImage').attr('src', base64Image);
+
+        // Tutup modal crop
+        $('#modalCropProfil').modal('hide');
+
+        // Buka kembali modal upload dengan preview
+        $('#modalCropProfil').one('hidden.bs.modal', function() {
+            $('#profilPreviewContainer').show();
+            $('#profilExistingImageContainer').hide();
+            $('#btnUploadProfilFromForm').show();
+
+            setTimeout(function() {
+                $('#modalUploadProfil').modal('show');
+            }, 100);
+        });
+    });
+
+    // Function untuk remove preview profil dan reset
+    function removeProfilPreviewImage() {
+        $('#profilPreviewContainer').hide();
+        $('#btnUploadProfilFromForm').hide();
+        $('#profilCroppedImageData').val('');
+        $('#fileProfil').val('');
+        selectedFileProfil = null;
+
+        // Tampilkan existing image jika mode edit
+        if (isEditModeProfil) {
+            $('#profilExistingImageContainer').show();
+        }
+    }
+
+    // Function untuk upload profil dari form
+    function uploadProfilFromForm() {
+        const croppedImageData = $('#profilCroppedImageData').val();
+
+        if (!croppedImageData) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Tidak ada gambar yang akan diupload. Silakan pilih file dan crop terlebih dahulu.'
+            });
+            return;
+        }
+
+        Swal.fire({
+            title: 'Mengupload foto...',
+            text: 'Sedang memproses dan mengupload foto profil...',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            showConfirmButton: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        // Prepare form data
+        const formData = {
+            IdGuru: $('#profilIdGuru').val(),
+            foto_cropped: croppedImageData
+        };
+
+        // Upload via AJAX
+        $.ajax({
+            url: '<?= base_url('backend/guru/uploadProfilPhoto') ?>',
+            type: 'POST',
+            data: formData,
+            success: function(response) {
+                Swal.close();
+                if (response.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Berhasil',
+                        text: response.message,
+                        timer: 2000,
+                        showConfirmButton: false
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Gagal',
+                        text: response.message
+                    });
+                }
+            },
+            error: function(xhr, status, error) {
+                Swal.close();
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Terjadi kesalahan saat mengupload foto profil'
+                });
+            }
+        });
+    }
+
+    // Reset modal profil saat ditutup
+    $('#modalUploadProfil').on('hidden.bs.modal', function() {
+        if (cropperProfil) {
+            cropperProfil.destroy();
+            cropperProfil = null;
+        }
+        selectedFileProfil = null;
+        $('#fileProfil').val('');
+        $('#profilPreviewContainer').hide();
+        $('#profilExistingImageContainer').hide();
+        $('#btnUploadProfilFromForm').hide();
+        $('#profilCroppedImageData').val('');
+    });
+
+    // Reset modal crop profil saat ditutup
+    $('#modalCropProfil').on('hidden.bs.modal', function() {
+        if (cropperProfil) {
+            cropperProfil.destroy();
+            cropperProfil = null;
+        }
     });
 </script>
 <?= $this->endSection(); ?>

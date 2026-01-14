@@ -1886,6 +1886,190 @@ class Guru extends BaseController
         }
     }
 
+    // Upload Profil Photo (for berkasLampiran page)
+    public function uploadProfilPhoto()
+    {
+        try {
+            if (!$this->request->isAJAX()) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Request harus menggunakan AJAX'
+                ]);
+            }
+
+            $idGuru = $this->request->getPost('IdGuru');
+            $fotoCropped = $this->request->getPost('foto_cropped');
+
+            // Validasi
+            if (empty($idGuru)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'IdGuru tidak tersedia'
+                ]);
+            }
+
+            // Cek apakah guru ada
+            $guru = $this->DataModels->find($idGuru);
+            if (!$guru) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Data guru tidak ditemukan'
+                ]);
+            }
+
+            // Validasi IdTpq untuk operator
+            $sessionIdTpq = session()->get('IdTpq');
+            if ($sessionIdTpq != null && $guru['IdTpq'] != $sessionIdTpq) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Anda tidak memiliki akses untuk mengupload foto guru ini'
+                ]);
+            }
+
+            // Buat direktori uploads/profil/user jika belum ada
+            $uploadPath = FCPATH . 'uploads/profil/user/';
+            if (!is_dir($uploadPath)) {
+                mkdir($uploadPath, 0755, true);
+            }
+
+            // Handle base64 image dari crop
+            if (!empty($fotoCropped)) {
+                if (preg_match('/^data:image\/(\w+);base64,/', $fotoCropped, $type)) {
+                    $data = substr($fotoCropped, strpos($fotoCropped, ',') + 1);
+                    $data = base64_decode($data);
+
+                    if ($data === false) {
+                        return $this->response->setJSON([
+                            'success' => false,
+                            'message' => 'Gagal decode base64 image'
+                        ]);
+                    }
+
+                    $extension = strtolower($type[1] ?? 'jpg');
+                    if ($extension === 'jpeg') {
+                        $extension = 'jpg';
+                    }
+
+                    // Validasi extension
+                    if (!in_array($extension, ['jpg', 'png', 'jpeg'])) {
+                        return $this->response->setJSON([
+                            'success' => false,
+                            'message' => 'Format file tidak didukung. Hanya JPG, JPEG, dan PNG yang diperbolehkan'
+                        ]);
+                    }
+
+                    // Generate nama file baru
+                    $newFileName = 'profil_' . $idGuru . '_' . time() . '.' . $extension;
+                    $filePath = $uploadPath . $newFileName;
+
+                    // Simpan file
+                    if (file_put_contents($filePath, $data)) {
+                        // Hapus foto lama jika ada
+                        if (!empty($guru['LinkPhoto'])) {
+                            $oldFilePath = $uploadPath . $guru['LinkPhoto'];
+                            if (file_exists($oldFilePath) && $guru['LinkPhoto'] != $newFileName) {
+                                @unlink($oldFilePath);
+                            }
+                        }
+
+                        // Gunakan helper untuk sync ke 3 tabel
+                        $result = $this->helpFunction->saveGuruProfilPhoto($idGuru, $newFileName, $guru['IdTpq']);
+
+                        if ($result['success']) {
+                            return $this->response->setJSON([
+                                'success' => true,
+                                'message' => 'Foto profil berhasil diupload',
+                                'foto_url' => base_url('uploads/profil/user/' . $newFileName)
+                            ]);
+                        } else {
+                            return $this->response->setJSON($result);
+                        }
+                    } else {
+                        return $this->response->setJSON([
+                            'success' => false,
+                            'message' => 'Gagal menyimpan foto profil'
+                        ]);
+                    }
+                } else {
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'message' => 'Format base64 image tidak valid'
+                    ]);
+                }
+            } else {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'File foto tidak ditemukan'
+                ]);
+            }
+        } catch (\Exception $e) {
+            log_message('error', 'Guru: uploadProfilPhoto - Error: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    // Delete Profil Photo
+    public function deleteProfilPhoto($idGuru)
+    {
+        try {
+            if (!$this->request->isAJAX()) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Request harus menggunakan AJAX'
+                ]);
+            }
+
+            // Validasi
+            if (empty($idGuru)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'IdGuru tidak tersedia'
+                ]);
+            }
+
+            // Cek apakah guru ada
+            $guru = $this->DataModels->find($idGuru);
+            if (!$guru) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Data guru tidak ditemukan'
+                ]);
+            }
+
+            // Validasi IdTpq untuk operator
+            $sessionIdTpq = session()->get('IdTpq');
+            if ($sessionIdTpq != null && $guru['IdTpq'] != $sessionIdTpq) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Anda tidak memiliki akses untuk menghapus foto guru ini'
+                ]);
+            }
+
+            // Hapus file fisik jika ada
+            if (!empty($guru['LinkPhoto'])) {
+                $uploadPath = FCPATH . 'uploads/profil/user/';
+                $filePath = $uploadPath . $guru['LinkPhoto'];
+                if (file_exists($filePath)) {
+                    @unlink($filePath);
+                }
+            }
+
+            // Gunakan helper untuk sync delete ke 3 tabel
+            $result = $this->helpFunction->deleteGuruProfilPhoto($idGuru);
+
+            return $this->response->setJSON($result);
+        } catch (\Exception $e) {
+            log_message('error', 'Guru: deleteProfilPhoto - Error: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ]);
+        }
+    }
+
     // Check data untuk print bulk (validasi sebelum print)
     public function checkBulkInsentifData()
     {
