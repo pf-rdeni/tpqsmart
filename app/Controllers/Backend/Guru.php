@@ -3225,7 +3225,7 @@ class Guru extends BaseController
 
         // --- AGGREGATED STATISTICS FOR ROUTINE ATTENDANCE ---
         $allAttendanceBuilder = $absensiModel->db->table('tbl_absensi_guru');
-        $allAttendanceBuilder->select('tbl_absensi_guru.*, tbl_guru.Nama as NamaGuru, tbl_guru.IdTpq as GuruIdTpq, tbl_tpq.NamaTpq, tbl_kegiatan_absensi.NamaKegiatan, tbl_kegiatan_absensi.JenisJadwal');
+        $allAttendanceBuilder->select('tbl_absensi_guru.*, tbl_guru.Nama as NamaGuru, tbl_guru.IdTpq as GuruIdTpq, tbl_guru.NoHp, tbl_tpq.NamaTpq, tbl_kegiatan_absensi.NamaKegiatan, tbl_kegiatan_absensi.JenisJadwal');
         $allAttendanceBuilder->join('tbl_guru', 'CONVERT(tbl_guru.IdGuru USING utf8) = CONVERT(tbl_absensi_guru.IdGuru USING utf8)');
         $allAttendanceBuilder->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_guru.IdTpq', 'left');
         $allAttendanceBuilder->join('tbl_kegiatan_absensi', 'tbl_kegiatan_absensi.Id = tbl_absensi_guru.IdKegiatan', 'left');
@@ -3329,6 +3329,7 @@ class Guru extends BaseController
                     'nama' => $record->NamaGuru,
                     'tpq' => $record->NamaTpq ?? '-',
                     'idTpq' => $record->GuruIdTpq ?? '',
+                    'noHp' => $record->NoHp ?? '',
                     'hadir' => 0, 'izin' => 0, 'sakit' => 0, 'alfa' => 0, 'total' => 0
                 ];
             }

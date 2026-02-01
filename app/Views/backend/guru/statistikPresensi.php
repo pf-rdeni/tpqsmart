@@ -495,6 +495,37 @@
                     <small class="text-muted mt-1 d-block" id="waModeHint">Kirim rekap list semua guru</small>
                 </div>
 
+                <!-- Pilihan Tujuan Kirim (Baru) -->
+                <div class="form-group" id="waDestinationGroup">
+                    <label><i class="fas fa-bullseye mr-1"></i>Tujuan Kirim</label>
+                    <div class="custom-control custom-radio">
+                        <input class="custom-control-input" type="radio" id="waDestGroup" name="waDestination" value="group" checked>
+                        <label for="waDestGroup" class="custom-control-label">Grup / Manual</label>
+                    </div>
+                    <div class="custom-control custom-radio">
+                        <input class="custom-control-input" type="radio" id="waDestNumber" name="waDestination" value="number">
+                        <label for="waDestNumber" class="custom-control-label">Nomor WhatsApp Tertentu</label>
+                    </div>
+                </div>
+
+                <div class="form-group" id="waGuruTargetGroup" style="display: none;">
+                    <label>Pilih Guru (Isi Otomatis Nomor HP)</label>
+                    <select class="form-control select2-wa" id="waGuruTargetSelect" style="width: 100%;">
+                        <option value="">-- Pilih Guru --</option>
+                        <?php if (!empty($guruRanking)): ?>
+                            <?php foreach ($guruRanking as $guru): ?>
+                                <option value="<?= esc($guru['noHp']) ?>" 
+                                        data-idtpq="<?= esc($guru['idTpq'] ?? '') ?>">
+                                    <?= esc(ucwords(strtolower($guru['nama']))) ?> 
+                                    (<?= !empty($guru['noHp']) ? esc($guru['noHp']) : 'No HP Kosong' ?>)
+                                </option>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </select>
+                </div>
+
+
+
                 <div class="form-group" id="waGuruSelectGroup" style="display: none;">
                     <label>Pilih Guru</label>
                     <select class="form-control select2-wa" id="waGuruSelect" style="width: 100%;">
@@ -994,25 +1025,114 @@ $(document).ready(function() {
     }
 
 
+    // Toggle Destination Input
+    $('input[name="waDestination"]').change(function() {
+        if ($(this).val() == 'number') {
+            $('#waGuruTargetGroup').slideDown(); // Show Guru dropdown
+            filterGuruTargetByTpq(); // Apply filter
+        } else {
+            $('#waGuruTargetGroup').slideUp();
+        }
+    });
+
     // Toggle mode Laporan List / Individu
     $('input[name="waMode"]').change(function() {
         var mode = $(this).val();
         if (mode == 'individu') {
             $('#waGuruSelectGroup').show();
+            // Hide Destination options
+            $('#waDestinationGroup').slideUp();
+            $('#waGuruTargetGroup').slideUp();
+            
             filterGuruByTpq(); // Apply TPQ filter to guru list
         } else {
             $('#waGuruSelectGroup').hide();
+             // Show Destination options
+            $('#waDestinationGroup').slideDown();
+            
+            // Check state of radio button to potentially show inputs
+            if ($('input[name="waDestination"]:checked').val() == 'number') {
+                $('#waGuruTargetGroup').show();
+            }
+            
             $('#waGuruSelect').val('').trigger('change');
         }
         updateModeHint();
         updateWaRekapMessage();
     });
 
+    // Filter guru target by TPQ
+    $('#waTpqSelect').change(function() {
+        filterGuruByTpq();
+        filterGuruTargetByTpq();
+        updateModeHint();
+        updateWaRekapMessage();
+    });
+    
+    function filterGuruTargetByTpq() {
+        var selectedTpqId = $('#waTpqSelect').val();
+         $('#waGuruTargetSelect option').each(function() {
+            var optionTpqId = $(this).data('idtpq') || '';
+            if (!selectedTpqId || optionTpqId == selectedTpqId || $(this).val() == '') {
+                $(this).prop('disabled', false); // Use prop disabled or remove element? Element removal breaks select2 sometimes.
+                // Better to just recreate options or use show/hide but select2 hides original element.
+                // For select2, we might need to rely on select2 events or just simple recreation?
+                // Or just keep it simple:
+            } else {
+                // $(this).hide(); // Option hiding doesn't work well in all browsers/select2
+            }
+        });
+        
+        // Proper filtering for Select2:
+        // Since Select2 duplicates DOM, standard .hide() on option doesn't work effectively.
+        // We will just reset selection.
+        $('#waGuruTargetSelect').val('').trigger('change');
+        
+        // Advanced: To really filter Select2 options, we would need to destroy and re-init or use specific matcher.
+        // For simplicity allow all but maybe verify?
+        // Actually, user specifically asked: "munculkan dropdown list guru di tpq terebut"
+        // So we MUST filter.
+        
+        // Let's do a simple visible/hidden rebuild or just hide the select2 items using CSS via class? No.
+        
+        // Re-implement basic filter by reconstructing options if needed?
+        // Let's try simple option hiding first, usually works on mobile/some checks, but Select2 ignores hidden options?
+        // Actually, Select2 requires destroying to refresh data if DOM changes significantly.
+        
+        // Correct approach for Select2 filter:
+        // We can just rely on the user picking from the full list, OR 
+        // destroy select2, filter HTML, re-init.
+        
+        // For now, let's try just resetting value. The list is global.
+    }
+    
+    // Improved Filter for Guru Target (Re-init Select2 approach)
+    function filterGuruTargetByTpq() {
+         var selectedTpqId = $('#waTpqSelect').val();
+         
+         // Show all first
+         $('#waGuruTargetSelect option').each(function() {
+             var optionTpqId = $(this).data('idtpq') || '';
+             if (!selectedTpqId || optionTpqId == selectedTpqId || $(this).val() == '') {
+                 $(this).prop('disabled', false);
+             } else {
+                 $(this).prop('disabled', true);
+             }
+         });
+         
+         // Trigger change to update Select2 visual state (it respects disabled)
+         $('#waGuruTargetSelect').select2({
+            theme: 'bootstrap4',
+            dropdownParent: $('#waRekapModal')
+        });
+    }
+
+    // ... existing functions ...
 
     // Update hint text berdasarkan mode dan TPQ yang dipilih
     function updateModeHint() {
         var mode = $('input[name="waMode"]:checked').val();
-        var selectedTpqName = $('#waTpqSelect option:selected').data('nama') || '';
+         var selectedTpqName = $('#waTpqSelect option:selected').data('nama') || '';
         var hint = '';
         
         if (mode == 'laporan') {
@@ -1051,7 +1171,7 @@ $(document).ready(function() {
             // Pesan untuk laporan list: Daftar guru (filtered by TPQ if selected)
 
             msg += " Bapak/Ibu Guru,\n\n";
-            msg += "*📊 REKAP KEHADIRAN GURU*\n";
+            msg += "*\uD83D\uDCCA REKAP KEHADIRAN GURU*\n"; // 📊
             if (selectedTpqName) {
                 msg += "TPQ: " + selectedTpqName + "\n";
             }
@@ -1066,20 +1186,21 @@ $(document).ready(function() {
                         return; // Skip guru from other TPQ
                     }
                     
-                    var medal = rank <= 3 ? ['🥇', '🥈', '🥉'][rank-1] : rank + '.';
+                    // 🥇 \uD83E\uDD47, 🥈 \uD83E\uDD48, 🥉 \uD83E\uDD49
+                    var medal = rank <= 3 ? ['\uD83E\uDD47', '\uD83E\uDD48', '\uD83E\uDD49'][rank-1] : rank + '.';
                     var namaGuru = guru.nama.split(' ').map(function(w) { 
                         return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase(); 
                     }).join(' ');
                     
                     msg += medal + " *" + namaGuru + "*\n";
-                    msg += "   ✅ Hadir: " + guru.hadir + " | ❌ Alfa: " + guru.alfa + "\n";
-                    msg += "   📈 Kehadiran: *" + guru.persentase + "%*\n\n";
+                    msg += "   \u2705 Hadir: " + guru.hadir + " | \u274C Alfa: " + guru.alfa + "\n"; // ✅, ❌
+                    msg += "   \uD83D\uDCC8 Kehadiran: *" + guru.persentase + "%*\n\n"; // 📈
                     rank++;
                 });
             }
             
             msg += "━━━━━━━━━━━━━━━━━━\n";
-            msg += "Terima kasih atas kerjasamanya. 🙏";
+            msg += "Terima kasih atas kerjasamanya. \uD83D\uDE4F"; // 🙏
             
         } else if (guruId) {
             // Pesan untuk guru individual
@@ -1096,17 +1217,17 @@ $(document).ready(function() {
             }).join(' ');
             
             msg += " Ustadz/Ustadzah *" + namaGuru + "*,\n\n";
-            msg += "*📊 REKAP KEHADIRAN ANDA*\n";
+            msg += "*\uD83D\uDCCA REKAP KEHADIRAN ANDA*\n"; // 📊
             msg += "Periode: " + periodeTanggal + "\n";
             msg += "━━━━━━━━━━━━━━━━━━\n\n";
-            msg += "✅ Hadir: *" + hadir + "* kali\n";
-            msg += "📝 Izin: *" + izin + "* kali\n";
-            msg += "🏥 Sakit: *" + sakit + "* kali\n";
-            msg += "❌ Alfa: *" + alfa + "* kali\n\n";
-            msg += "📊 *Total: " + total + " kali*\n";
-            msg += "📈 *Persentase Kehadiran: " + persentase + "%*\n\n";
+            msg += "\u2705 Hadir: *" + hadir + "* kali\n"; // ✅
+            msg += "\uD83D\uDCDD Izin: *" + izin + "* kali\n"; // 📝
+            msg += "\uD83C\uDFE5 Sakit: *" + sakit + "* kali\n"; // 🏥
+            msg += "\u274C Alfa: *" + alfa + "* kali\n\n"; // ❌
+            msg += "\uD83D\uDCCA *Total: " + total + " kali*\n"; // 📊
+            msg += "\uD83D\uDCC8 *Persentase Kehadiran: " + persentase + "%*\n\n"; // 📈
             msg += "━━━━━━━━━━━━━━━━━━\n";
-            msg += "Terima kasih atas dedikasinya. 🙏";
+            msg += "Terima kasih atas dedikasinya. \uD83D\uDE4F"; // 🙏
             
         } else {
             // Pesan default: Semua guru (untuk dikirim satu per satu)
@@ -1118,22 +1239,34 @@ $(document).ready(function() {
 });
 
 function sendWaRekap() {
-    var isGroup = $('#waCheckGroup').is(':checked');
+    var destination = $('input[name="waDestination"]:checked').val();
     var message = $('#waRekapMessage').val();
     var url = "";
 
-    if (isGroup) {
-        // Tanpa nomor: user pilih kontak sendiri
-        url = "https://wa.me/?text=" + encodeURIComponent(message);
+    // Gunakan api.whatsapp.com untuk kompatibilitas encoding yang lebih baik
+    var baseUrl = "https://api.whatsapp.com/send";
+
+    if (destination == 'group') {
+        // Tanpa nomor: user pilih kontak/grup sendiri
+        url = baseUrl + "?text=" + encodeURIComponent(message);
     } else {
-        var guruId = $('#waGuruSelect').val();
-        if (!guruId) {
-            toastr.warning('Silakan pilih guru terlebih dahulu atau centang opsi Kirim ke Grup.');
+        // Kirim ke nomor spesifik (dari dropdown guru)
+        var targetNumber = $('#waGuruTargetSelect').val();
+         if (targetNumber) {
+            targetNumber = targetNumber.replace(/[^0-9]/g, '');
+        }
+        
+        if (!targetNumber) {
+            toastr.warning('Mohon pilih guru yang memiliki nomor WhatsApp.');
             return;
         }
-        // Untuk kirim ke guru individual, kita perlu nomor HP dari controller
-        // Sementara, buka dengan pilih kontak
-        url = "https://wa.me/?text=" + encodeURIComponent(message);
+
+        // Basic validation for Indonesia numbers (optional but helpful)
+        if (targetNumber.startsWith('0')) {
+             targetNumber = '62' + targetNumber.substring(1);
+        }
+
+        url = baseUrl + "?phone=" + targetNumber + "&text=" + encodeURIComponent(message);
     }
     
     window.open(url, '_blank');
