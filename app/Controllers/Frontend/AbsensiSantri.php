@@ -201,13 +201,38 @@ class AbsensiSantri extends BaseController
                     $santriObj->Kehadiran = is_array($cekAbsensi) ? ($cekAbsensi['Kehadiran'] ?? null) : ($cekAbsensi->Kehadiran ?? null);
                     $santriObj->Keterangan = is_array($cekAbsensi) ? ($cekAbsensi['Keterangan'] ?? null) : ($cekAbsensi->Keterangan ?? null);
                     $santriObj->IdAbsensi = is_array($cekAbsensi) ? ($cekAbsensi['Id'] ?? null) : ($cekAbsensi->Id ?? null);
+                    // Critical Fix: Assign IdGuru from attendance record to ensure we know who *actually* took attendance
+                    $santriObj->IdGuru = is_array($cekAbsensi) ? ($cekAbsensi['IdGuru'] ?? null) : ($cekAbsensi->IdGuru ?? null);
+                    
                     $santriSudahAbsen[] = $santriObj;
                 }
             }
         }
         // Cek siapa yang sudah mengabsensi kelas ini hari ini
         $absensiRecorder = null;
-        if (empty($santri) && $selectedKelasId) {
+        
+        // Prioritas 1: Ambil dari data absensi yang sudah ada (Real Attendance Taker)
+        if (!empty($santriSudahAbsen)) {
+            // Ambil sample satu siswa yang sudah diabsen
+            $sampleAbsensi = $santriSudahAbsen[0];
+            $idGuruAbsen  = $sampleAbsensi->IdGuru ?? ($sampleAbsensi->IdGuru ?? null); // Handle object property if joined/mapped
+            
+            // Perlu query ulang untuk memastikan field IdGuru tersedia jika tidak di-join sebelumnya
+            if (!$idGuruAbsen && isset($sampleAbsensi->IdAbsensi)) {
+                 $rec = $this->absensiModel->find($sampleAbsensi->IdAbsensi);
+                 if($rec) $idGuruAbsen = $rec['IdGuru'];
+            }
+
+            if ($idGuruAbsen) {
+                 $guruTaker = $this->guruModel->find($idGuruAbsen);
+                 if ($guruTaker) {
+                     $absensiRecorder = $this->formatGuruName($guruTaker);
+                 }
+            }
+        }
+
+        // Prioritas 2: Jika belum ada yang absen (atau failed getting above), ambil Guru Kelas (Homeroom Teacher)
+        if (!$absensiRecorder && $selectedKelasId) {
             // Ambil guru yang mengajar kelas ini untuk mendapatkan NamaGuru
             $db = \Config\Database::connect();
             $absensiRecord = $db->table('tbl_guru_kelas')
@@ -219,18 +244,7 @@ class AbsensiSantri extends BaseController
                 ->getRowArray();
             
             if ($absensiRecord && !empty($absensiRecord['Nama'])) {
-                // Format nama: capitalize first letter
-                $namaGuru = ucwords(strtolower($absensiRecord['Nama']));
-                
-                // Tambahkan prefix berdasarkan jenis kelamin
-                $jenisKelaminLower = strtolower($absensiRecord['JenisKelamin'] ?? '');
-                if (stripos($jenisKelaminLower, 'l') === 0 || stripos($jenisKelaminLower, 'laki') !== false) {
-                    $namaGuru = 'Ustadz ' . $namaGuru;
-                } elseif (stripos($jenisKelaminLower, 'p') === 0 || stripos($jenisKelaminLower, 'perempuan') !== false) {
-                    $namaGuru = 'Ustadzah ' . $namaGuru;
-                }
-                
-                $absensiRecorder = $namaGuru;
+                $absensiRecorder = $this->formatGuruName($absensiRecord);
             }
         }
         
@@ -461,16 +475,21 @@ class AbsensiSantri extends BaseController
     {
         $guru = $this->guruModel->find($idGuru);
         if($guru) {
-             $nama = $guru['Nama'];
-             $nama = ucwords(strtolower($nama));
-             $jenisKelaminLower = strtolower($guru['JenisKelamin'] ?? '');
-             if (stripos($jenisKelaminLower, 'l') === 0 || stripos($jenisKelaminLower, 'laki') !== false) {
-                 return 'Ustadz ' . $nama;
-             } elseif (stripos($jenisKelaminLower, 'p') === 0 || stripos($jenisKelaminLower, 'perempuan') !== false) {
-                 return 'Ustadzah ' . $nama;
-             }
-             return $nama;
+             return $this->formatGuruName($guru);
         }
         return "Guru";
+    }
+
+    private function formatGuruName($guru) 
+    {
+         $nama = $guru['Nama'];
+         $nama = ucwords(strtolower($nama));
+         $jenisKelaminLower = strtolower($guru['JenisKelamin'] ?? '');
+         if (stripos($jenisKelaminLower, 'l') === 0 || stripos($jenisKelaminLower, 'laki') !== false) {
+             return 'Ustadz ' . $nama;
+         } elseif (stripos($jenisKelaminLower, 'p') === 0 || stripos($jenisKelaminLower, 'perempuan') !== false) {
+             return 'Ustadzah ' . $nama;
+         }
+         return $nama;
     }
 }
