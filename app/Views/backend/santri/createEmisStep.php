@@ -2380,6 +2380,8 @@ if (ENVIRONMENT === 'production') {
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
 </style>
+<?= $this->endSection(); ?>
+<?= $this->section('scripts'); ?>
 <script>
     /* ===== Region: Menampilkan Preview Data Santri =====
      * Fungsi ini dipanggil saat tombol "Pratinjau" diklik

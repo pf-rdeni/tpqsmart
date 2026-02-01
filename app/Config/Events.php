@@ -43,6 +43,11 @@ Events::on('pre_system', static function (): void {
      * If you delete, they will no longer be collected.
      */
     if (CI_DEBUG && ! is_cli()) {
+        // Fix Kint TypeError: str_replace(): Argument #3 ($subject) must be of type array|string, false given
+        if (class_exists('Kint\Kint')) {
+            \Kint\Kint::$file_link_format = \Kint\Kint::$file_link_format ?: '';
+        }
+
         // Skip Debug Toolbar untuk route backend/rapor
         // Karena data rapor sangat besar dan menyebabkan Xdebug error "stack depth 512"
         $request = \Config\Services::request();

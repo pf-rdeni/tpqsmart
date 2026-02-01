@@ -18,6 +18,10 @@
     <link rel="stylesheet" href="<?= base_url('template/backend/dist/css/adminlte.min.css') ?>">
     <!-- SweetAlert2 -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <!-- BS Stepper -->
+    <link rel="stylesheet" href="<?= base_url('plugins/bs-stepper/css/bs-stepper.min.css') ?>">
+    <!-- Cropper.js CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
     
     <!-- Custom CSS for Frontend -->
     <style>
