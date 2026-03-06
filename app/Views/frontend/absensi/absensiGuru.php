@@ -65,7 +65,7 @@
                 ?>
 
                 <!-- Statistics Widgets -->
-                <div class="row">
+                <div class="row" id="stats-widgets">
                     <div class="col-lg-2 col-6">
                         <!-- small box -->
                         <div class="small-box bg-info">
@@ -213,11 +213,23 @@
                     </div>
                 </div>
 
-                <!-- Search Input -->
+                <!-- Filter & Search Input -->
                 <div class="row mb-4">
-                    <div class="col-md-6 offset-md-3">
+                    <div class="col-md-8 offset-md-2">
                         <div class="input-group">
-                            <input type="text" id="searchInput" class="form-control form-control-lg" placeholder="Cari Nama Guru, TPQ, atau Desa...">
+                            <?php 
+                                // Tampilkan filter dropdown TPQ hanya jika absensi dibuat umum (bukan untuk 1 TPQ tertentu)
+                                $isUmum = empty($kegiatan['IdTpq']) || $kegiatan['IdTpq'] == 0 || $kegiatan['Lingkup'] == 'Umum'; 
+                            ?>
+                            <?php if ($isUmum): ?>
+                            <div class="input-group-prepend w-25 border-right-0">
+                                <select id="filterTpqDropdown" class="form-control form-control-lg h-100" style="border-top-right-radius: 0; border-bottom-right-radius: 0; min-width: 150px;">
+                                    <option value="">-- Semua TPQ --</option>
+                                    <!-- Options akan digenerate otomatis lewat JS -->
+                                </select>
+                            </div>
+                            <?php endif; ?>
+                            <input type="text" id="searchInput" class="form-control form-control-lg <?= $isUmum ? 'border-left-0' : '' ?>" placeholder="Cari Nama Guru, TPQ, atau Desa...">
                             <div class="input-group-append">
                                 <span class="input-group-text"><i class="fas fa-search"></i></span>
                             </div>
@@ -256,19 +268,16 @@
                                             <!-- Profile Photo with fallback to icon (3:4 ratio) -->
                                             <img src="<?= base_url('uploads/profil/user/' . $linkPhoto) ?>" 
                                                  class="profile-user-img img-fluid"
-                                                 style="height: 120px; width: 90px; object-fit: cover; cursor: pointer; border: 3px solid <?= $iconColor ?>; border-radius: 8px;"
-                                                 onclick="this.closest('.card-body').querySelector('button').click()"
+                                                 style="height: 120px; width: 90px; object-fit: cover; border: 3px solid <?= $iconColor ?>; border-radius: 8px;"
                                                  onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                                             <div class="profile-user-img img-fluid align-items-center justify-content-center"
-                                                 style="display: none; height: 120px; width: 90px; background: linear-gradient(135deg, <?= $iconColor ?>15 0%, <?= $iconColor ?>30 100%); cursor: pointer; border: 3px solid <?= $iconColor ?>; border-radius: 8px;"
-                                                 onclick="this.closest('.card-body').querySelector('button').click()">
+                                                 style="display: none; height: 120px; width: 90px; background: linear-gradient(135deg, <?= $iconColor ?>15 0%, <?= $iconColor ?>30 100%); border: 3px solid <?= $iconColor ?>; border-radius: 8px;">
                                                 <i class="fas <?= $iconClass ?> fa-3x" style="color: <?= $iconColor ?>;"></i>
                                             </div>
                                         <?php else: ?>
                                             <!-- Icon only (no photo) - 3:4 ratio -->
                                             <div class="profile-user-img img-fluid d-flex align-items-center justify-content-center"
-                                                 style="height: 120px; width: 90px; background: linear-gradient(135deg, <?= $iconColor ?>15 0%, <?= $iconColor ?>30 100%); cursor: pointer; border: 3px solid <?= $iconColor ?>; border-radius: 8px;"
-                                                 onclick="this.closest('.card-body').querySelector('button').click()">
+                                                 style="height: 120px; width: 90px; background: linear-gradient(135deg, <?= $iconColor ?>15 0%, <?= $iconColor ?>30 100%); border: 3px solid <?= $iconColor ?>; border-radius: 8px;">
                                                 <i class="fas <?= $iconClass ?> fa-3x" style="color: <?= $iconColor ?>;"></i>
                                             </div>
                                         <?php endif; ?>
@@ -529,22 +538,58 @@
             });
         }
 
+        if ($('#filterTpqDropdown').length > 0) {
+            populateTpqDropdown();
+        }
+
         // Initialize pagination
         initPagination('list-belum', 'pagination-belum');
         initPagination('list-sudah', 'pagination-sudah');
 
-        $('#searchInput').on('keyup', function() {
-            var value = $(this).val().toLowerCase();
+        $('#searchInput, #filterTpqDropdown').on('keyup change', function() {
+            var textValue = $('#searchInput').val().toLowerCase();
+            var tpqValue = $('#filterTpqDropdown').length > 0 ? $('#filterTpqDropdown').val().toLowerCase() : '';
             
             // Filter both lists
-            filterList('list-belum', value);
-            filterList('list-sudah', value);
+            filterList('list-belum', textValue, tpqValue);
+            filterList('list-sudah', textValue, tpqValue);
 
             // Re-initialize pagination after filtering
             initPagination('list-belum', 'pagination-belum');
             initPagination('list-sudah', 'pagination-sudah');
         });
     });
+
+    function populateTpqDropdown() {
+        let tpqSet = new Set();
+        // Cari kombinasi TPQ dan KelurahanDesa dari data-tpq dan data-loc yang ada di button bukaModalTidakHadir
+        $('.teacher-col button[data-tpq]').each(function() {
+            let tpq = $(this).attr('data-tpq') || '';
+            let loc = $(this).attr('data-loc') || '';
+            if (tpq !== '') {
+                let text = tpq;
+                if (loc !== '') text += ' - ' + loc;
+                tpqSet.add(text);
+            }
+        });
+
+        // Convert set to array and sort
+        let tpqArray = Array.from(tpqSet).sort();
+        let dropdown = $('#filterTpqDropdown');
+        
+        // Simpan nilai lama sebelum dikosongkan jika ada
+        let oldVal = dropdown.val();
+        
+        dropdown.empty();
+        dropdown.append('<option value="">-- Semua TPQ --</option>');
+        tpqArray.forEach(function(tpqText) {
+            dropdown.append($('<option></option>').val(tpqText).text(tpqText));
+        });
+        
+        if (oldVal && tpqArray.includes(oldVal)) {
+            dropdown.val(oldVal);
+        }
+    }
 
     function updateSudahHadirFilter(status, btn) {
         currentSudahHadirFilter = status;
@@ -560,14 +605,15 @@
         $(btn).removeClass(`btn-outline-${activeColor}`).addClass(`btn-${activeColor}`);
 
         // Apply filters
-        const searchValue = $('#searchInput').val().toLowerCase();
-        filterList('list-sudah', searchValue);
+        const textValue = $('#searchInput').val().toLowerCase();
+        const tpqValue = $('#filterTpqDropdown').length > 0 ? $('#filterTpqDropdown').val().toLowerCase() : '';
+        filterList('list-sudah', textValue, tpqValue);
         
         // Re-init pagination
         initPagination('list-sudah', 'pagination-sudah');
     }
 
-    function filterList(listId, value) {
+    function filterList(listId, textValue, tpqValue = '') {
         const list = document.getElementById(listId);
         const items = list.getElementsByClassName('teacher-col');
         let visibleCount = 0;
@@ -576,15 +622,30 @@
             const item = items[i];
             const text = item.textContent || item.innerText;
             
+            // Jika ada tombol di dalam item (untuk fallback list-belum/list-sudah cari data atribut)
+            const btnTpq = item.querySelector('button[data-tpq]');
+            let itemTpqText = '';
+            if (btnTpq) {
+                let tpq = btnTpq.getAttribute('data-tpq') || '';
+                let loc = btnTpq.getAttribute('data-loc') || '';
+                itemTpqText = tpq !== '' ? (loc !== '' ? (tpq + ' - ' + loc).toLowerCase() : tpq.toLowerCase()) : '';
+            } else {
+                // Untuk "Sudah Hadir" tombol hilang, gunakan textContent dari card jika perlu (sebagai fallback sederhana)
+                itemTpqText = text.toLowerCase();
+            }
+            
             // Check text match
-            const textMatch = text.toLowerCase().indexOf(value) > -1;
+            const textMatch = text.toLowerCase().indexOf(textValue) > -1;
+            
+            // Check tpq dropdown match
+            const tpqMatch = tpqValue === '' || itemTpqText.indexOf(tpqValue) > -1;
             
             // Check status match (only for list-sudah)
             const statusMatch = (listId === 'list-sudah') 
                 ? (currentSudahHadirFilter === 'all' || item.dataset.status === currentSudahHadirFilter)
                 : true;
 
-            if (textMatch && statusMatch) {
+            if (textMatch && tpqMatch && statusMatch) {
                 item.classList.remove('d-none');
                 item.classList.add('d-block'); // Ensure it's marked as visible for pagination
                 // Mark items as 'matched' or 'unmatched'
@@ -857,7 +918,7 @@
                             timerProgressBar: true,
                             showConfirmButton: false,
                             willClose: () => {
-                                location.reload();
+                                refreshAbsensiDataLocally();
                             }
                         });
                     } else {
@@ -903,6 +964,35 @@
             console.warn('Geolocation not supported by this browser.');
             submitAttendance(null, null);
         }
+    }
+
+    // AJAX Refresh Partial Data
+    function refreshAbsensiDataLocally() {
+        // Fetch new HTML for current page
+        $.get(window.location.href, function(data) {
+            var newDoc = new DOMParser().parseFromString(data, 'text/html');
+            
+            // Extract the parts we need to update
+            $('#stats-widgets').html($(newDoc).find('#stats-widgets').html());
+            $('#count-belum').text($(newDoc).find('#count-belum').text());
+            $('#count-sudah').text($(newDoc).find('#count-sudah').text());
+            
+            // Ensure filter buttons counts are updated manually from elements since id matches are weird with PHP
+            $('#filter-buttons-sudah').html($(newDoc).find('#filter-buttons-sudah').html());
+
+            $('#list-belum').html($(newDoc).find('#list-belum').html());
+            $('#list-sudah').html($(newDoc).find('#list-sudah').html());
+            
+            // Repopulate Dropdown (just in case new combinations exist, though rare without full reload)
+            if ($('#filterTpqDropdown').length > 0) {
+                populateTpqDropdown();
+            }
+            
+            // Reapply filters and pagination
+            $('#searchInput').trigger('keyup');
+        }).fail(function() {
+            location.reload(); // fall back to regular reload if AJAX fails
+        });
     }
 </script>
 <?= $this->endSection(); ?>
