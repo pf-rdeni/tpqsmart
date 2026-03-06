@@ -3549,6 +3549,13 @@ class Guru extends BaseController
             }
         }
 
+        $isAdmin = in_groups('Admin');
+        $sessionIdTpq = session()->get('IdTpq');
+
+        if (!$isAdmin) {
+            $builder->where('(tbl_kegiatan_absensi.IdTpq = "' . $sessionIdTpq . '" OR tbl_kegiatan_absensi.IdTpq IS NULL OR tbl_kegiatan_absensi.IdTpq = "")');
+        }
+
         $builder->groupBy('tbl_absensi_guru.IdKegiatan, DATE(tbl_absensi_guru.TanggalOccurrence)');
         $builder->orderBy('Tanggal', 'DESC');
         $builder->orderBy('tbl_kegiatan_absensi.NamaKegiatan', 'ASC');
