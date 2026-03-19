@@ -302,7 +302,22 @@ class StatusUjianMunaqosah extends BaseController
 
         $statusVerifikasi = $pesertaData['status_verifikasi'] ?? null;
         $isVerified = ($statusVerifikasi === 'valid' || $statusVerifikasi === 'dikonfirmasi');
+        $keterangan = $pesertaData['keterangan'] ?? null;
 
+        // Parse data perbaikan JSON dari keterangan (jika ada)
+        $perbaikanDataParsed = null;
+        $keteranganText = $keterangan;
+        if (!empty($keterangan) && strpos($keterangan, '[Data Perbaikan JSON]') !== false) {
+            $parts = explode('[Data Perbaikan JSON]', $keterangan);
+            $keteranganText = trim($parts[0]);
+            $jsonStr = trim($parts[1] ?? '');
+            if (!empty($jsonStr)) {
+                $decoded = json_decode($jsonStr, true);
+                if (json_last_error() === JSON_ERROR_NONE) {
+                    $perbaikanDataParsed = $decoded;
+                }
+            }
+        }
         $data = [
             'page_title' => 'Konfirmasi Data Santri',
             'isPublic' => true,
@@ -311,7 +326,9 @@ class StatusUjianMunaqosah extends BaseController
             'aktiveTombolKelulusanPerType' => $aktiveTombolKelulusanPerType, // Data per type ujian
             'availableTypeUjian' => $availableTypeUjian,
             'statusVerifikasi' => $statusVerifikasi,
-            'isVerified' => $isVerified
+            'isVerified' => $isVerified,
+            'keterangan' => $keteranganText,
+            'perbaikanData' => $perbaikanDataParsed,
         ];
 
         return view('frontend/munaqosah/konfirmasiDataSantri', $data);
@@ -446,12 +463,12 @@ class StatusUjianMunaqosah extends BaseController
                 ->first();
 
             $statusVerifikasi = $pesertaData['status_verifikasi'] ?? null;
-            $isVerified = ($statusVerifikasi === 'valid' || $statusVerifikasi === 'dikonfirmasi');
+            $isVerified = ($statusVerifikasi === 'valid' || $statusVerifikasi === 'dikonfirmasi' || $statusVerifikasi === 'perlu_perbaikan');
 
             if (!$isVerified) {
                 return $this->response->setJSON([
                     'success' => false,
-                    'message' => 'Data Ananda belum diverifikasi. Tombol kelulusan akan aktif setelah data selesai diverifikasi dan dikonfirmasi oleh admin.'
+                    'message' => 'Data Ananda belum diverifikasi. Tombol kelulusan akan aktif setelah data selesai diverifikasi dan dikonfirmasi oleh admin atau sedang dalam perbaikan.'
                 ]);
             }
         }

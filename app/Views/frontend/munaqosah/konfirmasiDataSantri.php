@@ -9,6 +9,8 @@ $hasMultipleTypeUjian = count($availableTypeUjian) > 1;
 $statusVerifikasi = $statusVerifikasi ?? null;
 $isVerified = ($statusVerifikasi === 'valid' || $statusVerifikasi === 'dikonfirmasi');
 $isPerluPerbaikan = ($statusVerifikasi === 'perlu_perbaikan');
+$keterangan = $keterangan ?? null;
+$perbaikanData = $perbaikanData ?? null;
 
 // Tentukan default type ujian untuk inisialisasi
 $defaultTypeUjian = !empty($availableTypeUjian) ? $availableTypeUjian[0] : 'munaqosah';
@@ -344,7 +346,10 @@ $aktiveTombolKelulusanDefault = $aktiveTombolKelulusanPerType[$defaultTypeUjian]
             <strong><i class="fas fa-exclamation-triangle"></i> Status Verifikasi: Perlu Perbaikan</strong>
             <p>
                 Data Ananda sedang dalam proses verifikasi perbaikan. Admin/Operator sedang meninjau permintaan perbaikan data yang telah Ananda ajukan.
-                Tombol "Lihat Kelulusan" akan aktif setelah data selesai diverifikasi dan dikonfirmasi oleh admin.
+                Ananda dapat melihat status munaqosah dan hasil kelulusan ujian meskipun data masih dalam proses perbaikan.
+                <?php if (!empty($keterangan) || !empty($perbaikanData)): ?>
+                <br><a href="#" onclick="showDetailPerbaikan(); return false;" style="color: #856404; font-weight: 600; text-decoration: underline;"><i class="fas fa-eye"></i> Lihat detail perbaikan yang diajukan</a>
+                <?php endif; ?>
             </p>
         </div>
     <?php elseif ($isVerified): ?>
@@ -435,6 +440,104 @@ $aktiveTombolKelulusanDefault = $aktiveTombolKelulusanPerType[$defaultTypeUjian]
     </form>
 </div>
 
+
+<!-- Modal Detail Perbaikan -->
+<div id="modalDetailPerbaikan" style="display:none; position:fixed; inset:0; z-index:9999; overflow-y:auto; background:rgba(0,0,0,0.5);">
+    <div style="max-width:680px; margin:40px auto 40px; background:#fff; border-radius:8px; box-shadow:0 10px 40px rgba(0,0,0,0.3); overflow:hidden;">
+        <!-- Header -->
+        <div style="background:#fff; border-bottom:1px solid #dee2e6; padding:16px 20px; display:flex; align-items:center; justify-content:space-between;">
+            <h5 style="margin:0; font-size:16px; font-weight:600; color:#333;">
+                <i class="fas fa-check-double" style="color:#4caf50; margin-right:8px;"></i> Review &amp; Konfirmasi Perbaikan Data
+            </h5>
+            <button onclick="closeModalPerbaikan()" style="background:none; border:none; font-size:20px; cursor:pointer; color:#666; line-height:1;">&times;</button>
+        </div>
+        <!-- Body -->
+        <div style="padding:20px; max-height:80vh; overflow-y:auto;">
+
+            <!-- Alert Perlu Perbaikan -->
+            <div style="background:#ffc107; border-radius:6px; padding:15px 18px; margin-bottom:16px;">
+                <div style="font-size:15px; font-weight:700; color:#212529; margin-bottom:6px;">
+                    <i class="fas fa-exclamation-triangle"></i> Status: Perlu Perbaikan
+                </div>
+                <div style="font-size:13px; color:#212529; margin-bottom:8px;">
+                    <strong>Peserta mengajukan permintaan perbaikan data.</strong> Silakan review perubahan yang diusulkan di bawah ini.
+                </div>
+                <div id="perbaikanKeteranganBox" style="display:none;">
+                    <div style="font-weight:700; color:#212529; font-size:13px; margin-bottom:3px;">Keterangan dari User:</div>
+                    <div id="perbaikanKeteranganText" style="font-size:13px; color:#212529; white-space:pre-wrap;"></div>
+                </div>
+            </div>
+
+            <!-- Accordion Info -->
+            <div style="background:#17a2b8; border-radius:6px; margin-bottom:16px; overflow:hidden;">
+                <div onclick="toggleInfoPanduan()" style="padding:12px 16px; display:flex; align-items:center; justify-content:space-between; cursor:pointer;">
+                    <span style="font-size:14px; font-weight:600; color:#fff;">
+                        <i class="fas fa-info-circle"></i> Panduan Alur Proses Review &amp; Konfirmasi Perbaikan
+                    </span>
+                    <span id="infoPanduanIcon" style="color:#fff; font-size:16px; font-weight:700;">+</span>
+                </div>
+                <div id="infoPanduanBody" style="display:none; padding:14px 16px; background:#fff; font-size:13px; color:#333;">
+                    <ul style="margin:0; padding-left:18px; line-height:1.8;">
+                        <li>Kolom <span style="background:#fff3cd; padding:1px 5px; border-radius:3px;"><strong>Kuning</strong></span> = Data Saat Ini (Sebelum perbaikan)</li>
+                        <li>Kolom <span style="background:#d1ecf1; padding:1px 5px; border-radius:3px;"><strong>Biru Muda</strong></span> = Data Usulan Perbaikan dari peserta</li>
+                        <li>Halaman ini bersifat <strong>hanya lihat (read-only)</strong> — perbaikan akan diproses oleh Admin/Operator</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Card Data Santri -->
+            <div style="border-radius:6px; overflow:hidden; margin-bottom:16px; border:1px solid #dee2e6;">
+                <div style="background:#007bff; padding:10px 16px;">
+                    <span style="font-size:14px; font-weight:600; color:#fff;">
+                        <i class="fas fa-user-circle"></i> Data Santri
+                    </span>
+                </div>
+                <div style="padding:16px;">
+                    <!-- Tabel Perbaikan -->
+                    <div id="tabelPerbaikanWrapper">
+                        <h6 style="font-size:14px; font-weight:600; color:#333; margin-bottom:12px;">
+                            <i class="fas fa-table"></i> Tabel Perbaikan Data
+                        </h6>
+                        <div style="overflow-x:auto;">
+                            <table id="tabelDetailPerbaikan" style="width:100%; border-collapse:collapse; font-size:13px;">
+                                <thead>
+                                    <tr style="background:#f8f9fa;">
+                                        <th style="padding:10px 12px; border:1px solid #dee2e6; font-weight:600; text-align:center;">Field</th>
+                                        <th style="padding:10px 12px; border:1px solid #dee2e6; font-weight:600; text-align:center;">Saat Ini (Sebelum)</th>
+                                        <th style="padding:10px 12px; border:1px solid #dee2e6; font-weight:600; text-align:center;">Usulan</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabelDetailPerbaikanBody">
+                                    <!-- Diisi oleh JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <hr style="margin:16px 0;">
+                    </div>
+
+                    <!-- ID Santri display -->
+                    <div style="margin-bottom:14px;">
+                        <label style="font-weight:600; font-size:13px; margin-bottom:5px; display:block;">ID Santri</label>
+                        <input type="text" id="displayIdSantriPerbaikan" readonly style="padding:8px 12px; border:1px solid #ced4da; border-radius:4px; background:#e9ecef; width:220px; font-size:13px;">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Note -->
+            <div style="background:#f8f9fa; border-radius:6px; padding:14px 16px; font-size:13px; color:#495057;">
+                <div style="font-weight:600; margin-bottom:6px;"><i class="fas fa-info-circle" style="color:#17a2b8;"></i> Review perubahan yang diusulkan.</div>
+                <div>Data perbaikan ini sedang dalam antrian review oleh Admin/Operator. Anda tidak perlu melakukan tindakan apapun.</div>
+            </div>
+        </div>
+        <!-- Footer -->
+        <div style="border-top:1px solid #dee2e6; padding:12px 20px; display:flex; justify-content:flex-end;">
+            <button onclick="closeModalPerbaikan()" style="padding:8px 22px; background:#6c757d; color:#fff; border:none; border-radius:5px; cursor:pointer; font-size:14px;">
+                <i class="fas fa-times"></i> Tutup
+            </button>
+        </div>
+    </div>
+</div>
+
 <?= $this->endSection(); ?>
 
 <?= $this->section('scripts'); ?>
@@ -444,6 +547,7 @@ $aktiveTombolKelulusanDefault = $aktiveTombolKelulusanPerType[$defaultTypeUjian]
         const isPerluPerbaikan = <?= $isPerluPerbaikan ? 'true' : 'false' ?>;
         const aktiveTombolKelulusanPerType = <?= json_encode($aktiveTombolKelulusanPerType) ?>;
         const defaultTypeUjian = '<?= esc($defaultTypeUjian, 'js') ?>';
+
 
         // Function untuk update status tombol kelulusan berdasarkan type ujian default
         // (Untuk multiple type ujian, status akan dicek saat popup muncul)
@@ -465,9 +569,11 @@ $aktiveTombolKelulusanDefault = $aktiveTombolKelulusanPerType[$defaultTypeUjian]
             // Tapi kita tetap perlu cek untuk type ujian default
             const hasMultiple = <?= $hasMultipleTypeUjian ? 'true' : 'false' ?>;
 
+            const isVerifiedOrPerbaikan = isVerified || isPerluPerbaikan;
+
             if (hasMultiple) {
                 // Jika ada multiple type ujian, cek apakah setidaknya ada satu type ujian yang aktif
-                // Jika ada yang aktif dan status verified, enable tombol (nanti dicek lagi di popup)
+                // Jika ada yang aktif dan status verified/perbaikan, enable tombol (nanti dicek lagi di popup)
                 let hasActiveType = false;
                 availableTypeUjian.forEach(function(type) {
                     if (aktiveTombolKelulusanPerType[type] === true) {
@@ -475,13 +581,13 @@ $aktiveTombolKelulusanDefault = $aktiveTombolKelulusanPerType[$defaultTypeUjian]
                     }
                 });
 
-                if (isVerified && hasActiveType) {
+                if (isVerifiedOrPerbaikan && hasActiveType) {
                     // Setidaknya ada satu type ujian yang aktif, enable tombol
                     btnKelulusan.prop('disabled', false);
                     btnKelulusan.removeClass('locked');
                     btnKelulusan.css('pointer-events', 'auto');
                     infoKelulusan.hide();
-                } else if (isVerified && !hasActiveType) {
+                } else if (isVerifiedOrPerbaikan && !hasActiveType) {
                     // Semua type ujian tidak aktif
                     btnKelulusan.prop('disabled', true);
                     btnKelulusan.addClass('locked');
@@ -496,12 +602,12 @@ $aktiveTombolKelulusanDefault = $aktiveTombolKelulusanPerType[$defaultTypeUjian]
                 }
             } else {
                 // Jika hanya satu type ujian, cek seperti biasa
-                if (isVerified && aktiveTombolKelulusan) {
+                if (isVerifiedOrPerbaikan && aktiveTombolKelulusan) {
                     btnKelulusan.prop('disabled', false);
                     btnKelulusan.removeClass('locked');
                     btnKelulusan.css('pointer-events', 'auto');
                     infoKelulusan.hide();
-                } else if (isVerified && !aktiveTombolKelulusan) {
+                } else if (isVerifiedOrPerbaikan && !aktiveTombolKelulusan) {
                     btnKelulusan.prop('disabled', true);
                     btnKelulusan.addClass('locked');
                     btnKelulusan.css('pointer-events', 'none');
@@ -520,6 +626,106 @@ $aktiveTombolKelulusanDefault = $aktiveTombolKelulusanPerType[$defaultTypeUjian]
 
         // Inisialisasi tombol kelulusan
         updateTombolKelulusan();
+    });
+
+    function showDetailPerbaikan() {
+        const keterangan = <?= json_encode($keterangan) ?>;
+        const perbaikanData = <?= json_encode($perbaikanData) ?>;
+        const idSantri = '<?= esc($peserta['IdSantri'] ?? '', 'js') ?>';
+
+        const fieldLabels = {
+            nama: 'Nama Santri',
+            jenisKelamin: 'Jenis Kelamin',
+            tempatLahir: 'Tempat Lahir',
+            tanggalLahir: 'Tanggal Lahir',
+            namaAyah: 'Nama Ayah'
+        };
+
+        // Set keterangan
+        const keteranganBox = document.getElementById('perbaikanKeteranganBox');
+        const keteranganTextEl = document.getElementById('perbaikanKeteranganText');
+        if (keterangan && keterangan.trim()) {
+            keteranganTextEl.textContent = keterangan;
+            keteranganBox.style.display = 'block';
+        } else {
+            keteranganBox.style.display = 'none';
+        }
+
+        // Set ID Santri
+        document.getElementById('displayIdSantriPerbaikan').value = idSantri;
+
+        // Build tabel perbaikan
+        const tbody = document.getElementById('tabelDetailPerbaikanBody');
+        tbody.innerHTML = '';
+        const wrapper = document.getElementById('tabelPerbaikanWrapper');
+
+        if (perbaikanData && typeof perbaikanData === 'object' && Object.keys(perbaikanData).length > 0) {
+            let hasData = false;
+            for (const [key, val] of Object.entries(perbaikanData)) {
+                if (val && val.toString().trim()) {
+                    hasData = true;
+                    const label = fieldLabels[key] || key;
+                    const currentValueMap = {
+                        nama: '<?= esc($peserta['NamaSantri'] ?? '', 'js') ?>',
+                        jenisKelamin: '<?= esc($peserta['JenisKelamin'] ?? '', 'js') ?>',
+                        tempatLahir: '<?= esc($peserta['TempatLahirSantri'] ?? '', 'js') ?>',
+                        tanggalLahir: '<?= !empty($peserta['TanggalLahirSantri']) ? date('d-m-Y', strtotime($peserta['TanggalLahirSantri'])) : '' ?>',
+                        namaAyah: '<?= esc($peserta['NamaAyah'] ?? '', 'js') ?>'
+                    };
+                    const currentVal = currentValueMap[key] || '-';
+
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td style="padding:10px 12px; border:1px solid #dee2e6; font-weight:600; color:#495057;">${label}</td>
+                        <td style="padding:10px 12px; border:1px solid #dee2e6; background:#fff3cd; color:#856404; font-weight:500; text-align:center;">${currentVal}</td>
+                        <td style="padding:10px 12px; border:1px solid #dee2e6; background:#d1ecf1; color:#0c5460; font-weight:500; text-align:center;">${val}</td>
+                    `;
+                    tbody.appendChild(tr);
+                }
+            }
+            if (!hasData) {
+                tbody.innerHTML = '<tr><td colspan="3" style="padding:12px; text-align:center; color:#6c757d; border:1px solid #dee2e6;">Tidak ada detail data perbaikan.</td></tr>';
+            }
+            wrapper.style.display = 'block';
+        } else {
+            wrapper.style.display = 'none';
+        }
+
+        // Tampilkan modal
+        document.getElementById('modalDetailPerbaikan').style.display = 'block';
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeModalPerbaikan() {
+        document.getElementById('modalDetailPerbaikan').style.display = 'none';
+        document.body.style.overflow = '';
+        // Reset accordion
+        document.getElementById('infoPanduanBody').style.display = 'none';
+        document.getElementById('infoPanduanIcon').textContent = '+';
+    }
+
+    function toggleInfoPanduan() {
+        const body = document.getElementById('infoPanduanBody');
+        const icon = document.getElementById('infoPanduanIcon');
+        if (body.style.display === 'none') {
+            body.style.display = 'block';
+            icon.textContent = '−';
+        } else {
+            body.style.display = 'none';
+            icon.textContent = '+';
+        }
+    }
+
+    // Tutup modal saat klik overlay luar
+    document.getElementById('modalDetailPerbaikan').addEventListener('click', function(e) {
+        if (e.target === this) closeModalPerbaikan();
+    });
+
+    // Tutup modal saat tekan Escape
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && document.getElementById('modalDetailPerbaikan').style.display === 'block') {
+            closeModalPerbaikan();
+        }
     });
 
     function showVerifikasiPopup() {
@@ -1109,7 +1315,7 @@ $aktiveTombolKelulusanDefault = $aktiveTombolKelulusanPerType[$defaultTypeUjian]
             const typeLabel = type === 'pra-munaqosah' ? 'Pra-Munaqosah' : 'Munaqosah';
             const typeIcon = type === 'pra-munaqosah' ? 'fa-book-reader' : 'fa-graduation-cap';
             const isActive = aktiveTombolKelulusanPerType[type] ?? false;
-            const isDisabled = (action === 'kelulusan' && (!isVerified || !isActive));
+            const isDisabled = (action === 'kelulusan' && (!(isVerified || isPerluPerbaikan) || !isActive));
 
             htmlContent += '<label style="display: flex; align-items: center; gap: 12px; padding: 12px; border: 2px solid #ddd; border-radius: 8px; cursor: pointer; transition: all 0.3s; ' +
                 (isDisabled ? 'opacity: 0.6; background-color: #f5f5f5;' : 'background-color: #fff;') +
@@ -1119,7 +1325,7 @@ $aktiveTombolKelulusanDefault = $aktiveTombolKelulusanPerType[$defaultTypeUjian]
             htmlContent += '<i class="fas ' + typeIcon + '" style="font-size: 20px; color: #4caf50;"></i>';
             htmlContent += '<div style="flex: 1;">';
             htmlContent += '<div style="font-weight: 600; color: #333; font-size: 16px;">' + typeLabel + '</div>';
-            if (action === 'kelulusan' && !isVerified) {
+            if (action === 'kelulusan' && !(isVerified || isPerluPerbaikan)) {
                 htmlContent += '<div style="font-size: 12px; color: #dc3545; margin-top: 4px;">Data belum diverifikasi</div>';
             } else if (action === 'kelulusan' && !isActive) {
                 htmlContent += '<div style="font-size: 12px; color: #dc3545; margin-top: 4px;">Tidak aktif untuk type ujian ini</div>';
@@ -1193,15 +1399,17 @@ $aktiveTombolKelulusanDefault = $aktiveTombolKelulusanPerType[$defaultTypeUjian]
     // Function untuk memproses action dengan type ujian yang dipilih
     function processActionWithTypeUjian(action, typeUjian) {
         const isVerified = <?= $isVerified ? 'true' : 'false' ?>;
+        const isPerluPerbaikan = <?= $isPerluPerbaikan ? 'true' : 'false' ?>;
+        const isVerifiedOrPerbaikan = isVerified || isPerluPerbaikan;
         const aktiveTombolKelulusanPerType = <?= json_encode($aktiveTombolKelulusanPerType) ?>;
 
         // Untuk tombol kelulusan, cek status verified dan aktiveTombolKelulusan
         if (action === 'kelulusan') {
-            if (!isVerified) {
+            if (!isVerifiedOrPerbaikan) {
                 Swal.fire({
                     icon: 'warning',
                     title: 'Perhatian',
-                    text: 'Data Ananda belum diverifikasi. Tombol kelulusan akan aktif setelah data selesai diverifikasi dan dikonfirmasi oleh admin.'
+                    text: 'Data Ananda belum diverifikasi. Tombol kelulusan akan aktif setelah data selesai diverifikasi dan dikonfirmasi oleh admin atau sedang dalam perbaikan.'
                 });
                 return;
             }
