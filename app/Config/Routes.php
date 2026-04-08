@@ -280,6 +280,9 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->post('santri/uploadNewKk', 'Santri::uploadNewKk');
     $routes->post('santri/checkNikUnique', 'Santri::checkNikUnique');
 
+    // Data Peserta MDT
+    $routes->get('santri/dataPesertaMdt', 'Santri::showDataPesertaMdt');
+
     // Munaqosah Routes
     $routes->get('munaqosah/nilai', 'Munaqosah::nilai');
     $routes->get('munaqosah/input-nilai', 'Munaqosah::inputNilai');

@@ -1010,8 +1010,136 @@ class Santri extends BaseController
         return view('backend/santri/listDataProfilSantri', $data);
     }
 
+    // ============================================================
+    // Page: Data Peserta MDT — Daftar Santri untuk Download Excel
+    // ============================================================
+    public function showDataPesertaMdt()
+    {
+        // Load helper untuk memformat Tanggal Lahir menjadi format Indonesia
+        helper('nilai');
+
+        // filterIdTpq[] dikirim sebagai array dari multiple select
+        $filterIdTpq   = $this->request->getGet('filterIdTpq') ?? [];
+
+        if (!is_array($filterIdTpq)) {
+            $filterIdTpq = [$filterIdTpq];
+        }
+        $filterIdTpq = array_filter($filterIdTpq); // hapus nilai kosong
+
+        // filterIdKelas[] dikirim sebagai array dari multiple select
+        $filterIdKelas = $this->request->getGet('filterIdKelas') ?? [];
+        if (!is_array($filterIdKelas)) {
+            $filterIdKelas = [$filterIdKelas];
+        }
+        $filterIdKelas = array_filter($filterIdKelas); // hapus nilai kosong
+
+        $sessionIdTpq  = session()->get('IdTpq');
+        $sessionIdKelas = session()->get('IdKelas');
+        $isAdmin       = in_groups('Admin');
+        $isOperator    = in_groups('Operator');
+        $isGuru        = in_groups('Guru');
+        $isKepalaTpq   = in_groups('Kepala TPQ');
+
+        // --- Tentukan IdTpq ---
+        if ($isAdmin) {
+            $IdTpq = !empty($filterIdTpq) ? array_values($filterIdTpq) : null; // Admin: bisa pilih satu/banyak MDT (null = semua)
+        } else {
+            $IdTpq = $sessionIdTpq; // Operator/Guru: dikunci ke MDT sendiri
+        }
+
+        // --- Tentukan IdKelas ---
+        $IdKelas      = null;
+        $idKelasArray = null;
+
+        if ($isOperator && $IdTpq !== null) {
+            // Operator: ambil semua kelas aktif di TPQ tersebut sebagai array
+            $kelasOperator = $this->kelasModel->getAllKelasAktifByTpq((is_array($IdTpq) ? $IdTpq[0] : $IdTpq));
+            if (!empty($filterIdKelas)) {
+                // Filter ke kelas yang dipilih dan valid untuk operator ini
+                $IdKelas = array_values(array_intersect($filterIdKelas, $kelasOperator));
+            } else {
+                $idKelasArray = $kelasOperator; // semua kelas operator
+            }
+        } else {
+            if (!empty($filterIdKelas)) {
+                $IdKelas = array_values($filterIdKelas);
+            } else {
+                // Tidak ada filter kelas — ambil semua (null = semua)
+                $IdKelas = null;
+            }
+        }
+
+        // --- Ambil data santri ---
+        $santri = $this->DataSantriBaru->getDataPesertaMdt($IdTpq, $IdKelas, $idKelasArray);
+
+        // --- Terapkan mapping MDA pada NamaKelas santri ---
+        if (!empty($santri)) {
+            foreach ($santri as $key => $s) {
+                if (isset($s['NamaKelas']) && !empty($s['NamaKelas']) && !empty($s['IdTpq'])) {
+                    $namaKelasOri = $s['NamaKelas'];
+                    // Gunakan IdTpq milik masing-masing santri untuk map
+                    $mdaCheck     = $this->helpFunction->checkMdaKelasMapping($s['IdTpq'], $namaKelasOri);
+                    $santri[$key]['NamaKelas'] = $this->helpFunction->convertKelasToMda(
+                        $namaKelasOri,
+                        $mdaCheck['mappedMdaKelas']
+                    );
+                }
+            }
+        }
+
+        // --- Data untuk filter dropdown ---
+        // Daftar MDT (tbl_mda untuk Operator yang punya MDT, fallback ke tbl_tpq)
+        $dataMda = $this->mdaModel->findAll();
+        usort($dataMda, function ($a, $b) {
+            return strcasecmp($a['NamaTpq'] ?? '', $b['NamaTpq'] ?? '');
+        });
+
+        // Jika operator atau bukan admin, batasi list MDT ke MDT mereka
+        if (!$isAdmin) {
+            $dataMda = array_filter($dataMda, function ($m) use ($sessionIdTpq) {
+                return $m['IdTpq'] == $sessionIdTpq;
+            });
+            $dataMda = array_values($dataMda);
+        }
+
+        // Kelas untuk filter dropdown
+        $dataKelas = $this->helpFunction->getDataKelas();
+
+        // Terapkan mapping MDA pada nama kelas filter dropdown (Hanya jika memilih tepat 1 MDT)
+        // Kalau difilter untuk banyak MDT, jangan dimap karena tiap MDT bisa punya mapping beda
+        if (!empty($dataKelas) && !empty($IdTpq) && !is_array($IdTpq)) {
+            foreach ($dataKelas as $key => $kelas) {
+                if (isset($kelas['NamaKelas']) && !empty($kelas['NamaKelas'])) {
+                    $namaOri  = $kelas['NamaKelas'];
+                    $mdaCheck = $this->helpFunction->checkMdaKelasMapping($IdTpq, $namaOri);
+                    $dataKelas[$key]['NamaKelas'] = $this->helpFunction->convertKelasToMda(
+                        $namaOri,
+                        $mdaCheck['mappedMdaKelas']
+                    );
+                }
+            }
+        }
+
+        $data = [
+            'page_title'      => 'Data Peserta MDT',
+            'dataSantri'      => $santri,
+            'dataMda'         => $dataMda,
+            'dataKelas'       => $dataKelas,
+            'currentIdTpq'    => $IdTpq,
+            'currentIdKelas'  => $IdKelas ?: $idKelasArray,
+            'filterIdTpq'     => $filterIdTpq,
+            'filterIdKelas'   => $filterIdKelas,
+            'isAdmin'         => $isAdmin,
+            'isOperator'      => $isOperator,
+            'isGuru'          => $isGuru,
+            'isKepalaTpq'     => $isKepalaTpq,
+        ];
+        return view('backend/santri/dataPesertaMdt', $data);
+    }
+
+
     /**
-     * Menampilkan detail profil santri lengkap dengan segmentasi
+     * Menampilkan detail profil santri lengkap dengan segmentasi.
      * Informasi Santri, Orang Tua, dan Alamat
      */
     public function detailProfilSantri()

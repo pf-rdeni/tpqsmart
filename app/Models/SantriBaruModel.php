@@ -638,4 +638,79 @@ class SantriBaruModel extends Model
         $result = $builder->get()->getRowArray();
         return $result ?: null;
     }
-}
+
+    /**
+     * Mendapatkan data peserta MDT dengan join tbl_mda untuk mendapatkan NamaTpq dan KepalaSekolah.
+     * Menggunakan raw SQL untuk menghindari masalah collation antar tabel.
+     *
+     * @param mixed      $IdTpq        ID TPQ — null = semua
+     * @param mixed      $IdKelas      ID Kelas atau array ID Kelas — null = semua
+     * @param array|null $idKelasArray Array ID Kelas untuk filter whereIn (Operator)
+     * @return array
+     */
+    public function getDataPesertaMdt($IdTpq = null, $IdKelas = null, $idKelasArray = null)
+    {
+        $db = \Config\Database::connect();
+
+        // Base SQL — JOIN pakai COLLATE hanya pada sisi tbl_mda untuk fix collation mismatch
+        $sql = "SELECT
+                    sb.IdSantri,
+                    sb.NamaSantri,
+                    sb.JenisKelamin,
+                    sb.NamaAyah,
+                    sb.NamaIbu,
+                    sb.TempatLahirSantri,
+                    sb.TanggalLahirSantri,
+                    sb.IdKelas,
+                    sb.IdTpq,
+                    k.NamaKelas,
+                    COALESCE(mda.NamaTpq, tpq.NamaTpq) AS NamaMdt,
+                    COALESCE(mda.KepalaSekolah, tpq.KepalaSekolah) AS KepalaSekolahMdt
+                FROM tbl_santri_baru sb
+                LEFT JOIN tbl_kelas k
+                    ON k.IdKelas = sb.IdKelas
+                LEFT JOIN tbl_tpq tpq
+                    ON tpq.IdTpq = sb.IdTpq
+                LEFT JOIN tbl_mda mda
+                    ON mda.IdTpq COLLATE utf8mb4_unicode_ci = sb.IdTpq";
+
+        // Build WHERE conditions dengan parameterized query
+        $conditions = [];
+        $params     = [];
+
+        if (!empty($IdTpq)) {
+            if (is_array($IdTpq)) {
+                $placeholders = implode(',', array_fill(0, count($IdTpq), '?'));
+                $conditions[] = "sb.IdTpq IN ($placeholders)";
+                $params       = array_merge($params, array_values($IdTpq));
+            } else {
+                $conditions[] = "sb.IdTpq = ?";
+                $params[]     = $IdTpq;
+            }
+        }
+
+        if (!empty($idKelasArray)) {
+            $placeholders = implode(',', array_fill(0, count($idKelasArray), '?'));
+            $conditions[] = "sb.IdKelas IN ($placeholders)";
+            $params       = array_merge($params, array_values($idKelasArray));
+        } elseif ($IdKelas !== null) {
+            if (is_array($IdKelas) && !empty($IdKelas)) {
+                $placeholders = implode(',', array_fill(0, count($IdKelas), '?'));
+                $conditions[] = "sb.IdKelas IN ($placeholders)";
+                $params       = array_merge($params, array_values($IdKelas));
+            } elseif (!is_array($IdKelas)) {
+                $conditions[] = "sb.IdKelas = ?";
+                $params[]     = $IdKelas;
+            }
+        }
+
+        if (!empty($conditions)) {
+            $sql .= ' WHERE ' . implode(' AND ', $conditions);
+        }
+
+        $sql .= ' ORDER BY COALESCE(mda.NamaTpq, tpq.NamaTpq) ASC, k.NamaKelas ASC, sb.NamaSantri ASC';
+
+        $query = $db->query($sql, $params);
+        return $query ? $query->getResultArray() : [];
+    }
+}
