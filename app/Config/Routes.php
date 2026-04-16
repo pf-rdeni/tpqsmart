@@ -457,6 +457,10 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->post('tools/duplicate-tools', 'Tools::duplicateTools');
     $routes->post('tools/delete-tools/(:num)', 'Tools::deleteTools/$1');
 
+    // Extra Routes (Download Kustomisasi)
+    $routes->get('extra/showDownload', 'Extra::showDownload');
+    $routes->post('extra/previewDownload', 'Extra::previewDownload');
+
     // Jadwal Peserta Ujian Routes
     $routes->get('munaqosah/jadwal-peserta-ujian', 'Munaqosah::jadwalPesertaUjian');
     $routes->get('munaqosah/get-jadwal-peserta-ujian', 'Munaqosah::getJadwalPesertaUjian');
