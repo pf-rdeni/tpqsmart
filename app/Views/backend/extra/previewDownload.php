@@ -221,6 +221,7 @@ helper('nilai');
     <script src="<?= base_url('/plugins/jszip/jszip.min.js') ?>"></script>
     <script src="<?= base_url('/plugins/datatables-buttons/js/buttons.html5.min.js') ?>"></script>
     <script src="<?= base_url('/plugins/datatables-buttons/js/buttons.print.min.js') ?>"></script>
+    <script src="<?= base_url('/plugins/datatables-buttons/js/buttons.colVis.min.js') ?>"></script>
     <script src="<?= base_url('/plugins/datatables-colreorder/js/dataTables.colReorder.min.js') ?>"></script>
     <script src="<?= base_url('/plugins/datatables-colreorder/js/colReorder.bootstrap4.min.js') ?>"></script>
     <script>
@@ -253,6 +254,11 @@ helper('nilai');
             },
             "dom": 'Blfrtip',
             "buttons": [
+                {
+                    extend: 'colvis',
+                    text: '<i class="fas fa-columns mr-1"></i>Sembunyikan Kolom',
+                    className: 'btn btn-warning btn-sm'
+                },
                 {
                     extend: 'excelHtml5',
                     text: '<i class="fas fa-file-excel mr-1"></i>Download Excel',
