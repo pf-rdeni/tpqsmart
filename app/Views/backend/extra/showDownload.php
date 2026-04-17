@@ -320,6 +320,28 @@
 
         </form>
 
+        <!-- Kartu Download Laporan Khusus (Tersistem) -->
+        <h5 class="mt-4 mb-3 text-secondary"><i class="fas fa-file-contract mr-2"></i> Format Laporan Instansi / Pusat</h5>
+        <div class="row">
+            <!-- Kartu MDT -->
+            <div class="col-md-6 col-lg-4 mb-3">
+                <div class="card h-100 shadow-sm border-info" style="border-top: 3px solid #17a2b8;">
+                    <div class="card-body text-center">
+                        <i class="fas fa-list-alt fa-3x text-info mb-3"></i>
+                        <h5 class="text-bold">Data Peserta MDT</h5>
+                        <p class="text-muted text-sm">
+                            Halaman khusus untuk mencetak dan mendownload Format Data Santri menggunakan penamaan dan urutan standar sistem MDT (Madrasah Diniyah Takmiliyah).
+                        </p>
+                        <a href="<?= base_url('backend/santri/dataPesertaMdt') ?>" class="btn btn-info btn-block mt-auto">
+                            <i class="fas fa-external-link-alt mr-1"></i> Buka Format MDT
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tempat untuk laporan pusat lain di masa depan dapat ditambahkan di bawah sini -->
+        </div>
+
     </div>
 </section>
 

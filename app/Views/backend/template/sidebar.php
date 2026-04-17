@@ -794,12 +794,6 @@
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a href="<?php echo base_url('backend/santri/dataPesertaMdt') ?>" class="nav-link">
-                                    <i class="fas fa-list-alt nav-icon text-warning"></i>
-                                    <p>Data Peserta MDT</p>
-                                </a>
-                            </li>
-                            <li class="nav-item">
                                 <a href=<?php echo base_url('backend/santri/detailProfilSantri') ?> class="nav-link">
                                     <i class="fas fa-info-circle nav-icon text-warning"></i>
                                     <p>Detail Profil Santri</p>
@@ -1324,12 +1318,6 @@
                                 <a href=<?php echo base_url('backend/santri/showProfilSantri') ?> class="nav-link">
                                     <i class="fas fa-id-card nav-icon text-warning"></i>
                                     <p>Profil Data Santri</p>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="<?php echo base_url('backend/santri/dataPesertaMdt') ?>" class="nav-link">
-                                    <i class="fas fa-list-alt nav-icon text-warning"></i>
-                                    <p>Data Peserta MDT</p>
                                 </a>
                             </li>
                             <li class="nav-item">
