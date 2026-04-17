@@ -76,20 +76,17 @@ class Extra extends BaseController
             'TanggalMulaiTugas'           => 'Tanggal Mulai Tugas',
             'TempatTugas'                 => 'Tempat Tugas',
             'PendidikanTerakhir'          => 'Pendidikan Terakhir',
-            'JurusanPendidikanTerakhir'   => 'Jurusan Pendidikan',
             'Alamat'                      => 'Alamat',
             'Rt'                          => 'RT',
             'Rw'                          => 'RW',
             'KelurahanDesa'               => 'Kelurahan/Desa',
             'Kecamatan'                   => 'Kecamatan',
-            'KabupatenKota'               => 'Kabupaten/Kota',
+            'Kabupaten'                   => 'Kabupaten/Kota',
             'Provinsi'                    => 'Provinsi',
             'NoHp'                        => 'No HP',
             'NoRekBpr'                    => 'No Rekening BPR',
             'NoRekRiauKepri'              => 'No Rekening BRK',
             'JenisPenerimaInsentif'       => 'Jenis Penerima Insentif',
-            'NamaIbuKandung'              => 'Nama Ibu Kandung',
-            'NamaAyahKandung'             => 'Nama Ayah Kandung',
             'Status'                      => 'Status Aktif',
             'NamaTpq'                     => 'Nama TPQ',
         ];
@@ -144,6 +141,9 @@ class Extra extends BaseController
         $filterTahunAjaran = $this->request->getPost('filter_tahun_ajaran');
         $filterKelas       = $this->request->getPost('filter_kelas');
         $filterStatusAktif = $this->request->getPost('filter_status_aktif');
+        $formatTanggal     = $this->request->getPost('format_tanggal') ?? 'indo';
+        $formatJk          = $this->request->getPost('format_jk') ?? 'full';
+        $formatTeks        = $this->request->getPost('format_teks') ?? 'titlecase';
         $selectedFields    = $this->request->getPost('selected_fields'); // array [['db'=>...,'label'=>...]]
         $fieldMappings     = $this->request->getPost('field_mappings');  // JSON: [{db, label}, ...]
 
@@ -203,6 +203,9 @@ class Extra extends BaseController
             'dataType'    => $dataType,
             'isAdmin'     => $isAdmin,
             'filterIdTpq' => $idTpqFilter,
+            'formatTanggal' => $formatTanggal,
+            'formatJk'      => $formatJk,
+            'formatTeks'    => $formatTeks,
         ];
 
         return view('backend/extra/previewDownload', $data);

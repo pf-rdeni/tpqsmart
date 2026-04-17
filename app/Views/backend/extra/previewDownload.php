@@ -140,10 +140,49 @@ helper('nilai');
                             <?php
                             $dbField = $col['db'] ?? '';
                             $value   = $row[$dbField] ?? '-';
+                            
                             // Format tanggal jika field mengandung kata "Tanggal"
-                            if (strpos($dbField, 'Tanggal') !== false && !empty($value) && $value !== '-') {
-                                $value = formatTanggalIndonesia($value);
+                            if (strpos($dbField, 'Tanggal') !== false && !empty($value) && $value !== '-' && $value !== '0000-00-00') {
+                                $fmtTgl = $formatTanggal ?? 'indo';
+                                if ($fmtTgl === 'indo') {
+                                    $value = formatTanggalIndonesia($value);
+                                } elseif ($fmtTgl !== 'Y-m-d') {
+                                    $value = date($fmtTgl, strtotime($value));
+                                }
                             }
+
+                            // Format Jenis Kelamin
+                            if ($dbField === 'JenisKelamin' && !empty($value) && $value !== '-') {
+                                $jk = strtoupper(trim($value));
+                                $fmtJk = $formatJk ?? 'full';
+                                if ($fmtJk === 'L/P') {
+                                    $value = ($jk === 'LAKI-LAKI' || $jk === 'L' || $jk === 'LK') ? 'L' : 'P';
+                                } elseif ($fmtJk === 'LK/PR') {
+                                    $value = ($jk === 'LAKI-LAKI' || $jk === 'L' || $jk === 'LK') ? 'LK' : 'PR';
+                                } else {
+                                    $value = ($jk === 'L' || $jk === 'LK' || $jk === 'LAKI-LAKI') ? 'Laki-laki' : 'Perempuan';
+                                }
+                            }
+
+                            // Format Teks / Nama (Title Case, Uppercase, dsb)
+                            $textFields = [
+                                'NamaSantri', 'NamaAyah', 'NamaIbu', 'NamaWali', 'TempatLahirSantri', 'AlamatSantri',
+                                'KelurahanDesaSantri', 'KecamatanSantri', 'KabupatenKotaSantri', 'ProvinsiSantri',
+                                'PendidikanAyah', 'PekerjaanUtamaAyah', 'PendidikanIbu', 'PekerjaanUtamaIbu',
+                                'Nama', 'TempatLahir', 'TempatTugas', 'PendidikanTerakhir', 'JurusanPendidikanTerakhir',
+                                'Alamat', 'KelurahanDesa', 'Kecamatan', 'KabupatenKota', 'Kabupaten', 'Provinsi', 'NamaIbuKandung', 'NamaAyahKandung',
+                                'JenisKelamin'
+                            ];
+                            if ((in_array($dbField, $textFields) || strpos($dbField, 'Tanggal') !== false) && !empty($value) && $value !== '-') {
+                                $fmtTeks = $formatTeks ?? 'titlecase';
+                                if ($fmtTeks === 'titlecase') {
+                                    // Menggunakan delimiter khusus agar gelar/singkatan seperti "S.Pd.I" atau "D'Andre" formatnya tetap rapi
+                                    $value = ucwords(strtolower(trim($value)), " \t\r\n\f\v-.,'");
+                                } elseif ($fmtTeks === 'uppercase') {
+                                    $value = strtoupper(trim($value));
+                                }
+                            }
+
                             // Format Active
                             if ($dbField === 'Active') {
                                 $value = ($value == 1) ? 'Aktif' : 'Tidak Aktif';
@@ -224,7 +263,22 @@ helper('nilai');
                         columns: ':visible',
                         format: {
                             body: function(data, row, column, node) {
-                                return $(node).text().trim();
+                                let val = $(node).text().trim();
+                                
+                                // Pola RegExp:
+                                // 1. Angka panjang >= 12 (NIK, NISN)
+                                // 2. Tanggal format Y-m-d, d-m-Y, atau d/m/Y (contoh: 2024-12-01, 12-01-2024)
+                                // 3. Tanggal berformat teks (contoh: 17 Agustus 2024)
+                                let isLongNum = /^\d{12,}$/.test(val);
+                                let isDateNum = /^\d{2,4}[-\/]\d{2}[-\/]\d{2,4}$/.test(val);
+                                let isDateTxt = /^\d{1,2}\s[a-zA-Z]+\s\d{4}$/.test(val);
+
+                                if (isLongNum || isDateNum || isDateTxt) {
+                                    // Berikan karakter zero-width non-joiner agar Excel membacanya murni sebagai Teks,
+                                    // sehingga mencegah Excel merusak nominal/NIP dan juga tidak memformat ulang tanggal (auto date conversion)
+                                    return '\u200C' + val;
+                                }
+                                return val;
                             }
                         }
                     },

@@ -166,6 +166,45 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Opsi Format Global -->
+                    <div class="row mt-2" id="formatGlobal">
+                        <div class="col-md-12">
+                            <hr>
+                            <label class="text-secondary"><i class="fas fa-magic mr-1"></i> Opsi Format Tampilan Output (Excel)</label>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label>Format Tanggal</label>
+                                <select class="form-control" name="format_tanggal">
+                                    <option value="indo" selected>17 Agustus 2024 (Teks Indonesia)</option>
+                                    <option value="d-m-Y">17-08-2024</option>
+                                    <option value="d/m/Y">17/08/2024</option>
+                                    <option value="Y-m-d">2024-08-17 (Sesuai Database)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label>Format Jenis Kelamin</label>
+                                <select class="form-control" name="format_jk">
+                                    <option value="full" selected>Laki-laki / Perempuan</option>
+                                    <option value="LK/PR">LK / PR</option>
+                                    <option value="L/P">L / P</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label>Format Huruf Teks (Nama, Alamat)</label>
+                                <select class="form-control" name="format_teks">
+                                    <option value="titlecase" selected>Awal Kapital (Deni Rusandi)</option>
+                                    <option value="uppercase">KAPITAL SEMUA (DENI RUSANDI)</option>
+                                    <option value="original">Sesuai Database (deNi RUSANDI)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
