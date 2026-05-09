@@ -140,4 +140,4 @@ nb-configuration.xml
 !app/Database/Migrations/.gitkeep
 
 # Ignore SQL files
-/public/*
+*.sql

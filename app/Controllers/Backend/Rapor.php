@@ -3275,7 +3275,7 @@ class Rapor extends BaseController
         $dataSantri = [];
         if ($isAdmin || $isOperator || $isKepalaSekolah) {
             // Admin/Operator/Kepala Sekolah: ambil semua santri di TPQ
-            $dataSantri = $this->santriBaruModel->GetDataSantriPerKelas($IdTahunAjaran, 0, null);
+            $dataSantri = $this->santriBaruModel->GetDataSantriPerKelas($IdTpq, $IdTahunAjaran, 0, null);
             // Filter berdasarkan IdTpq
             $dataSantri = array_filter($dataSantri, function ($santri) use ($IdTpq) {
                 $santriArray = is_object($santri) ? (array)$santri : $santri;
@@ -3283,7 +3283,7 @@ class Rapor extends BaseController
             });
         } else {
             // Guru/Wali Kelas: ambil santri dari kelas yang diajar
-            $dataSantri = $this->santriBaruModel->GetDataSantriPerKelas($IdTahunAjaran, 0, $IdGuru);
+            $dataSantri = $this->santriBaruModel->GetDataSantriPerKelas($IdTpq, $IdTahunAjaran, 0, $IdGuru);
             // Filter berdasarkan IdTpq
             $dataSantri = array_filter($dataSantri, function ($santri) use ($IdTpq) {
                 $santriArray = is_object($santri) ? (array)$santri : $santri;

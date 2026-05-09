@@ -236,7 +236,7 @@ class Nilai extends BaseController
         $IdGuru = session()->get('IdGuru');
         $IdKelas = session()->get('IdKelas');
         $IdTahunAjaran = session()->get('IdTahunAjaran');
-        $dataSantri = $this->DataSantriBaru->GetDataSantriPerKelas($IdTahunAjaran, $IdKelas, $IdGuru);
+        $dataSantri = $this->DataSantriBaru->GetDataSantriPerKelas($this->IdTpq, $IdTahunAjaran, $IdKelas, $IdGuru);
 
         // ambil settingan nilai minimun dan maksimal dari session
         $settingNilai = (object)[

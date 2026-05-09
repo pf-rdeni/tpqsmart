@@ -261,7 +261,8 @@ class SantriBaruModel extends Model
             t.IdTpq,
             t.NamaTpq,
             t.Alamat,
-            w.IdJabatan
+            w.IdJabatan,
+            j.NamaJabatan
         ');
 
         $builder->join('tbl_kelas k', 'ks.IdKelas = k.IdKelas', 'left');
@@ -269,6 +270,7 @@ class SantriBaruModel extends Model
         $builder->join('tbl_tpq t', 'ks.IdTpq = t.IdTpq', 'left');
         $builder->join('tbl_guru_kelas w', 'w.IdKelas = k.IdKelas AND w.IdTpq = t.IdTpq', 'left');
         $builder->join('tbl_guru g', 'w.IdGuru = g.IdGuru', 'left');
+        $builder->join('tbl_jabatan j', 'w.IdJabatan = j.IdJabatan', 'left');
 
         // Menambahkan filter Active=1
         $builder->where('s.Active', 1);
@@ -313,7 +315,8 @@ class SantriBaruModel extends Model
             's.IdSantri', 
             'ks.Id', 'ks.IdTahunAjaran', 'k.IdKelas', 'k.NamaKelas',
             's.NamaSantri', 's.JenisKelamin', 's.PhotoProfil',
-            't.IdTpq', 't.NamaTpq', 't.Alamat'
+            't.IdTpq', 't.NamaTpq', 't.Alamat',
+            'w.IdJabatan', 'j.NamaJabatan'
         ]);
 
         $builder->orderBy('k.NamaKelas', 'ASC');
