@@ -268,7 +268,7 @@ class SantriBaruModel extends Model
         $builder->join('tbl_kelas k', 'ks.IdKelas = k.IdKelas', 'left');
         $builder->join('tbl_santri_baru s', 'ks.IdSantri = s.IdSantri', 'left');
         $builder->join('tbl_tpq t', 'ks.IdTpq = t.IdTpq', 'left');
-        $builder->join('tbl_guru_kelas w', 'w.IdKelas = k.IdKelas AND w.IdTpq = t.IdTpq', 'left');
+        $builder->join('tbl_guru_kelas w', 'w.IdKelas = k.IdKelas AND w.IdTpq = t.IdTpq AND w.IdTahunAjaran = ks.IdTahunAjaran', 'left');
         $builder->join('tbl_guru g', 'w.IdGuru = g.IdGuru', 'left');
         $builder->join('tbl_jabatan j', 'w.IdJabatan = j.IdJabatan', 'left');
 
@@ -335,7 +335,7 @@ class SantriBaruModel extends Model
         $builder->join('tbl_santri_baru s', 'ks.IdSantri = s.IdSantri AND s.Active = 1', 'inner');
         $builder->join('tbl_kelas k', 'ks.IdKelas = k.IdKelas', 'inner');
         $builder->join('tbl_tpq t', 'ks.IdTpq = t.IdTpq', 'inner');
-        $builder->join('tbl_guru_kelas w', 'w.IdKelas = k.IdKelas AND w.IdTpq = t.IdTpq', 'left');
+        $builder->join('tbl_guru_kelas w', 'w.IdKelas = k.IdKelas AND w.IdTpq = t.IdTpq AND w.IdTahunAjaran = ks.IdTahunAjaran', 'left');
         $builder->join('tbl_guru g', 'w.IdGuru = g.IdGuru', 'left');
 
         $builder->where('ks.IdTpq', $IdTpq);
