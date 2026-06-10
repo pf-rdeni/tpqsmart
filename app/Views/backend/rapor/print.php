@@ -391,12 +391,10 @@ helper('nilai');
         <tr>
             <td colspan="2" style="height: 50px; text-align: center;">
                 <?php
-                // Cari signature untuk kepala sekolah berdasarkan posisi
-                // Sesuaikan dengan lembagaType: jika MDA cari 'Kepala MDTA', jika TPQ cari 'Kepala TPQ'
-                $jabatanKepala = (($lembagaType ?? 'TPQ') === 'MDA' ? 'Kepala MDTA' : 'Kepala TPQ');
+                // Cari signature untuk kepala sekolah berdasarkan posisi (Kepala TPQ/MDTA/MDA)
                 $kepsekSignature = null;
                 foreach ($signatures as $signature) {
-                    if (isset($signature['NamaJabatan']) && $signature['NamaJabatan'] === $jabatanKepala && isset($signature['QrCode']) && !empty($signature['QrCode'])) {
+                    if (isset($signature['NamaJabatan']) && in_array($signature['NamaJabatan'], ['Kepala TPQ', 'Kepala MDTA', 'Kepala MDA']) && isset($signature['QrCode']) && !empty($signature['QrCode'])) {
                         $kepsekSignature = $signature;
                         break;
                     }

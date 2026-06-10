@@ -343,7 +343,7 @@ class Dashboard extends BaseController
             try {
                 $strukturLembaga = $this->helpFunctionModel->getStrukturLembagaJabatan($idGuru, $idTpq);
                 foreach ($strukturLembaga as $jabatan) {
-                    if (isset($jabatan['NamaJabatan']) && $jabatan['NamaJabatan'] === 'Kepala TPQ') {
+                    if (isset($jabatan['NamaJabatan']) && in_array($jabatan['NamaJabatan'], ['Kepala TPQ', 'Kepala MDTA', 'Kepala MDA'])) {
                         $roles[] = 'kepala_tpq';
                         break;
                     }
@@ -601,6 +601,21 @@ class Dashboard extends BaseController
             return redirect()->to(base_url('backend/dashboard'));
         }
 
+        $idGuru = session()->get('IdGuru');
+        $idTpq = session()->get('IdTpq');
+        $labelKepala = 'Kepala TPQ';
+        if (!empty($idGuru) && !empty($idTpq)) {
+            try {
+                $strukturLembaga = $this->helpFunctionModel->getStrukturLembagaJabatan($idGuru, $idTpq);
+                foreach ($strukturLembaga as $jabatan) {
+                    if (isset($jabatan['NamaJabatan']) && in_array($jabatan['NamaJabatan'], ['Kepala MDTA', 'Kepala MDA'])) {
+                        $labelKepala = $jabatan['NamaJabatan'];
+                        break;
+                    }
+                }
+            } catch (\Throwable $e) {}
+        }
+
         $roleMap = [
             'operator' => [
                 'label' => 'Operator',
@@ -609,7 +624,7 @@ class Dashboard extends BaseController
                 'color' => 'success'
             ],
             'kepala_tpq' => [
-                'label' => 'Kepala TPQ',
+                'label' => $labelKepala,
                 'icon' => 'user-shield',
                 'description' => 'Mengawasi dan mengelola seluruh kegiatan akademik TPQ',
                 'color' => 'purple'

@@ -2911,7 +2911,7 @@ class Rapor extends BaseController
             $isKepalaSekolah = false;
             if (!empty($jabatanData)) {
                 foreach ($jabatanData as $jabatan) {
-                    if (isset($jabatan['NamaJabatan']) && $jabatan['NamaJabatan'] === 'Kepala TPQ') {
+                    if (isset($jabatan['NamaJabatan']) && in_array($jabatan['NamaJabatan'], ['Kepala TPQ', 'Kepala MDTA', 'Kepala MDA'])) {
                         $isKepalaSekolah = true;
                         break;
                     }
@@ -3161,7 +3161,7 @@ class Rapor extends BaseController
             $isKepalaSekolah = false;
             if (!empty($jabatanData)) {
                 foreach ($jabatanData as $jabatan) {
-                    if (isset($jabatan['NamaJabatan']) && $jabatan['NamaJabatan'] === 'Kepala TPQ') {
+                    if (isset($jabatan['NamaJabatan']) && in_array($jabatan['NamaJabatan'], ['Kepala TPQ', 'Kepala MDTA', 'Kepala MDA'])) {
                         $isKepalaSekolah = true;
                         break;
                     }
@@ -3264,7 +3264,7 @@ class Rapor extends BaseController
         $isKepalaSekolah = false;
         if (!empty($jabatanData)) {
             foreach ($jabatanData as $jabatan) {
-                if (isset($jabatan['NamaJabatan']) && $jabatan['NamaJabatan'] === 'Kepala TPQ') {
+                if (isset($jabatan['NamaJabatan']) && in_array($jabatan['NamaJabatan'], ['Kepala TPQ', 'Kepala MDTA', 'Kepala MDA'])) {
                     $isKepalaSekolah = true;
                     break;
                 }
@@ -3402,7 +3402,7 @@ class Rapor extends BaseController
             $isKepalaSekolah = false;
             if (!empty($jabatanData)) {
                 foreach ($jabatanData as $jabatan) {
-                    if (isset($jabatan['NamaJabatan']) && $jabatan['NamaJabatan'] === 'Kepala TPQ') {
+                    if (isset($jabatan['NamaJabatan']) && in_array($jabatan['NamaJabatan'], ['Kepala TPQ', 'Kepala MDTA', 'Kepala MDA'])) {
                         $isKepalaSekolah = true;
                         break;
                     }

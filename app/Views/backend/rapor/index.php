@@ -123,7 +123,7 @@
                                                 $jabatanDataBtn = $helpFunctionModelBtn->getStrukturLembagaJabatan($idGuruBtn, $idTpqBtn);
                                                 if (!empty($jabatanDataBtn)) {
                                                     foreach ($jabatanDataBtn as $jabatan) {
-                                                        if (isset($jabatan['NamaJabatan']) && $jabatan['NamaJabatan'] === 'Kepala TPQ') {
+                                                        if (isset($jabatan['NamaJabatan']) && in_array($jabatan['NamaJabatan'], ['Kepala TPQ', 'Kepala MDTA', 'Kepala MDA'])) {
                                                             $isKepalaSekolahBtn = true;
                                                             break;
                                                         }
