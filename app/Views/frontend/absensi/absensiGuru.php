@@ -31,7 +31,7 @@
                     <h2 class="display-5"><?= esc($kegiatan['NamaKegiatan']) ?></h2>
                     <div class="d-flex justify-content-center flex-wrap align-items-center mb-3 text-muted" style="font-size: 1.1rem; gap: 15px;">
                         <div>
-                            <i class="far fa-calendar-alt mr-1"></i> <?= date('d F Y', strtotime($kegiatan['Tanggal'])) ?>
+                            <i class="far fa-calendar-alt mr-1"></i> <?= date('d F Y', strtotime($tanggalSekarang ?? $kegiatan['Tanggal'])) ?>
                         </div>
                         <div>
                             <span class="badge badge-info" style="font-size: 100%;">
@@ -297,7 +297,7 @@
                                         <div class="row mt-3">
                                             <div class="col-6 pl-1 d-flex">
                                                 <button 
-                                                    onclick="kirimHadirLangsung('<?= $guru->Id ?>')"
+                                                    onclick="kirimHadirLangsung('<?= $guru->Id ?>', '<?= addslashes(ucwords(strtolower(esc((string)$guru->NamaGuru)))) ?>')"
                                                     class="btn btn-success btn-block h-100 d-flex flex-column align-items-center justify-content-center py-3" title="Hadir">
                                                     <i class="fas fa-check-circle fa-lg mb-1"></i>
                                                     <b>Hadir</b>
@@ -731,19 +731,36 @@
 
 
     // Function for direct "Hadir" submission
-    function kirimHadirLangsung(id) {
-        // Show loading state immediately
+    function kirimHadirLangsung(id, namaGuru) {
         Swal.fire({
-            title: 'Menyimpan...',
-            text: 'Sedang memproses kehadiran...',
-            allowOutsideClick: false,
-            didOpen: () => {
-                Swal.showLoading();
+            title: 'Konfirmasi Kehadiran',
+            html: `Anda yakin absensi <strong>Hadir</strong> atas nama:<br><br>
+                   <span style="font-size: 1.2em; font-weight: bold; color: #28a745; background: #e8f5e9; padding: 6px 16px; border-radius: 20px; display: inline-block;">
+                       ${namaGuru}
+                   </span>`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#28a745',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Ya, Lanjutkan',
+            cancelButtonText: 'Tidak'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Show loading state immediately
+                Swal.fire({
+                    title: 'Menyimpan...',
+                    text: 'Sedang memproses kehadiran...',
+                    allowOutsideClick: false,
+                    showConfirmButton: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                // Call performAbsensi directly
+                performAbsensi(id, 'Hadir');
             }
         });
-
-        // Call performAbsensi directly
-        performAbsensi(id, 'Hadir');
     }
 
     // Function for "Tidak Hadir" modal
@@ -880,6 +897,7 @@
                 title: 'Memproses...',
                 text: 'Mendapatkan lokasi...',
                 allowOutsideClick: false,
+                showConfirmButton: false,
                 didOpen: () => {
                     Swal.showLoading();
                 }

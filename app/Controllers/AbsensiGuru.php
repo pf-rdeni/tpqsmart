@@ -225,7 +225,8 @@ class AbsensiGuru extends BaseController
             'statsTpq'   => $statsTpq,   // Diserahkan ke view
             'locationData' => $locationData, // Untuk visualisasi peta
             'page_title' => 'Absensi Guru',
-            'hash_key'   => $token // Untuk link logout
+            'hash_key'   => $token, // Untuk link logout
+            'tanggalSekarang' => $occurrenceDate // Tanggal kejadian saat ini
         ];
 
         return view('frontend/absensi/absensiGuru', $data);
@@ -628,10 +629,10 @@ class AbsensiGuru extends BaseController
         // Tidak ada data, buat baru
         // Ambil daftar guru berdasarkan lingkup
         if ($lingkup == 'Umum') {
-            $guruList = $this->guruModel->findAll();
+            $guruList = $this->guruModel->where('Status', 1)->findAll();
         } else {
             // Khusus TPQ
-            $guruList = $this->guruModel->where('IdTpq', $idTpq)->findAll();
+            $guruList = $this->guruModel->where('IdTpq', $idTpq)->where('Status', 1)->findAll();
         }
         
         // Buat data absensi
