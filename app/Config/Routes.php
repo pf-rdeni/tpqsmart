@@ -640,6 +640,27 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->get('dokumentasi/guru-berkas-lampiran', 'Dokumentasi::guruBerkasLampiran');
 });
 
+// Lucky Draw Routes
+// Frontend
+$routes->get('luckydraw', 'Frontend\Luckydraw::index');
+$routes->post('luckydraw/search', 'Frontend\Luckydraw::search');
+$routes->get('luckydraw/list', 'Frontend\Luckydraw::list');
+
+// Backend
+$routes->group('backend/luckydraw', ['namespace' => 'App\Controllers\Backend\Luckydraw'], function ($routes) {
+    // Barang
+    $routes->get('barang', 'LuckydrawBarang::index');
+    $routes->post('barang/store', 'LuckydrawBarang::store');
+    $routes->post('barang/update/(:num)', 'LuckydrawBarang::update/$1');
+    $routes->get('barang/delete/(:num)', 'LuckydrawBarang::delete/$1');
+
+    // Undian / Pemenang
+    $routes->get('undian', 'LuckydrawUndian::index');
+    $routes->post('undian/store', 'LuckydrawUndian::store');
+    $routes->get('undian/verifikasi', 'LuckydrawUndian::verifikasi');
+    $routes->post('undian/serah-terima', 'LuckydrawUndian::prosesSerahTerima');
+});
+
 $routes->get('logout', 'Dashboard::logout');
 
 /*

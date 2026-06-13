@@ -42,6 +42,12 @@
                                 <strong>MyAuth</strong>
                             </button>
                         </div>
+                        <div class="dashboard-option-wrapper">
+                            <button type="button" class="btn btn-outline-secondary btn-lg btn-block h-100 dashboard-option" data-dashboard="luckydraw">
+                                <i class="fas fa-gift fa-3x mb-2"></i><br>
+                                <strong>Lucky Draw</strong>
+                            </button>
+                        </div>
                     <?php endif; ?>
                 </div>
             </div>
@@ -236,6 +242,7 @@
                 'perlombaan': 'Perlombaan',
                 'munaqosah': 'Munaqosah',
                 'sertifikasi': 'Sertifikasi',
+                'luckydraw': 'Lucky Draw',
                 'myauth': 'MyAuth'
             };
             const currentLabel = labelMap[selectedDashboard] || 'Dashboard';
@@ -297,6 +304,10 @@
             }
             if (dashboardParam === 'sertifikasi' && isAdmin) {
                 window.location.href = '<?= base_url("backend/sertifikasi/dashboard-admin") ?>';
+                return;
+            }
+            if (dashboardParam === 'luckydraw' && isAdmin) {
+                window.location.href = '<?= base_url("backend/luckydraw/barang") ?>';
                 return;
             }
             if (dashboardParam === 'myauth' && isAdmin) {
@@ -368,6 +379,10 @@
                     }
                     if (selectedDashboard === 'sertifikasi' && isAdmin) {
                         window.location.href = '<?= base_url("backend/sertifikasi/dashboard-admin") ?>';
+                        return;
+                    }
+                    if (selectedDashboard === 'luckydraw' && isAdmin) {
+                        window.location.href = '<?= base_url("backend/luckydraw/barang") ?>';
                         return;
                     }
                     if (selectedDashboard === 'myauth' && isAdmin) {
@@ -479,6 +494,9 @@
                 case 'sertifikasi':
                     // Redirect melalui query parameter untuk server-side redirect yang lebih cepat
                     url = '<?= base_url("/") ?>?dashboard=sertifikasi';
+                    break;
+                case 'luckydraw':
+                    url = '<?= base_url("/") ?>?dashboard=luckydraw';
                     break;
                 case 'myauth':
                     // Redirect langsung ke MyAuth dashboard

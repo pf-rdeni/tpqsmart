@@ -101,6 +101,8 @@ class Filters extends BaseFilters
                     'presensi',            // Absensi Guru (Public)
                     'presensi/*',          // Absensi Guru Actions (Public)
                     'absensi/haskey/*',    // Public Absensi Link
+                    'luckydraw',           // Lucky Draw Public View
+                    'luckydraw/*',         // Lucky Draw Public View
                 ]
             ],
         ],

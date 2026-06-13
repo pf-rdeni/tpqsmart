@@ -644,6 +644,44 @@
                 <?php endif; ?>
                 <!-- End Menu Perlombaan -->
 
+                <!-- Start Menu Lucky Draw -->
+                <?php if (in_groups('Admin') || in_groups('Panitia')): ?>
+                    <li class="nav-item no-hover">
+                        <a href="#" class="nav-link">
+                            <i class="nav-icon fas fa-gift"></i>
+                            <p>
+                                Lucky Draw
+                                <i class="right fas fa-angle-left"></i>
+                            </p>
+                        </a>
+                        <ul class="nav nav-treeview" style="display: none;">
+                            <?php if (in_groups('Admin')): ?>
+                                <li class="nav-item">
+                                    <a href="<?php echo base_url('backend/luckydraw/barang') ?>" class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Data Barang Undian</p>
+                                    </a>
+                                </li>
+                            <?php endif; ?>
+                            <?php if (in_groups('Panitia') || in_groups('Admin')): ?>
+                                <li class="nav-item">
+                                    <a href="<?php echo base_url('backend/luckydraw/undian') ?>" class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Input Pemenang</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="<?php echo base_url('backend/luckydraw/undian/verifikasi') ?>" class="nav-link">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Verifikasi Serah Terima</p>
+                                    </a>
+                                </li>
+                            <?php endif; ?>
+                        </ul>
+                    </li>
+                <?php endif; ?>
+                <!-- End Menu Lucky Draw -->
+
                 <!-- Start Menu Kelembagaan, Data Guru, Data Santri, Raport, Extra -->
                 <?php if ((in_groups('Admin') && !$isMyAuthPage && !$isSertifikasiPage && !$isMunaqosahPage && !$isPerlombaanPage) || $isActiveOperator || $isActiveKepalaTpq): ?>
                     <!--  Kelembagaan -->
