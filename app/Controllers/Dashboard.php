@@ -517,9 +517,19 @@ class Dashboard extends BaseController
             return redirect()->to(base_url('backend/perlombaan/dashboardLombaJuri') . $queryString);
         }
 
-        // Cek jika user adalah panitiaLomba, rediaect ke dashboard panitia lomba
-        if(in_groups('PanitiaLomba')) {
+        // Cek jika user adalah panitiaLomba, redirect ke dashboard panitia lomba
+        if (in_groups('PanitiaLomba')) {
             return redirect()->to(base_url('backend/perlombaan/dashboardLombaPanitia') . $queryString);
+        }
+
+        // Cek jika user adalah PanitiaUndianPemenang (Lucky Draw), redirect ke dashboard input pemenang
+        if (in_groups('PanitiaUndianPemenang')) {
+            return redirect()->to(base_url('backend/luckydraw/dashboard/pemenang') . $queryString);
+        }
+
+        // Cek jika user adalah PanitiaUndianVerifikasi (Lucky Draw), redirect ke dashboard verifikasi
+        if (in_groups('PanitiaUndianVerifikasi')) {
+            return redirect()->to(base_url('backend/luckydraw/dashboard/verifikasi') . $queryString);
         }
         
         // Untuk Admin dan Operator, cek query parameter dashboard untuk redirect server-side
@@ -533,6 +543,9 @@ class Dashboard extends BaseController
             }
             if ($dashboardParam === 'myauth' && in_groups('Admin')) {
                 return redirect()->to(base_url('backend/auth') . $queryString);
+            }
+            if ($dashboardParam === 'luckydraw' && in_groups('Admin')) {
+                return redirect()->to(base_url('backend/luckydraw/barang') . $queryString);
             }
         }
 

@@ -659,6 +659,11 @@ $routes->group('backend/luckydraw', ['namespace' => 'App\Controllers\Backend\Luc
     $routes->post('undian/store', 'LuckydrawUndian::store');
     $routes->get('undian/verifikasi', 'LuckydrawUndian::verifikasi');
     $routes->post('undian/serah-terima', 'LuckydrawUndian::prosesSerahTerima');
+    $routes->get('undian/semua', 'LuckydrawUndian::semuaPemenang');
+
+    // Dashboard Panitia Lucky Draw
+    $routes->get('dashboard/pemenang', 'LuckydrawUndian::dashboardPemenang');
+    $routes->get('dashboard/verifikasi', 'LuckydrawUndian::dashboardVerifikasi');
 });
 
 $routes->get('logout', 'Dashboard::logout');

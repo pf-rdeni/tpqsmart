@@ -212,13 +212,15 @@
         const isPanitia = <?= in_groups('Panitia') ? 'true' : 'false' ?>;
         const isJuriSertifikasi = <?= in_groups('JuriSertifikasi') ? 'true' : 'false' ?>;
         const isPanitiaSertifikasi = <?= in_groups('PanitiaSertifikasi') ? 'true' : 'false' ?>;
+        const isPanitiaUndianPemenang = <?= in_groups('PanitiaUndianPemenang') ? 'true' : 'false' ?>;
+        const isPanitiaUndianVerifikasi = <?= in_groups('PanitiaUndianVerifikasi') ? 'true' : 'false' ?>;
 
         // Jika bukan Admin atau Operator, atau sudah dihandle khusus, skip modal
         if (!isAdmin && !isOperator) {
             return;
         }
 
-        if (isJuri || isPanitia || isJuriSertifikasi || isPanitiaSertifikasi) {
+        if (isJuri || isPanitia || isJuriSertifikasi || isPanitiaSertifikasi || isPanitiaUndianPemenang || isPanitiaUndianVerifikasi) {
             return;
         }
 

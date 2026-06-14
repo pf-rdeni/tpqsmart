@@ -78,6 +78,10 @@
                     <a href=<?php echo base_url('backend/munaqosah/input-nilai-juri') ?> class="d-block"><?= user()->username; ?></a>
                 <?php elseif (in_groups('Panitia')): ?>
                     <a href=<?php echo base_url('backend/munaqosah/dashboard-munaqosah') ?> class="d-block"><?= user()->username; ?></a>
+                <?php elseif (in_groups('PanitiaUndianPemenang')): ?>
+                    <a href=<?php echo base_url('backend/luckydraw/dashboard/pemenang') ?> class="d-block"><?= user()->username; ?></a>
+                <?php elseif (in_groups('PanitiaUndianVerifikasi')): ?>
+                    <a href=<?php echo base_url('backend/luckydraw/dashboard/verifikasi') ?> class="d-block"><?= user()->username; ?></a>
                 <?php else: ?>
                     <a href=<?php echo base_url('backend/pages/profil') ?> class="d-block"><?= user()->fullname; ?></a>
                 <?php endif; ?>
@@ -118,6 +122,15 @@
             strpos($uriString, 'sertifikasi') !== false ||
             strpos($currentUri->getPath(), 'sertifikasi') !== false ||
             $dashboardParam === 'sertifikasi'
+        );
+
+        // Cek apakah sedang di halaman Lucky Draw
+        $isLuckydrawPage = (
+            strpos($uriString, 'luckydraw') !== false ||
+            strpos($currentUri->getPath(), 'luckydraw') !== false ||
+            $dashboardParam === 'luckydraw' ||
+            in_groups('PanitiaUndianPemenang') ||
+            in_groups('PanitiaUndianVerifikasi')
         );
 
         // Cek apakah user memiliki peran operator
@@ -192,6 +205,14 @@
                         $dashboardUrl = base_url('backend/sertifikasi/dashboard-admin');
                     } elseif ($isMyAuthPage) {
                         $dashboardUrl = base_url('backend/auth');
+                    } elseif ($isLuckydrawPage) {
+                        if (in_groups('PanitiaUndianPemenang')) {
+                            $dashboardUrl = base_url('backend/luckydraw/dashboard/pemenang');
+                        } elseif (in_groups('PanitiaUndianVerifikasi')) {
+                            $dashboardUrl = base_url('backend/luckydraw/dashboard/verifikasi');
+                        } else {
+                            $dashboardUrl = base_url('backend/luckydraw/barang');
+                        }
                     }
                     ?>
                     <a href="<?php echo $dashboardUrl ?>" class="nav-link">
@@ -200,7 +221,7 @@
                     </a>
                 </li>
                 <!-- Jadwal Sholat & Al-Qur'an -->
-                <?php if (in_groups('Admin') && !$isMyAuthPage && !$isSertifikasiPage && !$isMunaqosahPage && !$isPerlombaanPage): ?>
+                <?php if (in_groups('Admin') && !$isMyAuthPage && !$isSertifikasiPage && !$isMunaqosahPage && !$isPerlombaanPage && !$isLuckydrawPage): ?>
                     <li class="nav-item no-hover">
                         <a href="#" class="nav-link">
                             <i class="nav-icon fas fa-mosque"></i>
@@ -644,46 +665,10 @@
                 <?php endif; ?>
                 <!-- End Menu Perlombaan -->
 
-                <!-- Start Menu Lucky Draw -->
-                <?php if (in_groups('Admin') || in_groups('Panitia')): ?>
-                    <li class="nav-item no-hover">
-                        <a href="#" class="nav-link">
-                            <i class="nav-icon fas fa-gift"></i>
-                            <p>
-                                Lucky Draw
-                                <i class="right fas fa-angle-left"></i>
-                            </p>
-                        </a>
-                        <ul class="nav nav-treeview" style="display: none;">
-                            <?php if (in_groups('Admin')): ?>
-                                <li class="nav-item">
-                                    <a href="<?php echo base_url('backend/luckydraw/barang') ?>" class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
-                                        <p>Data Barang Undian</p>
-                                    </a>
-                                </li>
-                            <?php endif; ?>
-                            <?php if (in_groups('Panitia') || in_groups('Admin')): ?>
-                                <li class="nav-item">
-                                    <a href="<?php echo base_url('backend/luckydraw/undian') ?>" class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
-                                        <p>Input Pemenang</p>
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a href="<?php echo base_url('backend/luckydraw/undian/verifikasi') ?>" class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
-                                        <p>Verifikasi Serah Terima</p>
-                                    </a>
-                                </li>
-                            <?php endif; ?>
-                        </ul>
-                    </li>
-                <?php endif; ?>
-                <!-- End Menu Lucky Draw -->
+
 
                 <!-- Start Menu Kelembagaan, Data Guru, Data Santri, Raport, Extra -->
-                <?php if ((in_groups('Admin') && !$isMyAuthPage && !$isSertifikasiPage && !$isMunaqosahPage && !$isPerlombaanPage) || $isActiveOperator || $isActiveKepalaTpq): ?>
+                <?php if ((in_groups('Admin') && !$isMyAuthPage && !$isSertifikasiPage && !$isMunaqosahPage && !$isPerlombaanPage && !$isLuckydrawPage) || $isActiveOperator || $isActiveKepalaTpq): ?>
                     <!--  Kelembagaan -->
                     <li class="nav-item">
                         <a href="#" class="nav-link">
@@ -1252,7 +1237,7 @@
                 <!-- End Menu MyAuth -->
 
                 <!-- Start Menu Setting -->
-                <?php if ((in_groups('Admin') && !$isMyAuthPage && !$isSertifikasiPage && !$isMunaqosahPage && !$isPerlombaanPage) || $isActiveOperator): ?>
+                <?php if ((in_groups('Admin') && !$isMyAuthPage && !$isSertifikasiPage && !$isMunaqosahPage && !$isPerlombaanPage && !$isLuckydrawPage) || $isActiveOperator): ?>
                     <!--  General Setting -->
                     <li class="nav-item">
                         <a href="#" class="nav-link">
@@ -1690,7 +1675,63 @@
                 <?php endif; ?>
                 <!-- End Santri -->
 
+                <!-- Start Menu Lucky Draw -->
+                <?php
+                // Tampilkan menu Lucky Draw:
+                // - Selalu untuk PanitiaUndianPemenang & PanitiaUndianVerifikasi
+                // - Untuk Admin hanya saat berada di halaman luckydraw
+                $showLuckydrawMenu = in_groups('PanitiaUndianPemenang')
+                                  || in_groups('PanitiaUndianVerifikasi')
+                                  || ($isLuckydrawPage && in_groups('Admin'));
+                ?>
+                <?php if ($showLuckydrawMenu): ?>
+                    <li class="nav-item no-hover">
+                        <a href="#" class="nav-link">
+                            <i class="nav-icon fas fa-gift"></i>
+                            <p>
+                                Lucky Draw
+                                <i class="right fas fa-angle-left"></i>
+                            </p>
+                        </a>
+                        <ul class="nav nav-treeview" style="display: none;">
+                            <?php if (in_groups('PanitiaUndianPemenang') || in_groups('Admin')): ?>
+                                <li class="nav-item">
+                                    <a href="<?= base_url('backend/luckydraw/undian') ?>" class="nav-link">
+                                        <i class="fas fa-trophy nav-icon text-warning"></i>
+                                        <p>Input Pemenang</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="<?= base_url('backend/luckydraw/barang') ?>" class="nav-link">
+                                        <i class="fas fa-gift nav-icon text-warning"></i>
+                                        <p>Data Barang Hadiah</p>
+                                    </a>
+                                </li>
+                            <?php endif; ?>
+                            <?php if (in_groups('PanitiaUndianVerifikasi') || in_groups('Admin')): ?>
+                                <li class="nav-item">
+                                    <a href="<?= base_url('backend/luckydraw/undian/verifikasi') ?>" class="nav-link">
+                                        <i class="fas fa-check-double nav-icon text-warning"></i>
+                                        <p>Verifikasi Serah Terima</p>
+                                    </a>
+                                </li>
+                            <?php endif; ?>
+                            <?php if (in_groups('PanitiaUndianPemenang') || in_groups('PanitiaUndianVerifikasi') || in_groups('Admin')): ?>
+                                <li class="nav-item">
+                                    <a href="<?= base_url('backend/luckydraw/undian/semua') ?>" class="nav-link">
+                                        <i class="fas fa-history nav-icon text-warning"></i>
+                                        <p>Semua Pemenang</p>
+                                    </a>
+                                </li>
+                            <?php endif; ?>
+                        </ul>
+                    </li>
+                <?php endif; ?>
+                <!-- End Menu Lucky Draw -->
+
+
                 <!-- Logout -->
+
                 <li class="nav-item">
                     <a href=<?php echo base_url('logout') ?> class="nav-link">
                         <i class="nav-icon fas fa-sign-out-alt"></i>

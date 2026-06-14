@@ -20,11 +20,16 @@ class LuckydrawUndianModel extends Model
         'created_at'
     ];
 
-    public function getPemenangList()
+    public function getPemenangList($status = null)
     {
-        return $this->select('tbl_luckydraw_undian.*, tbl_luckydraw_barang.nama_barang, tbl_luckydraw_barang.no_barang, tbl_luckydraw_barang.kategori')
-                    ->join('tbl_luckydraw_barang', 'tbl_luckydraw_barang.id = tbl_luckydraw_undian.id_barang')
-                    ->orderBy('tbl_luckydraw_undian.created_at', 'DESC')
-                    ->findAll();
+        $builder = $this->select('tbl_luckydraw_undian.*, tbl_luckydraw_barang.nama_barang, tbl_luckydraw_barang.no_barang, tbl_luckydraw_barang.kategori')
+                        ->join('tbl_luckydraw_barang', 'tbl_luckydraw_barang.id = tbl_luckydraw_undian.id_barang')
+                        ->orderBy('tbl_luckydraw_undian.created_at', 'DESC');
+
+        if ($status !== null) {
+            $builder->where('tbl_luckydraw_undian.status_diambil', $status);
+        }
+
+        return $builder->findAll();
     }
 }
