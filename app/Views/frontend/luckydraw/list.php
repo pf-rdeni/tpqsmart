@@ -40,7 +40,7 @@
                                             </td>
                                             <td class="py-3 px-4 align-middle">
                                                 <div class="font-weight-bold text-dark"><?= $p->nama_barang ?></div>
-                                                <small class="text-muted">No. Barang: <?= $p->no_barang ?></small>
+                                                <small class="text-muted">Kategori: <?= $p->kategori ?></small>
                                             </td>
                                             <td class="text-center py-3 px-4 align-middle">
                                                 <?php if($p->status_diambil == 1): ?>
