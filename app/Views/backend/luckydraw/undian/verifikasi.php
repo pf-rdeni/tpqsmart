@@ -66,8 +66,8 @@
                                             </span>
                                         </td>
                                         <td class="py-3 px-4 align-middle">
-                                            <div class="font-weight-bold text-dark"><?= $p->nama_barang ?></div>
-                                            <small class="text-muted">No. Barang: <?= $p->no_barang ?></small>
+                                            <div class="font-weight-bold text-dark"><?= esc($p->nama_barang) ?></div>
+                                            <small class="text-muted">Kategori: <?= esc($p->kategori) ?></small>
                                         </td>
                                         <td class="text-center py-3 px-4 align-middle">
                                             <?php if($p->status_diambil == 1): ?>
@@ -130,7 +130,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="alert alert-info border-info text-center shadow-sm">
                         <h4 class="alert-heading font-weight-bold mb-3"><i class="fas fa-info-circle mr-2"></i>Data Ditemukan</h4>
                         <p class="mb-1">Nomor undian <strong>${p.no_undian}</strong> mendapatkan hadiah:</p>
-                        <h5 class="font-weight-bold text-dark my-3 p-3 bg-white rounded border">${p.nama_barang} <br><small class="text-muted">(No. Barang: ${p.no_barang})</small></h5>
+                        <h5 class="font-weight-bold text-dark my-3 p-3 bg-white rounded border">${p.nama_barang} <br><small class="text-muted">(Kategori: ${p.kategori})</small></h5>
                 `;
                 
                 if(isTaken) {

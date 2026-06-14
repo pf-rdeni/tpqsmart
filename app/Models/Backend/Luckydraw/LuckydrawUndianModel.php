@@ -16,13 +16,15 @@ class LuckydrawUndianModel extends Model
         'id_barang',
         'no_undian',
         'status_diambil',
-        'waktu_diambil'
+        'waktu_diambil',
+        'created_at'
     ];
 
     public function getPemenangList()
     {
-        return $this->select('tbl_luckydraw_undian.*, tbl_luckydraw_barang.nama_barang, tbl_luckydraw_barang.no_barang')
+        return $this->select('tbl_luckydraw_undian.*, tbl_luckydraw_barang.nama_barang, tbl_luckydraw_barang.no_barang, tbl_luckydraw_barang.kategori')
                     ->join('tbl_luckydraw_barang', 'tbl_luckydraw_barang.id = tbl_luckydraw_undian.id_barang')
+                    ->orderBy('tbl_luckydraw_undian.created_at', 'DESC')
                     ->findAll();
     }
 }

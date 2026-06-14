@@ -28,7 +28,7 @@ class Luckydraw extends BaseController
         $no_undian = $this->request->getPost('no_undian');
         
         // Find if this number won
-        $pemenang = $this->undianModel->select('tbl_luckydraw_undian.*, tbl_luckydraw_barang.nama_barang, tbl_luckydraw_barang.no_barang')
+        $pemenang = $this->undianModel->select('tbl_luckydraw_undian.*, tbl_luckydraw_barang.nama_barang, tbl_luckydraw_barang.no_barang, tbl_luckydraw_barang.kategori')
                                       ->join('tbl_luckydraw_barang', 'tbl_luckydraw_barang.id = tbl_luckydraw_undian.id_barang')
                                       ->where('no_undian', $no_undian)
                                       ->first();

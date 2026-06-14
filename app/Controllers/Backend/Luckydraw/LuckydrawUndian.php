@@ -21,8 +21,9 @@ class LuckydrawUndian extends BaseController
     {
         $data = [
             'page_title' => 'Input Pemenang Lucky Draw',
-            'barang' => $this->barangModel->findAll(),
-            'pemenang' => $this->undianModel->getPemenangList()
+            'barang' => $this->barangModel->getBarangWithSisa(),
+            'pemenang' => $this->undianModel->getPemenangList(),
+            'last_selected_id_barang' => session()->get('last_selected_id_barang')
         ];
         return view('backend/luckydraw/undian/input', $data);
     }
@@ -31,21 +32,56 @@ class LuckydrawUndian extends BaseController
     {
         $id_barang = $this->request->getPost('id_barang');
         $no_undian = $this->request->getPost('no_undian');
+        $isAjax = $this->request->isAJAX();
+
+        // Store the selection in session so it persists after redirect
+        session()->set('last_selected_id_barang', $id_barang);
+
+        // Validate if item exists
+        $barang = $this->barangModel->find($id_barang);
+        if (!$barang) {
+            $msg = 'Barang tidak ditemukan.';
+            if ($isAjax) {
+                return $this->response->setJSON(['status' => 'error', 'message' => $msg]);
+            }
+            session()->setFlashdata('pesan', '<div class="alert alert-danger">' . $msg . '</div>');
+            return redirect()->to('/backend/luckydraw/undian');
+        }
+
+        // Validate remaining stock
+        $winnerCount = $this->undianModel->where('id_barang', $id_barang)->countAllResults();
+        if ($winnerCount >= $barang->jumlah) {
+            $msg = 'Gagal! Stok barang hadiah "' . esc($barang->nama_barang) . '" sudah terisi penuh / habis.';
+            if ($isAjax) {
+                return $this->response->setJSON(['status' => 'error', 'message' => $msg]);
+            }
+            session()->setFlashdata('pesan', '<div class="alert alert-danger">' . $msg . '</div>');
+            return redirect()->to('/backend/luckydraw/undian');
+        }
 
         // Check if number already exists
         $exist = $this->undianModel->where('no_undian', $no_undian)->first();
         if ($exist) {
-            session()->setFlashdata('pesan', '<div class="alert alert-danger">Nomor undian tersebut sudah terdaftar sebagai pemenang.</div>');
+            $msg = 'Nomor undian tersebut sudah terdaftar sebagai pemenang.';
+            if ($isAjax) {
+                return $this->response->setJSON(['status' => 'error', 'message' => $msg]);
+            }
+            session()->setFlashdata('pesan', '<div class="alert alert-danger">' . $msg . '</div>');
             return redirect()->to('/backend/luckydraw/undian');
         }
 
         $this->undianModel->save([
             'id_barang' => $id_barang,
             'no_undian' => $no_undian,
-            'status_diambil' => 0
+            'status_diambil' => 0,
+            'created_at' => date('Y-m-d H:i:s')
         ]);
 
-        session()->setFlashdata('pesan', '<div class="alert alert-success">Pemenang berhasil ditambahkan.</div>');
+        $msg = 'Pemenang berhasil ditambahkan.';
+        if ($isAjax) {
+            return $this->response->setJSON(['status' => 'success', 'message' => $msg]);
+        }
+        session()->setFlashdata('pesan', '<div class="alert alert-success">' . $msg . '</div>');
         return redirect()->to('/backend/luckydraw/undian');
     }
 

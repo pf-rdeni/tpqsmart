@@ -31,4 +31,13 @@ class LuckydrawBarangModel extends Model
         return $this->select('tbl_luckydraw_barang.*, (tbl_luckydraw_barang.jumlah - (SELECT COUNT(id) FROM tbl_luckydraw_undian WHERE id_barang = tbl_luckydraw_barang.id)) as sisa')
                     ->findAll();
     }
+
+    public function getNextNoBarang()
+    {
+        $last = $this->orderBy('id', 'DESC')->first();
+        if ($last && is_numeric($last->no_barang)) {
+            return (int)$last->no_barang + 1;
+        }
+        return 1;
+    }
 }
