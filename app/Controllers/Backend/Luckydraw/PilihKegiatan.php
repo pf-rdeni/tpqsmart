@@ -26,7 +26,14 @@ class PilihKegiatan extends BaseController
         if (count($kegiatan) === 1) {
             session()->set('active_id_kegiatan', $kegiatan[0]->id);
             session()->set('active_nama_kegiatan', $kegiatan[0]->nama_kegiatan);
-            return redirect()->to('backend/luckydraw/dashboard/pemenang'); // Or fallback
+            // Redirect based on role
+            if ($isAdmin) {
+                return redirect()->to('backend/luckydraw/barang');
+            } elseif (in_groups('PanitiaUndianPemenang')) {
+                return redirect()->to('backend/luckydraw/undian');
+            } else {
+                return redirect()->to('backend/luckydraw/undian/verifikasi');
+            }
         }
 
         $data = [
@@ -47,6 +54,13 @@ class PilihKegiatan extends BaseController
             session()->set('active_nama_kegiatan', $kegiatan->nama_kegiatan);
         }
 
-        return redirect()->to('backend/luckydraw/dashboard/pemenang');
+        // Redirect based on role
+        if (in_groups('Admin')) {
+            return redirect()->to('backend/luckydraw/barang');
+        } elseif (in_groups('PanitiaUndianPemenang')) {
+            return redirect()->to('backend/luckydraw/undian');
+        } else {
+            return redirect()->to('backend/luckydraw/undian/verifikasi');
+        }
     }
 }
