@@ -364,6 +364,7 @@
                     !currentUrl.includes('perlombaan') &&
                     !currentUrl.includes('munaqosah') &&
                     !currentUrl.includes('sertifikasi') &&
+                    !currentUrl.includes('luckydraw') &&
                     !currentUrl.includes('auth'));
 
             // Jika user berada di dashboard default dan pilihan bukan semester,
