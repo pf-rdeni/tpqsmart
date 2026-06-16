@@ -22,8 +22,8 @@ class PilihKegiatan extends BaseController
             $kegiatan = $userKegiatanModel->getKegiatanByUser($userId);
         }
 
-        // If only 1 kegiatan available, auto select it
-        if (count($kegiatan) === 1) {
+        // If only 1 kegiatan available and user hasn't selected anything yet, auto select it
+        if (count($kegiatan) === 1 && !session()->has('active_id_kegiatan')) {
             session()->set('active_id_kegiatan', $kegiatan[0]->id);
             session()->set('active_nama_kegiatan', $kegiatan[0]->nama_kegiatan);
             // Redirect based on role
