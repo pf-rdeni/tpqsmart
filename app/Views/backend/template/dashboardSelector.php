@@ -309,7 +309,7 @@
                 return;
             }
             if (dashboardParam === 'luckydraw' && isAdmin) {
-                window.location.href = '<?= base_url("backend/luckydraw/barang") ?>';
+                window.location.href = '<?= base_url("backend/luckydraw/pilih") ?>';
                 return;
             }
             if (dashboardParam === 'myauth' && isAdmin) {
@@ -384,7 +384,7 @@
                         return;
                     }
                     if (selectedDashboard === 'luckydraw' && isAdmin) {
-                        window.location.href = '<?= base_url("backend/luckydraw/barang") ?>';
+                        window.location.href = '<?= base_url("backend/luckydraw/pilih") ?>';
                         return;
                     }
                     if (selectedDashboard === 'myauth' && isAdmin) {

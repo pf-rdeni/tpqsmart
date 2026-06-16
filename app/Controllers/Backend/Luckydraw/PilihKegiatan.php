@@ -28,7 +28,7 @@ class PilihKegiatan extends BaseController
             session()->set('active_nama_kegiatan', $kegiatan[0]->nama_kegiatan);
             // Redirect based on role
             if ($isAdmin) {
-                return redirect()->to('backend/luckydraw/barang');
+                return redirect()->to('backend/luckydraw/dashboard/admin');
             } elseif (in_groups('PanitiaUndianPemenang')) {
                 return redirect()->to('backend/luckydraw/undian');
             } else {
@@ -56,7 +56,7 @@ class PilihKegiatan extends BaseController
 
         // Redirect based on role
         if (in_groups('Admin')) {
-            return redirect()->to('backend/luckydraw/barang');
+            return redirect()->to('backend/luckydraw/dashboard/admin');
         } elseif (in_groups('PanitiaUndianPemenang')) {
             return redirect()->to('backend/luckydraw/undian');
         } else {

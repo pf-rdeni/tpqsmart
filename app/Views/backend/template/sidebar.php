@@ -211,7 +211,7 @@
                         } elseif (in_groups('PanitiaUndianVerifikasi')) {
                             $dashboardUrl = base_url('backend/luckydraw/dashboard/verifikasi');
                         } else {
-                            $dashboardUrl = base_url('backend/luckydraw/barang');
+                            $dashboardUrl = base_url('backend/luckydraw/dashboard/admin');
                         }
                     }
                     ?>

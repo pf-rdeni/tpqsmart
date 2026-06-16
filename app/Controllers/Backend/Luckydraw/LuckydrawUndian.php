@@ -200,13 +200,51 @@ class LuckydrawUndian extends BaseController
     }
 
     // ----------------------------------------------------------------
+    // Dashboard Admin Lucky Draw
+    // ----------------------------------------------------------------
+    public function dashboardAdmin()
+    {
+        $idKegiatan = session('active_id_kegiatan');
+
+        $barang       = $this->barangModel->getBarangWithSisa($idKegiatan);
+        $pemenang     = $this->undianModel->getPemenangList(null, $idKegiatan);
+
+        $totalBarang       = count($barang);
+        $totalSlotBarang   = array_sum(array_column((array) $barang, 'jumlah'));
+        $totalPemenang     = count($pemenang);
+        $totalSudahDiambil = count(array_filter((array) $pemenang, fn($p) => $p->status_diambil == 1));
+        $totalBelumDiambil = $totalPemenang - $totalSudahDiambil;
+        $totalSisaSlot     = $totalSlotBarang - $totalPemenang;
+
+        $kegiatanModel = new \App\Models\Backend\Luckydraw\LuckydrawKegiatanModel();
+        $kegiatan      = $kegiatanModel->find($idKegiatan);
+
+        $recentPemenang = array_slice((array) $pemenang, 0, 5);
+
+        $data = [
+            'page_title'        => 'Dashboard Lucky Draw',
+            'kegiatan'          => $kegiatan,
+            'barang'            => $barang,
+            'recentPemenang'    => $recentPemenang,
+            'totalBarang'       => $totalBarang,
+            'totalSlotBarang'   => $totalSlotBarang,
+            'totalPemenang'     => $totalPemenang,
+            'totalSudahDiambil' => $totalSudahDiambil,
+            'totalBelumDiambil' => $totalBelumDiambil,
+            'totalSisaSlot'     => $totalSisaSlot,
+        ];
+
+        return view('backend/luckydraw/dashboard/admin', $data);
+    }
+
+    // ----------------------------------------------------------------
     // Semua Pemenang (Belum & Sudah Diambil)
     // ----------------------------------------------------------------
     public function semuaPemenang()
     {
         $data = [
             'page_title' => 'Semua Pemenang Lucky Draw',
-            'pemenang'   => $this->undianModel->getPemenangList(null, session('active_id_kegiatan')) // Semua status
+            'pemenang'   => $this->undianModel->getPemenangList(null, session('active_id_kegiatan'))
         ];
         return view('backend/luckydraw/undian/semua', $data);
     }
