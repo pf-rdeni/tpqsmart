@@ -225,6 +225,7 @@ class LuckydrawUndian extends BaseController
             'page_title'        => 'Dashboard Lucky Draw',
             'kegiatan'          => $kegiatan,
             'barang'            => $barang,
+            'pemenang'          => $pemenang,
             'recentPemenang'    => $recentPemenang,
             'totalBarang'       => $totalBarang,
             'totalSlotBarang'   => $totalSlotBarang,

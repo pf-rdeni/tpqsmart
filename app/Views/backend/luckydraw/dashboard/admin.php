@@ -252,6 +252,66 @@
         </a>
     </div>
 
+    <?php
+    $summary = [];
+    foreach ((array) $pemenang as $p) {
+        $key = $p->kategori . ' - ' . $p->nama_barang;
+        if (!isset($summary[$key])) {
+            $summary[$key] = ['diambil' => 0, 'belum' => 0];
+        }
+        if ($p->status_diambil == 1) {
+            $summary[$key]['diambil']++;
+        } else {
+            $summary[$key]['belum']++;
+        }
+    }
+    ?>
+
+    <?php if(!empty($summary)): ?>
+    <div class="ld-panel">
+        <div class="ld-section-title">
+            <i class="fas fa-chart-pie" style="color:#10b981;"></i> Ringkasan Pemenang per Hadiah
+        </div>
+        <div style="overflow-x:auto;">
+            <table class="ld-table" style="text-align:center;">
+                <thead>
+                    <tr>
+                        <th style="text-align:left;">Kategori - Nama Barang</th>
+                        <th style="text-align:center;"><i class="fas fa-check-circle" style="color:#10b981;"></i> Sudah Diambil</th>
+                        <th style="text-align:center;"><i class="fas fa-clock" style="color:#f59e0b;"></i> Belum Diambil</th>
+                        <th style="text-align:center;">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php 
+                    $totalDiambil = 0; $totalBelum = 0; $totalSemua = 0;
+                    foreach($summary as $kategori => $stat): 
+                        $totalDiambil += $stat['diambil'];
+                        $totalBelum += $stat['belum'];
+                        $totalRow = $stat['diambil'] + $stat['belum'];
+                        $totalSemua += $totalRow;
+                    ?>
+                    <tr>
+                        <td style="text-align:left; font-weight:600; color:#fff;"><?= esc($kategori) ?></td>
+                        <td><span class="status-taken" style="font-size:0.85rem;"><?= $stat['diambil'] ?></span></td>
+                        <td><span class="status-pending" style="font-size:0.85rem;"><?= $stat['belum'] ?></span></td>
+                        <td><span class="no-undian-badge" style="background:rgba(255,255,255,0.1); color:#fff;"><?= $totalRow ?></span></td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+                <tfoot style="border-top:1px solid rgba(255,255,255,0.1); font-weight:700;">
+                    <tr>
+                        <td style="text-align:right; padding:15px 12px;">TOTAL</td>
+                        <td style="color:#10b981; font-size:1.1rem;"><?= $totalDiambil ?></td>
+                        <td style="color:#f59e0b; font-size:1.1rem;"><?= $totalBelum ?></td>
+                        <td style="color:#fff; font-size:1.1rem;"><?= $totalSemua ?></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+    <?php endif; ?>
+
     <!-- Content Grid: Barang & Pemenang Terbaru -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;" class="ld-content-grid">
 
