@@ -138,7 +138,7 @@
 
         // Untuk Operator: menu default (Kelembagaan, Guru, Santri, dll) dan menu Munaqosah selalu muncul bersamaan
         // Dashboard utama adalah Default, tapi menu Munaqosah juga tersedia di sidebar
-        $isActiveOperator = $hasOperatorRole && !$isMyAuthPage && !$isSertifikasiPage;
+        $isActiveOperator = $hasOperatorRole && !$isMyAuthPage && !$isSertifikasiPage && !$isLuckydrawPage;
 
         // Cek apakah user memiliki peran guru (dari active_role atau available_roles)
         // Peran guru bisa dari: 'guru', 'wali_kelas', atau 'kepala_tpq' (kepala TPQ juga memiliki akses menu guru)
@@ -1694,6 +1694,20 @@
                             </p>
                         </a>
                         <ul class="nav nav-treeview" style="display: none;">
+                            <?php if (in_groups('Admin')): ?>
+                                <li class="nav-item">
+                                    <a href="<?= base_url('backend/luckydraw/kegiatan') ?>" class="nav-link">
+                                        <i class="fas fa-calendar-alt nav-icon text-warning"></i>
+                                        <p>Manajemen Kegiatan</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="<?= base_url('backend/luckydraw/panitia') ?>" class="nav-link">
+                                        <i class="fas fa-users-cog nav-icon text-warning"></i>
+                                        <p>Manajemen Panitia</p>
+                                    </a>
+                                </li>
+                            <?php endif; ?>
                             <?php if (in_groups('PanitiaUndianPemenang') || in_groups('Admin')): ?>
                                 <li class="nav-item">
                                     <a href="<?= base_url('backend/luckydraw/undian') ?>" class="nav-link">

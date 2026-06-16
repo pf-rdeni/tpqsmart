@@ -15,10 +15,11 @@ class LuckydrawBarang extends BaseController
 
     public function index()
     {
+        $idKegiatan = session('active_id_kegiatan');
         $data = [
             'page_title' => 'Data Barang Lucky Draw',
-            'barang' => $this->barangModel->getBarangWithSisa(),
-            'next_no_barang' => $this->barangModel->getNextNoBarang()
+            'barang' => $this->barangModel->getBarangWithSisa($idKegiatan),
+            'next_no_barang' => $this->barangModel->getNextNoBarang($idKegiatan)
         ];
         return view('backend/luckydraw/barang/index', $data);
     }
@@ -29,9 +30,12 @@ class LuckydrawBarang extends BaseController
         $nama_barang = trim($this->request->getPost('nama_barang'));
         $isAjax = $this->request->isAJAX();
 
+        $idKegiatan = session('active_id_kegiatan');
+
         // Validation for duplicate Kategori (Grup) + Nama Barang
         $exist = $this->barangModel->where('kategori', $kategori)
                                    ->where('nama_barang', $nama_barang)
+                                   ->where('id_kegiatan', $idKegiatan)
                                    ->first();
         if ($exist) {
             $msg = 'Gagal! Kombinasi Kategori/Grup "' . $kategori . '" dan Nama Barang "' . $nama_barang . '" sudah terdaftar.';
@@ -43,9 +47,10 @@ class LuckydrawBarang extends BaseController
         }
 
         // Generate auto number
-        $no_barang = $this->barangModel->getNextNoBarang();
+        $no_barang = $this->barangModel->getNextNoBarang($idKegiatan);
 
         $this->barangModel->save([
+            'id_kegiatan' => $idKegiatan,
             'no_barang' => $no_barang,
             'kategori' => $kategori,
             'nama_barang' => $nama_barang,
@@ -66,9 +71,12 @@ class LuckydrawBarang extends BaseController
         $nama_barang = trim($this->request->getPost('nama_barang'));
         $isAjax = $this->request->isAJAX();
 
+        $idKegiatan = session('active_id_kegiatan');
+
         // Validation for duplicate Kategori (Grup) + Nama Barang (exclude current ID)
         $exist = $this->barangModel->where('kategori', $kategori)
                                    ->where('nama_barang', $nama_barang)
+                                   ->where('id_kegiatan', $idKegiatan)
                                    ->where('id !=', $id)
                                    ->first();
         if ($exist) {

@@ -21,8 +21,8 @@ class LuckydrawUndian extends BaseController
     {
         $data = [
             'page_title' => 'Input Pemenang Lucky Draw',
-            'barang' => $this->barangModel->getBarangWithSisa(),
-            'pemenang' => $this->undianModel->getPemenangList(0), // Hanya yang belum diambil
+            'barang' => $this->barangModel->getBarangWithSisa(session('active_id_kegiatan')),
+            'pemenang' => $this->undianModel->getPemenangList(0, session('active_id_kegiatan')), // Hanya yang belum diambil
             'last_selected_id_barang' => session()->get('last_selected_id_barang')
         ];
         return view('backend/luckydraw/undian/input', $data);
@@ -36,6 +36,21 @@ class LuckydrawUndian extends BaseController
 
         // Store the selection in session so it persists after redirect
         session()->set('last_selected_id_barang', $id_barang);
+
+        // Validate kupon range
+        $id_kegiatan = session('active_id_kegiatan');
+        $kegiatan = (new \App\Models\Backend\Luckydraw\LuckydrawKegiatanModel())->find($id_kegiatan);
+        
+        if ($kegiatan) {
+            if ($no_undian < $kegiatan->kupon_min || $no_undian > $kegiatan->kupon_max) {
+                $msg = 'Nomor undian harus antara ' . $kegiatan->kupon_min . ' dan ' . $kegiatan->kupon_max . '.';
+                if ($isAjax) {
+                    return $this->response->setJSON(['status' => 'error', 'message' => $msg]);
+                }
+                session()->setFlashdata('pesan', '<div class="alert alert-danger">' . $msg . '</div>');
+                return redirect()->to('/backend/luckydraw/undian');
+            }
+        }
 
         // Validate if item exists
         $barang = $this->barangModel->find($id_barang);
@@ -71,6 +86,7 @@ class LuckydrawUndian extends BaseController
         }
 
         $this->undianModel->save([
+            'id_kegiatan' => session('active_id_kegiatan'),
             'id_barang' => $id_barang,
             'no_undian' => $no_undian,
             'status_diambil' => 0,
@@ -89,7 +105,7 @@ class LuckydrawUndian extends BaseController
     {
         $data = [
             'page_title' => 'Verifikasi Pemenang Lucky Draw',
-            'pemenang' => $this->undianModel->getPemenangList(0) // Hanya yang belum diambil
+            'pemenang' => $this->undianModel->getPemenangList(0, session('active_id_kegiatan')) // Hanya yang belum diambil
         ];
         return view('backend/luckydraw/undian/verifikasi', $data);
     }
@@ -120,8 +136,9 @@ class LuckydrawUndian extends BaseController
     // ----------------------------------------------------------------
     public function dashboardPemenang()
     {
-        $barang   = $this->barangModel->getBarangWithSisa();
-        $pemenang = $this->undianModel->getPemenangList();
+        $idKegiatan = session('active_id_kegiatan');
+        $barang   = $this->barangModel->getBarangWithSisa($idKegiatan);
+        $pemenang = $this->undianModel->getPemenangList(null, $idKegiatan);
 
         $totalBarang        = count($barang);
         $totalPemenang      = count($pemenang);
@@ -157,7 +174,8 @@ class LuckydrawUndian extends BaseController
     // ----------------------------------------------------------------
     public function dashboardVerifikasi()
     {
-        $pemenang = $this->undianModel->getPemenangList();
+        $idKegiatan = session('active_id_kegiatan');
+        $pemenang = $this->undianModel->getPemenangList(null, $idKegiatan);
 
         $totalPemenang      = count($pemenang);
         $totalSudahDiambil  = count(array_filter((array) $pemenang, fn($p) => $p->status_diambil == 1));
@@ -188,7 +206,7 @@ class LuckydrawUndian extends BaseController
     {
         $data = [
             'page_title' => 'Semua Pemenang Lucky Draw',
-            'pemenang'   => $this->undianModel->getPemenangList() // Semua status
+            'pemenang'   => $this->undianModel->getPemenangList(null, session('active_id_kegiatan')) // Semua status
         ];
         return view('backend/luckydraw/undian/semua', $data);
     }

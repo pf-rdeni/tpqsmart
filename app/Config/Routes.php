@@ -643,11 +643,36 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
 // Lucky Draw Routes
 // Frontend
 $routes->get('luckydraw', 'Frontend\Luckydraw::index');
+$routes->get('luckydraw/pilih', 'Frontend\Luckydraw::pilih');
+$routes->get('luckydraw/pilih/set/(:num)', 'Frontend\Luckydraw::set/$1');
 $routes->post('luckydraw/search', 'Frontend\Luckydraw::search');
 $routes->get('luckydraw/list', 'Frontend\Luckydraw::list');
 
 // Backend
 $routes->group('backend/luckydraw', ['namespace' => 'App\Controllers\Backend\Luckydraw'], function ($routes) {
+    // Pilih Kegiatan
+    $routes->get('pilih', 'PilihKegiatan::index');
+    $routes->get('pilih/set/(:num)', 'PilihKegiatan::set/$1');
+
+    // Manajemen Kegiatan (Admin)
+    $routes->get('kegiatan', 'LuckydrawKegiatan::index');
+    $routes->get('kegiatan/create', 'LuckydrawKegiatan::create');
+    $routes->post('kegiatan/store', 'LuckydrawKegiatan::store');
+    $routes->post('kegiatan/updateStatus', 'LuckydrawKegiatan::updateStatus');
+    $routes->get('kegiatan/edit/(:num)', 'LuckydrawKegiatan::edit/$1');
+    $routes->post('kegiatan/update/(:num)', 'LuckydrawKegiatan::update/$1');
+    $routes->post('kegiatan/delete/(:num)', 'LuckydrawKegiatan::delete/$1');
+
+    // Manajemen Panitia (Admin)
+    $routes->get('panitia', 'LuckydrawPanitia::index');
+    $routes->get('panitia/create', 'LuckydrawPanitia::create');
+    $routes->post('panitia/store', 'LuckydrawPanitia::store');
+    $routes->get('panitia/edit/(:num)', 'LuckydrawPanitia::edit/$1');
+    $routes->post('panitia/update/(:num)', 'LuckydrawPanitia::update/$1');
+    $routes->post('panitia/delete/(:num)', 'LuckydrawPanitia::delete/$1');
+});
+
+$routes->group('backend/luckydraw', ['namespace' => 'App\Controllers\Backend\Luckydraw', 'filter' => 'luckydrawKegiatan'], function ($routes) {
     // Barang
     $routes->get('barang', 'LuckydrawBarang::index');
     $routes->post('barang/store', 'LuckydrawBarang::store');

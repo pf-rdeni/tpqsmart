@@ -9,7 +9,14 @@
                     <h3 class="mb-0 font-weight-bold"><i class="fas fa-gift mr-2"></i>Cek Undian Lucky Draw</h3>
                 </div>
                 <div class="card-body p-4">
-                    <p class="text-center text-muted mb-4">Silakan masukkan 4 digit nomor undian Anda untuk mengetahui apakah Anda beruntung mendapatkan hadiah.</p>
+                    <div class="text-center mb-4 pb-3 border-bottom">
+                        <h4 class="text-primary font-weight-bold mb-2"><?= esc($kegiatan->nama_kegiatan) ?></h4>
+                        <div class="text-muted" style="font-size: 0.95rem;">
+                            <span class="mr-3"><i class="fas fa-calendar-alt text-info mr-1"></i> <?= date('d F Y', strtotime($kegiatan->tanggal_kegiatan)) ?></span>
+                            <span><i class="fas fa-map-marker-alt text-danger mr-1"></i> <?= esc($kegiatan->tempat_pelaksanaan) ?></span>
+                        </div>
+                    </div>
+                    <p class="text-center text-muted mb-4">Silakan masukkan nomor kupon undian Anda untuk mengetahui apakah Anda beruntung mendapatkan hadiah.</p>
                     
                     <form id="search-form">
                         <div class="form-group mb-4">
@@ -17,7 +24,7 @@
                                 <div class="input-group-prepend">
                                     <span class="input-group-text bg-light border-right-0"><i class="fas fa-ticket-alt text-primary"></i></span>
                                 </div>
-                                <input type="number" id="no_undian" class="form-control border-left-0 pl-0" placeholder="Contoh: 1024" min="1000" max="9999" required style="font-size: 1.5rem; letter-spacing: 2px; font-weight: bold; text-align: center;">
+                                <input type="number" id="no_undian" class="form-control border-left-0 pl-0" placeholder="Contoh: <?= esc($kegiatan->kupon_min) ?>" min="<?= esc($kegiatan->kupon_min) ?>" max="<?= esc($kegiatan->kupon_max) ?>" required style="font-size: 1.5rem; letter-spacing: 2px; font-weight: bold; text-align: center;">
                             </div>
                         </div>
                         <button type="submit" class="btn btn-primary btn-block btn-lg font-weight-bold shadow-sm" id="btn-search">

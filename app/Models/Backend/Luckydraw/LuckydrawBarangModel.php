@@ -13,6 +13,7 @@ class LuckydrawBarangModel extends Model
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
     protected $allowedFields    = [
+        'id_kegiatan',
         'no_barang',
         'kategori',
         'nama_barang',
@@ -26,15 +27,23 @@ class LuckydrawBarangModel extends Model
         return $this->findAll();
     }
 
-    public function getBarangWithSisa()
+    public function getBarangWithSisa($idKegiatan = null)
     {
-        return $this->select('tbl_luckydraw_barang.*, (tbl_luckydraw_barang.jumlah - (SELECT COUNT(id) FROM tbl_luckydraw_undian WHERE id_barang = tbl_luckydraw_barang.id)) as sisa')
-                    ->findAll();
+        $builder = $this->select('tbl_luckydraw_barang.*, (tbl_luckydraw_barang.jumlah - (SELECT COUNT(id) FROM tbl_luckydraw_undian WHERE id_barang = tbl_luckydraw_barang.id)) as sisa');
+        if ($idKegiatan) {
+            $builder->where('tbl_luckydraw_barang.id_kegiatan', $idKegiatan);
+        }
+        return $builder->findAll();
     }
 
-    public function getNextNoBarang()
+    public function getNextNoBarang($idKegiatan = null)
     {
-        $last = $this->orderBy('id', 'DESC')->first();
+        $builder = $this->orderBy('id', 'DESC');
+        if ($idKegiatan) {
+            $builder->where('id_kegiatan', $idKegiatan);
+        }
+        $last = $builder->first();
+        
         if ($last && is_numeric($last->no_barang)) {
             return (int)$last->no_barang + 1;
         }
