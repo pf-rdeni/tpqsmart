@@ -435,7 +435,52 @@ class SurveyResponseModel extends Model
 
         // Clean up helper index mapping before returning
         foreach ($summary as $qId => &$qSum) {
-            if (isset($qSum['is_numeric_chart']) && $qSum['is_numeric_chart'] && !empty($qSum['labels'])) {
+            // Find the question type
+            $qType = '';
+            foreach ($questions as $q) {
+                if ((int)$q['id'] === $qId) {
+                    $qType = $q['question_type'];
+                    break;
+                }
+            }
+
+            if (in_array($qType, ['text_short', 'text_paragraph'])) {
+                $isExplicitNumber = !empty($qSum['is_numeric_chart']);
+                
+                // Check if all non-empty answers are numeric
+                $allNumeric = false;
+                if (!empty($qSum['answers'])) {
+                    $nonEmptyAnswers = array_filter($qSum['answers'], function($v) {
+                        return $v !== '';
+                    });
+                    if (!empty($nonEmptyAnswers)) {
+                        $allNumeric = true;
+                        foreach ($nonEmptyAnswers as $ans) {
+                            if (!is_numeric($ans)) {
+                                $allNumeric = false;
+                                break;
+                            }
+                        }
+                    }
+                }
+                
+                if ($isExplicitNumber || $allNumeric) {
+                    $qSum['is_numeric_chart'] = true;
+                    
+                    if (!empty($qSum['labels'])) {
+                        $labels = $qSum['labels'];
+                        $counts = $qSum['counts'];
+                        $numericLabels = array_map('floatval', $labels);
+                        array_multisort($numericLabels, SORT_ASC, SORT_NUMERIC, $labels, $counts);
+                        $qSum['labels'] = $labels;
+                        $qSum['counts'] = $counts;
+                    }
+                } else {
+                    $qSum['is_numeric_chart'] = false;
+                    unset($qSum['labels']);
+                    unset($qSum['counts']);
+                }
+            } elseif (isset($qSum['is_numeric_chart']) && $qSum['is_numeric_chart'] && !empty($qSum['labels'])) {
                 $labels = $qSum['labels'];
                 $counts = $qSum['counts'];
                 $numericLabels = array_map('floatval', $labels);
@@ -443,6 +488,7 @@ class SurveyResponseModel extends Model
                 $qSum['labels'] = $labels;
                 $qSum['counts'] = $counts;
             }
+
             if (isset($qSum['option_index_map'])) {
                 unset($qSum['option_index_map']);
             }
