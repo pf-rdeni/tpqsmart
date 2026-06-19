@@ -1177,6 +1177,40 @@
                 <?php endif; ?>
                 <!-- End Menu Kelembagaan, Data Guru, Data Santri, Raport, Extra -->
 
+                <!-- Start Menu Survey -->
+                <?php 
+                // Survey tersedia untuk Admin DAN Operator
+                $showSurveyMenu = (in_groups('Admin') || $isActiveOperator) 
+                    && !$isMyAuthPage && !$isSertifikasiPage 
+                    && !$isMunaqosahPage && !$isPerlombaanPage && !$isLuckydrawPage;
+                ?>
+                <?php if ($showSurveyMenu): ?>
+                    <li class="nav-item no-hover">
+                        <a href="#" class="nav-link">
+                            <i class="nav-icon fas fa-poll"></i>
+                            <p>
+                                Survey
+                                <i class="right fas fa-angle-left"></i>
+                            </p>
+                        </a>
+                        <ul class="nav nav-treeview" style="display: none;">
+                            <li class="nav-item">
+                                <a href="<?= base_url('backend/survey') ?>" class="nav-link">
+                                    <i class="fas fa-list nav-icon text-info"></i>
+                                    <p>Daftar Survey</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="<?= base_url('backend/survey/create') ?>" class="nav-link">
+                                    <i class="fas fa-plus-circle nav-icon text-info"></i>
+                                    <p>Buat Survey Baru</p>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                <?php endif; ?>
+                <!-- End Menu Survey -->
+
                 <!-- Start Menu MyAuth -->
                 <?php if (in_groups('Admin') && $isMyAuthPage): ?>
                     <!--  MyAuth Management -->

@@ -104,6 +104,8 @@ class Filters extends BaseFilters
                     'absensi/haskey/*',    // Public Absensi Link
                     'luckydraw',           // Lucky Draw Public View
                     'luckydraw/*',         // Lucky Draw Public View
+                    'survey',              // Public Survey
+                    'survey/*',            // Public Survey fill, hasil, submit, api
                 ]
             ],
         ],

@@ -691,6 +691,68 @@ $routes->group('backend/luckydraw', ['namespace' => 'App\Controllers\Backend\Luc
     $routes->get('dashboard/verifikasi', 'LuckydrawUndian::dashboardVerifikasi');
     $routes->get('dashboard/admin', 'LuckydrawUndian::dashboardAdmin');
 });
+// ==========================================
+// Survey Routes
+// ==========================================
+
+// Public Survey Routes (tanpa login)
+$routes->get('survey/(:segment)/terima-kasih', 'Frontend\SurveyPublic::thankYou/$1');
+$routes->get('survey/(:segment)/hasil', 'Frontend\SurveyPublic::results/$1');
+$routes->get('survey/(:segment)/filling-status-data', 'Frontend\SurveyPublic::getPublicFillingStatusData/$1');
+$routes->post('survey/submit', 'Frontend\SurveyPublic::submit');
+$routes->post('survey/api/master', 'Frontend\SurveyPublic::getMasterData');
+$routes->post('survey/api/upload', 'Frontend\SurveyPublic::uploadFile');
+$routes->post('survey/api/check-duplicate', 'Frontend\SurveyPublic::checkDuplicate');
+$routes->get('survey/(:segment)', 'Frontend\SurveyPublic::index/$1');
+
+// Backend Survey Routes (Admin + Operator)
+$routes->group('backend/survey', ['namespace' => 'App\Controllers\Backend\Survey'], function ($routes) {
+    // Dashboard & CRUD
+    $routes->get('/', 'Survey::index');
+    $routes->get('create', 'Survey::create');
+    $routes->post('store', 'Survey::store');
+    $routes->get('edit/(:num)', 'Survey::edit/$1');
+    $routes->post('update/(:num)', 'Survey::update/$1');
+    $routes->post('delete/(:num)', 'Survey::delete/$1');
+    $routes->post('duplicate/(:num)', 'Survey::duplicate/$1');
+    $routes->post('toggle-status', 'Survey::toggleStatus');
+    $routes->get('preview/(:num)', 'Survey::preview/$1');
+    $routes->get('settings/(:num)', 'Survey::settings/$1');
+    $routes->post('save-settings/(:num)', 'Survey::saveSettings/$1');
+
+    // Form Builder API (AJAX)
+    $routes->get('builder/data/(:num)', 'SurveyBuilder::getFormData/$1');
+    $routes->post('builder/save-section', 'SurveyBuilder::saveSection');
+    $routes->post('builder/delete-section/(:num)', 'SurveyBuilder::deleteSection/$1');
+    $routes->post('builder/save-question', 'SurveyBuilder::saveQuestion');
+    $routes->post('builder/delete-question/(:num)', 'SurveyBuilder::deleteQuestion/$1');
+    $routes->post('builder/duplicate-question/(:num)', 'SurveyBuilder::duplicateQuestion/$1');
+    $routes->post('builder/reorder', 'SurveyBuilder::reorderItems');
+    $routes->post('builder/save-options', 'SurveyBuilder::saveOptions');
+    $routes->post('builder/upload-image', 'SurveyBuilder::uploadImage');
+    $routes->get('builder/master-tpq', 'SurveyBuilder::getMasterTpq');
+    $routes->get('builder/master-guru/(:segment)', 'SurveyBuilder::getMasterGuru/$1');
+    $routes->get('builder/master-santri/(:segment)', 'SurveyBuilder::getMasterSantri/$1');
+
+    // Results
+    $routes->get('results/(:num)', 'SurveyResult::index/$1');
+    $routes->get('results/summary/(:num)', 'SurveyResult::summary/$1');
+    $routes->get('results/responses/(:num)', 'SurveyResult::responses/$1');
+    $routes->get('results/view-response/(:num)', 'SurveyResult::viewResponse/$1');
+    $routes->get('results/edit-response/(:num)', 'SurveyResult::editResponse/$1');
+    $routes->post('results/update-response/(:num)', 'SurveyResult::updateResponse/$1');
+    $routes->post('results/delete-response/(:num)', 'SurveyResult::deleteResponse/$1');
+    $routes->post('results/reset-responses/(:num)', 'SurveyResult::resetResponses/$1');
+    $routes->get('results/export-excel/(:num)', 'SurveyResult::exportExcel/$1');
+    $routes->get('results/export-pdf/(:num)', 'SurveyResult::exportPdf/$1');
+    $routes->get('results/chart-data/(:num)', 'SurveyResult::getChartData/$1');
+    
+    // Filling Status & Public Result Settings
+    $routes->get('results/filling-status/(:num)', 'SurveyResult::fillingStatus/$1');
+    $routes->get('results/filling-status-data/(:num)', 'SurveyResult::getFillingStatusData/$1');
+    $routes->get('results/public-settings/(:num)', 'SurveyResult::publicResultSettings/$1');
+    $routes->post('results/save-public-settings/(:num)', 'SurveyResult::savePublicResultSettings/$1');
+});
 
 $routes->get('logout', 'Dashboard::logout');
 
