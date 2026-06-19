@@ -66,12 +66,20 @@ class SurveyTargetModel extends Model
             return ucwords(strtolower(trim($str)));
         };
 
+        // Pre-count duplicates of NamaTpq across the entire tbl_tpq table
+        $namesCount = [];
+        $tpqCountsRaw = $this->db->table('tbl_tpq')->select('NamaTpq')->get()->getResultArray();
+        foreach ($tpqCountsRaw as $t) {
+            $name = trim($t['NamaTpq']);
+            $namesCount[strtolower($name)] = ($namesCount[strtolower($name)] ?? 0) + 1;
+        }
+
         if ($targetType === 'guru') {
             // Ambil data guru dari target
             $tpqIds = array_filter(array_column($targets, 'target_ref_id'));
 
             $builder = $this->db->table('tbl_guru g')
-                ->select('g.IdGuru as ref_id, g.Nama as name, g.IdTpq as tpq_id, t.NamaTpq as tpq_name')
+                ->select('g.IdGuru as ref_id, g.Nama as name, g.IdTpq as tpq_id, t.NamaTpq as tpq_name, t.KelurahanDesa as kelurahan_desa')
                 ->join('tbl_tpq t', 't.IdTpq = g.IdTpq', 'left')
                 ->where('g.Status', true);
 
@@ -83,11 +91,17 @@ class SurveyTargetModel extends Model
             $rows = $builder->orderBy('g.IdTpq')->orderBy('g.Nama')->get()->getResultArray();
 
             foreach ($rows as $row) {
+                $tpqName = trim($row['tpq_name'] ?? '');
+                $formattedTpqName = $titleCase($tpqName);
+                if (($namesCount[strtolower($tpqName)] ?? 0) > 1 && !empty($row['kelurahan_desa'])) {
+                    $formattedTpqName = $formattedTpqName . ' - ' . $titleCase($row['kelurahan_desa']);
+                }
+
                 $list[] = [
                     'ref_id'   => $row['ref_id'],
                     'name'     => $titleCase($row['name']),
                     'tpq_id'   => $row['tpq_id'],
-                    'tpq_name' => $titleCase($row['tpq_name']),
+                    'tpq_name' => $formattedTpqName,
                     'type'     => 'guru',
                 ];
             }
@@ -96,7 +110,7 @@ class SurveyTargetModel extends Model
             $tpqIds = array_filter(array_column($targets, 'target_ref_id'));
 
             $builder = $this->db->table('tbl_santri_baru s')
-                ->select('s.IdSantri as ref_id, s.NamaSantri as name, s.IdTpq as tpq_id, t.NamaTpq as tpq_name')
+                ->select('s.IdSantri as ref_id, s.NamaSantri as name, s.IdTpq as tpq_id, t.NamaTpq as tpq_name, t.KelurahanDesa as kelurahan_desa')
                 ->join('tbl_tpq t', 't.IdTpq = s.IdTpq', 'left')
                 ->where('s.Active', 1);
 
@@ -107,11 +121,17 @@ class SurveyTargetModel extends Model
             $rows = $builder->orderBy('s.IdTpq')->orderBy('s.NamaSantri')->get()->getResultArray();
 
             foreach ($rows as $row) {
+                $tpqName = trim($row['tpq_name'] ?? '');
+                $formattedTpqName = $titleCase($tpqName);
+                if (($namesCount[strtolower($tpqName)] ?? 0) > 1 && !empty($row['kelurahan_desa'])) {
+                    $formattedTpqName = $formattedTpqName . ' - ' . $titleCase($row['kelurahan_desa']);
+                }
+
                 $list[] = [
                     'ref_id'   => $row['ref_id'],
                     'name'     => $titleCase($row['name']),
                     'tpq_id'   => $row['tpq_id'],
-                    'tpq_name' => $titleCase($row['tpq_name']),
+                    'tpq_name' => $formattedTpqName,
                     'type'     => 'santri',
                 ];
             }
@@ -127,22 +147,17 @@ class SurveyTargetModel extends Model
 
             $rows = $builder->orderBy('NamaTpq')->get()->getResultArray();
 
-            $namesCount = [];
             foreach ($rows as $row) {
-                $name = trim($row['NamaTpq']);
-                $namesCount[$name] = ($namesCount[$name] ?? 0) + 1;
-            }
-
-            foreach ($rows as $row) {
-                $name = $titleCase($row['NamaTpq']);
-                if (($namesCount[trim($row['NamaTpq'])] ?? 0) > 1 && !empty($row['KelurahanDesa'])) {
-                    $name = $name . ' - ' . $titleCase($row['KelurahanDesa']);
+                $tpqName = trim($row['NamaTpq']);
+                $formattedTpqName = $titleCase($row['NamaTpq']);
+                if (($namesCount[strtolower($tpqName)] ?? 0) > 1 && !empty($row['KelurahanDesa'])) {
+                    $formattedTpqName = $formattedTpqName . ' - ' . $titleCase($row['KelurahanDesa']);
                 }
                 $list[] = [
                     'ref_id'   => $row['IdTpq'],
-                    'name'     => $name,
+                    'name'     => $formattedTpqName,
                     'tpq_id'   => $row['IdTpq'],
-                    'tpq_name' => $name,
+                    'tpq_name' => $formattedTpqName,
                     'type'     => 'tpq',
                 ];
             }

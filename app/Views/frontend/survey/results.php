@@ -177,6 +177,27 @@
                                         <div class="progress-bar bg-success" id="ratio-progress-bar" style="width: 0%;"></div>
                                     </div>
                                 </div>
+                    </div>
+                    
+                    <!-- TPQ Progress Table Card -->
+                    <div class="card survey-public-card mb-4" id="tpq-progress-card" style="display: none;">
+                        <div class="card-header bg-white border-bottom-0 pt-4 px-4 pb-0">
+                            <h5 class="mb-0 font-weight-bold text-dark"><i class="fas fa-list-ol mr-2 text-primary"></i> Progres Pengisian per TPQ / Lembaga</h5>
+                        </div>
+                        <div class="card-body p-4">
+                            <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                                <table class="table table-hover table-striped mb-0 text-left small align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>Nama TPQ / Lembaga</th>
+                                            <th style="width: 40%;">Progres (Sudah vs Belum)</th>
+                                            <th style="width: 25%; text-align: right;">Detail</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tpq-progress-body">
+                                        <!-- Loaded dynamically -->
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
                     </div>
@@ -261,6 +282,64 @@ function loadFillingStatus(tpqId = '') {
                 
                 $('#filling-ratio').text(`${sudah.length} dari ${total} Responden (${percent}%)`);
                 $('#ratio-progress-bar').css('width', percent + '%');
+
+                // --- Calculate progress per TPQ ---
+                const tpqMap = {};
+
+                // Process filled targets
+                sudah.forEach(item => {
+                    const tId = item.tpq_id || 'other';
+                    const tName = item.tpq_name || 'Lainnya';
+                    if (!tpqMap[tId]) {
+                        tpqMap[tId] = { id: tId, name: tName, filled: 0, total: 0 };
+                    }
+                    tpqMap[tId].filled++;
+                    tpqMap[tId].total++;
+                });
+
+                // Process unfilled targets
+                belum.forEach(item => {
+                    const tId = item.tpq_id || 'other';
+                    const tName = item.tpq_name || 'Lainnya';
+                    if (!tpqMap[tId]) {
+                        tpqMap[tId] = { id: tId, name: tName, filled: 0, total: 0 };
+                    }
+                    tpqMap[tId].total++;
+                });
+
+                // Convert to array and sort by name alphabetically
+                const tpqList = Object.values(tpqMap);
+                tpqList.sort((a, b) => a.name.localeCompare(b.name));
+
+                // Render TPQ progress table rows
+                const progressBody = $('#tpq-progress-body');
+                progressBody.empty();
+
+                if (tpqList.length === 0) {
+                    $('#tpq-progress-card').hide();
+                } else {
+                    $('#tpq-progress-card').show();
+                    tpqList.forEach(tpq => {
+                        const pct = tpq.total > 0 ? Math.round((tpq.filled / tpq.total) * 100) : 0;
+                        const unfilledCount = tpq.total - tpq.filled;
+
+                        progressBody.append(`
+                            <tr>
+                                <td class="font-weight-bold text-dark align-middle">${tpq.name}</td>
+                                <td class="align-middle">
+                                    <div class="progress shadow-sm" style="height: 16px; background-color: #f8d7da; border-radius: 8px; border: 1px solid #f5c6cb; overflow: hidden;" title="Sudah: ${tpq.filled}, Belum: ${unfilledCount}">
+                                        <div class="progress-bar bg-success" role="progressbar" style="width: ${pct}%; height: 100%; border-radius: 0;" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                </td>
+                                <td class="text-right align-middle text-nowrap">
+                                    <span class="badge badge-success px-2 py-1">${tpq.filled} <i class="fas fa-check mr-1"></i></span>
+                                    <span class="badge badge-danger px-2 py-1">${unfilledCount} <i class="fas fa-times mr-1"></i></span>
+                                    <span class="text-muted font-weight-bold ml-1" style="min-width: 40px; display: inline-block;">${pct}%</span>
+                                </td>
+                            </tr>
+                        `);
+                    });
+                }
 
                 // Render sudah
                 if (sudah.length === 0) {
