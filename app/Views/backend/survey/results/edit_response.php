@@ -63,8 +63,14 @@
                             if (!empty($q['validation_rules'])) {
                                 $rules = is_string($q['validation_rules']) ? json_decode($q['validation_rules'], true) : $q['validation_rules'];
                             }
+                            $inputType = 'text';
+                            $stepAttr = '';
+                            if (!empty($rules['rule_type']) && $rules['rule_type'] === 'number') {
+                                $inputType = 'number';
+                                $stepAttr = 'step="any"';
+                            }
                             ?>
-                            <input type="text" class="form-control form-control-sm" name="answers[<?= $key ?>]" value="<?= esc($ans) ?>" <?= $isRequired ? 'required' : '' ?> data-rules='<?= json_encode($rules) ?>'>
+                            <input type="<?= $inputType ?>" <?= $stepAttr ?> class="form-control form-control-sm" name="answers[<?= $key ?>]" value="<?= esc($ans) ?>" <?= $isRequired ? 'required' : '' ?> data-rules='<?= json_encode($rules) ?>'>
                             <div class="invalid-feedback font-weight-bold mt-1"></div>
                         
                         <?php elseif ($type === 'text_paragraph'): ?>
@@ -215,6 +221,21 @@
 
 <script>
 $(document).ready(function() {
+    // Restrict non-numeric inputs for numeric fields (block 'e', 'E', '+')
+    $('#edit-response-form').on('keydown keypress', 'input[type="number"]', function(e) {
+        if (e.key === 'e' || e.key === 'E' || e.key === '+') {
+            e.preventDefault();
+        }
+    });
+
+    $('#edit-response-form').on('paste', 'input[type="number"]', function(e) {
+        const clipboardData = e.originalEvent.clipboardData || window.clipboardData;
+        const pastedData = clipboardData.getData('text');
+        if (isNaN(parseFloat(pastedData)) && !/^-?\d*([.,]\d+)?$/.test(pastedData)) {
+            e.preventDefault();
+        }
+    });
+
     // Real-time custom rules validation
     $('#edit-response-form').off('input change', 'input[data-rules]').on('input change', 'input[data-rules]', function() {
         const input = $(this);
@@ -359,17 +380,27 @@ $(document).ready(function() {
             success: function(response) {
                 if (response.success) {
                     toastr.success(response.message);
+                    
+                    // Close the modal cleanly
                     $('#editResponseModal').modal('hide');
                     
-                    // Reload tab content
-                    const tpqId = $('#filter-tpq').val() || '';
-                    const url = `<?= base_url("backend/survey/results/responses/{$survey['id']}") ?>?tpq_id=${tpqId}`;
-                    $('#tab-responses').html(`
-                        <div class="text-center py-5 text-muted">
-                            <i class="fas fa-spinner fa-spin fa-2x mb-2"></i>
-                            <div>Memuat ulang tanggapan...</div>
-                        </div>
-                    `).load(url);
+                    // Reload tab content after modal is completely closed to avoid orphaned backdrops
+                    $('#editResponseModal').one('hidden.bs.modal', function () {
+                        const tpqId = $('#filter-tpq').val() || '';
+                        const url = `<?= base_url("backend/survey/results/responses/{$survey['id']}") ?>?tpq_id=${tpqId}`;
+                        $('#tab-responses').html(`
+                            <div class="text-center py-5 text-muted">
+                                <i class="fas fa-spinner fa-spin fa-2x mb-2"></i>
+                                <div>Memuat ulang tanggapan...</div>
+                            </div>
+                        `).load(url);
+                    });
+                    
+                    // Fallback to force screen unlock if the Bootstrap hidden event is somehow swallowed
+                    setTimeout(function() {
+                        $('body').removeClass('modal-open');
+                        $('.modal-backdrop').remove();
+                    }, 400);
                 } else {
                     toastr.error(response.message || 'Gagal menyimpan perubahan.');
                     submitBtn.prop('disabled', false).html(btnHtml);

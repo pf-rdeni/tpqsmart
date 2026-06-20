@@ -44,8 +44,15 @@ $isContentField = in_array($type, ['image_display', 'video_display']);
             } elseif (!empty($rules['rule_type']) && $rules['rule_type'] === 'length' && $rules['condition'] === 'max_length') {
                 $maxLen = $rules['value'];
             }
+
+            $inputType = 'text';
+            $stepAttr = '';
+            if (!empty($rules['rule_type']) && $rules['rule_type'] === 'number') {
+                $inputType = 'number';
+                $stepAttr = 'step="any"';
+            }
             ?>
-            <input type="text" class="form-control" name="<?= $key ?>" placeholder="<?= esc($settings['placeholder'] ?? 'Jawaban Anda...') ?>" 
+            <input type="<?= $inputType ?>" <?= $stepAttr ?> class="form-control" name="<?= $key ?>" placeholder="<?= esc($settings['placeholder'] ?? 'Jawaban Anda...') ?>" 
                    <?= $isRequired ? 'required' : '' ?> 
                    <?php if (!empty($minLen)): ?>minlength="<?= $minLen ?>"<?php endif; ?>
                    <?php if (!empty($maxLen)): ?>maxlength="<?= $maxLen ?>"<?php endif; ?>

@@ -34,6 +34,12 @@
                             <i class="fas fa-list mr-1"></i> Tanggapan Individu
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="tab-dynamic-link" data-toggle="pill" href="#tab-dynamic" role="tab" 
+                           data-url="<?= base_url("backend/survey/results/dynamic-table/{$survey['id']}") ?>">
+                            <i class="fas fa-table mr-1"></i> Tabel Dinamis
+                        </a>
+                    </li>
                     <?php if (in_array($survey['target_type'], ['guru', 'santri', 'tpq'])): ?>
                         <li class="nav-item">
                             <a class="nav-link" id="tab-status-link" data-toggle="pill" href="#tab-status" role="tab" 
@@ -62,6 +68,12 @@
                         <div class="text-center py-5 text-muted tab-loading-placeholder">
                             <i class="fas fa-spinner fa-spin fa-2x mb-2"></i>
                             <div>Memuat daftar tanggapan...</div>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="tab-dynamic" role="tabpanel">
+                        <div class="text-center py-5 text-muted tab-loading-placeholder">
+                            <i class="fas fa-spinner fa-spin fa-2x mb-2"></i>
+                            <div>Memuat tabel dinamis...</div>
                         </div>
                     </div>
                     <div class="tab-pane fade" id="tab-status" role="tabpanel">

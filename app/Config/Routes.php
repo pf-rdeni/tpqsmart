@@ -746,6 +746,7 @@ $routes->group('backend/survey', ['namespace' => 'App\Controllers\Backend\Survey
     $routes->get('results/export-excel/(:num)', 'SurveyResult::exportExcel/$1');
     $routes->get('results/export-pdf/(:num)', 'SurveyResult::exportPdf/$1');
     $routes->get('results/chart-data/(:num)', 'SurveyResult::getChartData/$1');
+    $routes->get('results/dynamic-table/(:num)', 'SurveyResult::dynamicTable/$1');
     
     // Filling Status & Public Result Settings
     $routes->get('results/filling-status/(:num)', 'SurveyResult::fillingStatus/$1');

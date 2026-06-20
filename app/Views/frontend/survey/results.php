@@ -181,8 +181,11 @@
                     
                     <!-- TPQ Progress Table Card -->
                     <div class="card survey-public-card mb-4" id="tpq-progress-card" style="display: none;">
-                        <div class="card-header bg-white border-bottom-0 pt-4 px-4 pb-0">
+                        <div class="card-header bg-white border-bottom-0 pt-4 px-4 pb-0 d-flex align-items-center justify-content-between">
                             <h5 class="mb-0 font-weight-bold text-dark"><i class="fas fa-list-ol mr-2 text-primary"></i> Progres Pengisian per TPQ / Lembaga</h5>
+                            <button type="button" class="btn btn-sm btn-success btn-share-wa-progress shadow-sm" title="Kirim Laporan Progres ke WhatsApp">
+                                <i class="fab fa-whatsapp mr-1"></i> Kirim WA
+                            </button>
                         </div>
                         <div class="card-body p-4">
                             <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
@@ -237,6 +240,8 @@
 
 <?= $this->section('scripts') ?>
 <script>
+let currentTpqProgress = [];
+
 $(document).ready(function() {
     
     // 1. Initial Load of Filling Status if target is applicable
@@ -245,6 +250,36 @@ $(document).ready(function() {
 
         $('#public-tpq-filter').on('change', function() {
             loadFillingStatus($(this).val());
+        });
+
+        // Share to WhatsApp click handler
+        $(document).off('click', '.btn-share-wa-progress').on('click', '.btn-share-wa-progress', function() {
+            if (!currentTpqProgress || currentTpqProgress.length === 0) {
+                toastr.warning('Tidak ada data progres untuk dikirim.');
+                return;
+            }
+
+            const surveyTitle = '<?= esc($survey['title']) ?>';
+            const totalText = $('#filling-ratio').text();
+            
+            let text = `*PROGRES PENGISIAN SURVEI*\n`;
+            text += `Survei: *${surveyTitle}*\n`;
+            text += `Tanggal: ${new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}\n\n`;
+            text += `*Detail Progres per TPQ/Lembaga:*\n`;
+
+            currentTpqProgress.forEach((tpq, idx) => {
+                const pct = tpq.total > 0 ? Math.round((tpq.filled / tpq.total) * 100) : 0;
+                const unfilled = tpq.total - tpq.filled;
+                text += `${idx + 1}. *${tpq.name}*\n`;
+                text += `   - Sudah: ${tpq.filled}\n`;
+                text += `   - Belum: ${unfilled}\n`;
+                text += `   - Progres: ${pct}%\n\n`;
+            });
+
+            text += `*Total Keseluruhan:* ${totalText}`;
+
+            const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+            window.open(waUrl, '_blank');
         });
     <?php endif; ?>
 
@@ -310,6 +345,8 @@ function loadFillingStatus(tpqId = '') {
                 // Convert to array and sort by name alphabetically
                 const tpqList = Object.values(tpqMap);
                 tpqList.sort((a, b) => a.name.localeCompare(b.name));
+                
+                currentTpqProgress = tpqList;
 
                 // Render TPQ progress table rows
                 const progressBody = $('#tpq-progress-body');

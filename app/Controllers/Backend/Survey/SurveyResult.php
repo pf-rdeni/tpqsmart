@@ -714,6 +714,87 @@ class SurveyResult extends BaseController
     }
 
     /**
+     * Tabel Dinamis — Semua kolom pertanyaan dan jawaban
+     */
+    public function dynamicTable(int $surveyId)
+    {
+        $survey    = $this->getSurveyOrFail($surveyId);
+        $questions = $this->questionModel->getQuestionsBySurvey($surveyId);
+        
+        // Filter out display items
+        $questions = array_values(array_filter($questions, function($q) {
+            return !in_array($q['question_type'], ['image_display', 'video_display']);
+        }));
+
+        $filters   = $this->request->getGet();
+        $responses = $this->responseModel->getResponsesBySurvey($surveyId, $filters);
+
+        $titleCase = function($str) {
+            return ucwords(strtolower(trim($str)));
+        };
+
+        // Get TPQ list and map ID to Name
+        $tpqsRaw = $this->db->table('tbl_tpq')->select('IdTpq, NamaTpq, KelurahanDesa')->orderBy('NamaTpq')->get()->getResultArray();
+        $namesCount = [];
+        foreach ($tpqsRaw as $t) {
+            $name = trim($t['NamaTpq']);
+            $namesCount[$name] = ($namesCount[$name] ?? 0) + 1;
+        }
+        $tpqMap = [];
+        $tpqs = array_map(function($t) use ($namesCount, $titleCase, &$tpqMap) {
+            $name = $titleCase($t['NamaTpq']);
+            if (($namesCount[trim($t['NamaTpq'])] ?? 0) > 1 && !empty($t['KelurahanDesa'])) {
+                $name = $name . ' - ' . $titleCase($t['KelurahanDesa']);
+            }
+            $tpqMap[$t['IdTpq']] = $name;
+            return [
+                'IdTpq'   => $t['IdTpq'],
+                'NamaTpq' => $name,
+            ];
+        }, $tpqsRaw);
+
+        foreach ($responses as &$resp) {
+            $tpqId = $resp['respondent_tpq_id'];
+            $resp['NamaTpq'] = isset($tpqMap[$tpqId]) ? $tpqMap[$tpqId] : null;
+            $resp['answers_decoded'] = is_array($resp['answers']) ? $resp['answers'] : (json_decode($resp['answers'] ?? '{}', true) ?: []);
+        }
+
+        // Pre-fetch names map for master selections resolution
+        $tpqNames = [];
+        foreach ($tpqsRaw as $t) {
+            $name = trim($t['NamaTpq']);
+            if ($name !== '') {
+                $tpqNames[$t['IdTpq']] = $titleCase($name);
+            }
+        }
+
+        $guruNames = [];
+        $gurus = $this->db->table('tbl_guru')->select('IdGuru, Nama')->get()->getResultArray();
+        foreach ($gurus as $g) {
+            $guruNames[$g['IdGuru']] = $titleCase($g['Nama']);
+        }
+
+        $santriNames = [];
+        $santris = $this->db->table('tbl_santri_baru')->select('IdSantri, NamaSantri')->get()->getResultArray();
+        foreach ($santris as $s) {
+            $santriNames[$s['IdSantri']] = $titleCase($s['NamaSantri']);
+        }
+
+        $data = [
+            'survey'      => $survey,
+            'questions'   => $questions,
+            'responses'   => $responses,
+            'tpqs'        => $tpqs,
+            'tpqNames'    => $tpqNames,
+            'guruNames'   => $guruNames,
+            'santriNames' => $santriNames,
+            'filters'     => $filters,
+        ];
+
+        return view('backend/survey/results/dynamic_table', $data);
+    }
+
+    /**
      * Helper — get survey or throw 404
      */
     private function getSurveyOrFail(int $id): array

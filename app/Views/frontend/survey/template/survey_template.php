@@ -149,6 +149,16 @@ h1, h2, h3, h4, h5 {
     box-shadow: 0 0 0 3px rgba(var(--theme-color-rgb), 0.15);
 }
 
+/* Hide number input spinners */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+input[type="number"] {
+    -moz-appearance: textfield;
+}
+
 /* Custom Checkbox/Radio */
 .custom-control-input:checked ~ .custom-control-label::before {
     background-color: var(--theme-color);
@@ -401,6 +411,21 @@ $(document).ready(function() {
 function initPublicForm() {
     sectionsList = $('.section-slide');
     
+    // Restrict non-numeric inputs for numeric fields (block 'e', 'E', '+')
+    $(document).on('keydown keypress', 'input[type="number"]', function(e) {
+        if (e.key === 'e' || e.key === 'E' || e.key === '+') {
+            e.preventDefault();
+        }
+    });
+
+    $(document).on('paste', 'input[type="number"]', function(e) {
+        const clipboardData = e.originalEvent.clipboardData || window.clipboardData;
+        const pastedData = clipboardData.getData('text');
+        if (isNaN(parseFloat(pastedData)) && !/^-?\d*([.,]\d+)?$/.test(pastedData)) {
+            e.preventDefault();
+        }
+    });
+
     // 1. Pagination Setup
     if (sectionsList.length > 1) {
         showSection(0);
