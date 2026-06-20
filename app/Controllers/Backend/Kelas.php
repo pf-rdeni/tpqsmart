@@ -222,11 +222,15 @@ class Kelas extends BaseController
             
             foreach ($breakdownData as $row) {
                 $tpqBreakdown[$row['IdKelas']][] = [
+                    'id_tpq' => $row['IdTpq'],
                     'nama_tpq' => $row['NamaTpq'],
                     'count' => $row['count']
                 ];
             }
         }
+
+        // Ambil daftar seluruh kelas untuk manual selection di view
+        $allClasses = $this->helpFunction->getDataKelas();
 
         // persiapkan data untuk di kirim ke 
         $data = [
@@ -236,7 +240,9 @@ class Kelas extends BaseController
             'current_tahun_ajaran' => $currentAcademicYear,
             'previous_tahun_ajaran' => $previousAcademicYear,
             'tahunAjaranList' => $tahunAjaranList,
-            'tpqBreakdown' => $tpqBreakdown
+            'tpqBreakdown' => $tpqBreakdown,
+            'allClasses' => $allClasses,
+            'idTpqSession' => $IdTpq
         ];
 
         return view('backend/kelas/naikKelas', $data);
@@ -258,6 +264,14 @@ class Kelas extends BaseController
         $IdTpqForQuery = (!empty($IdTpq) && $IdTpq != 0) ? $IdTpq : null;
         $santriList = $this->kelasModel->getSantriByTahunAjaranDanKelas($idTahunAjaran, $idKelas, $IdTpqForQuery);
 
+        // Ambil seleksi manual kelas per TPQ & per Santri dari POST data
+        $targetKelasTpqMap = [];
+        $targetKelasSantriMap = [];
+        if ($this->request->getMethod() === 'post') {
+            $targetKelasTpqMap = $this->request->getPost('target_kelas_tpq') ?? [];
+            $targetKelasSantriMap = $this->request->getPost('target_kelas_santri') ?? [];
+        }
+
         $dataKelasBaru = [];
         $dataNilaiBaru = [];
         $idsKelasLama = [];
@@ -266,9 +280,17 @@ class Kelas extends BaseController
         // Step 3 collect data santri yang akan di naikkan kelas dan data nilai
         foreach ($santriList as $santri) {
             $idKelasLama = $santri['IdKelas'];
-            $idKelasBaru = $this->helpFunction->getNextKelas($idKelasLama);
             $idTpq = $santri['IdTpq'];
             $idSantri = $santri['IdSantri'];
+
+            // Tentukan target kelas baru: per-santri > per-TPQ > default
+            if (isset($targetKelasSantriMap[$idSantri])) {
+                $idKelasBaru = (int)$targetKelasSantriMap[$idSantri];
+            } elseif (isset($targetKelasTpqMap[$idTpq])) {
+                $idKelasBaru = (int)$targetKelasTpqMap[$idTpq];
+            } else {
+                $idKelasBaru = $this->helpFunction->getNextKelas($idKelasLama);
+            }
 
             // Ambil id santri dari tabel santri untuk update IdKelas pada tabel santri
             $dataSantri[] = [
@@ -342,6 +364,21 @@ class Kelas extends BaseController
         }
 
         return redirect()->to('backend/kelas/showListSantriPerKelas/' . $idTahunAjaran);
+    }
+
+    // Mendapatkan list santri aktif dalam kelas & tahun ajaran tertentu (AJAX)
+    public function getSantriListAjax($idTahunAjaran, $idKelas)
+    {
+        // ambil IdTpq dari session
+        $IdTpq = session()->get('IdTpq');
+        $IdTpqForQuery = (!empty($IdTpq) && $IdTpq != 0) ? $IdTpq : null;
+
+        $santriList = $this->kelasModel->getSantriWithNamaByTahunAjaranDanKelas($idTahunAjaran, $idKelas, $IdTpqForQuery);
+
+        return $this->response->setJSON([
+            'status' => 'success',
+            'data' => $santriList
+        ]);
     }
     // Metode untuk menyimpan data daan mengupdate di tabel 
     // tbl_kelas_santri : menampatkan registrasi di kelas di himpun berdasarkan kelas dan tahun ajaran set aktif

@@ -293,6 +293,26 @@
             return classNames[nextId] || 'ALUMNI';
         }
 
+        const allClassesList = <?= json_encode($allClasses ?? []) ?>;
+        const idTpqSession = <?= json_encode($idTpqSession ?? 0) ?>;
+
+        function buildClassOptions(selectedClassId) {
+            let optionsHtml = '';
+            allClassesList.forEach(cls => {
+                const isSel = cls.IdKelas == selectedClassId ? 'selected' : '';
+                optionsHtml += `<option value="${cls.IdKelas}" ${isSel}>${cls.NamaKelas}</option>`;
+            });
+            return optionsHtml;
+        }
+
+        function getNextClassId(idKelas) {
+            const currentId = parseInt(idKelas);
+            const nextIdMap = {
+                1: 2, 2: 3, 3: 4, 4: 5, 5: 6, 6: 7, 7: 8, 8: 9, 9: 10, 10: 10
+            };
+            return nextIdMap[currentId] || 10;
+        }
+
         // Class promotion button handler
         const btnNaikKelas = document.querySelectorAll('.btn-naik-kelas');
         btnNaikKelas.forEach(btn => {
@@ -303,103 +323,215 @@
                 const jumlahSantri = this.getAttribute('data-jumlah-santri');
                 const tahunAsal = this.getAttribute('data-tahun-asal');
                 const isAlumni = this.getAttribute('data-is-alumni') === 'true';
-                const tpqBreakdownRaw = this.getAttribute('data-tpq-breakdown');
-                
-                let tpqBreakdown = [];
-                try {
-                    tpqBreakdown = JSON.parse(tpqBreakdownRaw || '[]');
-                } catch(e) {
-                    console.error('Error parsing tpq breakdown', e);
-                }
                 
                 const nextTa = getNextAcademicYear(tahunAsal);
                 const nextClassName = getNextClassName(idKelas);
-                
-                let titleText = 'Konfirmasi Kenaikan Kelas';
-                let alertHtml = `<div class="text-left" style="font-size: 0.9rem;">` +
-                                `<p>Apakah Anda yakin ingin memproses kenaikan kelas dengan detail berikut:</p>` +
-                                `<table class="table table-sm table-bordered mt-2 text-left">` +
-                                `  <thead>` +
-                                `    <tr class="bg-light">` +
-                                `      <th>Deskripsi</th>` +
-                                `      <th>Sebelum</th>` +
-                                `      <th>Sesudah</th>` +
-                                `    </tr>` +
-                                `  </thead>` +
-                                `  <tbody>` +
-                                `    <tr>` +
-                                `      <th>Kelas</th>` +
-                                `      <td>${namaKelas}</td>` +
-                                `      <td><strong>${nextClassName}</strong></td>` +
-                                `    </tr>` +
-                                `    <tr>` +
-                                `      <th>Tahun Ajaran</th>` +
-                                `      <td>${formatAcademicYear(tahunAsal)}</td>` +
-                                `      <td><strong>${formatAcademicYear(nextTa)}</strong></td>` +
-                                `    </tr>` +
-                                `  </tbody>` +
-                                `</table>` +
-                                `<p class="mt-2 mb-3"><strong>Jumlah yang akan dinaikkan:</strong> <span class="text-primary font-weight-bold" style="font-size: 1.1rem;">${jumlahSantri}</span> Santri</p>`;
-                
-                // Tambahkan rincian per TPQ jika login sebagai Admin (breakdown data tidak kosong)
-                if (tpqBreakdown && tpqBreakdown.length > 0) {
-                    alertHtml += `<p class="mt-1 mb-1"><strong>Rincian Jumlah Santri per TPQ:</strong></p>` +
-                                 `<div style="max-height: 150px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 4px; padding: 5px; margin-bottom: 15px;">` +
-                                 `  <table class="table table-sm table-striped table-bordered mb-0 text-left" style="font-size: 0.8rem; width: 100%;">` +
-                                 `    <thead>` +
-                                 `      <tr>` +
-                                 `        <th>Nama TPQ</th>` +
-                                 `        <th class="text-right" style="width: 30%">Jumlah</th>` +
-                                 `      </tr>` +
-                                 `    </thead>` +
-                                 `    <tbody>`;
-                    
-                    tpqBreakdown.forEach(item => {
-                        alertHtml += `      <tr>` +
-                                     `        <td>${item.nama_tpq}</td>` +
-                                     `        <td class="text-right">${item.count} anak</td>` +
-                                     `      </tr>`;
-                    });
-                    
-                    alertHtml += `    </tbody>` +
-                                 `  </table>` +
-                                 `</div>`;
-                }
-                
-                if (isAlumni) {
-                    titleText = 'Konfirmasi Kelulusan (Alumni)';
-                    alertHtml += `<div class="alert alert-success" style="font-size: 0.85rem;">` +
-                                 `  <i class="fas fa-graduation-cap"></i> <strong>Lulus & Alumni:</strong> Santri di kelas ini akan lulus secara permanen.` +
-                                 `</div>`;
-                } else {
-                    alertHtml += `<div class="alert alert-warning" style="font-size: 0.85rem;">` +
-                                 `  <i class="fas fa-exclamation-triangle"></i> <strong>Penting:</strong> Seluruh santri aktif di kelas ini akan dipromosikan ke tingkat berikutnya pada tahun ajaran target.` +
-                                 `</div>`;
-                }
-                alertHtml += `</div>`;
+                const defaultNextId = getNextClassId(idKelas);
+                const isAdmin = !idTpqSession || idTpqSession === 0 || idTpqSession === "0";
 
+                // Tampilkan loading spinner sementara memuat data santri
                 Swal.fire({
-                    title: titleText,
-                    html: alertHtml,
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#3085d6',
-                    cancelButtonColor: '#d33',
-                    confirmButtonText: 'Ya, Proses!',
-                    cancelButtonText: 'Batal'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        Swal.fire({
-                            title: 'Memproses...',
-                            text: 'Harap tunggu, sedang memproses data kenaikan kelas.',
-                            allowOutsideClick: false,
-                            didOpen: () => {
-                                Swal.showLoading();
-                            }
-                        });
-                        window.location.href = targetUrl;
+                    title: 'Memuat Data...',
+                    text: 'Harap tunggu, sedang mengambil daftar santri.',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
                     }
                 });
+
+                // Fetch data santri via AJAX
+                fetch(`<?= base_url('backend/kelas/getSantriListAjax') ?>/${tahunAsal}/${idKelas}`)
+                    .then(response => response.json())
+                    .then(res => {
+                        if (res.status !== 'success' || !res.data) {
+                            Swal.fire('Error', 'Gagal memuat data santri.', 'error');
+                            return;
+                        }
+
+                        // Kelompokkan data santri berdasarkan TPQ
+                        const grouped = {};
+                        res.data.forEach(santri => {
+                            const tpqId = santri.IdTpq || 0;
+                            const tpqName = santri.NamaTpq || 'TPQ Tidak Diketahui';
+                            if (!grouped[tpqId]) {
+                                grouped[tpqId] = {
+                                    tpqName: tpqName,
+                                    students: []
+                                };
+                            }
+                            grouped[tpqId].students.push(santri);
+                        });
+
+                        let studentTableHtml = '';
+                        const tpqKeys = Object.keys(grouped);
+
+                        if (tpqKeys.length === 0) {
+                            studentTableHtml = `<tr><td colspan="2" class="text-center text-muted">Tidak ada santri aktif di kelas ini</td></tr>`;
+                        } else {
+                            tpqKeys.forEach(tpqId => {
+                                const group = grouped[tpqId];
+                                
+                                // Render header group
+                                if (isAdmin) {
+                                    studentTableHtml += `<tr class="bg-purple text-white tpq-group-header" data-tpq-id="${tpqId}" style="cursor: pointer;">` +
+                                                        `  <td colspan="2">` +
+                                                        `    <i class="fas fa-chevron-right mr-2 toggle-icon-${tpqId}"></i>` +
+                                                        `    <strong>${group.tpqName}</strong> (${group.students.length} anak) - <span style="font-size: 0.75rem; text-decoration: underline;">Klik untuk sesuaikan kelas individu</span>` +
+                                                        `  </td>` +
+                                                        `</tr>`;
+                                } else {
+                                    studentTableHtml += `<tr class="bg-info text-white tpq-group-header" data-tpq-id="${tpqId}" style="cursor: pointer;">` +
+                                                        `  <td colspan="2">` +
+                                                        `    <i class="fas fa-chevron-right mr-2 toggle-icon-${tpqId}"></i>` +
+                                                        `    <strong>Klik di sini jika ingin menyesuaikan kelas per anak (${group.students.length} santri)</strong>` +
+                                                        `  </td>` +
+                                                        `</tr>`;
+                                }
+                                
+                                // Render baris santri
+                                group.students.forEach(santri => {
+                                    studentTableHtml += `<tr class="tpq-student-rows-${tpqId}" style="display: none;">` +
+                                                        `  <td style="padding-left: 20px; vertical-align: middle;">${santri.NamaSantri || 'Tanpa Nama'}</td>` +
+                                                        `  <td>` +
+                                                        `    <select name="target_kelas_santri[${santri.IdSantri}]" class="form-control form-control-sm select-target-kelas-santri" style="width: 100%;">` +
+                                                        `      ${buildClassOptions(defaultNextId)}` +
+                                                        `    </select>` +
+                                                        `  </td>` +
+                                                        `</tr>`;
+                                });
+                            });
+                        }
+
+                        let alertHtml = `<div class="text-left" style="font-size: 0.9rem;">` +
+                                        `<p>Apakah Anda yakin ingin memproses kenaikan kelas dengan detail berikut:</p>` +
+                                        `<table class="table table-sm table-bordered mt-2 text-left">` +
+                                        `  <thead>` +
+                                        `    <tr class="bg-light">` +
+                                        `      <th>Deskripsi</th>` +
+                                        `      <th>Sebelum</th>` +
+                                        `      <th>Sesudah</th>` +
+                                        `    </tr>` +
+                                        `  </thead>` +
+                                        `  <tbody>` +
+                                        `    <tr>` +
+                                        `      <th>Kelas</th>` +
+                                        `      <td>${namaKelas}</td>` +
+                                        `      <td><strong>${nextClassName}</strong> <span class="badge badge-info">Dapat disesuaikan</span></td>` +
+                                        `    </tr>` +
+                                        `    <tr>` +
+                                        `      <th>Tahun Ajaran</th>` +
+                                        `      <td>${formatAcademicYear(tahunAsal)}</td>` +
+                                        `      <td><strong>${formatAcademicYear(nextTa)}</strong></td>` +
+                                        `    </tr>` +
+                                        `  </tbody>` +
+                                        `</table>` +
+                                        `<p class="mt-3 mb-2"><strong>Daftar Santri & Kelas Tujuan:</strong></p>` +
+                                        `<div style="max-height: 250px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 4px; padding: 5px; margin-bottom: 15px;">` +
+                                        `  <table class="table table-sm table-bordered mb-0 text-left" style="font-size: 0.85rem; width: 100%;">` +
+                                        `    <thead>` +
+                                        `      <tr class="bg-light">` +
+                                        `        <th>Nama Santri</th>` +
+                                        `        <th style="width: 45%">Kelas Tujuan</th>` +
+                                        `      </tr>` +
+                                        `    </thead>` +
+                                        `    <tbody>` +
+                                        `      ${studentTableHtml}` +
+                                        `    </tbody>` +
+                                        `  </table>` +
+                                        `</div>` +
+                                        `<p class="mt-2 mb-3"><strong>Jumlah yang akan dinaikkan:</strong> <span class="text-primary font-weight-bold" style="font-size: 1.1rem;">${jumlahSantri}</span> Santri</p>`;
+
+                        if (isAlumni) {
+                            alertHtml += `<div class="alert alert-success" style="font-size: 0.85rem;">` +
+                                         `  <i class="fas fa-graduation-cap"></i> <strong>Lulus & Alumni:</strong> Santri di kelas ini akan lulus secara permanen.` +
+                                         `</div>`;
+                        } else {
+                            alertHtml += `<div class="alert alert-warning" style="font-size: 0.85rem;">` +
+                                         `  <i class="fas fa-exclamation-triangle"></i> <strong>Penting:</strong> Seluruh santri aktif di kelas ini akan dipromosikan ke tingkat berikutnya pada tahun ajaran target (atau disesuaikan per individu jika diubah pada daftar di atas).` +
+                                         `</div>`;
+                        }
+                        alertHtml += `</div>`;
+
+                        Swal.fire({
+                            title: isAlumni ? 'Konfirmasi Kelulusan (Alumni)' : 'Konfirmasi Kenaikan Kelas',
+                            html: alertHtml,
+                            icon: 'warning',
+                            showCancelButton: true,
+                            confirmButtonColor: '#3085d6',
+                            cancelButtonColor: '#d33',
+                            confirmButtonText: 'Ya, Proses!',
+                            cancelButtonText: 'Batal',
+                            didOpen: () => {
+                                // Binding event listener toggle untuk collapsible headers
+                                const headers = Swal.getHtmlContainer().querySelectorAll('.tpq-group-header');
+                                headers.forEach(hdr => {
+                                    hdr.addEventListener('click', function() {
+                                        const tpqId = this.getAttribute('data-tpq-id');
+                                        const rows = Swal.getHtmlContainer().querySelectorAll(`.tpq-student-rows-${tpqId}`);
+                                        const icon = Swal.getHtmlContainer().querySelector(`.toggle-icon-${tpqId}`);
+                                        
+                                        rows.forEach(row => {
+                                            if (row.style.display === 'none') {
+                                                row.style.display = 'table-row';
+                                            } else {
+                                                row.style.display = 'none';
+                                            }
+                                        });
+
+                                        if (icon) {
+                                            if (icon.classList.contains('fa-chevron-right')) {
+                                                icon.classList.remove('fa-chevron-right');
+                                                icon.classList.add('fa-chevron-down');
+                                            } else {
+                                                icon.classList.remove('fa-chevron-down');
+                                                icon.classList.add('fa-chevron-right');
+                                            }
+                                        }
+                                    });
+                                });
+                            }
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                Swal.fire({
+                                    title: 'Memproses...',
+                                    text: 'Harap tunggu, sedang memproses data kenaikan kelas.',
+                                    allowOutsideClick: false,
+                                    didOpen: () => {
+                                        Swal.showLoading();
+                                    }
+                                });
+
+                                // Buat form secara dinamis untuk submit via POST
+                                const form = document.createElement('form');
+                                form.method = 'POST';
+                                form.action = targetUrl;
+
+                                // Tambahkan CSRF token untuk keamanan
+                                const csrfInput = document.createElement('input');
+                                csrfInput.type = 'hidden';
+                                csrfInput.name = '<?= csrf_token() ?>';
+                                csrfInput.value = '<?= csrf_hash() ?>';
+                                form.appendChild(csrfInput);
+
+                                // Tambahkan seluruh input target_kelas_santri dari modal
+                                const selects = Swal.getHtmlContainer().querySelectorAll('.select-target-kelas-santri');
+                                selects.forEach(sel => {
+                                    const input = document.createElement('input');
+                                    input.type = 'hidden';
+                                    input.name = sel.name;
+                                    input.value = sel.value;
+                                    form.appendChild(input);
+                                });
+
+                                document.body.appendChild(form);
+                                form.submit();
+                            }
+                        });
+                    })
+                    .catch(err => {
+                        console.error('AJAX Error:', err);
+                        Swal.fire('Error', 'Terjadi kesalahan sistem saat memuat data santri.', 'error');
+                    });
             });
         });
     });

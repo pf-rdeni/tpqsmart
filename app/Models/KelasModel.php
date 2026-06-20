@@ -250,6 +250,33 @@ class KelasModel extends Model
     }
 
     /**
+     * Mendapatkan daftar santri lengkap dengan NamaSantri dan NamaTpq
+     * @param string $idTahunAjaran
+     * @param string $idKelas
+     * @param mixed $IdTpq
+     * @return array
+     */
+    public function getSantriWithNamaByTahunAjaranDanKelas($idTahunAjaran, $idKelas, $IdTpq = null)
+    {
+        $builder = $this->db->table('tbl_kelas_santri ks')
+            ->select('ks.*, s.NamaSantri, t.NamaTpq')
+            ->join('tbl_santri_baru s', 'ks.IdSantri = s.IdSantri', 'left')
+            ->join('tbl_tpq t', 'ks.IdTpq = t.IdTpq', 'left')
+            ->where('ks.IdTahunAjaran', $idTahunAjaran)
+            ->where('ks.IdKelas', $idKelas)
+            ->where('ks.Status', 1);
+
+        if (!empty($IdTpq) && $IdTpq != 0) {
+            $builder->where('ks.IdTpq', $IdTpq);
+        }
+
+        $builder->orderBy('t.NamaTpq', 'ASC')
+                ->orderBy('s.NamaSantri', 'ASC');
+
+        return $builder->get()->getResultArray();
+    }
+
+    /**
      * Update status kelas lama menjadi tidak aktif
      * @param array $ids Array ID yang akan diupdate
      * @return bool

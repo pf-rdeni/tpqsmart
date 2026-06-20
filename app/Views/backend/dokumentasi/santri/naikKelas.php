@@ -68,6 +68,7 @@
                                     <li>Periksa kolom **Jumlah Santri** untuk memastikan data santri di kelas tersebut sudah lengkap.</li>
                                     <li>Klik tombol <span class="badge badge-warning"><i class="fas fa-edit"></i> Proses</span> di kolom paling kanan.</li>
                                     <li>Sistem akan memproses seluruh santri di kelas tersebut secara massal ke kelas satu tingkat di atasnya pada tahun ajaran target.</li>
+                                    <li><strong>Penanganan Khusus Kelas TK (TKQ, TKQA, TKQB)</strong>: Karena alur kelas TK berbeda-beda pada setiap TPQ, ketika tombol diklik akan muncul pop-up konfirmasi yang berisi pilihan target kelas untuk masing-masing TPQ. Pilih kelas tujuan secara manual untuk tiap TPQ sebelum memproses kenaikan kelas.</li>
                                 </ol>
                             </div>
                         </div>
@@ -109,6 +110,7 @@
                         <li><strong>Dukungan Multi-Tahun</strong>: Memungkinkan Anda melihat data promosi tahun ajaran lama maupun menyiapkan tahun ajaran mendatang dengan mudah.</li>
                         <li><strong>Otomatisasi Nilai</strong>: Sistem secara otomatis membuat entri daftar nilai (`tbl_nilai`) untuk semester ganjil dan genap bagi setiap santri di kelas barunya.</li>
                         <li><strong>Keamanan Data</strong>: Sistem otomatis me-nonaktifkan status keanggotaan kelas lama santri demi mencegah kesalahan promosi ganda untuk santri yang sama.</li>
+                        <li><strong>Fleksibilitas Kelas TK</strong>: Menampung perbedaan alur kenaikan kelas TK (TKQ, TKQA, TKQB) pada setiap TPQ melalui seleksi kelas target secara manual per-TPQ.</li>
                     </ul>
                 </div>
 

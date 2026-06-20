@@ -146,6 +146,8 @@ $routes->post('backend/kelas/update/(:num)', 'Kelas::update/$1');  // Update a s
 $routes->get('kelas/delete/(:num)', 'Kelas::delete/$1');  // Delete a specific record from database (Delete)
 $routes->get('backend/kelas/showListSantriPerKelas/(:any)', 'Backend\Kelas::showListSantriPerKelas/$1');
 $routes->get('backend/kelas/updateNaikKelas/(:num)/(:num)', 'Backend\Kelas::updateNaikKelas/$1/$2');
+$routes->post('backend/kelas/updateNaikKelas/(:num)/(:num)', 'Backend\Kelas::updateNaikKelas/$1/$2');
+$routes->get('backend/kelas/getSantriListAjax/(:num)/(:num)', 'Backend\Kelas::getSantriListAjax/$1/$2');
 $routes->get('backend/kelas/showSantriPerKelas/(:any)', 'Backend\Kelas::showSantriPerKelas/$1');
 $routes->get('backend/kelas/showCheckDuplikasiKelasSantri', 'Backend\Kelas::showCheckDuplikasiKelasSantri');
 $routes->post('backend/kelas/checkDuplikasiKelasSantri', 'Backend\Kelas::checkDuplikasiKelasSantri');
