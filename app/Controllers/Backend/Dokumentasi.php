@@ -137,4 +137,15 @@ class Dokumentasi extends BaseController
         ];
         return view('backend/dokumentasi/guru/berkasLampiran', $data);
     }
+
+    // Santri Naik Kelas Documentation
+    public function santriNaikKelas()
+    {
+        $data = [
+            'page_title' => 'Dokumentasi: Kenaikan Kelas Santri',
+            'menu_open' => 'dokumentasi',
+            'menu_active' => 'santri-naik-kelas'
+        ];
+        return view('backend/dokumentasi/santri/naikKelas', $data);
+    }
 }

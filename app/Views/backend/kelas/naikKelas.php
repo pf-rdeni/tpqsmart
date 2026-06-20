@@ -2,6 +2,30 @@
 <?= $this->section('content'); ?>
 <div class="col-12">
 
+    <!-- Filter Tahun Ajaran Asal -->
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h5 class="mb-0"><i class="fas fa-filter text-purple"></i> Pilih Tahun Ajaran Asal untuk Proses Kenaikan</h5>
+                </div>
+                <div class="col-md-6">
+                    <select class="form-control" id="selectSourceTahunAjaran">
+                        <?php foreach ($tahunAjaranList as $ta): ?>
+                            <?php 
+                            // Hitung tahun ajaran berikutnya untuk label
+                            $nextTa = (int)substr($ta, 0, 4) + 1 . ((int)substr($ta, 4, 4) + 1);
+                            ?>
+                            <option value="<?= $ta; ?>" <?= ($ta == $previous_tahun_ajaran) ? 'selected' : ''; ?>>
+                                <?= convertTahunAjaran($ta); ?> &rarr; <?= convertTahunAjaran($nextTa); ?> (Target Kenaikan)
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Informasi Proses Flow -->
     <div class="card card-info card-outline collapsed-card mb-3">
         <div class="card-header bg-info">
@@ -22,16 +46,23 @@
                         <li class="mb-2">
                             <strong>Memahami Tampilan Halaman</strong>
                             <ul class="mt-1">
-                                <li>Halaman ini menampilkan <strong>dua tabel</strong>: tabel atas untuk <strong>Tahun Ajaran Sebelumnya</strong> dan tabel bawah untuk <strong>Tahun Ajaran Saat Ini</strong></li>
-                                <li>Tabel atas menampilkan kelas-kelas yang <strong>siap untuk dinaikkan</strong> ke tahun ajaran baru</li>
-                                <li>Tabel bawah menampilkan kelas-kelas yang <strong>sudah ada di tahun ajaran saat ini</strong></li>
+                                <li>Halaman ini menampilkan <strong>dua tabel</strong>: tabel atas untuk <strong>Tahun Ajaran Asal</strong> (yang dipilih pada filter) dan tabel bawah untuk <strong>Tahun Ajaran Target Kenaikan</strong></li>
+                                <li>Tabel atas menampilkan kelas-kelas dari tahun ajaran asal yang <strong>siap untuk dinaikkan</strong> ke tahun ajaran target</li>
+                                <li>Tabel bawah menampilkan kelas-kelas yang <strong>sudah terdaftar di tahun ajaran target</strong></li>
                                 <li>Setiap baris menampilkan: Tahun Ajaran, Nama Kelas, dan Jumlah Santri</li>
+                            </ul>
+                        </li>
+                        <li class="mb-2">
+                            <strong>Memilih Tahun Ajaran Asal</strong>
+                            <ul class="mt-1">
+                                <li>Gunakan filter <strong>"Pilih Tahun Ajaran Asal untuk Proses Kenaikan"</strong> di bagian atas halaman untuk menentukan tahun ajaran yang ingin Anda naikkan kelasnya secara fleksibel</li>
+                                <li>Sistem akan otomatis menyesuaikan daftar kelas asal (tabel atas) dan target kenaikan (tabel bawah)</li>
                             </ul>
                         </li>
                         <li class="mb-2">
                             <strong>Memproses Kenaikan Kelas</strong>
                             <ul class="mt-1">
-                                <li>Lihat tabel <strong>"Tahun Ajaran Sebelumnya"</strong> untuk menemukan kelas yang akan dinaikkan</li>
+                                <li>Lihat tabel <strong>"Tahun Ajaran Asal"</strong> untuk menemukan kelas yang akan dinaikkan</li>
                                 <li>Pastikan jumlah santri sudah sesuai dan benar</li>
                                 <li>Klik tombol <strong>"Proses Naik Kelas"</strong> (ikon pensil/edit) pada kolom "Proses Naik Kelas"</li>
                                 <li>Sistem akan otomatis memproses semua santri di kelas tersebut untuk naik ke kelas berikutnya</li>
@@ -41,17 +72,17 @@
                             <strong>Apa yang Terjadi Setelah Proses?</strong>
                             <ul class="mt-1">
                                 <li>Semua santri di kelas tersebut akan <strong>otomatis naik ke kelas berikutnya</strong></li>
-                                <li>Santri akan muncul di <strong>tahun ajaran baru</strong> dengan kelas yang lebih tinggi</li>
-                                <li>Data nilai dan absensi di tahun ajaran lama <strong>tetap tersimpan</strong> dan tidak hilang</li>
-                                <li>Data nilai untuk tahun ajaran baru akan <strong>otomatis dibuat</strong> sesuai materi kelas baru</li>
-                                <li>Setelah selesai, kelas akan muncul di tabel <strong>"Tahun Ajaran Saat Ini"</strong></li>
+                                <li>Santri akan muncul di <strong>tahun ajaran target</strong> dengan kelas yang lebih tinggi</li>
+                                <li>Data nilai dan absensi di tahun ajaran asal <strong>tetap tersimpan</strong> dan tidak hilang</li>
+                                <li>Data nilai untuk tahun ajaran target akan <strong>otomatis dibuat</strong> sesuai materi kelas baru</li>
+                                <li>Setelah selesai, kelas akan muncul di tabel <strong>"Tahun Ajaran Target"</strong> di bagian bawah</li>
                             </ul>
                         </li>
                         <li class="mb-2">
                             <strong>Memverifikasi Hasil</strong>
                             <ul class="mt-1">
-                                <li>Setelah proses selesai, <strong>refresh halaman</strong> atau kembali ke halaman ini</li>
-                                <li>Cek tabel <strong>"Tahun Ajaran Saat Ini"</strong> di bagian bawah</li>
+                                <li>Setelah proses selesai, halaman akan memuat kembali data terbaru</li>
+                                <li>Cek tabel <strong>"Tahun Ajaran Target"</strong> di bagian bawah</li>
                                 <li>Pastikan kelas yang baru diproses sudah muncul dengan jumlah santri yang benar</li>
                                 <li>Jika ada masalah, hubungi administrator untuk bantuan</li>
                             </ul>
@@ -59,7 +90,7 @@
                         <li class="mb-2">
                             <strong>Tips dan Saran</strong>
                             <ul class="mt-1">
-                                <li>Lakukan proses kenaikan kelas <strong>setelah tahun ajaran baru dimulai</strong></li>
+                                <li>Proses kenaikan kelas kini **bisa dilakukan secara fleksibel kapan saja** tanpa harus menunggu tahun ajaran baru berjalan secara sistem</li>
                                 <li>Pastikan semua santri yang akan naik kelas <strong>sudah memiliki data lengkap</strong></li>
                                 <li>Jika ada santri yang <strong>tidak naik kelas</strong> (tinggal kelas), pastikan sudah ditangani terlebih dahulu</li>
                                 <li>Proses ini bisa dilakukan <strong>per kelas</strong>, tidak harus semua kelas sekaligus</li>
@@ -73,7 +104,7 @@
                         <ul class="mb-0">
                             <li>Proses kenaikan kelas <strong>tidak dapat dibatalkan</strong> setelah dilakukan</li>
                             <li>Pastikan Anda sudah <strong>yakin</strong> sebelum mengklik tombol "Proses Naik Kelas"</li>
-                            <li>Pastikan <strong>tahun ajaran baru</strong> sudah dikonfigurasi dengan benar</li>
+                            <li>Pastikan <strong>tahun ajaran target/baru</strong> sudah dikonfigurasi dengan benar</li>
                             <li>Jika ada santri yang <strong>pindah TPQ</strong> atau <strong>keluar</strong>, pastikan sudah ditangani sebelum proses kenaikan</li>
                             <li>Halaman ini hanya bisa diakses oleh <strong>Admin</strong> dan <strong>Operator</strong></li>
                         </ul>
@@ -86,7 +117,7 @@
     <!-- Card for Previous Academic Year -->
     <div class="card">
         <div class="card-header">
-            <h3 class="card-title">List Santri TPQ Per Kelas Tahun Ajaran Sebelumnya untuk dinaikan</h3>
+            <h3 class="card-title">List Santri TPQ Per Kelas Tahun Ajaran <?= convertTahunAjaran($previous_tahun_ajaran) ?> untuk dinaikan</h3>
         </div>
         <!-- /.card-header -->
         <div class="card-body">
@@ -134,7 +165,7 @@
     <!-- Card for Current Academic Year -->
     <div class="card">
         <div class="card-header">
-            <h3 class="card-title">List Santri TPQ Per Kelas Tahun Ajaran <?= $current_tahun_ajaran ?></h3>
+            <h3 class="card-title">List Santri TPQ Per Kelas Tahun Ajaran <?= convertTahunAjaran($current_tahun_ajaran) ?></h3>
         </div>
         <!-- /.card-header -->
         <div class="card-body">
@@ -176,4 +207,16 @@
     <!-- /.card -->
 
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const selectSourceTahunAjaran = document.getElementById('selectSourceTahunAjaran');
+        if (selectSourceTahunAjaran) {
+            selectSourceTahunAjaran.addEventListener('change', function() {
+                const selectedVal = this.value;
+                window.location.href = '<?= base_url('backend/kelas/showListSantriPerKelas') ?>/' + selectedVal;
+            });
+        }
+    });
+</script>
 <?= $this->endSection(); ?>

@@ -1039,6 +1039,12 @@
                                                         <p>Verifikasi Data</p>
                                                     </a>
                                                 </li>
+                                                <li class="nav-item">
+                                                    <a href="<?= base_url('backend/dokumentasi/santri-naik-kelas') ?>" class="nav-link">
+                                                        <i class="far fa-dot-circle nav-icon"></i>
+                                                        <p>Naik Kelas</p>
+                                                    </a>
+                                                </li>
                                             </ul>
                                         </li>
                                         <li class="nav-item">

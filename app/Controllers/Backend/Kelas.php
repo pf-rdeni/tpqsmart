@@ -153,12 +153,17 @@ class Kelas extends BaseController
         // ambil IdTpq dari session
         $IdTpq = session()->get('IdTpq');
 
-        $currentYear = date('Y');
-        $currentMonth = date('n');
+        if (!empty($idTahunAjaran)) {
+            $previousAcademicYear = $idTahunAjaran;
+            $currentAcademicYear = $this->helpFunction->getTahuanAjaranBerikutnya($idTahunAjaran);
+        } else {
+            $currentYear = date('Y');
+            $currentMonth = date('n');
 
-        // Ambil data berdasarkan tahun ajaran sebelumnya dan data tahun ajaran saat ini
-        $previousAcademicYear = ($currentMonth >= 7) ? ($currentYear - 1) . $currentYear : ($currentYear - 2) . ($currentYear - 1);
-        $currentAcademicYear = ($currentMonth >= 7) ? $currentYear . ($currentYear + 1) : ($currentYear - 1) . $currentYear;
+            // Ambil data berdasarkan tahun ajaran sebelumnya dan data tahun ajaran saat ini
+            $previousAcademicYear = ($currentMonth >= 7) ? ($currentYear - 1) . $currentYear : ($currentYear - 2) . ($currentYear - 1);
+            $currentAcademicYear = ($currentMonth >= 7) ? $currentYear . ($currentYear + 1) : ($currentYear - 1) . $currentYear;
+        }
 
         // Ambil data kelas per tahun ajaran dari model
         $IdTpqForQuery = ($IdTpq != 0) ? $IdTpq : null;
@@ -173,13 +178,43 @@ class Kelas extends BaseController
             return $item['IdTahunAjaran'] === $currentAcademicYear;
         });
 
+        // Ambil list tahun ajaran untuk dropdown
+        $db = \Config\Database::connect();
+        $yearsFromDb = $db->table('tbl_kelas_santri')
+                          ->select('IdTahunAjaran')
+                          ->distinct()
+                          ->get()
+                          ->getResultArray();
+        $tahunAjaranList = array_column($yearsFromDb, 'IdTahunAjaran');
+
+        $tahunAjaranSaatIni = $this->helpFunction->getTahunAjaranSaatIni();
+        $tahunAjaranBerikutnya = $this->helpFunction->getTahuanAjaranBerikutnya($tahunAjaranSaatIni);
+
+        if (!in_array($tahunAjaranSaatIni, $tahunAjaranList)) {
+            $tahunAjaranList[] = $tahunAjaranSaatIni;
+        }
+        if (!in_array($tahunAjaranBerikutnya, $tahunAjaranList)) {
+            $tahunAjaranList[] = $tahunAjaranBerikutnya;
+        }
+        
+        $sessionList = session()->get('IdTahunAjaranList');
+        if (is_array($sessionList)) {
+            foreach ($sessionList as $y) {
+                if (!in_array($y, $tahunAjaranList)) {
+                    $tahunAjaranList[] = $y;
+                }
+            }
+        }
+        rsort($tahunAjaranList);
+
         // persiapkan data untuk di kirim ke 
         $data = [
             'page_title' => 'Daftar Naik Kelas',
             'kelas_previous' => $kelas_previous,
             'kelas_current' => $kelas_current,
             'current_tahun_ajaran' => $currentAcademicYear,
-            'previous_tahun_ajaran' => $previousAcademicYear
+            'previous_tahun_ajaran' => $previousAcademicYear,
+            'tahunAjaranList' => $tahunAjaranList
         ];
 
         return view('backend/kelas/naikKelas', $data);
