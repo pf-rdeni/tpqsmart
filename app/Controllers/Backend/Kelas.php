@@ -169,9 +169,9 @@ class Kelas extends BaseController
         $IdTpqForQuery = ($IdTpq != 0) ? $IdTpq : null;
         $dataKelas = $this->kelasModel->getKelasPerTahunAjaran($IdTpqForQuery, [$previousAcademicYear, $currentAcademicYear]);
 
-        // Pisahkan data dari tahun ajaran sebelumnya dan saat ini
+        // Pisahkan data dari tahun ajaran sebelumnya dan saat ini (kecuali Alumni dengan IdKelas = 10)
         $kelas_previous = array_filter($dataKelas, function($item) use ($previousAcademicYear) {
-            return $item['IdTahunAjaran'] === $previousAcademicYear;
+            return $item['IdTahunAjaran'] === $previousAcademicYear && $item['IdKelas'] != 10;
         });
 
         $kelas_current = array_filter($dataKelas, function($item) use ($currentAcademicYear) {
@@ -207,6 +207,27 @@ class Kelas extends BaseController
         }
         rsort($tahunAjaranList);
 
+        // Query rincian santri per TPQ (hanya untuk Admin/FKPQ)
+        $tpqBreakdown = [];
+        if (empty($IdTpq) || $IdTpq == 0) {
+            $breakdownData = $db->table('tbl_kelas_santri ks')
+                                ->select('ks.IdKelas, ks.IdTpq, t.NamaTpq, COUNT(ks.IdSantri) as count')
+                                ->join('tbl_tpq t', 'ks.IdTpq = t.IdTpq')
+                                ->where('ks.IdTahunAjaran', $previousAcademicYear)
+                                ->where('ks.status', 1)
+                                ->groupBy('ks.IdKelas, ks.IdTpq')
+                                ->orderBy('t.NamaTpq', 'ASC')
+                                ->get()
+                                ->getResultArray();
+            
+            foreach ($breakdownData as $row) {
+                $tpqBreakdown[$row['IdKelas']][] = [
+                    'nama_tpq' => $row['NamaTpq'],
+                    'count' => $row['count']
+                ];
+            }
+        }
+
         // persiapkan data untuk di kirim ke 
         $data = [
             'page_title' => 'Daftar Naik Kelas',
@@ -214,7 +235,8 @@ class Kelas extends BaseController
             'kelas_current' => $kelas_current,
             'current_tahun_ajaran' => $currentAcademicYear,
             'previous_tahun_ajaran' => $previousAcademicYear,
-            'tahunAjaranList' => $tahunAjaranList
+            'tahunAjaranList' => $tahunAjaranList,
+            'tpqBreakdown' => $tpqBreakdown
         ];
 
         return view('backend/kelas/naikKelas', $data);
