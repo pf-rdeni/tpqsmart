@@ -231,6 +231,13 @@
                             <h3 class="card-title font-weight-bold"><i class="fas fa-share-alt mr-1 text-primary"></i> Link Distribusi</h3>
                         </div>
                         <div class="card-body text-center p-3">
+                            <?php
+                            $waTextPublic = "Silakan mengisi survey *" . $survey['title'] . "* melalui tautan berikut: " . $public_url;
+                            $waUrlPublic = "https://api.whatsapp.com/send?text=" . urlencode($waTextPublic);
+
+                            $waTextResult = "Berikut adalah hasil tanggapan survey *" . $survey['title'] . "*: " . $result_url;
+                            $waUrlResult = "https://api.whatsapp.com/send?text=" . urlencode($waTextResult);
+                            ?>
                             <div class="form-group">
                                 <label class="text-left d-block">URL Pengisian Survey:</label>
                                 <div class="input-group">
@@ -239,8 +246,30 @@
                                         <button class="btn btn-primary btn-sm" type="button" id="copy-link-btn" title="Salin Link">
                                             <i class="far fa-copy"></i>
                                         </button>
+                                        <a href="<?= $public_url ?>" target="_blank" class="btn btn-outline-primary btn-sm" id="public-link-href" title="Buka di Tab Baru">
+                                            <i class="fas fa-external-link-alt"></i>
+                                        </a>
+                                        <a href="<?= $waUrlPublic ?>" target="_blank" class="btn btn-success btn-sm" id="public-link-wa" title="Bagikan ke WhatsApp">
+                                            <i class="fab fa-whatsapp"></i>
+                                        </a>
                                     </div>
                                 </div>
+                            </div>
+
+                            <div class="form-group mt-3">
+                                <label class="text-left d-block text-warning"><i class="fas fa-unlock-alt mr-1"></i> URL Pengisian Bypass Admin:</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control form-control-sm bg-light" id="bypass-link" value="<?= $public_url ?>?bypass=1" readonly>
+                                    <div class="input-group-append">
+                                        <button class="btn btn-warning btn-sm" type="button" id="copy-bypass-btn" title="Salin Link Bypass">
+                                            <i class="far fa-copy text-white"></i>
+                                        </button>
+                                        <a href="<?= $public_url ?>?bypass=1" target="_blank" class="btn btn-outline-warning btn-sm" id="bypass-link-href" title="Buka di Tab Baru">
+                                            <i class="fas fa-external-link-alt font-weight-bold"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                                <small class="text-muted text-left d-block mt-1">Gunakan link ini untuk mengisi survey meskipun survey ditutup, berakhir, atau kuota penuh.</small>
                             </div>
                             
                             <div class="form-group mt-3" id="result-link-group" style="display: <?= $survey['public_result_enabled'] == 1 ? 'block' : 'none' ?>;">
@@ -251,6 +280,12 @@
                                         <button class="btn btn-success btn-sm" type="button" id="copy-result-btn" title="Salin Link">
                                             <i class="far fa-copy"></i>
                                         </button>
+                                        <a href="<?= $result_url ?>" target="_blank" class="btn btn-outline-success btn-sm" id="result-link-href" title="Buka di Tab Baru">
+                                            <i class="fas fa-external-link-alt"></i>
+                                        </a>
+                                        <a href="<?= $waUrlResult ?>" target="_blank" class="btn btn-success btn-sm" id="result-link-wa" title="Bagikan ke WhatsApp">
+                                            <i class="fab fa-whatsapp"></i>
+                                        </a>
                                     </div>
                                 </div>
                             </div>
@@ -351,6 +386,10 @@ $(document).ready(function() {
         copyFromInput('public-link', 'Link pendaftaran disalin ke clipboard.');
     });
 
+    $('#copy-bypass-btn').on('click', function() {
+        copyFromInput('bypass-link', 'Link bypass admin disalin ke clipboard.');
+    });
+
     $('#copy-result-btn').on('click', function() {
         copyFromInput('result-link', 'Link hasil publik disalin ke clipboard.');
     });
@@ -403,10 +442,20 @@ $(document).ready(function() {
                     success: function(response) {
                         if (response.success) {
                             $('#public-link').val(response.public_url);
+                            $('#bypass-link').val(response.public_url + '?bypass=1');
                             $('#result-link').val(response.result_url);
-                            
 
-                            
+                            $('#public-link-href').attr('href', response.public_url);
+                            $('#bypass-link-href').attr('href', response.public_url + '?bypass=1');
+                            $('#result-link-href').attr('href', response.result_url);
+
+                            const titleVal = $('#title').val() || '<?= esc($survey['title']) ?>';
+                            const waTextPublic = encodeURIComponent('Silakan mengisi survey *' + titleVal + '* melalui tautan berikut: ' + response.public_url);
+                            $('#public-link-wa').attr('href', 'https://api.whatsapp.com/send?text=' + waTextPublic);
+
+                            const waTextResult = encodeURIComponent('Berikut adalah hasil tanggapan survey *' + titleVal + '*: ' + response.result_url);
+                            $('#result-link-wa').attr('href', 'https://api.whatsapp.com/send?text=' + waTextResult);
+
                             toastr.success('URL Key berhasil di-regenerasi.');
                         } else {
                             toastr.error('Gagal meregenerasi URL.');

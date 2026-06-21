@@ -48,10 +48,13 @@ class SurveyPublic extends BaseController
             ]);
         }
 
+        $isAdmin = logged_in() && (in_groups('Admin') || in_groups('Developer'));
+        $bypass = $this->request->getGet('bypass') == 1;
+
         // Cek status aktif berdasarkan tanggal
         $statusCheck = $this->surveyModel->checkDateBasedStatus($survey);
 
-        if ($statusCheck !== 'active') {
+        if ($statusCheck !== 'active' && !($isAdmin && $bypass)) {
             $messages = [
                 'draft'       => 'Survey ini belum dipublikasikan.',
                 'inactive'    => 'Survey ini sudah ditutup.',
@@ -68,7 +71,7 @@ class SurveyPublic extends BaseController
 
         // Cek quota
         $currentCount = $this->responseModel->countResponsesBySurvey($survey['id']);
-        if ($this->surveyModel->isQuotaFull($survey['id'], $currentCount)) {
+        if ($this->surveyModel->isQuotaFull($survey['id'], $currentCount) && !($isAdmin && $bypass)) {
             return view('frontend/survey/closed', [
                 'page_title' => 'Survey Penuh',
                 'reason'     => 'quota_full',
@@ -78,7 +81,7 @@ class SurveyPublic extends BaseController
         }
 
         // Cek duplikasi responden (via session/cookie identifier)
-        if ($survey['limit_one_response']) {
+        if ($survey['limit_one_response'] && !($isAdmin && $bypass)) {
             $identifier = $this->getRespondentIdentifier($survey['id']);
             if ($identifier && $this->responseModel->checkDuplicateResponse($survey['id'], $identifier)) {
                 return view('frontend/survey/closed', [
@@ -111,6 +114,7 @@ class SurveyPublic extends BaseController
             'survey'     => $survey,
             'sections'   => $sections,
             'questions'  => $questions,
+            'bypass'     => $bypass,
         ];
 
         return view('frontend/survey/form', $data);
@@ -128,20 +132,23 @@ class SurveyPublic extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => 'Survey tidak ditemukan.']);
         }
 
+        $isAdmin = logged_in() && (in_groups('Admin') || in_groups('Developer'));
+        $bypass = $this->request->getPost('bypass') == 1;
+
         // Validasi status
         $statusCheck = $this->surveyModel->checkDateBasedStatus($survey);
-        if ($statusCheck !== 'active') {
+        if ($statusCheck !== 'active' && !($isAdmin && $bypass)) {
             return $this->response->setJSON(['success' => false, 'message' => 'Survey sudah tidak aktif.']);
         }
 
         // Cek quota
         $currentCount = $this->responseModel->countResponsesBySurvey($survey['id']);
-        if ($this->surveyModel->isQuotaFull($survey['id'], $currentCount)) {
+        if ($this->surveyModel->isQuotaFull($survey['id'], $currentCount) && !($isAdmin && $bypass)) {
             return $this->response->setJSON(['success' => false, 'message' => 'Batas responden sudah tercapai.']);
         }
 
         // Cek duplikasi via identifier (browser)
-        if ($survey['limit_one_response']) {
+        if ($survey['limit_one_response'] && !($isAdmin && $bypass)) {
             $identifier = $this->getRespondentIdentifier($survey['id']);
             if ($identifier && $this->responseModel->checkDuplicateResponse($survey['id'], $identifier)) {
                 return $this->response->setJSON(['success' => false, 'message' => 'Anda sudah pernah mengisi survey ini.']);
@@ -150,7 +157,7 @@ class SurveyPublic extends BaseController
 
         // Cek duplikasi via respondent_ref_id (master data)
         $refId = $this->request->getPost('respondent_ref_id');
-        if ($survey['limit_one_response'] && !empty($refId) && $survey['target_type'] !== 'public') {
+        if ($survey['limit_one_response'] && !empty($refId) && $survey['target_type'] !== 'public' && !($isAdmin && $bypass)) {
             if ($this->responseModel->checkDuplicateByRefId($survey['id'], $refId)) {
                 return $this->response->setJSON(['success' => false, 'message' => 'Identitas Anda terdeteksi sudah pernah mengirim respon untuk survey ini.']);
             }
@@ -160,7 +167,7 @@ class SurveyPublic extends BaseController
         $email = trim($this->request->getPost('respondent_email') ?? '');
         $phone = trim($this->request->getPost('respondent_phone') ?? '');
 
-        if ($survey['unique_field_type'] === 'email' && !empty($email)) {
+        if ($survey['unique_field_type'] === 'email' && !empty($email) && !($isAdmin && $bypass)) {
             if ($this->responseModel->checkDuplicateByEmail($survey['id'], $email)) {
                 return $this->response->setJSON([
                     'success' => false,
@@ -169,7 +176,7 @@ class SurveyPublic extends BaseController
             }
         }
 
-        if ($survey['unique_field_type'] === 'phone' && !empty($phone)) {
+        if ($survey['unique_field_type'] === 'phone' && !empty($phone) && !($isAdmin && $bypass)) {
             if ($this->responseModel->checkDuplicateByPhone($survey['id'], $phone)) {
                 return $this->response->setJSON([
                     'success' => false,
@@ -460,6 +467,8 @@ class SurveyPublic extends BaseController
             return ucwords(strtolower(trim($str)));
         };
 
+        $isAdmin = logged_in() && (in_groups('Admin') || in_groups('Developer'));
+
         // Get list of ref_ids that have already responded to this survey
         $filledRefIds = [];
         if ($surveyKey) {
@@ -480,7 +489,7 @@ class SurveyPublic extends BaseController
                 $name = trim($t['NamaTpq']);
                 $namesCount[$name] = ($namesCount[$name] ?? 0) + 1;
             }
-            $data = array_map(function($t) use ($namesCount, $titleCase, $filledRefIds) {
+            $data = array_map(function($t) use ($namesCount, $titleCase, $filledRefIds, $isAdmin) {
                 $name = $titleCase($t['NamaTpq']);
                 if (($namesCount[trim($t['NamaTpq'])] ?? 0) > 1 && !empty($t['KelurahanDesa'])) {
                     $name = $name . ' - ' . $titleCase($t['KelurahanDesa']);
@@ -489,28 +498,28 @@ class SurveyPublic extends BaseController
                 return [
                     'id'       => $t['IdTpq'],
                     'name'     => $name . ($isFilled ? ' (Sudah Mengisi ✓)' : ''),
-                    'disabled' => $isFilled,
+                    'disabled' => $isAdmin ? false : $isFilled,
                 ];
             }, $tpqsRaw);
         } elseif ($type === 'guru' && $tpqId) {
             $gurus = $helpModel->getDataGuru(false, true, $tpqId);
-            $data  = array_map(function($g) use ($titleCase, $filledRefIds) {
+            $data  = array_map(function($g) use ($titleCase, $filledRefIds, $isAdmin) {
                 $isFilled = in_array($g['IdGuru'], $filledRefIds);
                 return [
                     'id'       => $g['IdGuru'],
                     'name'     => $titleCase($g['Nama']) . ($isFilled ? ' (Sudah Mengisi ✓)' : ''),
-                    'disabled' => $isFilled,
+                    'disabled' => $isAdmin ? false : $isFilled,
                 ];
             }, $gurus);
         } elseif ($type === 'santri' && $tpqId) {
             $santris = $helpModel->getDataSantriStatus(1, (int)$tpqId);
-            $data    = array_map(function($s) use ($titleCase, $filledRefIds) {
+            $data    = array_map(function($s) use ($titleCase, $filledRefIds, $isAdmin) {
                 $isFilled = in_array($s['IdSantri'], $filledRefIds);
                 return [
                     'id'       => $s['IdSantri'],
                     'name'     => $titleCase($s['NamaSantri']) . ($isFilled ? ' (Sudah Mengisi ✓)' : ''),
                     'kelas'    => $s['NamaKelas'] ?? '',
-                    'disabled' => $isFilled,
+                    'disabled' => $isAdmin ? false : $isFilled,
                 ];
             }, $santris);
         } else {
@@ -579,6 +588,11 @@ class SurveyPublic extends BaseController
      */
     public function checkDuplicate()
     {
+        $isAdmin = logged_in() && (in_groups('Admin') || in_groups('Developer'));
+        if ($isAdmin) {
+            return $this->response->setJSON(['success' => true, 'is_duplicate' => false]);
+        }
+
         $surveyKey = $this->request->getPost('survey_key');
         $survey    = $this->surveyModel->getSurveyByKey($surveyKey);
 

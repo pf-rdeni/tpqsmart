@@ -137,6 +137,9 @@
                                                 <a class="dropdown-item" href="<?= base_url('backend/survey/preview/' . $survey['id']) ?>" target="_blank">
                                                     <i class="fas fa-eye text-primary mr-2"></i> Preview Form
                                                 </a>
+                                                <a class="dropdown-item" href="<?= base_url('survey/' . $survey['survey_key'] . '?bypass=1') ?>" target="_blank">
+                                                    <i class="fas fa-plus-circle text-success mr-2"></i> Isi Survey (Bypass)
+                                                </a>
                                                 <form action="<?= base_url('backend/survey/duplicate/' . $survey['id']) ?>" method="POST" class="d-inline">
                                                     <button type="submit" class="dropdown-item">
                                                         <i class="fas fa-copy text-info mr-2"></i> Duplikasi Survey

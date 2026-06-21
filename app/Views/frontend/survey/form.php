@@ -27,6 +27,7 @@
             <input type="hidden" name="survey_key" value="<?= esc($survey['survey_key']) ?>">
             <input type="hidden" name="respondent_ref_id" value="">
             <input type="hidden" name="respondent_tpq_id" value="">
+            <input type="hidden" name="bypass" value="<?= isset($bypass) && $bypass ? 1 : 0 ?>">
             <?php if ($survey['target_type'] !== 'public'): ?>
                 <input type="hidden" name="respondent_name" value="">
             <?php endif; ?>
