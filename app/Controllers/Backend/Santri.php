@@ -779,10 +779,33 @@ class Santri extends BaseController
 
         $sessionIdTpq = session()->get('IdTpq');
         $sessionIdKelas = session()->get('IdKelas');
-        $isOperator = in_groups('Operator');
-        $isAdmin = in_groups('Admin');
-        $isGuru = in_groups('Guru');
-        $isKepalaTpq = in_groups('Kepala TPQ');
+        $activeRole = session()->get('active_role');
+        $hasAdminGroup = in_groups('Admin');
+        $hasOperatorGroup = in_groups('Operator');
+        $hasGuruGroup = in_groups('Guru');
+        $hasKepalaTpqGroup = in_groups('Kepala TPQ');
+
+        $isUsingGuruRole = in_array($activeRole, ['guru', 'wali_kelas']);
+        $isUsingAdminRole = ($activeRole === 'admin' && $hasAdminGroup);
+        $isUsingOperatorRole = ($activeRole === 'operator' && $hasOperatorGroup);
+        $isUsingKepalaTpqRole = ($activeRole === 'kepala_tpq' && $hasKepalaTpqGroup);
+
+        if (empty($activeRole) || (!in_array($activeRole, ['admin', 'operator', 'kepala_tpq', 'guru', 'wali_kelas']))) {
+            if ($hasGuruGroup) {
+                $isUsingGuruRole = true;
+            } elseif ($hasAdminGroup) {
+                $isUsingAdminRole = true;
+            } elseif ($hasOperatorGroup) {
+                $isUsingOperatorRole = true;
+            } elseif ($hasKepalaTpqGroup) {
+                $isUsingKepalaTpqRole = true;
+            }
+        }
+
+        $isAdmin = $isUsingAdminRole;
+        $isOperator = $isUsingOperatorRole;
+        $isGuru = $isUsingGuruRole;
+        $isKepalaTpq = $isUsingKepalaTpqRole;
 
         // Tentukan IdTpq yang akan digunakan
         $IdTpq = null;
@@ -1035,10 +1058,33 @@ class Santri extends BaseController
 
         $sessionIdTpq  = session()->get('IdTpq');
         $sessionIdKelas = session()->get('IdKelas');
-        $isAdmin       = in_groups('Admin');
-        $isOperator    = in_groups('Operator');
-        $isGuru        = in_groups('Guru');
-        $isKepalaTpq   = in_groups('Kepala TPQ');
+        $activeRole = session()->get('active_role');
+        $hasAdminGroup = in_groups('Admin');
+        $hasOperatorGroup = in_groups('Operator');
+        $hasGuruGroup = in_groups('Guru');
+        $hasKepalaTpqGroup = in_groups('Kepala TPQ');
+
+        $isUsingGuruRole = in_array($activeRole, ['guru', 'wali_kelas']);
+        $isUsingAdminRole = ($activeRole === 'admin' && $hasAdminGroup);
+        $isUsingOperatorRole = ($activeRole === 'operator' && $hasOperatorGroup);
+        $isUsingKepalaTpqRole = ($activeRole === 'kepala_tpq' && $hasKepalaTpqGroup);
+
+        if (empty($activeRole) || (!in_array($activeRole, ['admin', 'operator', 'kepala_tpq', 'guru', 'wali_kelas']))) {
+            if ($hasGuruGroup) {
+                $isUsingGuruRole = true;
+            } elseif ($hasAdminGroup) {
+                $isUsingAdminRole = true;
+            } elseif ($hasOperatorGroup) {
+                $isUsingOperatorRole = true;
+            } elseif ($hasKepalaTpqGroup) {
+                $isUsingKepalaTpqRole = true;
+            }
+        }
+
+        $isAdmin = $isUsingAdminRole;
+        $isOperator = $isUsingOperatorRole;
+        $isGuru = $isUsingGuruRole;
+        $isKepalaTpq = $isUsingKepalaTpqRole;
 
         // --- Tentukan IdTpq ---
         if ($isAdmin) {
@@ -1064,8 +1110,8 @@ class Santri extends BaseController
             if (!empty($filterIdKelas)) {
                 $IdKelas = array_values($filterIdKelas);
             } else {
-                // Tidak ada filter kelas — ambil semua (null = semua)
-                $IdKelas = null;
+                // Tidak ada filter kelas — jika Guru, batasi ke kelas miliknya, selain itu ambil semua (null = semua)
+                $IdKelas = $isGuru ? $sessionIdKelas : null;
             }
         }
 
@@ -1196,10 +1242,33 @@ class Santri extends BaseController
 
         // Tentukan IdTpq yang akan digunakan berdasarkan role
         $IdTpq = null;
-        $isAdmin = in_groups('Admin');
-        $isGuru = in_groups('Guru');
-        $isOperator = in_groups('Operator');
-        $isKepalaTpq = in_groups('Kepala TPQ');
+        $activeRole = session()->get('active_role');
+        $hasAdminGroup = in_groups('Admin');
+        $hasOperatorGroup = in_groups('Operator');
+        $hasGuruGroup = in_groups('Guru');
+        $hasKepalaTpqGroup = in_groups('Kepala TPQ');
+
+        $isUsingGuruRole = in_array($activeRole, ['guru', 'wali_kelas']);
+        $isUsingAdminRole = ($activeRole === 'admin' && $hasAdminGroup);
+        $isUsingOperatorRole = ($activeRole === 'operator' && $hasOperatorGroup);
+        $isUsingKepalaTpqRole = ($activeRole === 'kepala_tpq' && $hasKepalaTpqGroup);
+
+        if (empty($activeRole) || (!in_array($activeRole, ['admin', 'operator', 'kepala_tpq', 'guru', 'wali_kelas']))) {
+            if ($hasGuruGroup) {
+                $isUsingGuruRole = true;
+            } elseif ($hasAdminGroup) {
+                $isUsingAdminRole = true;
+            } elseif ($hasOperatorGroup) {
+                $isUsingOperatorRole = true;
+            } elseif ($hasKepalaTpqGroup) {
+                $isUsingKepalaTpqRole = true;
+            }
+        }
+
+        $isAdmin = $isUsingAdminRole;
+        $isOperator = $isUsingOperatorRole;
+        $isGuru = $isUsingGuruRole;
+        $isKepalaTpq = $isUsingKepalaTpqRole;
 
         if ($isAdmin) {
             // Admin bisa pilih semua TPQ
@@ -1940,10 +2009,33 @@ class Santri extends BaseController
         $sessionIdTpq = session()->get('IdTpq');
         $sessionIdKelas = session()->get('IdKelas');
         $sessionIdTahunAjaran = session()->get('IdTahunAjaran');
-        $isOperator = in_groups('Operator');
-        $isAdmin = in_groups('Admin');
-        $isGuru = in_groups('Guru');
-        $isKepalaTpq = in_groups('Kepala TPQ');
+        $activeRole = session()->get('active_role');
+        $hasAdminGroup = in_groups('Admin');
+        $hasOperatorGroup = in_groups('Operator');
+        $hasGuruGroup = in_groups('Guru');
+        $hasKepalaTpqGroup = in_groups('Kepala TPQ');
+
+        $isUsingGuruRole = in_array($activeRole, ['guru', 'wali_kelas']);
+        $isUsingAdminRole = ($activeRole === 'admin' && $hasAdminGroup);
+        $isUsingOperatorRole = ($activeRole === 'operator' && $hasOperatorGroup);
+        $isUsingKepalaTpqRole = ($activeRole === 'kepala_tpq' && $hasKepalaTpqGroup);
+
+        if (empty($activeRole) || (!in_array($activeRole, ['admin', 'operator', 'kepala_tpq', 'guru', 'wali_kelas']))) {
+            if ($hasGuruGroup) {
+                $isUsingGuruRole = true;
+            } elseif ($hasAdminGroup) {
+                $isUsingAdminRole = true;
+            } elseif ($hasOperatorGroup) {
+                $isUsingOperatorRole = true;
+            } elseif ($hasKepalaTpqGroup) {
+                $isUsingKepalaTpqRole = true;
+            }
+        }
+
+        $isAdmin = $isUsingAdminRole;
+        $isOperator = $isUsingOperatorRole;
+        $isGuru = $isUsingGuruRole;
+        $isKepalaTpq = $isUsingKepalaTpqRole;
         $isSantri = in_groups('Santri');
 
         // Tentukan IdTpq yang akan digunakan
@@ -2543,8 +2635,33 @@ class Santri extends BaseController
 
             $sessionIdTpq = session()->get('IdTpq');
             $sessionIdKelas = session()->get('IdKelas');
-            $isOperator = in_groups('Operator');
-            $isAdmin = in_groups('Admin');
+            $activeRole = session()->get('active_role');
+            $hasAdminGroup = in_groups('Admin');
+            $hasOperatorGroup = in_groups('Operator');
+            $hasGuruGroup = in_groups('Guru');
+            $hasKepalaTpqGroup = in_groups('Kepala TPQ');
+
+            $isUsingGuruRole = in_array($activeRole, ['guru', 'wali_kelas']);
+            $isUsingAdminRole = ($activeRole === 'admin' && $hasAdminGroup);
+            $isUsingOperatorRole = ($activeRole === 'operator' && $hasOperatorGroup);
+            $isUsingKepalaTpqRole = ($activeRole === 'kepala_tpq' && $hasKepalaTpqGroup);
+
+            if (empty($activeRole) || (!in_array($activeRole, ['admin', 'operator', 'kepala_tpq', 'guru', 'wali_kelas']))) {
+                if ($hasGuruGroup) {
+                    $isUsingGuruRole = true;
+                } elseif ($hasAdminGroup) {
+                    $isUsingAdminRole = true;
+                } elseif ($hasOperatorGroup) {
+                    $isUsingOperatorRole = true;
+                } elseif ($hasKepalaTpqGroup) {
+                    $isUsingKepalaTpqRole = true;
+                }
+            }
+
+            $isAdmin = $isUsingAdminRole;
+            $isOperator = $isUsingOperatorRole;
+            $isGuru = $isUsingGuruRole;
+            $isKepalaTpq = $isUsingKepalaTpqRole;
 
             // Tentukan IdTpq yang akan digunakan
             $IdTpq = null;

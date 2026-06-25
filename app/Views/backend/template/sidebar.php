@@ -817,12 +817,6 @@
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a href=<?php echo base_url('backend/santri/detailProfilSantri') ?> class="nav-link">
-                                    <i class="fas fa-info-circle nav-icon text-warning"></i>
-                                    <p>Detail Profil Santri</p>
-                                </a>
-                            </li>
-                            <li class="nav-item">
                                 <a href=<?php echo base_url('backend/santri/showAturSantriBaru') ?> class="nav-link">
                                     <i class="fas fa-user-edit nav-icon text-warning"></i>
                                     <p>Ubah Santri</p>
@@ -1372,31 +1366,12 @@
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a href=<?php echo base_url('backend/santri/showAturSantriBaru') ?> class="nav-link">
-                                    <i class="fas fa-user-edit nav-icon text-warning"></i>
-                                    <p>Ubah Data Santri</p>
-                                </a>
-                            </li>
-                            <li class="nav-item">
                                 <a href=<?php echo base_url('backend/santri/showProfilSantri') ?> class="nav-link">
                                     <i class="fas fa-id-card nav-icon text-warning"></i>
                                     <p>Profil Data Santri</p>
                                 </a>
                             </li>
-                            <li class="nav-item">
-                                <a href=<?php echo base_url('backend/santri/detailProfilSantri') ?> class="nav-link">
-                                    <i class="fas fa-info-circle nav-icon text-warning"></i>
-                                    <p>Detail Profil Santri</p>
-                                </a>
-                            </li>
                         </ul>
-                    </li>
-                    <!-- Detail Profil -->
-                    <li class="nav-item">
-                        <a href=<?php echo base_url('backend/santri/detailProfilSantri') ?> class="nav-link">
-                            <i class="nav-icon fas fa-user-circle"></i>
-                            <p>Detail Profil</p>
-                        </a>
                     </li>
                     <!-- Absensi -->
                     <li class="nav-item no-hover">
