@@ -249,6 +249,7 @@
                                                     <th>No HP Ibu</th>
                                                     <th>TPQ</th>
                                                     <th>Kelas</th>
+                                                    <th>Tahun Ajaran</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -339,6 +340,7 @@
                                                         <td style="white-space: nowrap;"><?= esc($santri['NoHpIbu'] ?? '-') ?></td>
                                                         <td style="min-width: 120px;"><?= esc($santri['NamaTpq'] ?? '-') ?></td>
                                                         <td style="white-space: nowrap;"><?= esc($santri['NamaKelas'] ?? '-') ?></td>
+                                                        <td style="white-space: nowrap;"><?= esc(isset($santri['IdTahunAjaran']) && !empty($santri['IdTahunAjaran']) ? convertTahunAjaran($santri['IdTahunAjaran']) : '-') ?></td>
                                                     </tr>
                                                 <?php endforeach; ?>
                                             </tbody>

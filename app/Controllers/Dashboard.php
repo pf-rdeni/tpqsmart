@@ -122,10 +122,11 @@ class Dashboard extends BaseController
             $JumlahKelasDiajar = empty($idKelas) ? 0 : 1;
         }
 
-        // Ambil jumlah santri per kelas
+        // Ambll jumlah santri per kelas
         $jumlahSantriPerKelas = $this->helpFunctionModel->getJumlahSantriPerKelas(
             IdTpq: $idTpq,
-            kelasIds: $idKelas
+            kelasIds: $idKelas,
+            IdTahunAjaran: $idTahunAjaran
         );
 
         $statusInputNilaiPerKelasGanjil = $this->getStatusInputNilaiPerKelas($idTpq, $idTahunAjaran, $idKelas, 'Ganjil');
@@ -180,7 +181,8 @@ class Dashboard extends BaseController
             IdTpq: $idTpq,
             kelasIds: array_map(function ($kelas) {
                 return is_object($kelas) ? $kelas->IdKelas : $kelas;
-            }, $listKelas)
+            }, $listKelas),
+            IdTahunAjaran: $idTahunAjaran
         );
 
         // Status input nilai per kelas (diperlukan untuk Operator dan Kepala TPQ)
@@ -205,7 +207,7 @@ class Dashboard extends BaseController
             $totalTpq = null; // Tidak digunakan untuk operator/kepala TPQ
         }
 
-        $totalSantri = $this->helpFunctionModel->getTotalSantri(IdTpq: $idTpq);
+        $totalSantri = $this->helpFunctionModel->getTotalSantri(IdTpq: $idTpq, IdTahunAjaran: $idTahunAjaran);
         $totalGuru = $this->helpFunctionModel->getTotalGuru(IdTpq: $idTpq);
         $totalKelas = $this->helpFunctionModel->getTotalKelas(
             IdTpq: $idTpq,
@@ -230,7 +232,7 @@ class Dashboard extends BaseController
         );
 
         // Statistik Santri
-        $statistikSantri = $this->helpFunctionModel->getStatistikSantri($idTpqForQuery);
+        $statistikSantri = $this->helpFunctionModel->getStatistikSantri($idTpqForQuery, $idTahunAjaran);
 
         // Statistik Guru
         $statistikGuru = $this->helpFunctionModel->getStatistikGuru($idTpqForQuery);
@@ -242,7 +244,7 @@ class Dashboard extends BaseController
         $statistikSantriPerTpqPerKelas = [];
         $statistikProgressNilaiPerTpq = [];
         if ($idTpqForQuery == 0) {
-            $statistikSantriPerTpq = $this->helpFunctionModel->getStatistikSantriPerTpq();
+            $statistikSantriPerTpq = $this->helpFunctionModel->getStatistikSantriPerTpq($idTahunAjaran);
             $statistikGuruPerTpq = $this->helpFunctionModel->getStatistikGuruPerTpq();
             $statistikSantriPerTpqPerKelas = $this->getStatistikSantriPerTpqPerKelas($idTahunAjaran);
             
@@ -1385,7 +1387,7 @@ class Dashboard extends BaseController
         $result = [];
         
         // Query untuk mengambil jumlah santri per TPQ dan per kelas
-        // Menggunakan tbl_santri_baru sebagai sumber data utama seperti statistik lama
+        // Menggunakan tbl_kelas_santri sebagai sumber data utama agar sesuai tahun ajaran
         $query = $db->query("
             SELECT 
                 t.IdTpq,
@@ -1393,15 +1395,17 @@ class Dashboard extends BaseController
                 COALESCE(t.KelurahanDesa, t.Alamat, '') as KelurahanDesa,
                 k.IdKelas,
                 k.NamaKelas,
-                COUNT(DISTINCT s.IdSantri) as JumlahSantri
-            FROM tbl_santri_baru s
-            INNER JOIN tbl_tpq t ON t.IdTpq = s.IdTpq
-            LEFT JOIN tbl_kelas k ON k.IdKelas = s.IdKelas
+                COUNT(DISTINCT ks.IdSantri) as JumlahSantri
+            FROM tbl_kelas_santri ks
+            INNER JOIN tbl_santri_baru s ON s.IdSantri = ks.IdSantri
+            INNER JOIN tbl_tpq t ON t.IdTpq = ks.IdTpq
+            LEFT JOIN tbl_kelas k ON k.IdKelas = ks.IdKelas
                 AND (k.NamaKelas != 'ALUMNI' AND k.NamaKelas != 'Alumni' AND k.NamaKelas != 'alumni')
             WHERE s.Active < 2
+                AND ks.IdTahunAjaran = ?
             GROUP BY t.IdTpq, t.NamaTpq, t.KelurahanDesa, t.Alamat, k.IdKelas, k.NamaKelas
             ORDER BY t.NamaTpq ASC, k.NamaKelas ASC
-        ");
+        ", [$idTahunAjaran]);
         
         $data = $query->getResultArray();
         
@@ -1685,20 +1689,23 @@ class Dashboard extends BaseController
         // Query untuk mengambil data per santri untuk semester Ganjil (lebih efisien, tanpa subquery di JOIN)
         $querySantriGanjil = $db->query("
             SELECT 
-                n.IdTpq,
-                n.IdKelas,
-                n.IdSantri,
+                ks.IdTpq,
+                ks.IdKelas,
+                ks.IdSantri,
                 s.NamaSantri,
                 s.PhotoProfil,
-                COUNT(DISTINCT n.IdMateri) as total_materi,
-                COUNT(DISTINCT CASE WHEN n.Nilai != 0 THEN n.IdMateri END) as materi_terisi
-            FROM tbl_nilai n
-            INNER JOIN tbl_santri_baru s ON s.IdSantri = n.IdSantri AND s.Active = 1
-            WHERE n.IdTahunAjaran = ?
+                COALESCE(COUNT(DISTINCT n.IdMateri), 0) as total_materi,
+                COALESCE(COUNT(DISTINCT CASE WHEN n.Nilai != 0 THEN n.IdMateri END), 0) as materi_terisi
+            FROM tbl_kelas_santri ks
+            INNER JOIN tbl_santri_baru s ON s.IdSantri = ks.IdSantri AND s.Active = 1
+            LEFT JOIN tbl_nilai n ON n.IdSantri = ks.IdSantri 
+                AND n.IdKelas = ks.IdKelas 
+                AND n.IdTahunAjaran = ks.IdTahunAjaran 
                 AND n.Semester = 'Ganjil'
-                AND n.IdTpq IN ($placeholders)
-            GROUP BY n.IdTpq, n.IdKelas, n.IdSantri, s.NamaSantri, s.PhotoProfil
-            ORDER BY n.IdTpq ASC, n.IdKelas ASC, s.NamaSantri ASC
+            WHERE ks.IdTahunAjaran = ?
+                AND ks.IdTpq IN ($placeholders)
+            GROUP BY ks.IdTpq, ks.IdKelas, ks.IdSantri, s.NamaSantri, s.PhotoProfil
+            ORDER BY ks.IdTpq ASC, ks.IdKelas ASC, s.NamaSantri ASC
         ", array_merge([$idTahunAjaran], $tpqIds));
 
         $dataSantriGanjil = $querySantriGanjil->getResultArray();
@@ -1722,18 +1729,17 @@ class Dashboard extends BaseController
         // - Menghilangkan kolom yang tidak digunakan dari SELECT (NamaTpq, KelurahanDesa)
         $queryGanjil = $db->query("
             SELECT 
-                n.IdTpq,
-                n.IdKelas,
+                ks.IdTpq,
+                ks.IdKelas,
                 k.NamaKelas,
-                COUNT(DISTINCT n.IdSantri) as total_santri
-            FROM tbl_nilai n
-            INNER JOIN tbl_santri_baru s ON s.IdSantri = n.IdSantri AND s.Active = 1
-            LEFT JOIN tbl_kelas k ON k.IdKelas = n.IdKelas
-            WHERE n.IdTahunAjaran = ?
-                AND n.Semester = 'Ganjil'
-                AND n.IdTpq IN ($placeholders)
-            GROUP BY n.IdTpq, n.IdKelas, k.NamaKelas
-            ORDER BY n.IdTpq ASC, k.NamaKelas ASC
+                COUNT(DISTINCT ks.IdSantri) as total_santri
+            FROM tbl_kelas_santri ks
+            INNER JOIN tbl_santri_baru s ON s.IdSantri = ks.IdSantri AND s.Active = 1
+            LEFT JOIN tbl_kelas k ON k.IdKelas = ks.IdKelas
+            WHERE ks.IdTahunAjaran = ?
+                AND ks.IdTpq IN ($placeholders)
+            GROUP BY ks.IdTpq, ks.IdKelas, k.NamaKelas
+            ORDER BY ks.IdTpq ASC, k.NamaKelas ASC
         ", array_merge([$idTahunAjaran], $tpqIds));
 
         $dataGanjil = $queryGanjil->getResultArray();
@@ -1761,20 +1767,23 @@ class Dashboard extends BaseController
         // Optimasi: Hitung completion per santri terlebih dahulu untuk semester Genap
         $querySantriGenap = $db->query("
             SELECT 
-                n.IdTpq,
-                n.IdKelas,
-                n.IdSantri,
+                ks.IdTpq,
+                ks.IdKelas,
+                ks.IdSantri,
                 s.NamaSantri,
                 s.PhotoProfil,
-                COUNT(DISTINCT n.IdMateri) as total_materi,
-                COUNT(DISTINCT CASE WHEN n.Nilai != 0 THEN n.IdMateri END) as materi_terisi
-            FROM tbl_nilai n
-            INNER JOIN tbl_santri_baru s ON s.IdSantri = n.IdSantri AND s.Active = 1
-            WHERE n.IdTahunAjaran = ?
+                COALESCE(COUNT(DISTINCT n.IdMateri), 0) as total_materi,
+                COALESCE(COUNT(DISTINCT CASE WHEN n.Nilai != 0 THEN n.IdMateri END), 0) as materi_terisi
+            FROM tbl_kelas_santri ks
+            INNER JOIN tbl_santri_baru s ON s.IdSantri = ks.IdSantri AND s.Active = 1
+            LEFT JOIN tbl_nilai n ON n.IdSantri = ks.IdSantri 
+                AND n.IdKelas = ks.IdKelas 
+                AND n.IdTahunAjaran = ks.IdTahunAjaran 
                 AND n.Semester = 'Genap'
-                AND n.IdTpq IN ($placeholders)
-            GROUP BY n.IdTpq, n.IdKelas, n.IdSantri, s.NamaSantri, s.PhotoProfil
-            ORDER BY n.IdTpq ASC, n.IdKelas ASC, s.NamaSantri ASC
+            WHERE ks.IdTahunAjaran = ?
+                AND ks.IdTpq IN ($placeholders)
+            GROUP BY ks.IdTpq, ks.IdKelas, ks.IdSantri, s.NamaSantri, s.PhotoProfil
+            ORDER BY ks.IdTpq ASC, ks.IdKelas ASC, s.NamaSantri ASC
         ", array_merge([$idTahunAjaran], $tpqIds));
 
         $dataSantriGenap = $querySantriGenap->getResultArray();
@@ -1787,18 +1796,17 @@ class Dashboard extends BaseController
         // - Menghilangkan kolom yang tidak digunakan dari SELECT (NamaTpq, KelurahanDesa)
         $queryGenap = $db->query("
             SELECT 
-                n.IdTpq,
-                n.IdKelas,
+                ks.IdTpq,
+                ks.IdKelas,
                 k.NamaKelas,
-                COUNT(DISTINCT n.IdSantri) as total_santri
-            FROM tbl_nilai n
-            INNER JOIN tbl_santri_baru s ON s.IdSantri = n.IdSantri AND s.Active = 1
-            LEFT JOIN tbl_kelas k ON k.IdKelas = n.IdKelas
-            WHERE n.IdTahunAjaran = ?
-                AND n.Semester = 'Genap'
-                AND n.IdTpq IN ($placeholders)
-            GROUP BY n.IdTpq, n.IdKelas, k.NamaKelas
-            ORDER BY n.IdTpq ASC, k.NamaKelas ASC
+                COUNT(DISTINCT ks.IdSantri) as total_santri
+            FROM tbl_kelas_santri ks
+            INNER JOIN tbl_santri_baru s ON s.IdSantri = ks.IdSantri AND s.Active = 1
+            LEFT JOIN tbl_kelas k ON k.IdKelas = ks.IdKelas
+            WHERE ks.IdTahunAjaran = ?
+                AND ks.IdTpq IN ($placeholders)
+            GROUP BY ks.IdTpq, ks.IdKelas, k.NamaKelas
+            ORDER BY ks.IdTpq ASC, k.NamaKelas ASC
         ", array_merge([$idTahunAjaran], $tpqIds));
 
         $dataGenap = $queryGenap->getResultArray();
@@ -2175,16 +2183,15 @@ class Dashboard extends BaseController
                 COALESCE(t.KelurahanDesa, t.Alamat, '') as KelurahanDesa,
                 k.IdKelas,
                 k.NamaKelas,
-                COUNT(DISTINCT n.IdSantri) as total_santri
-            FROM tbl_nilai n
-            INNER JOIN tbl_santri_baru s ON s.IdSantri = n.IdSantri AND s.Active = 1
-            INNER JOIN tbl_tpq t ON t.IdTpq = n.IdTpq
-            LEFT JOIN tbl_kelas k ON k.IdKelas = n.IdKelas
-            WHERE n.IdTahunAjaran = ?
-                AND n.Semester = ?
+                COUNT(DISTINCT ks.IdSantri) as total_santri
+            FROM tbl_kelas_santri ks
+            INNER JOIN tbl_santri_baru s ON s.IdSantri = ks.IdSantri AND s.Active = 1
+            INNER JOIN tbl_tpq t ON t.IdTpq = ks.IdTpq
+            LEFT JOIN tbl_kelas k ON k.IdKelas = ks.IdKelas
+            WHERE ks.IdTahunAjaran = ?
             GROUP BY t.IdTpq, t.NamaTpq, t.KelurahanDesa, t.Alamat, k.IdKelas, k.NamaKelas
             ORDER BY t.NamaTpq ASC, k.NamaKelas ASC
-        ", [$idTahunAjaran, $semester]);
+        ", [$idTahunAjaran]);
 
         $data = $query->getResultArray();
 
@@ -2192,21 +2199,24 @@ class Dashboard extends BaseController
         $querySantri = $db->query("
             SELECT 
                 t.IdTpq,
-                k.IdKelas,
-                n.IdSantri,
+                ks.IdKelas,
+                ks.IdSantri,
                 s.NamaSantri,
                 s.PhotoProfil,
-                COUNT(DISTINCT n.IdMateri) as total_materi,
-                COUNT(DISTINCT CASE WHEN n.Nilai != 0 THEN n.IdMateri END) as materi_terisi
-            FROM tbl_nilai n
-            INNER JOIN tbl_santri_baru s ON s.IdSantri = n.IdSantri AND s.Active = 1
-            INNER JOIN tbl_tpq t ON t.IdTpq = n.IdTpq
-            LEFT JOIN tbl_kelas k ON k.IdKelas = n.IdKelas
-            WHERE n.IdTahunAjaran = ?
+                COALESCE(COUNT(DISTINCT n.IdMateri), 0) as total_materi,
+                COALESCE(COUNT(DISTINCT CASE WHEN n.Nilai != 0 THEN n.IdMateri END), 0) as materi_terisi
+            FROM tbl_kelas_santri ks
+            INNER JOIN tbl_santri_baru s ON s.IdSantri = ks.IdSantri AND s.Active = 1
+            INNER JOIN tbl_tpq t ON t.IdTpq = ks.IdTpq
+            LEFT JOIN tbl_kelas k ON k.IdKelas = ks.IdKelas
+            LEFT JOIN tbl_nilai n ON n.IdSantri = ks.IdSantri 
+                AND n.IdKelas = ks.IdKelas 
+                AND n.IdTahunAjaran = ks.IdTahunAjaran 
                 AND n.Semester = ?
-            GROUP BY t.IdTpq, k.IdKelas, n.IdSantri, s.NamaSantri, s.PhotoProfil
-            ORDER BY t.IdTpq ASC, k.IdKelas ASC, s.NamaSantri ASC
-        ", [$idTahunAjaran, $semester]);
+            WHERE ks.IdTahunAjaran = ?
+            GROUP BY t.IdTpq, ks.IdKelas, ks.IdSantri, s.NamaSantri, s.PhotoProfil
+            ORDER BY t.IdTpq ASC, ks.IdKelas ASC, s.NamaSantri ASC
+        ", [$semester, $idTahunAjaran]);
 
         $dataSantri = $querySantri->getResultArray();
 

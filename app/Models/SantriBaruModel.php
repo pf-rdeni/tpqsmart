@@ -275,8 +275,23 @@ class SantriBaruModel extends Model
         // Menambahkan filter Active=1
         $builder->where('s.Active', 1);
         
-        // Tambahkan filter Status = 1 untuk tbl_kelas_santri (hanya record aktif)
-        $builder->where('ks.Status', 1);
+        // Tambahkan filter Status = 1 untuk tbl_kelas_santri (hanya jika tahun ajaran adalah tahun ajaran terbaru/aktif)
+        $latestYearRow = $db->table('tbl_kelas_santri')->selectMax('IdTahunAjaran')->get()->getRow();
+        $latestYear = $latestYearRow ? $latestYearRow->IdTahunAjaran : null;
+
+        if (!empty($IdTahunAjaran)) {
+            if (is_array($IdTahunAjaran)) {
+                if (in_array($latestYear, $IdTahunAjaran)) {
+                    $builder->where('ks.Status', 1);
+                }
+            } else {
+                if ($IdTahunAjaran == $latestYear) {
+                    $builder->where('ks.Status', 1);
+                }
+            }
+        } else {
+            $builder->where('ks.Status', 1);
+        }
 
         if (!empty($IdTahunAjaran)) {
             if (is_array($IdTahunAjaran)) {
@@ -370,12 +385,25 @@ class SantriBaruModel extends Model
      * @param array $idKelasArray Array ID Kelas untuk filter whereIn (untuk Operator)
      * @return array
      */
-    public function getProfilSantri($IdTpq = null, $IdKelas = null, $idKelasArray = null)
+    public function getProfilSantri($IdTpq = null, $IdKelas = null, $idKelasArray = null, $IdTahunAjaran = null)
     {
+        if ($IdTahunAjaran === null) {
+            $IdTahunAjaran = session()->get('IdTahunAjaran');
+        }
+
         $builder = $this->db->table('tbl_santri_baru');
-        $builder->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq, tbl_tpq.KelurahanDesa')
-            ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
-            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq');
+        
+        if (!empty($IdTahunAjaran)) {
+            $builder->select('tbl_santri_baru.*, ks.IdKelas as IdKelas, ks.IdTahunAjaran, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq, tbl_tpq.KelurahanDesa')
+                ->join('tbl_kelas_santri ks', 'ks.IdSantri = tbl_santri_baru.IdSantri AND ks.IdTahunAjaran = "' . $IdTahunAjaran . '"', 'inner')
+                ->join('tbl_kelas', 'tbl_kelas.IdKelas = ks.IdKelas')
+                ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq');
+        } else {
+            // Fallback ke perilaku lama jika tidak ada tahun ajaran terpilih
+            $builder->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq, tbl_tpq.KelurahanDesa, NULL as IdTahunAjaran')
+                ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
+                ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq');
+        }
 
         if ($IdTpq == null) {
             // Jika tidak ada filter TPQ, ambil semua data
@@ -386,20 +414,35 @@ class SantriBaruModel extends Model
             $builder->where('tbl_santri_baru.IdTpq', $IdTpq);
 
             // Filter berdasarkan kelas
-            if (!empty($idKelasArray)) {
-                // Untuk Operator: filter berdasarkan array kelas dari TPQ
-                $builder->whereIn('tbl_santri_baru.IdKelas', $idKelasArray);
-            } elseif ($IdKelas !== null) {
-                // Untuk role lain: filter berdasarkan IdKelas dari session
-                if (is_array($IdKelas)) {
-                    $builder->whereIn('tbl_santri_baru.IdKelas', $IdKelas);
-                } else {
-                    $builder->where('tbl_santri_baru.IdKelas', $IdKelas);
+            if (!empty($IdTahunAjaran)) {
+                if (!empty($idKelasArray)) {
+                    $builder->whereIn('ks.IdKelas', $idKelasArray);
+                } elseif ($IdKelas !== null) {
+                    if (is_array($IdKelas)) {
+                        $builder->whereIn('ks.IdKelas', $IdKelas);
+                    } else {
+                        $builder->where('ks.IdKelas', $IdKelas);
+                    }
+                }
+            } else {
+                if (!empty($idKelasArray)) {
+                    $builder->whereIn('tbl_santri_baru.IdKelas', $idKelasArray);
+                } elseif ($IdKelas !== null) {
+                    if (is_array($IdKelas)) {
+                        $builder->whereIn('tbl_santri_baru.IdKelas', $IdKelas);
+                    } else {
+                        $builder->where('tbl_santri_baru.IdKelas', $IdKelas);
+                    }
                 }
             }
 
-            $builder->orderBy('tbl_santri_baru.IdKelas', 'ASC')
-                ->orderBy('tbl_santri_baru.NamaSantri', 'ASC')
+            if (!empty($IdTahunAjaran)) {
+                $builder->orderBy('ks.IdKelas', 'ASC');
+            } else {
+                $builder->orderBy('tbl_santri_baru.IdKelas', 'ASC');
+            }
+            
+            $builder->orderBy('tbl_santri_baru.NamaSantri', 'ASC')
                 ->orderBy('tbl_santri_baru.Status', 'DESC');
         }
 

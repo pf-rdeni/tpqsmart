@@ -687,32 +687,56 @@ class HelpFunctionModel extends Model
      * @param mixed $IdGuru
      * @return int
      */
-    public function getTotalSantri($IdTpq, $IdKelas = null, $IdGuru = null, $Active = 1)
+    public function getTotalSantri($IdTpq, $IdKelas = null, $IdGuru = null, $Active = 1, $IdTahunAjaran = null)
     {
         // Handle IdTpq untuk admin (IdTpq=0, null, atau empty berarti semua TPQ)
         $idTpqForQuery = (empty($IdTpq) || $IdTpq == '0' || $IdTpq == 0) ? 0 : $IdTpq;
 
-        $builder = $this->db->table('tbl_santri_baru');
-        $builder->select('COUNT(DISTINCT IdSantri) as total');
-
-        // Filter berdasarkan IdTpq jika tidak 0
-        if ($idTpqForQuery != 0) {
-            $builder->where('IdTpq', $idTpqForQuery);
-        }
-
-        if ($Active == 1) {
-            $builder->where('Active', $Active);
-        }
-
-        if ($IdKelas) {
-            if (is_array($IdKelas)) {
-                $builder->whereIn('IdKelas', $IdKelas);
-            } else {
-                $builder->where('IdKelas', $IdKelas);
+        if (!empty($IdTahunAjaran)) {
+            $builder = $this->db->table('tbl_kelas_santri ks');
+            $builder->select('COUNT(DISTINCT ks.IdSantri) as total');
+            $builder->join('tbl_santri_baru s', 's.IdSantri = ks.IdSantri');
+            if ($idTpqForQuery != 0) {
+                $builder->where('ks.IdTpq', $idTpqForQuery);
             }
-        }
-        if ($IdGuru) {
-            $builder->where('IdGuru', $IdGuru);
+            if ($Active == 1) {
+                $builder->where('s.Active', $Active);
+            }
+            $builder->where('ks.IdTahunAjaran', $IdTahunAjaran);
+            if ($IdKelas) {
+                if (is_array($IdKelas)) {
+                    $builder->whereIn('ks.IdKelas', $IdKelas);
+                } else {
+                    $builder->where('ks.IdKelas', $IdKelas);
+                }
+            }
+            if ($IdGuru) {
+                $builder->join('tbl_guru_kelas gk', 'gk.IdKelas = ks.IdKelas AND gk.IdTpq = ks.IdTpq AND gk.IdTahunAjaran = ks.IdTahunAjaran');
+                $builder->where('gk.IdGuru', $IdGuru);
+            }
+        } else {
+            $builder = $this->db->table('tbl_santri_baru');
+            $builder->select('COUNT(DISTINCT IdSantri) as total');
+
+            // Filter berdasarkan IdTpq jika tidak 0
+            if ($idTpqForQuery != 0) {
+                $builder->where('IdTpq', $idTpqForQuery);
+            }
+
+            if ($Active == 1) {
+                $builder->where('Active', $Active);
+            }
+
+            if ($IdKelas) {
+                if (is_array($IdKelas)) {
+                    $builder->whereIn('IdKelas', $IdKelas);
+                } else {
+                    $builder->where('IdKelas', $IdKelas);
+                }
+            }
+            if ($IdGuru) {
+                $builder->where('IdGuru', $IdGuru);
+            }
         }
 
         $result = $builder->get()->getRow();
@@ -2080,19 +2104,36 @@ class HelpFunctionModel extends Model
      * @param mixed $kelasIds
      * @return array
      */
-    public function getJumlahSantriPerKelas($IdTpq, $kelasIds)
+    public function getJumlahSantriPerKelas($IdTpq, $kelasIds, $IdTahunAjaran = null)
     {
-        $builder = $this->db->table('tbl_santri_baru');
-        $builder->select('IdKelas, COUNT(DISTINCT IdSantri) as jumlah_santri');
-        $builder->where('IdTpq', $IdTpq);
-        $builder->where('Active', 1);
-        if ($kelasIds != null) {
-            if (is_array($kelasIds)) {
-                $builder->whereIn('IdKelas', $kelasIds);
-            } else {
-                $builder->where('IdKelas', $kelasIds);
+        if (!empty($IdTahunAjaran)) {
+            $builder = $this->db->table('tbl_kelas_santri ks');
+            $builder->select('ks.IdKelas, COUNT(DISTINCT ks.IdSantri) as jumlah_santri');
+            $builder->join('tbl_santri_baru s', 's.IdSantri = ks.IdSantri');
+            $builder->where('ks.IdTpq', $IdTpq);
+            $builder->where('s.Active', 1);
+            $builder->where('ks.IdTahunAjaran', $IdTahunAjaran);
+            if ($kelasIds != null) {
+                if (is_array($kelasIds)) {
+                    $builder->whereIn('ks.IdKelas', $kelasIds);
+                } else {
+                    $builder->where('ks.IdKelas', $kelasIds);
+                }
             }
-            $builder->groupBy('IdKelas');
+            $builder->groupBy('ks.IdKelas');
+        } else {
+            $builder = $this->db->table('tbl_santri_baru');
+            $builder->select('IdKelas, COUNT(DISTINCT IdSantri) as jumlah_santri');
+            $builder->where('IdTpq', $IdTpq);
+            $builder->where('Active', 1);
+            if ($kelasIds != null) {
+                if (is_array($kelasIds)) {
+                    $builder->whereIn('IdKelas', $kelasIds);
+                } else {
+                    $builder->where('IdKelas', $kelasIds);
+                }
+                $builder->groupBy('IdKelas');
+            }
         }
         $result = $builder->get()->getResultArray();
 
@@ -2636,58 +2677,112 @@ class HelpFunctionModel extends Model
      * @param mixed $IdTpq ID TPQ (0, null, atau empty untuk semua TPQ)
      * @return array
      */
-    public function getStatistikSantri($IdTpq = 0)
+    public function getStatistikSantri($IdTpq = 0, $IdTahunAjaran = null)
     {
         // Handle null, empty, atau '0' sebagai 0 (semua TPQ)
         $idTpqForQuery = (empty($IdTpq) || $IdTpq == '0' || $IdTpq == 0) ? 0 : $IdTpq;
 
-        $builder = $this->db->table('tbl_santri_baru');
+        if (!empty($IdTahunAjaran)) {
+            $builder = $this->db->table('tbl_kelas_santri ks');
+            $builder->join('tbl_santri_baru s', 's.IdSantri = ks.IdSantri');
+            $builder->where('s.Active', 1);
+            $builder->where('ks.IdTahunAjaran', $IdTahunAjaran);
+            if ($idTpqForQuery != 0) {
+                $builder->where('ks.IdTpq', $idTpqForQuery);
+            }
 
-        // Filter berdasarkan IdTpq jika tidak 0
-        if ($idTpqForQuery != 0) {
-            $builder->where('IdTpq', $idTpqForQuery);
+            // Total santri
+            $totalSantri = $builder->countAllResults(false);
+
+            // Reset builder untuk query berikutnya
+            $builder->resetQuery();
+
+            // Santri laki-laki
+            $builder->join('tbl_santri_baru s', 's.IdSantri = ks.IdSantri');
+            $builder->where('s.Active', 1);
+            $builder->where('ks.IdTahunAjaran', $IdTahunAjaran);
+            if ($idTpqForQuery != 0) {
+                $builder->where('ks.IdTpq', $idTpqForQuery);
+            }
+            $santriLaki = $builder->where('s.JenisKelamin', 'LAKI-LAKI')->countAllResults(false);
+
+            // Reset builder
+            $builder->resetQuery();
+
+            // Santri perempuan
+            $builder->join('tbl_santri_baru s', 's.IdSantri = ks.IdSantri');
+            $builder->where('s.Active', 1);
+            $builder->where('ks.IdTahunAjaran', $IdTahunAjaran);
+            if ($idTpqForQuery != 0) {
+                $builder->where('ks.IdTpq', $idTpqForQuery);
+            }
+            $santriPerempuan = $builder->where('s.JenisKelamin', 'PEREMPUAN')->countAllResults(false);
+
+            // Statistik per kelas
+            $builderPerKelas = $this->db->table('tbl_kelas_santri ks');
+            $builderPerKelas->select('tbl_kelas.IdKelas, tbl_kelas.NamaKelas, 
+                             COUNT(CASE WHEN s.JenisKelamin = "LAKI-LAKI" THEN 1 END) as LakiLaki,
+                             COUNT(CASE WHEN s.JenisKelamin = "PEREMPUAN" THEN 1 END) as Perempuan,
+                             COUNT(*) as Total');
+            $builderPerKelas->join('tbl_santri_baru s', 's.IdSantri = ks.IdSantri', 'inner');
+            $builderPerKelas->join('tbl_kelas', 'tbl_kelas.IdKelas = ks.IdKelas', 'inner');
+            $builderPerKelas->where('s.Active', 1);
+            $builderPerKelas->where('ks.IdTahunAjaran', $IdTahunAjaran);
+            if ($idTpqForQuery != 0) {
+                $builderPerKelas->where('ks.IdTpq', $idTpqForQuery);
+            }
+            $builderPerKelas->groupBy('tbl_kelas.IdKelas, tbl_kelas.NamaKelas');
+            $builderPerKelas->orderBy('tbl_kelas.NamaKelas', 'ASC');
+            $statistikPerKelas = $builderPerKelas->get()->getResultArray();
+        } else {
+            $builder = $this->db->table('tbl_santri_baru');
+
+            // Filter berdasarkan IdTpq jika tidak 0
+            if ($idTpqForQuery != 0) {
+                $builder->where('IdTpq', $idTpqForQuery);
+            }
+
+            // Hanya ambil santri aktif
+            $builder->where('Active', 1);
+
+            // Total santri
+            $totalSantri = $builder->countAllResults(false);
+
+            // Reset builder untuk query berikutnya
+            $builder->resetQuery();
+
+            // Santri laki-laki
+            $builder->where('Active', 1);
+            if ($idTpqForQuery != 0) {
+                $builder->where('IdTpq', $idTpqForQuery);
+            }
+            $santriLaki = $builder->where('JenisKelamin', 'LAKI-LAKI')->countAllResults(false);
+
+            // Reset builder
+            $builder->resetQuery();
+
+            // Santri perempuan
+            $builder->where('Active', 1);
+            if ($idTpqForQuery != 0) {
+                $builder->where('IdTpq', $idTpqForQuery);
+            }
+            $santriPerempuan = $builder->where('JenisKelamin', 'PEREMPUAN')->countAllResults(false);
+
+            // Statistik per kelas - buat builder baru untuk menghindari konflik alias
+            $builderPerKelas = $this->db->table('tbl_santri_baru');
+            $builderPerKelas->select('tbl_kelas.IdKelas, tbl_kelas.NamaKelas, 
+                             COUNT(CASE WHEN tbl_santri_baru.JenisKelamin = "LAKI-LAKI" THEN 1 END) as LakiLaki,
+                             COUNT(CASE WHEN tbl_santri_baru.JenisKelamin = "PEREMPUAN" THEN 1 END) as Perempuan,
+                             COUNT(*) as Total');
+            $builderPerKelas->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas', 'inner');
+            $builderPerKelas->where('tbl_santri_baru.Active', 1);
+            if ($idTpqForQuery != 0) {
+                $builderPerKelas->where('tbl_santri_baru.IdTpq', $idTpqForQuery);
+            }
+            $builderPerKelas->groupBy('tbl_kelas.IdKelas, tbl_kelas.NamaKelas');
+            $builderPerKelas->orderBy('tbl_kelas.NamaKelas', 'ASC');
+            $statistikPerKelas = $builderPerKelas->get()->getResultArray();
         }
-
-        // Hanya ambil santri aktif
-        $builder->where('Active', 1);
-
-        // Total santri
-        $totalSantri = $builder->countAllResults(false);
-
-        // Reset builder untuk query berikutnya
-        $builder->resetQuery();
-
-        // Santri laki-laki
-        $builder->where('Active', 1);
-        if ($idTpqForQuery != 0) {
-            $builder->where('IdTpq', $idTpqForQuery);
-        }
-        $santriLaki = $builder->where('JenisKelamin', 'LAKI-LAKI')->countAllResults(false);
-
-        // Reset builder
-        $builder->resetQuery();
-
-        // Santri perempuan
-        $builder->where('Active', 1);
-        if ($idTpqForQuery != 0) {
-            $builder->where('IdTpq', $idTpqForQuery);
-        }
-        $santriPerempuan = $builder->where('JenisKelamin', 'PEREMPUAN')->countAllResults(false);
-
-        // Statistik per kelas - buat builder baru untuk menghindari konflik alias
-        $builderPerKelas = $this->db->table('tbl_santri_baru');
-        $builderPerKelas->select('tbl_kelas.IdKelas, tbl_kelas.NamaKelas, 
-                         COUNT(CASE WHEN tbl_santri_baru.JenisKelamin = "LAKI-LAKI" THEN 1 END) as LakiLaki,
-                         COUNT(CASE WHEN tbl_santri_baru.JenisKelamin = "PEREMPUAN" THEN 1 END) as Perempuan,
-                         COUNT(*) as Total');
-        $builderPerKelas->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas', 'inner');
-        $builderPerKelas->where('tbl_santri_baru.Active', 1);
-        if ($idTpqForQuery != 0) {
-            $builderPerKelas->where('tbl_santri_baru.IdTpq', $idTpqForQuery);
-        }
-        $builderPerKelas->groupBy('tbl_kelas.IdKelas, tbl_kelas.NamaKelas');
-        $builderPerKelas->orderBy('tbl_kelas.NamaKelas', 'ASC');
-        $statistikPerKelas = $builderPerKelas->get()->getResultArray();
 
         return [
             'total' => $totalSantri,
@@ -2751,17 +2846,31 @@ class HelpFunctionModel extends Model
      * Get statistik santri per TPQ (untuk admin)
      * @return array
      */
-    public function getStatistikSantriPerTpq()
+    public function getStatistikSantriPerTpq($IdTahunAjaran = null)
     {
-        $builder = $this->db->table('tbl_santri_baru s');
-        $builder->select('t.IdTpq, t.NamaTpq,
-                         COUNT(CASE WHEN s.JenisKelamin = "LAKI-LAKI" THEN 1 END) as LakiLaki,
-                         COUNT(CASE WHEN s.JenisKelamin = "PEREMPUAN" THEN 1 END) as Perempuan,
-                         COUNT(*) as Total');
-        $builder->join('tbl_tpq t', 't.IdTpq = s.IdTpq', 'inner');
-        $builder->where('s.Active <', 2);
-        $builder->groupBy('t.IdTpq, t.NamaTpq');
-        $builder->orderBy('t.NamaTpq', 'ASC');
+        if (!empty($IdTahunAjaran)) {
+            $builder = $this->db->table('tbl_kelas_santri ks');
+            $builder->select('t.IdTpq, t.NamaTpq,
+                             COUNT(CASE WHEN s.JenisKelamin = "LAKI-LAKI" THEN 1 END) as LakiLaki,
+                             COUNT(CASE WHEN s.JenisKelamin = "PEREMPUAN" THEN 1 END) as Perempuan,
+                             COUNT(*) as Total');
+            $builder->join('tbl_santri_baru s', 's.IdSantri = ks.IdSantri', 'inner');
+            $builder->join('tbl_tpq t', 't.IdTpq = ks.IdTpq', 'inner');
+            $builder->where('s.Active <', 2);
+            $builder->where('ks.IdTahunAjaran', $IdTahunAjaran);
+            $builder->groupBy('t.IdTpq, t.NamaTpq');
+            $builder->orderBy('t.NamaTpq', 'ASC');
+        } else {
+            $builder = $this->db->table('tbl_santri_baru s');
+            $builder->select('t.IdTpq, t.NamaTpq,
+                             COUNT(CASE WHEN s.JenisKelamin = "LAKI-LAKI" THEN 1 END) as LakiLaki,
+                             COUNT(CASE WHEN s.JenisKelamin = "PEREMPUAN" THEN 1 END) as Perempuan,
+                             COUNT(*) as Total');
+            $builder->join('tbl_tpq t', 't.IdTpq = s.IdTpq', 'inner');
+            $builder->where('s.Active <', 2);
+            $builder->groupBy('t.IdTpq, t.NamaTpq');
+            $builder->orderBy('t.NamaTpq', 'ASC');
+        }
 
         return $builder->get()->getResultArray();
     }

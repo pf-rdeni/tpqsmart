@@ -773,12 +773,14 @@ class Santri extends BaseController
     // Page: Profil Data Santri - List
     public function showProfilSantri()
     {
+        helper('nilai');
         // Ambil filter dari request atau session
         $filterIdTpq = $this->request->getGet('filterIdTpq');
         $filterIdKelas = $this->request->getGet('filterIdKelas');
 
         $sessionIdTpq = session()->get('IdTpq');
         $sessionIdKelas = session()->get('IdKelas');
+        $IdTahunAjaran = session()->get('IdTahunAjaran');
         $activeRole = session()->get('active_role');
         $hasAdminGroup = in_groups('Admin');
         $hasOperatorGroup = in_groups('Operator');
@@ -857,7 +859,7 @@ class Santri extends BaseController
         }
 
         // Ambil data profil santri menggunakan method dari model
-        $santri = $this->DataSantriBaru->getProfilSantri($IdTpq, $IdKelas, $idKelasArray);
+        $santri = $this->DataSantriBaru->getProfilSantri($IdTpq, $IdKelas, $idKelasArray, $IdTahunAjaran);
 
         // Konversi nama kelas menjadi MDA jika sesuai dengan mapping
         if (!empty($santri) && !empty($IdTpq)) {
@@ -2709,7 +2711,7 @@ class Santri extends BaseController
             }
 
             // Ambil data profil santri menggunakan method dari model
-            $santriList = $this->DataSantriBaru->getProfilSantri($IdTpq, $IdKelas, $idKelasArray);
+            $santriList = $this->DataSantriBaru->getProfilSantri($IdTpq, $IdKelas, $idKelasArray, session()->get('IdTahunAjaran'));
 
             if (empty($santriList)) {
                 return redirect()->back()->with('error', 'Tidak ada data santri untuk dicetak');
