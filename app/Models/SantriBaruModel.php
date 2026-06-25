@@ -556,39 +556,80 @@ class SantriBaruModel extends Model
      * @param bool $isGuru Apakah user adalah Guru (filter Active=1)
      * @return array
      */
-    public function getListAturSantriBaru($IdTpq = null, $IdKelas = null, $isGuru = false)
+    public function getListAturSantriBaru($IdTpq = null, $IdKelas = null, $isGuru = false, $IdTahunAjaran = null)
     {
+        if (empty($IdTahunAjaran)) {
+            $IdTahunAjaran = session()->get('IdTahunAjaran');
+        }
+
         $builder = $this->db->table('tbl_santri_baru');
-        $builder->select([
-            'tbl_santri_baru.*',
-            'tbl_kelas.NamaKelas',
-            'tbl_tpq.NamaTpq',
-            'tbl_tpq.KelurahanDesa'
-        ])
-            ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
-            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq');
 
-        if ($IdTpq) {
-            $builder->where('tbl_santri_baru.IdTpq', $IdTpq);
-        }
+        if (!empty($IdTahunAjaran)) {
+            $builder->select([
+                'tbl_santri_baru.*',
+                'ks.IdKelas as IdKelas',
+                'ks.IdTahunAjaran',
+                'tbl_kelas.NamaKelas',
+                'tbl_tpq.NamaTpq',
+                'tbl_tpq.KelurahanDesa'
+            ])
+                ->join('tbl_kelas_santri ks', 'ks.IdSantri = tbl_santri_baru.IdSantri AND ks.IdTahunAjaran = "' . $IdTahunAjaran . '"', 'inner')
+                ->join('tbl_kelas', 'tbl_kelas.IdKelas = ks.IdKelas')
+                ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq');
 
-        if ($isGuru) {
-            $builder->where('tbl_santri_baru.Active', 1);
-        }
-
-        if ($IdKelas !== null) {
-            if (is_array($IdKelas)) {
-                if (!empty($IdKelas)) {
-                    $builder->whereIn('tbl_santri_baru.IdKelas', $IdKelas);
-                }
-            } else if (!empty($IdKelas)) {
-                $builder->where('tbl_santri_baru.IdKelas', $IdKelas);
+            if ($IdTpq) {
+                $builder->where('ks.IdTpq', $IdTpq);
             }
-        }
 
-        $builder->orderBy('tbl_santri_baru.IdKelas', 'ASC')
-            ->orderBy('tbl_santri_baru.NamaSantri', 'ASC')
-            ->orderBy('tbl_santri_baru.Status', 'DESC');
+            if ($isGuru) {
+                $builder->where('tbl_santri_baru.Active', 1);
+            }
+
+            if ($IdKelas !== null) {
+                if (is_array($IdKelas)) {
+                    if (!empty($IdKelas)) {
+                        $builder->whereIn('ks.IdKelas', $IdKelas);
+                    }
+                } else if (!empty($IdKelas)) {
+                    $builder->where('ks.IdKelas', $IdKelas);
+                }
+            }
+
+            $builder->orderBy('ks.IdKelas', 'ASC')
+                ->orderBy('tbl_santri_baru.NamaSantri', 'ASC')
+                ->orderBy('tbl_santri_baru.Status', 'DESC');
+        } else {
+            $builder->select([
+                'tbl_santri_baru.*',
+                'tbl_kelas.NamaKelas',
+                'tbl_tpq.NamaTpq',
+                'tbl_tpq.KelurahanDesa'
+            ])
+                ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
+                ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq');
+
+            if ($IdTpq) {
+                $builder->where('tbl_santri_baru.IdTpq', $IdTpq);
+            }
+
+            if ($isGuru) {
+                $builder->where('tbl_santri_baru.Active', 1);
+            }
+
+            if ($IdKelas !== null) {
+                if (is_array($IdKelas)) {
+                    if (!empty($IdKelas)) {
+                        $builder->whereIn('tbl_santri_baru.IdKelas', $IdKelas);
+                    }
+                } else if (!empty($IdKelas)) {
+                    $builder->where('tbl_santri_baru.IdKelas', $IdKelas);
+                }
+            }
+
+            $builder->orderBy('tbl_santri_baru.IdKelas', 'ASC')
+                ->orderBy('tbl_santri_baru.NamaSantri', 'ASC')
+                ->orderBy('tbl_santri_baru.Status', 'DESC');
+        }
 
         return $builder->get()->getResultArray();
     }

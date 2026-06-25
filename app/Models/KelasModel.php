@@ -304,18 +304,26 @@ class KelasModel extends Model
         return $this->insertBatch($data);
     }
 
-    /**
-     * Mendapatkan semua IdKelas yang memiliki santri aktif di TPQ tertentu
-     * @param mixed $IdTpq
-     * @return array Array of IdKelas
-     */
-    public function getAllKelasAktifByTpq($IdTpq)
+    public function getAllKelasAktifByTpq($IdTpq, $IdTahunAjaran = null)
     {
         $builder = $this->db->table('tbl_kelas_santri');
         $builder->select('IdKelas')
             ->distinct()
-            ->where('IdTpq', $IdTpq)
-            ->where('status', true);
+            ->where('IdTpq', $IdTpq);
+
+        if (!empty($IdTahunAjaran)) {
+            $builder->where('IdTahunAjaran', $IdTahunAjaran);
+            
+            // Tambahkan filter status = 1 hanya jika tahun ajaran adalah tahun ajaran terbaru/aktif
+            $latestYearRow = $this->db->table('tbl_kelas_santri')->selectMax('IdTahunAjaran')->get()->getRow();
+            $latestYear = $latestYearRow ? $latestYearRow->IdTahunAjaran : null;
+            
+            if ($IdTahunAjaran == $latestYear) {
+                $builder->where('status', true);
+            }
+        } else {
+            $builder->where('status', true);
+        }
 
         $result = $builder->get()->getResultArray();
         return array_column($result, 'IdKelas');

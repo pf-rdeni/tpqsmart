@@ -823,7 +823,7 @@ class Santri extends BaseController
 
         if ($isOperator && $IdTpq !== null) {
             // Jika Operator login, ambil semua kelas dari TPQ yang memiliki santri aktif
-            $idKelasArray = $this->kelasModel->getAllKelasAktifByTpq($IdTpq);
+            $idKelasArray = $this->kelasModel->getAllKelasAktifByTpq($IdTpq, $IdTahunAjaran);
 
             // Jika ada filter kelas dari request, gunakan filter tersebut
             if ($filterIdKelas && $filterIdKelas !== '') {
@@ -1101,7 +1101,7 @@ class Santri extends BaseController
 
         if ($isOperator && $IdTpq !== null) {
             // Operator: ambil semua kelas aktif di TPQ tersebut sebagai array
-            $kelasOperator = $this->kelasModel->getAllKelasAktifByTpq((is_array($IdTpq) ? $IdTpq[0] : $IdTpq));
+            $kelasOperator = $this->kelasModel->getAllKelasAktifByTpq((is_array($IdTpq) ? $IdTpq[0] : $IdTpq), session()->get('IdTahunAjaran'));
             if (!empty($filterIdKelas)) {
                 // Filter ke kelas yang dipilih dan valid untuk operator ini
                 $IdKelas = array_values(array_intersect($filterIdKelas, $kelasOperator));
@@ -1234,6 +1234,7 @@ class Santri extends BaseController
 
     public function showAturSantriBaru()
     {
+        helper('nilai');
         // Ambil filter dari request (untuk AJAX) atau session (untuk initial load)
         $filterIdTpq = $this->request->getGet('filterIdTpq');
         $filterIdKelas = $this->request->getGet('filterIdKelas');
@@ -1241,6 +1242,7 @@ class Santri extends BaseController
         // Ambil IdTpq dari session untuk role-based filtering
         $sessionIdTpq = session()->get('IdTpq');
         $sessionIdKelas = session()->get('IdKelas');
+        $IdTahunAjaran = session()->get('IdTahunAjaran');
 
         // Tentukan IdTpq yang akan digunakan berdasarkan role
         $IdTpq = null;
@@ -1373,7 +1375,7 @@ class Santri extends BaseController
         }
 
         // Ambil data santri menggunakan method dari model
-        $santri = $this->DataSantriBaru->getListAturSantriBaru($IdTpq, $IdKelas, $isGuru);
+        $santri = $this->DataSantriBaru->getListAturSantriBaru($IdTpq, $IdKelas, $isGuru, $IdTahunAjaran);
 
         // Konversi nama kelas menjadi MDA jika sesuai dengan mapping
         if (!empty($santri) && !empty($IdTpq)) {
@@ -2086,7 +2088,7 @@ class Santri extends BaseController
             }
         } elseif ($isOperator && $IdTpq !== null) {
             // Jika Operator login, ambil semua kelas dari TPQ yang memiliki santri aktif
-            $idKelasArray = $this->kelasModel->getAllKelasAktifByTpq($IdTpq);
+            $idKelasArray = $this->kelasModel->getAllKelasAktifByTpq($IdTpq, $sessionIdTahunAjaran);
 
             // Jika ada filter kelas dari request, gunakan filter tersebut
             if ($filterIdKelas && $filterIdKelas !== '') {
@@ -2678,7 +2680,7 @@ class Santri extends BaseController
             $idKelasArray = null;
 
             if ($isOperator && $IdTpq !== null) {
-                $idKelasArray = $this->kelasModel->getAllKelasAktifByTpq($IdTpq);
+                $idKelasArray = $this->kelasModel->getAllKelasAktifByTpq($IdTpq, session()->get('IdTahunAjaran'));
 
                 if ($filterIdKelas && $filterIdKelas !== '') {
                     // Handle single value atau string dengan koma

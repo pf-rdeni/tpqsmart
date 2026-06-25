@@ -180,6 +180,7 @@
                             <th>TPQ</th>
                         <?php endif; ?>
                         <th>Kelas</th>
+                        <th>Tahun Ajaran</th>
                         <th>Tanggal Reg</th>
                     </tr>
                 </thead>
@@ -295,6 +296,7 @@
                                     }, ucwords(strtolower($santri['NamaTpq']))); ?></td>
                             <?php endif; ?>
                             <td><?= $santri['NamaKelas']; ?></td>
+                            <td><?= isset($santri['IdTahunAjaran']) ? convertTahunAjaran($santri['IdTahunAjaran']) : '-'; ?></td>
                             <td><?= date('d-m-Y H:i:s', strtotime($santri['updated_at'])); ?></td>
                         </tr>
                     <?php endforeach ?>
@@ -314,6 +316,7 @@
                             <th>TPQ</th>
                         <?php endif; ?>
                         <th>Kelas</th>
+                        <th>Tahun Ajaran</th>
                         <th>Tanggal Reg</th>
                     </tr>
                 </tfoot>
