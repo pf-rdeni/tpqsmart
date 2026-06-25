@@ -708,7 +708,8 @@ class Santri extends BaseController
     public function show()
     {
         $IdTpq = session()->get('IdTpq');
-        $santri = $this->DataSantri->GetDataPerKelasTpq($IdTpq);
+        $IdTahunAjaran = session()->get('IdTahunAjaran');
+        $santri = $this->DataSantri->GetDataPerKelasTpq($IdTpq, $IdTahunAjaran);
 
         $kelas = $this->helpFunction->getDataKelas();
         $data = [
@@ -1939,7 +1940,8 @@ class Santri extends BaseController
             return redirect()->back()->with('error', 'TPQ tidak ditemukan. Silakan pilih TPQ terlebih dahulu.');
         }
         
-        $santriAll = $this->DataSantriBaru->GetDataPerKelasTpq($IdTpq);
+        $IdTahunAjaran = session()->get('IdTahunAjaran');
+        $santriAll = $this->DataSantriBaru->GetDataPerKelasTpq($IdTpq, $IdTahunAjaran);
         $namaTpq = $this->helpFunction->getNamaTpqById($IdTpq);
         
         // Validasi jika namaTpq null

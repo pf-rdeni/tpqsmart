@@ -214,19 +214,40 @@ class SantriBaruModel extends Model
         }
     }
 
-    public function GetDataPerKelasTpq($IdTpq)
+    public function GetDataPerKelasTpq($IdTpq, $IdTahunAjaran = null)
     {
+        if (empty($IdTahunAjaran)) {
+            $IdTahunAjaran = session()->get('IdTahunAjaran');
+        }
+
         $db = db_connect();
         $builder = $db->table('tbl_santri_baru');
-        $builder->select('
-            tbl_santri_baru.*, 
-            tbl_tpq.NamaTpq,
-            tbl_kelas.NamaKelas
-        ');
 
-        $builder->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas', 'left');
-        $builder->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq', 'left');
-        $builder->where('tbl_santri_baru.IdTpq', $IdTpq);
+        if (!empty($IdTahunAjaran)) {
+            $builder->select('
+                tbl_santri_baru.*, 
+                ks.IdKelas as IdKelas,
+                ks.IdTahunAjaran,
+                tbl_tpq.NamaTpq,
+                tbl_kelas.NamaKelas
+            ');
+
+            $builder->join('tbl_kelas_santri ks', 'ks.IdSantri = tbl_santri_baru.IdSantri AND ks.IdTahunAjaran = "' . $IdTahunAjaran . '"', 'inner');
+            $builder->join('tbl_kelas', 'tbl_kelas.IdKelas = ks.IdKelas', 'left');
+            $builder->join('tbl_tpq', 'tbl_tpq.IdTpq = ks.IdTpq', 'left');
+            $builder->where('ks.IdTpq', $IdTpq);
+        } else {
+            $builder->select('
+                tbl_santri_baru.*, 
+                tbl_tpq.NamaTpq,
+                tbl_kelas.NamaKelas
+            ');
+
+            $builder->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas', 'left');
+            $builder->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq', 'left');
+            $builder->where('tbl_santri_baru.IdTpq', $IdTpq);
+        }
+
         $builder->orderBy('tbl_santri_baru.updated_at', 'DESC'); 
 
         try {
