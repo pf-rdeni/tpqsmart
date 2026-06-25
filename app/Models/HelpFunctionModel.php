@@ -36,18 +36,56 @@ class HelpFunctionModel extends Model
      * @param int $IdTpq ID TPQ
      * @return array
      */
-    public function getDataSantriStatus($Active = 0, $IdTpq = 0, $IdKelas = 0)
+    public function getDataSantriStatus($Active = 0, $IdTpq = 0, $IdKelas = 0, $IdTahunAjaran = null)
     {
         $builder = $this->db->table('tbl_santri_baru');
 
-        // Join dengan tbl_kelas dan gunakan alias NamaKelas
+        if ($Active == 1) {
+            if (empty($IdTahunAjaran)) {
+                $IdTahunAjaran = session()->get('IdTahunAjaran');
+            }
+
+            if (!empty($IdTahunAjaran)) {
+                $builder->select('
+                    tbl_santri_baru.*, 
+                    COALESCE(ks.IdKelas, tbl_santri_baru.IdKelas) as IdKelas,
+                    COALESCE(tbl_kelas.NamaKelas, k_pendaftaran.NamaKelas) as NamaKelas, 
+                    tbl_tpq.NamaTpq AS NamaTpq, 
+                    tbl_tpq.KelurahanDesa AS NamaKelDesa
+                ');
+                $builder->join('tbl_kelas_santri ks', 'ks.IdSantri = tbl_santri_baru.IdSantri AND ks.IdTahunAjaran = "' . $IdTahunAjaran . '"', 'left');
+                $builder->join('tbl_kelas', 'tbl_kelas.IdKelas = ks.IdKelas', 'left');
+                $builder->join('tbl_kelas k_pendaftaran', 'k_pendaftaran.IdKelas = tbl_santri_baru.IdKelas', 'left');
+                $builder->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq', 'left');
+                $builder->where('tbl_santri_baru.Active', 1);
+
+                // Filter TPQ - hanya jika IdTpq tidak 0 (bukan "semua")
+                if ($IdTpq != 0) {
+                    $builder->where('ks.IdTpq', $IdTpq);
+                }
+
+                // Filter Kelas - hanya jika IdKelas tidak 0 (bukan "semua")
+                if ($IdKelas != 0) {
+                    $builder->where('ks.IdKelas', $IdKelas);
+                }
+
+                $builder->orderBy('ks.IdTpq', 'ASC');
+                $builder->orderBy('ks.IdKelas', 'ASC');
+                $builder->orderBy('tbl_santri_baru.NamaSantri', 'ASC');
+                return $builder->get()->getResultArray();
+            }
+        }
+
+        // Fallback untuk Active != 1 atau jika IdTahunAjaran kosong
         $builder->select('tbl_santri_baru.*, tbl_kelas.NamaKelas AS NamaKelas, tbl_tpq.NamaTpq AS NamaTpq, tbl_tpq.KelurahanDesa AS NamaKelDesa');
-        $builder->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas');
-        $builder->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq');
+        $builder->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas', 'left');
+        $builder->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq', 'left');
 
         //Active Active=1, NonActive=2, Active = 0 Baru
         if ($Active != 1 && $Active != 2) {
             $builder->where('tbl_santri_baru.Active', 0);
+        } else {
+            $builder->where('tbl_santri_baru.Active', $Active);
         }
 
         // Filter TPQ - hanya jika IdTpq tidak 0 (bukan "semua")
@@ -64,8 +102,6 @@ class HelpFunctionModel extends Model
         $builder->orderBy('tbl_santri_baru.NamaSantri', 'ASC');
         return $builder->get()->getResultArray();
     }
-
-
     /**
      * Mengambil data TPQ, bisa berdasarkan ID tertentu
      * @param mixed $id ID TPQ (optional)

@@ -475,13 +475,31 @@ class SantriBaruModel extends Model
      * @param string $IdSantri
      * @return array|null
      */
-    public function getDetailSantriById($IdSantri)
+    public function getDetailSantriById($IdSantri, $IdTahunAjaran = null)
     {
+        if (empty($IdTahunAjaran)) {
+            $IdTahunAjaran = session()->get('IdTahunAjaran');
+        }
+
         $builder = $this->db->table('tbl_santri_baru');
-        $builder->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq')
-            ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
-            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq')
-            ->where('tbl_santri_baru.IdSantri', $IdSantri);
+        if (!empty($IdTahunAjaran)) {
+            $builder->select('
+                tbl_santri_baru.*, 
+                COALESCE(ks.IdKelas, tbl_santri_baru.IdKelas) as IdKelas, 
+                COALESCE(tbl_kelas.NamaKelas, k_pendaftaran.NamaKelas) as NamaKelas, 
+                tbl_tpq.NamaTpq
+            ')
+                ->join('tbl_kelas_santri ks', 'ks.IdSantri = tbl_santri_baru.IdSantri AND ks.IdTahunAjaran = "' . $IdTahunAjaran . '"', 'left')
+                ->join('tbl_kelas', 'tbl_kelas.IdKelas = ks.IdKelas', 'left')
+                ->join('tbl_kelas k_pendaftaran', 'k_pendaftaran.IdKelas = tbl_santri_baru.IdKelas', 'left')
+                ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq', 'left')
+                ->where('tbl_santri_baru.IdSantri', $IdSantri);
+        } else {
+            $builder->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq')
+                ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas', 'left')
+                ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq', 'left')
+                ->where('tbl_santri_baru.IdSantri', $IdSantri);
+        }
 
         $result = $builder->get()->getRowArray();
         return $result ?: null;
@@ -492,13 +510,32 @@ class SantriBaruModel extends Model
      * @param string $IdSantri
      * @return array|null
      */
-    public function getProfilDetailSantri($IdSantri)
+    public function getProfilDetailSantri($IdSantri, $IdTahunAjaran = null)
     {
+        if (empty($IdTahunAjaran)) {
+            $IdTahunAjaran = session()->get('IdTahunAjaran');
+        }
+
         $builder = $this->db->table('tbl_santri_baru');
-        $builder->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq, tbl_tpq.KelurahanDesa as KelurahanDesaTpq')
-            ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
-            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq')
-            ->where('tbl_santri_baru.IdSantri', $IdSantri);
+        if (!empty($IdTahunAjaran)) {
+            $builder->select('
+                tbl_santri_baru.*, 
+                COALESCE(ks.IdKelas, tbl_santri_baru.IdKelas) as IdKelas, 
+                COALESCE(tbl_kelas.NamaKelas, k_pendaftaran.NamaKelas) as NamaKelas, 
+                tbl_tpq.NamaTpq, 
+                tbl_tpq.KelurahanDesa as KelurahanDesaTpq
+            ')
+                ->join('tbl_kelas_santri ks', 'ks.IdSantri = tbl_santri_baru.IdSantri AND ks.IdTahunAjaran = "' . $IdTahunAjaran . '"', 'left')
+                ->join('tbl_kelas', 'tbl_kelas.IdKelas = ks.IdKelas', 'left')
+                ->join('tbl_kelas k_pendaftaran', 'k_pendaftaran.IdKelas = tbl_santri_baru.IdKelas', 'left')
+                ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq', 'left')
+                ->where('tbl_santri_baru.IdSantri', $IdSantri);
+        } else {
+            $builder->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq, tbl_tpq.KelurahanDesa as KelurahanDesaTpq')
+                ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas', 'left')
+                ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq', 'left')
+                ->where('tbl_santri_baru.IdSantri', $IdSantri);
+        }
 
         $result = $builder->get()->getRowArray();
         return $result ?: null;
@@ -509,13 +546,31 @@ class SantriBaruModel extends Model
      * @param string $NikSantri
      * @return array|null
      */
-    public function getSantriByNik($NikSantri)
+    public function getSantriByNik($NikSantri, $IdTahunAjaran = null)
     {
+        if (empty($IdTahunAjaran)) {
+            $IdTahunAjaran = session()->get('IdTahunAjaran');
+        }
+
         $builder = $this->db->table('tbl_santri_baru');
-        $builder->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq')
-            ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
-            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq')
-            ->where('tbl_santri_baru.NikSantri', $NikSantri);
+        if (!empty($IdTahunAjaran)) {
+            $builder->select('
+                tbl_santri_baru.*, 
+                COALESCE(ks.IdKelas, tbl_santri_baru.IdKelas) as IdKelas, 
+                COALESCE(tbl_kelas.NamaKelas, k_pendaftaran.NamaKelas) as NamaKelas, 
+                tbl_tpq.NamaTpq
+            ')
+                ->join('tbl_kelas_santri ks', 'ks.IdSantri = tbl_santri_baru.IdSantri AND ks.IdTahunAjaran = "' . $IdTahunAjaran . '"', 'left')
+                ->join('tbl_kelas', 'tbl_kelas.IdKelas = ks.IdKelas', 'left')
+                ->join('tbl_kelas k_pendaftaran', 'k_pendaftaran.IdKelas = tbl_santri_baru.IdKelas', 'left')
+                ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq', 'left')
+                ->where('tbl_santri_baru.NikSantri', $NikSantri);
+        } else {
+            $builder->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq')
+                ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas', 'left')
+                ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq', 'left')
+                ->where('tbl_santri_baru.NikSantri', $NikSantri);
+        }
 
         $result = $builder->get()->getRowArray();
         return $result ?: null;

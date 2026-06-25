@@ -512,7 +512,8 @@ class SurveyPublic extends BaseController
                 ];
             }, $gurus);
         } elseif ($type === 'santri' && $tpqId) {
-            $santris = $helpModel->getDataSantriStatus(1, (int)$tpqId);
+            $IdTahunAjaran = session()->get('IdTahunAjaran') ?? $helpModel->getTahunAjaranSaatIni();
+            $santris = $helpModel->getDataSantriStatus(1, (int)$tpqId, 0, $IdTahunAjaran);
             $data    = array_map(function($s) use ($titleCase, $filledRefIds, $isAdmin) {
                 $isFilled = in_array($s['IdSantri'], $filledRefIds);
                 return [

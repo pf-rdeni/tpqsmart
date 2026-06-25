@@ -255,7 +255,8 @@ class SurveyResult extends BaseController
         }
 
         if ($hasSantri) {
-            $santrisRaw = $helpModel->getDataSantriStatus(1);
+            $IdTahunAjaran = session()->get('IdTahunAjaran') ?? $helpModel->getTahunAjaranSaatIni();
+            $santrisRaw = $helpModel->getDataSantriStatus(1, 0, 0, $IdTahunAjaran);
             foreach ($santrisRaw as $s) {
                 $santris[] = [
                     'id' => $s['IdSantri'],

@@ -1203,8 +1203,10 @@ class Santri extends BaseController
             return redirect()->to(base_url('backend/dashboard/santri'))->with('error', 'ID Santri tidak ditemukan');
         }
 
+        $IdTahunAjaran = session()->get('IdTahunAjaran');
+
         // Ambil data santri lengkap dari tabel santri_baru
-        $santriData = $this->DataSantriBaru->getProfilDetailSantri($idSantri);
+        $santriData = $this->DataSantriBaru->getProfilDetailSantri($idSantri, $IdTahunAjaran);
 
         if (empty($santriData)) {
             return redirect()->to(base_url('backend/dashboard/santri'))->with('error', 'Data santri tidak ditemukan');

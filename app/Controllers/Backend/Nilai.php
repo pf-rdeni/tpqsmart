@@ -393,12 +393,14 @@ class Nilai extends BaseController
 
     public function showNilaiProfilDetail($IdSantri = null)
     {
+        $IdTahunAjaran = session()->get('IdTahunAjaran');
+
         // Jika user adalah Santri, ambil IdSantri dari user yang login
         $isSantri = in_groups('Santri');
         if ($isSantri && empty($IdSantri)) {
             $userNik = user()->nik ?? null;
             if (!empty($userNik)) {
-                $santriData = $this->DataSantriBaru->getSantriByNik($userNik);
+                $santriData = $this->DataSantriBaru->getSantriByNik($userNik, $IdTahunAjaran);
                 if (!empty($santriData)) {
                     $IdSantri = $santriData['IdSantri'];
                 }
@@ -410,7 +412,8 @@ class Nilai extends BaseController
         }
 
         // Ambil data santri lengkap
-        $santriDetail = $this->DataSantriBaru->getProfilDetailSantri($IdSantri);
+        $santriDetail = $this->DataSantriBaru->getProfilDetailSantri($IdSantri, $IdTahunAjaran);
+
         if (empty($santriDetail)) {
             return redirect()->to(base_url())->with('error', 'Data santri tidak ditemukan');
         }

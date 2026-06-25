@@ -1004,11 +1004,14 @@ class Rapor extends BaseController
                 }
             }
 
-            $santriList = $this->santriBaruModel->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')->where([
-                'tbl_santri_baru.IdTpq' => $IdTpq,
-                'tbl_santri_baru.IdKelas' => $IdKelas,
-                'tbl_santri_baru.Active' => 1
-            ])->select('tbl_santri_baru.*, tbl_kelas.NamaKelas')->findAll();
+            $santriList = $this->santriBaruModel
+                ->join('tbl_kelas_santri ks', 'ks.IdSantri = tbl_santri_baru.IdSantri AND ks.IdTahunAjaran = "' . $IdTahunAjaran . '"', 'inner')
+                ->join('tbl_kelas', 'tbl_kelas.IdKelas = ks.IdKelas', 'left')
+                ->where([
+                    'ks.IdTpq' => $IdTpq,
+                    'ks.IdKelas' => $IdKelas,
+                    'tbl_santri_baru.Active' => 1
+                ])->select('tbl_santri_baru.*, COALESCE(tbl_kelas.NamaKelas, "") as NamaKelas')->findAll();
 
             // Tambahkan nama Ayah dan Ibu ke response
             foreach ($santriList as &$santri) {
@@ -2469,13 +2472,15 @@ class Rapor extends BaseController
 
         if (!empty($IdKelas)) {
             // Ambil santri di kelas
-            $santriList = $this->santriBaruModel->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
+            $santriList = $this->santriBaruModel
+                ->join('tbl_kelas_santri ks', 'ks.IdSantri = tbl_santri_baru.IdSantri AND ks.IdTahunAjaran = "' . $IdTahunAjaran . '"', 'inner')
+                ->join('tbl_kelas', 'tbl_kelas.IdKelas = ks.IdKelas', 'left')
                 ->where([
-                    'tbl_santri_baru.IdTpq' => $IdTpq,
-                    'tbl_santri_baru.IdKelas' => $IdKelas,
+                    'ks.IdTpq' => $IdTpq,
+                    'ks.IdKelas' => $IdKelas,
                     'tbl_santri_baru.Active' => 1
                 ])
-                ->select('tbl_santri_baru.*, tbl_kelas.NamaKelas')
+                ->select('tbl_santri_baru.*, COALESCE(tbl_kelas.NamaKelas, "") as NamaKelas')
                 ->orderBy('tbl_santri_baru.NamaSantri', 'ASC')
                 ->findAll();
 

@@ -162,9 +162,12 @@ class Tabungan extends BaseController
         $query = $this->tabunganModel->table('tbl_tabungan_santri')
             ->select('
                           tbl_tabungan_santri.*,  
-                          tbl_santri_baru.NamaSantri, tbl_kelas.NamaKelas')
+                          tbl_santri_baru.NamaSantri, 
+                          COALESCE(tbl_kelas.NamaKelas, k_pendaftaran.NamaKelas) as NamaKelas')
             ->join('tbl_santri_baru', 'tbl_santri_baru.IdSantri = tbl_tabungan_santri.IdSantri')
-            ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
+            ->join('tbl_kelas_santri ks', 'ks.IdSantri = tbl_santri_baru.IdSantri AND ks.IdTahunAjaran = "' . $IdTahunAjaran . '"', 'left')
+            ->join('tbl_kelas', 'tbl_kelas.IdKelas = ks.IdKelas', 'left')
+            ->join('tbl_kelas k_pendaftaran', 'k_pendaftaran.IdKelas = tbl_santri_baru.IdKelas', 'left')
                           ->where('tbl_tabungan_santri.IdSantri', $IdSantri)
                           ->where('tbl_tabungan_santri.IdTahunAjaran', $IdTahunAjaran)
                           ->orderBy('tbl_tabungan_santri.UpdatedAt', 'ASC')
@@ -204,10 +207,13 @@ class Tabungan extends BaseController
 
     public function showMutasi($IdSantri, $IdTahunAjaran = null)
     {
+        if (empty($IdTahunAjaran)) {
+            $IdTahunAjaran = session()->get('IdTahunAjaran');
+        }
         // Fetch student details
         $santriModel = new \App\Models\SantriBaruModel(); // Assuming SantriModel is in \App\Models namespace
         // Fetch student details
-        $santri = $santriModel->where('IdSantri', $IdSantri)->first();
+        $santri = $santriModel->getProfilDetailSantri($IdSantri, $IdTahunAjaran);
 
         // Fetch transaction history (mutasi) for the student
         $mutasi = $this->getMutasiSantri($IdSantri, $IdTahunAjaran);
@@ -249,16 +255,17 @@ class Tabungan extends BaseController
             return redirect()->to(base_url())->with('error', 'Data user tidak valid');
         }
 
+        $IdTahunAjaran = session()->get('IdTahunAjaran');
+
         // Ambil data santri berdasarkan NIK
         $santriModel = new \App\Models\SantriBaruModel();
-        $santriData = $santriModel->getSantriByNik($userNik);
+        $santriData = $santriModel->getSantriByNik($userNik, $IdTahunAjaran);
 
         if (empty($santriData)) {
             return redirect()->to(base_url())->with('error', 'Data santri tidak ditemukan');
         }
 
         $IdSantri = $santriData['IdSantri'];
-        $IdTahunAjaran = session()->get('IdTahunAjaran');
 
         // Ambil mutasi tabungan
         $mutasi = $this->getMutasiSantri($IdSantri, $IdTahunAjaran);

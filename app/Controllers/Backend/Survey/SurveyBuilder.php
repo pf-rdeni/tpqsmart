@@ -325,7 +325,8 @@ class SurveyBuilder extends BaseController
     public function getMasterSantri(string $tpqId = '0')
     {
         $helpModel = new HelpFunctionModel();
-        $santris = $helpModel->getDataSantriStatus(1, $tpqId === '0' ? 0 : (int)$tpqId);
+        $IdTahunAjaran = session()->get('IdTahunAjaran') ?? $helpModel->getTahunAjaranSaatIni();
+        $santris = $helpModel->getDataSantriStatus(1, $tpqId === '0' ? 0 : (int)$tpqId, 0, $IdTahunAjaran);
 
         $titleCase = function($str) {
             return ucwords(strtolower(trim($str)));

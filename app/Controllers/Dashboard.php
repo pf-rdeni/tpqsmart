@@ -993,7 +993,7 @@ class Dashboard extends BaseController
         
         // Ambil data profil santri lengkap
         $santriModel = new \App\Models\SantriBaruModel();
-        $data['profilSantri'] = $santriModel->getProfilDetailSantri($idSantri);
+        $data['profilSantri'] = $santriModel->getProfilDetailSantri($idSantri, $idTahunAjaran);
 
         // Ambil data nilai untuk semester Ganjil dan Genap
         $nilaiModel = new \App\Models\NilaiModel();
