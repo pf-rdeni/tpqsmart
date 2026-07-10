@@ -289,6 +289,7 @@
                         <th>Kelas Koreksi</th>
                         <th>Nama TPQ</th>
                         <th>Nama Kel/Desa</th>
+                        <th style="width: 100px;">Verifikasi</th>
                     </tr>
                 ';
                     ?>
@@ -325,6 +326,11 @@
                                 </td>
                                 <td><?= esc($santri['NamaTpq']); ?></td>
                                 <td><?= esc($santri['NamaKelDesa']); ?></td>
+                                <td class="text-center">
+                                    <a href="<?= base_url('backend/santri/perbandinganDataSantri/' . $santri['id']) ?>" target="_blank" class="btn btn-xs btn-info">
+                                        <i class="fas fa-search"></i> Cek Data
+                                    </a>
+                                </td>
                             </tr>
                         <?php endforeach ?>
                     </tbody>
@@ -359,7 +365,7 @@
                 [1, "asc"]
             ], // Sort by Nama Santri column
             "columnDefs": [{
-                "targets": 0, // Checkbox column
+                "targets": [0, 8], // Checkbox and Verifikasi columns
                 "orderable": false,
                 "searchable": false
             }],
