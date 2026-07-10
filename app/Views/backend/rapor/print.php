@@ -464,9 +464,9 @@ helper('nilai');
             </td>
         </tr>
         <tr>
-            <td colspan="2" style="width: 50%; padding: 15px 5px;text-align: center;">( <?= htmlspecialchars(toTitleCase($tpq['KepalaSekolah'])) ?> )</td>
+            <td colspan="2" style="width: 50%; padding: 15px 5px;text-align: center;">( <?= htmlspecialchars(formatNamaGuru($tpq['KepalaSekolah'])) ?> )</td>
             <td></td>
-            <td colspan="2" style="width: 50%; padding: 15px 5px; text-align: center;">( <?= htmlspecialchars(toTitleCase($santri['WaliKelas'])) ?> )</td>
+            <td colspan="2" style="width: 50%; padding: 15px 5px; text-align: center;">( <?= htmlspecialchars(formatNamaGuru($santri['WaliKelas'])) ?> )</td>
         </tr>
         <tr>
             <td colspan="5" style="padding: 15px 5px; text-align: center;">Mengetahui Orang Tua/Wali Santri</td>

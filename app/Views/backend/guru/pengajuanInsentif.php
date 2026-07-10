@@ -81,7 +81,7 @@
                             </td>
                             <td>
                                 <?= $guruData['IdGuru'] ?><br>
-                                <strong><?= ucwords(strtolower($guruData['Nama'])) ?></strong><br>
+                                <strong><?= formatNamaGuru($guruData['Nama']) ?></strong><br>
                                 <small style="color: #666;"><?= $guruData['TempatTugas'] ?? '-' ?></small>
                             </td>
                             <td>

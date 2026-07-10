@@ -326,7 +326,7 @@ $templatePath = $isPublic ? 'frontend/template/publicTemplate' : 'backend/templa
 
                         <div class="info-row">
                             <div class="info-label">Diserahkan oleh:</div>
-                            <div class="info-value"><?= esc(isset($guru) && !empty($guru) && isset($guru['Nama']) ? toTitleCase($guru['Nama']) : '-') ?></div>
+                            <div class="info-value"><?= esc(isset($guru) && !empty($guru) && isset($guru['Nama']) ? formatNamaGuru($guru['Nama']) : '-') ?></div>
                         </div>
 
                         <div class="info-row">
@@ -375,7 +375,7 @@ $templatePath = $isPublic ? 'frontend/template/publicTemplate' : 'backend/templa
 
                         <div class="info-row">
                             <div class="info-label">Diterima oleh:</div>
-                            <div class="info-value"><?= esc(isset($guruTerima) && !empty($guruTerima) && isset($guruTerima['Nama']) ? toTitleCase($guruTerima['Nama']) : (isset($guru) && !empty($guru) && isset($guru['Nama']) ? toTitleCase($guru['Nama']) : '-')) ?></div>
+                            <div class="info-value"><?= esc(isset($guruTerima) && !empty($guruTerima) && isset($guruTerima['Nama']) ? formatNamaGuru($guruTerima['Nama']) : (isset($guru) && !empty($guru) && isset($guru['Nama']) ? formatNamaGuru($guru['Nama']) : '-')) ?></div>
                         </div>
 
                         <?php if (!empty($transaksiTerima['FotoBukti'])): ?>

@@ -282,14 +282,14 @@
                                             </div>
                                         <?php endif; ?>
                                     </div>
-                                    <h5 class="profile-username text-center font-weight-bold"><?= ucwords(strtolower(esc((string)$guru->NamaGuru))) ?></h5>
+                                    <h5 class="profile-username text-center font-weight-bold"><?= formatNamaGuru(esc((string)$guru->NamaGuru)) ?></h5>
                                     
                                     <div class="mt-auto">
                                         <?php if(!empty($guru->NamaTpq)): ?>
-                                            <p class="text-muted text-center mb-0 small"><i class="fas fa-school mr-1"></i> <?= "TPQ " . ucwords(strtolower(esc((string)$guru->NamaTpq))) ?></p>
+                                            <p class="text-muted text-center mb-0 small"><i class="fas fa-school mr-1"></i> <?= "TPQ " . toTitleCase(esc((string)$guru->NamaTpq)) ?></p>
                                         <?php endif; ?>
                                         <?php if(!empty($guru->KelurahanDesa)): ?>
-                                            <p class="text-muted text-center mb-2 small"><i class="fas fa-map-marker-alt mr-1"></i> <?= "Kel/Desa " . ucwords(strtolower(esc((string)$guru->KelurahanDesa))) ?></p>
+                                            <p class="text-muted text-center mb-2 small"><i class="fas fa-map-marker-alt mr-1"></i> <?= "Kel/Desa " . toTitleCase(esc((string)$guru->KelurahanDesa)) ?></p>
                                         <?php endif; ?>
 
                                         <!-- WhatsApp Link Removed for Privacy -->
@@ -297,7 +297,7 @@
                                         <div class="row mt-3">
                                             <div class="col-6 pl-1 d-flex">
                                                 <button 
-                                                    onclick="kirimHadirLangsung('<?= $guru->Id ?>', '<?= addslashes(ucwords(strtolower(esc((string)$guru->NamaGuru)))) ?>')"
+                                                    onclick="kirimHadirLangsung('<?= $guru->Id ?>', '<?= addslashes(formatNamaGuru(esc((string)$guru->NamaGuru))) ?>')"
                                                     class="btn btn-success btn-block h-100 d-flex flex-column align-items-center justify-content-center py-3" title="Hadir">
                                                     <i class="fas fa-check-circle fa-lg mb-1"></i>
                                                     <b>Hadir</b>
@@ -307,7 +307,7 @@
                                                 <button 
                                                     onclick="bukaModalTidakHadir(this)"
                                                     data-id="<?= $guru->Id ?>"
-                                                    data-nama="<?= ucwords(strtolower(esc((string)$guru->NamaGuru))) ?>"
+                                                    data-nama="<?= formatNamaGuru(esc((string)$guru->NamaGuru)) ?>"
                                                     data-icon-class="<?= $iconClass ?>"
                                                     data-icon-color="<?= $iconColor ?>"
                                                     data-tpq="<?= esc($guru->NamaTpq) ?>"
@@ -410,11 +410,11 @@
                                             </div>
                                         <?php endif; ?>
                                     </div>
-                                    <h5 class="text-center font-weight-bold mb-1" style="font-size: 1rem;"><?= ucwords(strtolower(esc((string)$guru->NamaGuru))) ?></h5>
+                                    <h5 class="text-center font-weight-bold mb-1" style="font-size: 1rem;"><?= formatNamaGuru(esc((string)$guru->NamaGuru)) ?></h5>
                                     
                                     <div class="mt-auto">
                                         <?php if(!empty($guru->NamaTpq)): ?>
-                                            <p class="text-muted text-center mb-0 small"><i class="fas fa-school mr-1"></i> <?= ucwords(strtolower(esc((string)$guru->NamaTpq))) ?></p>
+                                            <p class="text-muted text-center mb-0 small"><i class="fas fa-school mr-1"></i> <?= toTitleCase(esc((string)$guru->NamaTpq)) ?></p>
                                         <?php endif; ?>
                                         
                                         <p class="text-muted text-center small mb-0 mt-2">

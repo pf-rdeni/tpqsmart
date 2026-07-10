@@ -147,7 +147,7 @@
                                     <?php if (!empty($fkpq)): ?>
                                         <div class="info-row">
                                             <div class="info-label">Nama Ketua FKPQ</div>
-                                            <div class="info-value"><strong><?= toTitleCase(esc($fkpq['KetuaFkpq'] ?? '-')) ?></strong></div>
+                                            <div class="info-value"><strong><?= formatNamaGuru(esc($fkpq['KetuaFkpq'] ?? '-')) ?></strong></div>
                                         </div>
                                         <div class="info-row">
                                             <div class="info-label">Jabatan</div>
@@ -161,7 +161,7 @@
                                 <?php elseif (isset($perlombaan)): ?>
                                     <div class="info-row">
                                         <div class="info-label">Nama Penandatangan</div>
-                                        <div class="info-value"><strong><?= toTitleCase(esc($perlombaan['signer_name'])) ?></strong></div>
+                                        <div class="info-value"><strong><?= formatNamaGuru(esc($perlombaan['signer_name'])) ?></strong></div>
                                     </div>
                                     <div class="info-row">
                                         <div class="info-label">Jabatan</div>
@@ -171,7 +171,7 @@
                                     <?php if ($guru): ?>
                                         <div class="info-row">
                                             <div class="info-label">Nama Guru</div>
-                                            <div class="info-value"><strong><?= toTitleCase(esc($guru->Nama ?? (is_array($guru) ? $guru['Nama'] : ''))) ?></strong></div>
+                                            <div class="info-value"><strong><?= formatNamaGuru(esc($guru->Nama ?? (is_array($guru) ? $guru['Nama'] : ''))) ?></strong></div>
                                         </div>
                                         <div class="info-row">
                                             <div class="info-label">Jabatan</div>
@@ -197,7 +197,7 @@
                                 <?php if ($signature['JenisDokumen'] === 'Surat Rekomendasi' && !empty($guru)): ?>
                                     <div class="info-row">
                                         <div class="info-label">Nama Guru</div>
-                                        <div class="info-value"><strong><?= toTitleCase(esc($guru['Nama'])) ?></strong></div>
+                                        <div class="info-value"><strong><?= formatNamaGuru(esc($guru['Nama'])) ?></strong></div>
                                     </div>
                                     <div class="info-row">
                                         <div class="info-label">NIK</div>

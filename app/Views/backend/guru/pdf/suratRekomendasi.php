@@ -245,15 +245,15 @@
 
         <div class="data-row">
             <span class="data-label">Nama</span>
-            <span class="data-value">: <?= esc(ucwords(strtolower($guru['Nama'] ?? '-'))) ?></span>
+            <span class="data-value">: <?= esc(formatNamaGuru($guru['Nama'] ?? '-')) ?></span>
         </div>
         <div class="data-row">
             <span class="data-label">Tempat Tugas</span>
-            <span class="data-value">: TPQ <?= esc(ucwords(strtolower($guru['TempatTugas'] ?? '-'))) ?></span>
+            <span class="data-value">: TPQ <?= esc(toTitleCase($guru['TempatTugas'] ?? '-')) ?></span>
         </div>
         <div class="data-row">
             <span class="data-label">Alamat</span>
-            <span class="data-value">: <?= esc(ucwords(strtolower($alamatLengkap ?? '-'))) ?></span>
+            <span class="data-value">: <?= esc(toTitleCase($alamatLengkap ?? '-')) ?></span>
         </div>
 
         <p style="margin-top: 15px;">Yang bersangkutan adalah guru TPQ yang aktif mengajar, memiliki dedikasi dalam pembinaan pendidikan Al-Qur'an, serta hingga saat ini masih melaksanakan tugas sebagai guru ngaji di wilayah Kecamatan Seri Kuala Lobam.</p>

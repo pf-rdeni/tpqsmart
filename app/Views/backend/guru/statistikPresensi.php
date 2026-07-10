@@ -339,7 +339,7 @@
                                                         <?= $rank ?>
                                                     <?php endif; ?>
                                                 </td>
-                                                <td><?= esc(ucwords(strtolower($guru['nama']))) ?></td>
+                                                <td><?= esc($guru['nama']) ?></td>
                                                 <td><small><?= esc($guru['tpq']) ?></small></td>
                                                 <td class="text-center"><span class="badge badge-success"><?= $guru['hadir'] ?></span></td>
                                                 <td class="text-center"><span class="badge badge-warning"><?= $guru['izin'] ?></span></td>
@@ -516,7 +516,7 @@
                             <?php foreach ($guruRanking as $guru): ?>
                                 <option value="<?= esc($guru['noHp']) ?>" 
                                         data-idtpq="<?= esc($guru['idTpq'] ?? '') ?>">
-                                    <?= esc(ucwords(strtolower($guru['nama']))) ?> 
+                                    <?= esc($guru['nama']) ?> 
                                     (<?= !empty($guru['noHp']) ? esc($guru['noHp']) : 'No HP Kosong' ?>)
                                 </option>
                             <?php endforeach; ?>
@@ -542,7 +542,7 @@
                                         data-alfa="<?= $guru['alfa'] ?>"
                                         data-total="<?= $guru['total'] ?>"
                                         data-persentase="<?= $guru['persentase'] ?>">
-                                    <?= esc(ucwords(strtolower($guru['nama']))) ?> (<?= $guru['persentase'] ?>%)
+                                     <?= esc($guru['nama']) ?> (<?= $guru['persentase'] ?>%)
                                 </option>
                             <?php endforeach; ?>
 
@@ -1188,9 +1188,7 @@ $(document).ready(function() {
                     
                     // 🥇 \uD83E\uDD47, 🥈 \uD83E\uDD48, 🥉 \uD83E\uDD49
                     var medal = rank <= 3 ? ['\uD83E\uDD47', '\uD83E\uDD48', '\uD83E\uDD49'][rank-1] : rank + '.';
-                    var namaGuru = guru.nama.split(' ').map(function(w) { 
-                        return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase(); 
-                    }).join(' ');
+                    var namaGuru = guru.nama;
                     
                     msg += medal + " *" + namaGuru + "*\n";
                     msg += "   \u2705 Hadir: " + guru.hadir + " | \u274C Alfa: " + guru.alfa + "\n"; // ✅, ❌
@@ -1212,9 +1210,7 @@ $(document).ready(function() {
             var total = selectedGuru.data('total');
             var persentase = selectedGuru.data('persentase');
             
-            namaGuru = namaGuru.split(' ').map(function(w) { 
-                return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase(); 
-            }).join(' ');
+            // Keep formatted name as is
             
             msg += " Ustadz/Ustadzah *" + namaGuru + "*,\n\n";
             msg += "*\uD83D\uDCCA REKAP KEHADIRAN ANDA*\n"; // 📊

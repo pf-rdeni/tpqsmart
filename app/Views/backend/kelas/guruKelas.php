@@ -149,7 +149,7 @@ $helpModel = new \App\Models\HelpFunctionModel();
                                 <?php if ($isFirstRow) : ?>
                                     <td rowspan="<?= $totalRecords ?>" style="vertical-align: top;"><?= $no++; ?></td>
                                     <td rowspan="<?= $totalRecords ?>" style="vertical-align: top;"><?= $group['TahunAjaran'] ?></td>
-                                    <td rowspan="<?= $totalRecords ?>" style="vertical-align: top;"><?= $group['Nama'] ?></td>
+                                    <td rowspan="<?= $totalRecords ?>" style="vertical-align: top;"><?= formatNamaGuru($group['Nama']) ?></td>
                                 <?php endif; ?>
                                 <td>
                                     <?php if ($showPosisi) : ?>
@@ -228,9 +228,9 @@ $helpModel = new \App\Models\HelpFunctionModel();
                                 <option value="" disabled selected>Pilih Nama Guru</option>
                                 <?php
                                 foreach ($helpModel->getDataGuru($row->IdTpq) as $guru): ?>
-                                    <option value="<?= $guru['IdGuru']; ?>" <?= $row->IdGuru == $guru['IdGuru'] ? 'selected' : ''; ?>>
-                                        <?= $guru['Nama']; ?>
-                                    </option>
+                                     <option value="<?= $guru['IdGuru']; ?>" <?= $row->IdGuru == $guru['IdGuru'] ? 'selected' : ''; ?>>
+                                         <?= formatNamaGuru($guru['Nama']); ?>
+                                     </option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
@@ -298,7 +298,7 @@ $helpModel = new \App\Models\HelpFunctionModel();
                             <option value="" disabled selected>Pilih Nama Guru</option>
                             <?php
                             foreach ($helpModel->getDataGuru($dataTpq) as $guru): ?>
-                                <option value="<?= $guru['IdGuru']; ?>"><?= $guru['Nama']; ?></option>
+                                 <option value="<?= $guru['IdGuru']; ?>"><?= formatNamaGuru($guru['Nama']); ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>

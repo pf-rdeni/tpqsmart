@@ -101,7 +101,7 @@
 
         <div class="data-row">
             <span class="data-label">Nama</span>
-            <span class="data-value">: <?= esc(ucwords(strtolower($guru['Nama'] ?? '-'))) ?></span>
+            <span class="data-value">: <?= esc(formatNamaGuru($guru['Nama'] ?? '-')) ?></span>
         </div>
         <div class="data-row">
             <span class="data-label">NIK</span>
@@ -109,7 +109,7 @@
         </div>
         <div class="data-row">
             <span class="data-label">Tempat, Tanggal Lahir</span>
-            <span class="data-value">: <?= esc(ucwords(strtolower($guru['TempatLahir'] ?? '-'))) ?>, <?= esc($tanggalLahirFormatted ?? '-') ?></span>
+            <span class="data-value">: <?= esc(toTitleCase($guru['TempatLahir'] ?? '-')) ?>, <?= esc($tanggalLahirFormatted ?? '-') ?></span>
         </div>
         <div class="data-row">
             <span class="data-label">Penerima Insentif</span>
@@ -121,7 +121,7 @@
         </div>
         <div class="data-row">
             <span class="data-label">Alamat</span>
-            <span class="data-value">: <?= esc(ucwords(strtolower($alamatLengkap ?? '-'))) ?></span>
+            <span class="data-value">: <?= esc(toTitleCase($alamatLengkap ?? '-')) ?></span>
         </div>
 
         <p style="margin-top: 20px;">Dengan ini saya menyatakan dengan sesungguhnya bahwa saya tidak berstatus Aparatur Sipil Negara dimanapun.</p>
@@ -144,7 +144,7 @@
                     <div style="text-align: left; margin-top: 20px;">
                         <span class="materai-text">Materai Rp. 10.000,-</span>
                     </div>
-                    <p style="margin-top: 20px; text-align: center;">(<?= esc(ucwords(strtolower($guru['Nama'] ?? ''))) ?>)</p>
+                    <p style="margin-top: 20px; text-align: center;">(<?= esc(formatNamaGuru($guru['Nama'] ?? '')) ?>)</p>
                 </td>
             </tr>
         </table>

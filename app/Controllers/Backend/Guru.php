@@ -1243,6 +1243,7 @@ class Guru extends BaseController
         // Ambil data berkas untuk setiap guru
         $guruWithBerkas = [];
         foreach ($guruList as $guru) {
+            $guru['Nama'] = formatNamaGuru($guru['Nama']);
             $berkasAktif = $this->guruBerkasModel->getBerkasAktifByGuru($guru['IdGuru']);
 
             // Organize berkas by type
@@ -3295,10 +3296,10 @@ class Guru extends BaseController
                 $locationData[] = [
                     'lat' => floatval($record->Latitude),
                     'lng' => floatval($record->Longitude),
-                    'nama' => $record->NamaGuru,
+                    'nama' => formatNamaGuru($record->NamaGuru),
                     'status' => $record->StatusKehadiran,
                     'waktu' => date('d/m/Y H:i', strtotime($record->WaktuAbsen ?? 'now')),
-                    'tpq' => $record->NamaTpq ?? '-',
+                    'tpq' => toTitleCase($record->NamaTpq ?? '-'),
                     'keterangan' => $record->Keterangan ?? ''
                 ];
             }
@@ -3326,8 +3327,8 @@ class Guru extends BaseController
             $guruId = $record->IdGuru;
             if (!isset($statsByGuru[$guruId])) {
                 $statsByGuru[$guruId] = [
-                    'nama' => $record->NamaGuru,
-                    'tpq' => $record->NamaTpq ?? '-',
+                    'nama' => formatNamaGuru($record->NamaGuru),
+                    'tpq' => toTitleCase($record->NamaTpq ?? '-'),
                     'idTpq' => $record->GuruIdTpq ?? '',
                     'noHp' => $record->NoHp ?? '',
                     'hadir' => 0, 'izin' => 0, 'sakit' => 0, 'alfa' => 0, 'total' => 0

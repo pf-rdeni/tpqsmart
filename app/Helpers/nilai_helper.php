@@ -270,6 +270,13 @@ if (!function_exists('toTitleCase')) {
         $result = '';
 
         foreach ($words as $word) {
+            // Cek singkatan (abbreviation) agar tetap huruf besar semua
+            $cleanWord = preg_replace('/[^a-zA-Z]/', '', $word);
+            if (in_array(strtolower($cleanWord), ['sd', 'smp', 'sma', 'tpq', 'fkpq', 'fkdt', 'bpr', 'kk', 'ktp', 'nik', 'pns', 'asn', 'ri', 'hp', 'rt', 'rw'])) {
+                $result .= mb_strtoupper($word, 'UTF-8') . ' ';
+                continue;
+            }
+
             // Konversi seluruh kata ke lowercase terlebih dahulu
             $word = mb_strtolower($word, 'UTF-8');
 

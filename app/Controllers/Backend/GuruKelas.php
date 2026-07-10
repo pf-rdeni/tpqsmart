@@ -23,6 +23,9 @@ class GuruKelas extends BaseController
         // Filter berdasarkan tahun ajaran saat ini
         $IdTahunAjaranSaatIni = $this->helpFunction->getTahunAjaranSaatIni();
         $GuruKelas = $this->helpFunction->getDataGuruKelas(IdTpq: $IdTpq, IdTahunAjaran: $IdTahunAjaranSaatIni);
+        foreach ($GuruKelas as $row) {
+            $row->Nama = formatNamaGuru($row->Nama);
+        }
         $Kelas = $this->helpFunction->getDataKelas();
 
         // Ambil semua tahun ajaran yang tersedia untuk dropdown filter (tanpa filter)
@@ -76,6 +79,9 @@ class GuruKelas extends BaseController
             IdJabatan: !empty($IdJabatan) ? $IdJabatan : null,
             IdKelas: !empty($IdKelas) ? $IdKelas : null
         );
+        foreach ($GuruKelas as $row) {
+            $row->Nama = formatNamaGuru($row->Nama);
+        }
 
         // Ambil semua guru untuk dibandingkan dengan yang sudah punya data
         $allGuru = $this->helpFunction->getDataGuru(id: false, status: true, IdTpq: $IdTpq);
@@ -96,7 +102,7 @@ class GuruKelas extends BaseController
             if (!in_array($idGuru, $guruWithData)) {
                 $guruWithoutData[] = [
                     'IdGuru' => $guru['IdGuru'],
-                    'Nama' => $guru['Nama']
+                    'Nama' => formatNamaGuru($guru['Nama'])
                 ];
             }
         }

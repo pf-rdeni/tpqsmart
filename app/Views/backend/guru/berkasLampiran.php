@@ -47,7 +47,7 @@
                         <tr data-idtpq="<?= esc($guru['IdTpq'] ?? '') ?>" data-idguru="<?= esc($guru['IdGuru']) ?>">
                             <td>
                                 <?= esc($guru['IdGuru']) ?><br>
-                                <strong><?= ucwords(strtolower($guru['Nama'])) ?></strong><br>
+                                <strong><?= formatNamaGuru($guru['Nama']) ?></strong><br>
                                 <small style="color: #666;">
                                     BPR:
                                     <?php if (!empty($guru['NoRekBpr'])): ?>

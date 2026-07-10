@@ -53,15 +53,15 @@ $sessionIdTpq = $sessionIdTpq ?? null;
                         <tr data-idtpq="<?= esc($dataGuru['IdTpq'] ?? '') ?>">
                             <td>
                                 <a href="javascript:void(0)" onclick="editGuru('<?= $dataGuru['IdGuru'] ?>')" class="btn btn-warning btn-sm"><i class="fas fa-edit"></i></a>
-                                <a href="javascript:void(0)" onclick="deleteGuru('<?= $dataGuru['IdGuru'] ?>', '<?= ucwords(strtolower($dataGuru['Nama'])) ?>')" class="btn btn-danger btn-sm"><i class="fas fa-trash"></i></a>
+                                <a href="javascript:void(0)" onclick="deleteGuru('<?= $dataGuru['IdGuru'] ?>', '<?= addslashes(formatNamaGuru($dataGuru['Nama'])) ?>')" class="btn btn-danger btn-sm"><i class="fas fa-trash"></i></a>
                             </td>
                             <td>
                                 <?= $dataGuru['IdGuru'] ?><br>
-                                <strong><?= ucwords(strtolower($dataGuru['Nama'])) ?></strong>
+                                <strong><?= formatNamaGuru($dataGuru['Nama']) ?></strong>
                             </td>
-                            <td><?= ucwords(strtolower($dataGuru['JenisKelamin'])) ?></td>
-                            <td><?= ucwords(strtolower($dataGuru['TempatLahir'])) . ", " . (!empty($dataGuru['TanggalLahir']) ? formatTanggalIndonesia($dataGuru['TanggalLahir'], 'd F Y') : '-') ?></td>
-                            <td><?= ucwords(strtolower($dataGuru['Alamat'])) . ", RT " . $dataGuru['Rt'] . " / RW " . $dataGuru['Rw'] . ", " . ucwords(strtolower($dataGuru['KelurahanDesa'])) ?></td>
+                            <td><?= toTitleCase($dataGuru['JenisKelamin']) ?></td>
+                            <td><?= toTitleCase($dataGuru['TempatLahir']) . ", " . (!empty($dataGuru['TanggalLahir']) ? formatTanggalIndonesia($dataGuru['TanggalLahir'], 'd F Y') : '-') ?></td>
+                            <td><?= toTitleCase($dataGuru['Alamat']) . ", RT " . $dataGuru['Rt'] . " / RW " . $dataGuru['Rw'] . ", " . toTitleCase($dataGuru['KelurahanDesa']) ?></td>
                             <td><?= !empty($dataGuru['TanggalMulaiTugas']) ? formatTanggalIndonesia($dataGuru['TanggalMulaiTugas'], 'd F Y') : '-' ?></td>
                             <td>
                                 <small>
