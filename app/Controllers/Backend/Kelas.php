@@ -267,10 +267,13 @@ class Kelas extends BaseController
         // Ambil seleksi manual kelas per TPQ & per Santri dari POST data
         $targetKelasTpqMap = [];
         $targetKelasSantriMap = [];
-        if ($this->request->getMethod() === 'post') {
+        if (strtolower($this->request->getMethod()) === 'post') {
             $targetKelasTpqMap = $this->request->getPost('target_kelas_tpq') ?? [];
             $targetKelasSantriMap = $this->request->getPost('target_kelas_santri') ?? [];
         }
+        log_message('debug', '[NAIK KELAS] Method: ' . $this->request->getMethod());
+        log_message('debug', '[NAIK KELAS] targetKelasSantriMap: ' . json_encode($targetKelasSantriMap));
+        log_message('debug', '[NAIK KELAS] Raw POST: ' . json_encode($this->request->getPost()));
 
         $dataKelasBaru = [];
         $dataNilaiBaru = [];

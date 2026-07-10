@@ -492,6 +492,16 @@
                             }
                         }).then((result) => {
                             if (result.isConfirmed) {
+                                // Ambil seluruh input target_kelas_santri dari modal sebelum memanggil Swal.fire loading
+                                const selectedClasses = [];
+                                const selects = Swal.getHtmlContainer().querySelectorAll('.select-target-kelas-santri');
+                                selects.forEach(sel => {
+                                    selectedClasses.push({
+                                        name: sel.name,
+                                        value: sel.value
+                                    });
+                                });
+
                                 Swal.fire({
                                     title: 'Memproses...',
                                     text: 'Harap tunggu, sedang memproses data kenaikan kelas.',
@@ -513,13 +523,12 @@
                                 csrfInput.value = '<?= csrf_hash() ?>';
                                 form.appendChild(csrfInput);
 
-                                // Tambahkan seluruh input target_kelas_santri dari modal
-                                const selects = Swal.getHtmlContainer().querySelectorAll('.select-target-kelas-santri');
-                                selects.forEach(sel => {
+                                // Tambahkan seluruh input target_kelas_santri dari modal yang telah diekstrak
+                                selectedClasses.forEach(item => {
                                     const input = document.createElement('input');
                                     input.type = 'hidden';
-                                    input.name = sel.name;
-                                    input.value = sel.value;
+                                    input.name = item.name;
+                                    input.value = item.value;
                                     form.appendChild(input);
                                 });
 
