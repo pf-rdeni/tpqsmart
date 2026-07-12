@@ -1,4 +1,4 @@
-<?= $this->extend('frontend/template/publicTemplate'); ?>
+<?= $this->extend('frontend/template/publicTemplateNoMenu'); ?>
 <?= $this->section('content'); ?>
 
 <div class="container mt-5">
