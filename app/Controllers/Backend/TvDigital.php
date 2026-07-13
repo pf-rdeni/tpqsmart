@@ -53,13 +53,19 @@ class TvDigital extends BaseController
             $link['blocks'] = $this->configModel->getAllBlocks($link['Id']);
         }
 
+        $idTahunAjaranList = session()->get('IdTahunAjaranList') ?? [];
+        if (empty($idTahunAjaranList)) {
+            $idTahunAjaranList = [$this->helpFunctionModel->getTahunAjaranSaatIni()];
+        }
+
         $data = [
-            'page_title'   => 'TV Digital - Pengaturan',
-            'menu_open'    => 'tv-digital',
-            'menu_active'  => 'tv-digital-pengaturan',
-            'links'        => $links,
-            'blockLabels'  => InfografisConfigModel::BLOCK_LABELS,
-            'IdTpq'        => $idTpq,
+            'page_title'        => 'TV Digital - Pengaturan',
+            'menu_open'         => 'tv-digital',
+            'menu_active'       => 'tv-digital-pengaturan',
+            'links'             => $links,
+            'blockLabels'       => InfografisConfigModel::BLOCK_LABELS,
+            'IdTpq'             => $idTpq,
+            'idTahunAjaranList' => $idTahunAjaranList,
         ];
 
         return view('backend/TvDigital/index', $data);

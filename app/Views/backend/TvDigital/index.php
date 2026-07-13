@@ -57,13 +57,25 @@
                                             <input type="hidden" name="IdInfografisLink" value="<?= $link['Id'] ?>">
                                             
                                             <div class="row">
-                                                <div class="col-sm-6">
+                                                <div class="col-sm-4">
+                                                    <div class="form-group">
+                                                        <label class="text-sm">Tahun Ajaran</label>
+                                                        <select class="form-control form-control-sm" name="IdTahunAjaran">
+                                                            <?php foreach ($idTahunAjaranList as $ta): ?>
+                                                                <option value="<?= $ta ?>" <?= ($ta == $link['IdTahunAjaran']) ? 'selected' : '' ?>>
+                                                                    <?= convertTahunAjaran($ta) ?>
+                                                                </option>
+                                                            <?php endforeach; ?>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="col-sm-4">
                                                     <div class="form-group">
                                                         <label class="text-sm">Slideshow Interval (detik)</label>
                                                         <input type="number" min="5" max="300" class="form-control form-control-sm" name="SlideshowInterval" value="<?= $link['SlideshowInterval'] ?>">
                                                     </div>
                                                 </div>
-                                                <div class="col-sm-6">
+                                                <div class="col-sm-4">
                                                     <div class="form-group">
                                                         <label class="text-sm">Refresh Data (menit)</label>
                                                         <input type="number" min="1" max="60" class="form-control form-control-sm" name="RefreshInterval" value="<?= $link['RefreshInterval'] ?>">
@@ -209,6 +221,7 @@ $(document).ready(function() {
     $('.form-config-link').submit(function(e) {
         e.preventDefault();
         var linkId = $(this).data('id');
+        var idTahunAjaran = $(this).find('select[name="IdTahunAjaran"]').val();
         var slideshowInterval = $(this).find('input[name="SlideshowInterval"]').val();
         var refreshInterval = $(this).find('input[name="RefreshInterval"]').val();
         
@@ -217,6 +230,7 @@ $(document).ready(function() {
             url: '<?= base_url('backend/tv-digital/update-link') ?>/' + linkId,
             type: 'POST',
             data: {
+                IdTahunAjaran: idTahunAjaran,
                 SlideshowInterval: slideshowInterval,
                 RefreshInterval: refreshInterval
             }
