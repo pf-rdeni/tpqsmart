@@ -180,6 +180,8 @@ class TvDigitalPublic extends BaseController
             });
         }
 
+        $activeBlocks = $this->configModel->getActiveBlocks($link['Id']);
+
         return $this->response->setJSON([
             'status' => 'success',
             'data' => [
@@ -203,7 +205,8 @@ class TvDigitalPublic extends BaseController
                 'santriPerKelas' => $statSantri['per_kelas'],
                 'statistikPerTpq' => $statistikPerTpq,
                 'slideshowInterval' => (int)$link['SlideshowInterval'],
-                'refreshInterval' => (int)$link['RefreshInterval']
+                'refreshInterval' => (int)$link['RefreshInterval'],
+                'activeBlocks' => $activeBlocks
             ]
         ]);
     }

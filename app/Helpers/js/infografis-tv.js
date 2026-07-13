@@ -76,41 +76,27 @@ $(document).ready(function() {
                     $('#tvLogo').attr('src', appData.lembaga.logo);
                 }
 
-                // Determine active slides configurations
-                // Filter out FKPQ Home or standard Home depending on context
-                let configBlocks = appData.santriPerKelas ? ['home'] : [];
-                if (appData.lembaga.isFkpq) {
-                    configBlocks = ['home_fkpq'];
-                }
-
                 // Build active slides list from response configs
-                // If block key is "home" and it's FKPQ, map it to "home_fkpq"
                 activeSlides = [];
-                const blocksConfig = appData.statistikPerTpq && appData.lembaga.isFkpq ? 
-                    [{BlockKey: 'home_fkpq'}] : [];
-
-                // Filter blocks based on database config
-                if (appData.lembaga.isFkpq) {
-                    activeSlides.push('home_fkpq');
-                } else {
-                    activeSlides.push('home');
+                if (appData.activeBlocks && appData.activeBlocks.length > 0) {
+                    $.each(appData.activeBlocks, function(i, block) {
+                        let key = block.BlockKey;
+                        // Map home to home_fkpq for FKPQ
+                        if (key === 'home' && appData.lembaga.isFkpq) {
+                            key = 'home_fkpq';
+                        }
+                        activeSlides.push(key);
+                    });
                 }
 
-                // Map others
-                // Filter out 'home' because we handled it above
-                const configList = appData.lembaga.isFkpq ? 
-                    ['keadaan_guru', 'jadwal_sholat', 'galeri', 'agenda'] : 
-                    ['keadaan_santri', 'keadaan_guru', 'absensi_santri', 'absensi_guru', 'jadwal_sholat', 'galeri', 'agenda'];
-
-                // Load all items configured by operator
-                // For simplicity, we fetch all active blocks configured
-                activeSlides = [];
-                $.each(appData.santriPerKelas ? 
-                    ['home', 'keadaan_santri', 'keadaan_guru', 'absensi_santri', 'absensi_guru', 'jadwal_sholat', 'galeri', 'agenda'] :
-                    ['home_fkpq', 'keadaan_guru', 'jadwal_sholat', 'galeri', 'agenda']
-                , function(i, key) {
-                    activeSlides.push(key);
-                });
+                // Fallback jika tidak ada block aktif sama sekali
+                if (activeSlides.length === 0) {
+                    if (appData.lembaga.isFkpq) {
+                        activeSlides.push('home_fkpq');
+                    } else {
+                        activeSlides.push('home');
+                    }
+                }
 
                 // Render dot indicators
                 buildDots();
