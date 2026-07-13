@@ -175,6 +175,7 @@
                         <th>Aksi</th>
                         <th>IdSantri</th>
                         <th>Nama</th>
+                        <th>No. HP Ortu</th>
                         <?php if (in_groups('Admin')): ?>
                             <th>Kelurahan/Desa</th>
                             <th>TPQ</th>
@@ -289,6 +290,38 @@
                             </td>
                             <td><?= $santri['IdSantri']; ?></td>
                             <td data-column="Nama"><?= ucwords(strtolower($santri['NamaSantri'])); ?></td>
+                            <td>
+                                <?php
+                                $parentsHp = [];
+                                if (!empty($santri['NoHpAyah'])) {
+                                    $parentsHp['Ayah'] = $santri['NoHpAyah'];
+                                }
+                                if (!empty($santri['NoHpIbu'])) {
+                                    $parentsHp['Ibu'] = $santri['NoHpIbu'];
+                                }
+                                if (!empty($santri['NoHpWali'])) {
+                                    $parentsHp['Wali'] = $santri['NoHpWali'];
+                                }
+
+                                if (!empty($parentsHp)) {
+                                    $hpLinks = [];
+                                    foreach ($parentsHp as $label => $noHp) {
+                                        $cleanHp = preg_replace('/[^0-9]/', '', $noHp);
+                                        if (strpos($cleanHp, '0') === 0) {
+                                            $cleanHp = '62' . substr($cleanHp, 1);
+                                        } elseif (strpos($cleanHp, '62') !== 0) {
+                                            if (strpos($cleanHp, '8') === 0) {
+                                                $cleanHp = '62' . $cleanHp;
+                                            }
+                                        }
+                                        $hpLinks[] = '<strong>' . $label . ':</strong> <a href="https://wa.me/' . $cleanHp . '" target="_blank" class="text-success" title="Hubungi via WhatsApp"><i class="fab fa-whatsapp"></i> ' . esc($noHp) . '</a>';
+                                    }
+                                    echo implode('<br>', $hpLinks);
+                                } else {
+                                    echo '-';
+                                }
+                                ?>
+                            </td>
                             <?php if (in_groups('Admin')): ?>
                                 <td><?= ucwords(strtolower($santri['KelurahanDesa'])); ?></td>
                                 <td><?= preg_replace_callback('/\b(al|el|ad)-(\w+)/i', function ($matches) {
@@ -311,6 +344,7 @@
                         <th>Aksi</th>
                         <th>IdSantri</th>
                         <th>Nama</th>
+                        <th>No. HP Ortu</th>
                         <?php if (in_groups('Admin')): ?>
                             <th>Kelurahan/Desa</th>
                             <th>TPQ</th>
