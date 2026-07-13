@@ -792,6 +792,7 @@ const CURRENT_OPERATOR = '<?= esc($operatorName) ?>';
 const noHpAyah = '<?= esc($santri['NoHpAyah'] ?? '') ?>';
 const noHpIbu = '<?= esc($santri['NoHpIbu'] ?? '') ?>';
 const namaSantri = '<?= esc($santri['NamaSantri'] ?? '') ?>';
+const namaKelas = '<?= esc($santri['NamaKelas'] ?? '-') ?>';
 
 function sendWhatsapp(number, contactName, santriName, preSelectStatus = '') {
     // Remove non-numeric characters
@@ -858,9 +859,9 @@ function sendWhatsapp(number, contactName, santriName, preSelectStatus = '') {
                     .map(cb => `- ${cb.value}`);
                 
                 if (checkedItems.length > 0) {
-                    messageInput.value = `Assalamu'alaikum Warahmatullahi Wabarakatuh.\n\nKami menginformasikan bahwa data santri atas nama *${santriName}* statusnya *PERLU PERBAIKAN* pada bagian:\n${checkedItems.join('\n')}\n\nKirim dengan membalas pesan ini agar kami bantu.\nTerima kasih.\n\nOperator Lembaga : ${CURRENT_OPERATOR}`;
+                    messageInput.value = `Assalamu'alaikum Warahmatullahi Wabarakatuh.\n\nKami menginformasikan bahwa data santri atas nama *${santriName}* (Kelas: *${namaKelas}*) statusnya *PERLU PERBAIKAN* pada bagian:\n${checkedItems.join('\n')}\n\nKirim dengan membalas pesan ini agar kami bantu.\nTerima kasih.\n\nOperator Lembaga : ${CURRENT_OPERATOR}`;
                 } else {
-                    messageInput.value = `Assalamu'alaikum Warahmatullahi Wabarakatuh.\n\nKami menginformasikan bahwa data santri atas nama *${santriName}* statusnya *PERLU PERBAIKAN*.\nKirim dengan membalas pesan ini agar kami bantu.\nTerima kasih.\n\nOperator Lembaga : ${CURRENT_OPERATOR}`;
+                    messageInput.value = `Assalamu'alaikum Warahmatullahi Wabarakatuh.\n\nKami menginformasikan bahwa data santri atas nama *${santriName}* (Kelas: *${namaKelas}*) statusnya *PERLU PERBAIKAN*.\nKirim dengan membalas pesan ini agar kami bantu.\nTerima kasih.\n\nOperator Lembaga : ${CURRENT_OPERATOR}`;
                 }
             };
 
@@ -870,7 +871,7 @@ function sendWhatsapp(number, contactName, santriName, preSelectStatus = '') {
                 
                 if (type === 'valid') {
                     revisiOptions.style.display = 'none';
-                    text = `Assalamu'alaikum Warahmatullahi Wabarakatuh.\n\nKami menginformasikan bahwa data santri atas nama *${santriName}* telah kami verifikasi dan dinyatakan *VALID*.\nTerima kasih.\n\nOperator Lembaga : ${CURRENT_OPERATOR}`;
+                    text = `Assalamu'alaikum Warahmatullahi Wabarakatuh.\n\nKami menginformasikan bahwa data santri atas nama *${santriName}* (Kelas: *${namaKelas}*) telah kami verifikasi dan dinyatakan *VALID*.\nTerima kasih.\n\nOperator Lembaga : ${CURRENT_OPERATOR}`;
                     messageInput.value = text;
                 } else if (type === 'revisi') {
                     revisiOptions.style.display = 'block';
