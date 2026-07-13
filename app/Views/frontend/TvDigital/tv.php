@@ -200,6 +200,75 @@
             </div>
         </div>
 
+        <!-- BLOCK: TREN KELULUSAN MUNAQOSAH -->
+        <div class="tv-slide-card d-none" id="card-trend_kelulusan">
+            <h2 class="slide-main-title"><i class="fas fa-graduation-cap text-warning"></i> Tren Kelulusan Ujian Munaqosah</h2>
+            <div class="grid-2-columns">
+                <!-- Tabel Tren Kelulusan -->
+                <div class="glass-card">
+                    <h3 class="card-title-tv"><i class="fas fa-list-ol"></i> Rekapitulasi Kelulusan per Tahun Ajaran</h3>
+                    <div class="table-tv-wrapper">
+                        <table class="table-tv">
+                            <thead>
+                                <tr>
+                                    <th>Tahun Ajaran</th>
+                                    <th class="text-center">Peserta</th>
+                                    <th class="text-center text-success">Lulus</th>
+                                    <th class="text-center text-danger">Belum Lulus</th>
+                                    <th class="text-center text-primary">Persentase</th>
+                                </tr>
+                            </thead>
+                            <tbody id="graduationTrendTableBody">
+                                <!-- Dinamis via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Grafik Tren Persentase Kelulusan -->
+                <div class="glass-card">
+                    <h3 class="card-title-tv"><i class="fas fa-chart-line text-primary"></i> Grafik Tren Persentase Kelulusan (%)</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="munaqosahGraduationTrendChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- BLOCK: DAFTAR ALUMNI -->
+        <div class="tv-slide-card d-none" id="card-daftar_alumni">
+            <h2 class="slide-main-title"><i class="fas fa-graduation-cap text-success"></i> Tren Perkembangan Alumni per Tahun Ajaran</h2>
+            <div class="grid-2-columns">
+                <!-- Tabel Jumlah Alumni -->
+                <div class="glass-card">
+                    <h3 class="card-title-tv"><i class="fas fa-list-ol"></i> Rekapitulasi Alumni per Angkatan</h3>
+                    <div class="table-tv-wrapper">
+                        <table class="table-tv">
+                            <thead>
+                                <tr>
+                                    <th>Tahun Ajaran</th>
+                                    <th class="text-center text-primary">Laki-Laki</th>
+                                    <th class="text-center text-pink">Perempuan</th>
+                                    <th class="text-center text-success">Total Alumni</th>
+                                </tr>
+                            </thead>
+                            <tbody id="alumniTrendTableBody">
+                                <!-- Dinamis via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Grafik Tren Alumni -->
+                <div class="glass-card">
+                    <h3 class="card-title-tv"><i class="fas fa-chart-bar text-success"></i> Grafik Perkembangan Jumlah Alumni</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="alumniTrendChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- 6. BLOCK: JADWAL SHOLAT -->
         <div class="tv-slide-card d-none" id="card-jadwal_sholat">
             <h2 class="slide-main-title"><i class="fas fa-mosque text-warning"></i> Jadwal Sholat & Countdown Waktu Sholat</h2>

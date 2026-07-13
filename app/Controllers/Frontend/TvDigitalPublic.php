@@ -238,6 +238,9 @@ class TvDigitalPublic extends BaseController
 
         $activeBlocks = $this->configModel->getActiveBlocks($link['Id']);
 
+        // 6. Statistik Kelulusan Munaqosah per Tahun Ajaran
+        $munaqosahGraduationStats = $this->getMunaqosahGraduationStats($idTpq);
+
         return $this->response->setJSON([
             'status' => 'success',
             'data' => [
@@ -265,7 +268,9 @@ class TvDigitalPublic extends BaseController
                 'activeBlocks' => $activeBlocks,
                 'theme' => $link['Theme'] ?? 'dark',
                 'statistikKehadiranKelas' => $statistikKehadiranKelas,
-                'ringkasanKehadiranMingguIni' => $ringkasanKehadiranMingguIni
+                'ringkasanKehadiranMingguIni' => $ringkasanKehadiranMingguIni,
+                'munaqosahGraduationStats' => $munaqosahGraduationStats,
+                'alumniList' => $this->getAlumniList($idTpq)
             ]
         ]);
     }
@@ -494,5 +499,373 @@ class TvDigitalPublic extends BaseController
             'status' => 'success',
             'data' => $agenda
         ]);
+    }
+
+    /**
+     * Mengambil statistik kelulusan Munaqosah per Tahun Ajaran
+     */
+    private function getMunaqosahGraduationStats($idTpq)
+    {
+        $taBuilder = $this->db->table('tbl_kelas_santri')
+            ->select('DISTINCT(IdTahunAjaran) as IdTahunAjaran')
+            ->orderBy('IdTahunAjaran', 'ASC');
+        
+        if (!empty($idTpq) && $idTpq != '0') {
+            $taBuilder->where('IdTpq', $idTpq);
+        }
+        $taRows = $taBuilder->get()->getResultArray();
+        
+        $stats = [];
+        foreach ($taRows as $taRow) {
+            $ta = $taRow['IdTahunAjaran'];
+            if (empty($ta)) continue;
+            
+            // Get threshold
+            $threshold = 65.0;
+            if (!empty($idTpq) && $idTpq != '0') {
+                $conf = $this->db->table('tbl_munaqosah_konfigurasi')
+                    ->where('IdTpq', $idTpq)
+                    ->where('SettingKey', 'KelulusanThreshold')
+                    ->get()
+                    ->getRowArray();
+                if ($conf && isset($conf['SettingValue']) && is_numeric($conf['SettingValue'])) {
+                    $threshold = (float)$conf['SettingValue'];
+                } else {
+                    // Try global fallback '0'
+                    $confGlobal = $this->db->table('tbl_munaqosah_konfigurasi')
+                        ->where('IdTpq', '0')
+                        ->where('SettingKey', 'KelulusanThreshold')
+                        ->get()
+                        ->getRowArray();
+                    if ($confGlobal && isset($confGlobal['SettingValue']) && is_numeric($confGlobal['SettingValue'])) {
+                        $threshold = (float)$confGlobal['SettingValue'];
+                    } else {
+                        // Try default
+                        $confDefault = $this->db->table('tbl_munaqosah_konfigurasi')
+                            ->where('IdTpq', 'default')
+                            ->where('SettingKey', 'KelulusanThreshold')
+                            ->get()
+                            ->getRowArray();
+                        if ($confDefault && isset($confDefault['SettingValue']) && is_numeric($confDefault['SettingValue'])) {
+                            $threshold = (float)$confDefault['SettingValue'];
+                        }
+                    }
+                }
+            }
+            
+            // Get participants
+            $regBuilder = $this->db->table('tbl_munaqosah_registrasi_uji r')
+                ->select('r.NoPeserta, r.IdSantri, r.IdTpq, r.TypeUjian')
+                ->where('r.IdTahunAjaran', $ta)
+                ->where('r.TypeUjian', 'munaqosah');
+            if (!empty($idTpq) && $idTpq != '0') {
+                $regBuilder->where('r.IdTpq', $idTpq);
+            }
+            $registrasi = $regBuilder->groupBy('r.NoPeserta, r.IdSantri, r.IdTpq, r.TypeUjian')->get()->getResultArray();
+            
+            if (empty($registrasi)) {
+                $stats[] = [
+                    'TahunAjaran' => $ta,
+                    'Peserta' => 0,
+                    'Lulus' => 0,
+                    'TidakLulus' => 0,
+                    'Persentase' => 0
+                ];
+                continue;
+            }
+            
+            $noPesertaList = array_column($registrasi, 'NoPeserta');
+            
+            // Get scores
+            $nilaiRows = $this->db->table('tbl_munaqosah_nilai')
+                ->select('NoPeserta, IdKategoriMateri, Nilai, TypeUjian')
+                ->where('IdTahunAjaran', $ta)
+                ->where('TypeUjian', 'munaqosah')
+                ->whereIn('NoPeserta', $noPesertaList)
+                ->get()
+                ->getResultArray();
+                
+            // Get weights (bobot)
+            $bobotRows = $this->db->table('tbl_munaqosah_bobot_nilai')
+                ->select('IdKategoriMateri, NilaiBobot')
+                ->where('IdTahunAjaran', $ta)
+                ->get()
+                ->getResultArray();
+            if (empty($bobotRows)) {
+                $bobotRows = $this->db->table('tbl_munaqosah_bobot_nilai')
+                    ->select('IdKategoriMateri, NilaiBobot')
+                    ->where('IdTahunAjaran', 'default')
+                    ->get()
+                    ->getResultArray();
+            }
+            $bobotMap = [];
+            foreach ($bobotRows as $b) {
+                $bobotMap[$b['IdKategoriMateri']] = (float)$b['NilaiBobot'];
+            }
+            
+            // Group scores by NoPeserta, TypeUjian and Kategori
+            $pesertaScores = [];
+            foreach ($nilaiRows as $n) {
+                $np = $n['NoPeserta'];
+                $catId = $n['IdKategoriMateri'];
+                $val = (float)$n['Nilai'];
+                $type = strtolower($n['TypeUjian']);
+                $pesertaScores[$np][$type][$catId][] = $val;
+            }
+            
+            $passedCount = 0;
+            $failedCount = 0;
+            
+            foreach ($registrasi as $p) {
+                $np = $p['NoPeserta'];
+                $pTpq = $p['IdTpq'];
+                $pType = strtolower($p['TypeUjian']);
+                
+                // If aggregate FKPQ, get dynamic threshold for each TPQ
+                $pThreshold = $threshold;
+                if (empty($idTpq) || $idTpq == '0') {
+                    $conf = $this->db->table('tbl_munaqosah_konfigurasi')
+                        ->where('IdTpq', $pTpq)
+                        ->where('SettingKey', 'KelulusanThreshold')
+                        ->get()
+                        ->getRowArray();
+                    if ($conf && isset($conf['SettingValue']) && is_numeric($conf['SettingValue'])) {
+                        $pThreshold = (float)$conf['SettingValue'];
+                    } else {
+                        // Try global fallback '0'
+                        $confGlobal = $this->db->table('tbl_munaqosah_konfigurasi')
+                            ->where('IdTpq', '0')
+                            ->where('SettingKey', 'KelulusanThreshold')
+                            ->get()
+                            ->getRowArray();
+                        if ($confGlobal && isset($confGlobal['SettingValue']) && is_numeric($confGlobal['SettingValue'])) {
+                            $pThreshold = (float)$confGlobal['SettingValue'];
+                        } else {
+                            // Try default fallback
+                            $confDefault = $this->db->table('tbl_munaqosah_konfigurasi')
+                                ->where('IdTpq', 'default')
+                                ->where('SettingKey', 'KelulusanThreshold')
+                                ->get()
+                                ->getRowArray();
+                            if ($confDefault && isset($confDefault['SettingValue']) && is_numeric($confDefault['SettingValue'])) {
+                                $pThreshold = (float)$confDefault['SettingValue'];
+                            }
+                        }
+                    }
+                }
+                
+                $weightedTotal = 0;
+                if (isset($pesertaScores[$np][$pType])) {
+                    foreach ($pesertaScores[$np][$pType] as $catId => $scores) {
+                        $validScores = array_filter($scores, function($s) { return $s > 0; });
+                        if (empty($validScores)) {
+                            $avg = 0.0;
+                        } else {
+                            $avg = array_sum($validScores) / count($validScores);
+                        }
+                        $weight = $bobotMap[$catId] ?? 0.0;
+                        $weightedTotal += ($avg * $weight) / 100;
+                    }
+                }
+                
+                if (round($weightedTotal, 2) >= $pThreshold) {
+                    $passedCount++;
+                } else {
+                    $failedCount++;
+                }
+            }
+            
+            $totalPeserta = count($registrasi);
+            $pct = $totalPeserta > 0 ? (int)round(($passedCount / $totalPeserta) * 100) : 0;
+            
+            $stats[] = [
+                'TahunAjaran' => $ta,
+                'Peserta' => $totalPeserta,
+                'Lulus' => $passedCount,
+                'TidakLulus' => $failedCount,
+                'Persentase' => $pct
+            ];
+        }
+        
+        return $stats;
+    }
+
+    /**
+     * Mengambil daftar Alumni (lulusan) TPQ dikelompokkan per Tahun Ajaran
+     */
+    private function getAlumniList($idTpq)
+    {
+        // 1. Get alumni from tbl_kelas_santri (IdKelas = 10)
+        $builder1 = $this->db->table('tbl_kelas_santri ks')
+            ->select('ks.IdSantri, ks.IdTahunAjaran, s.NamaSantri, s.JenisKelamin')
+            ->join('tbl_santri_baru s', 's.IdSantri = ks.IdSantri')
+            ->where('ks.IdKelas', 10);
+        if (!empty($idTpq) && $idTpq != '0') {
+            $builder1->where('ks.IdTpq', $idTpq);
+        }
+        $rows1 = $builder1->get()->getResultArray();
+        
+        // 2. Get alumni from Munaqosah graduates (TypeUjian = 'munaqosah' and passed)
+        $taBuilder = $this->db->table('tbl_kelas_santri')
+            ->select('DISTINCT(IdTahunAjaran) as IdTahunAjaran')
+            ->orderBy('IdTahunAjaran', 'ASC');
+        if (!empty($idTpq) && $idTpq != '0') {
+            $taBuilder->where('IdTpq', $idTpq);
+        }
+        $taRows = $taBuilder->get()->getResultArray();
+        
+        $rows2 = [];
+        foreach ($taRows as $taRow) {
+            $ta = $taRow['IdTahunAjaran'];
+            if (empty($ta)) continue;
+            
+            // Get threshold
+            $threshold = 65.0;
+            if (!empty($idTpq) && $idTpq != '0') {
+                $conf = $this->db->table('tbl_munaqosah_konfigurasi')
+                    ->where('IdTpq', $idTpq)
+                    ->where('SettingKey', 'KelulusanThreshold')
+                    ->get()
+                    ->getRowArray();
+                if ($conf && isset($conf['SettingValue']) && is_numeric($conf['SettingValue'])) {
+                    $threshold = (float)$conf['SettingValue'];
+                }
+            }
+            
+            // Get participants
+            $regBuilder = $this->db->table('tbl_munaqosah_registrasi_uji r')
+                ->select('r.NoPeserta, r.IdSantri, r.IdTpq, s.NamaSantri, s.JenisKelamin')
+                ->join('tbl_santri_baru s', 's.IdSantri = r.IdSantri')
+                ->where('r.IdTahunAjaran', $ta)
+                ->where('r.TypeUjian', 'munaqosah');
+            if (!empty($idTpq) && $idTpq != '0') {
+                $regBuilder->where('r.IdTpq', $idTpq);
+            }
+            $registrasi = $regBuilder->groupBy('r.NoPeserta, r.IdSantri, r.IdTpq, s.NamaSantri, s.JenisKelamin')->get()->getResultArray();
+            
+            if (empty($registrasi)) continue;
+            
+            $noPesertaList = array_column($registrasi, 'NoPeserta');
+            
+            // Get scores
+            $nilaiRows = $this->db->table('tbl_munaqosah_nilai')
+                ->select('NoPeserta, IdKategoriMateri, Nilai')
+                ->where('IdTahunAjaran', $ta)
+                ->where('TypeUjian', 'munaqosah')
+                ->whereIn('NoPeserta', $noPesertaList)
+                ->get()
+                ->getResultArray();
+                
+            // Get weights (bobot)
+            $bobotRows = $this->db->table('tbl_munaqosah_bobot_nilai')
+                ->select('IdKategoriMateri, NilaiBobot')
+                ->where('IdTahunAjaran', $ta)
+                ->get()
+                ->getResultArray();
+            if (empty($bobotRows)) {
+                $bobotRows = $this->db->table('tbl_munaqosah_bobot_nilai')
+                    ->select('IdKategoriMateri, NilaiBobot')
+                    ->where('IdTahunAjaran', 'default')
+                    ->get()
+                    ->getResultArray();
+            }
+            $bobotMap = [];
+            foreach ($bobotRows as $b) {
+                $bobotMap[$b['IdKategoriMateri']] = (float)$b['NilaiBobot'];
+            }
+            
+            // Group scores
+            $pesertaScores = [];
+            foreach ($nilaiRows as $n) {
+                $np = $n['NoPeserta'];
+                $catId = $n['IdKategoriMateri'];
+                $val = (float)$n['Nilai'];
+                $pesertaScores[$np][$catId][] = $val;
+            }
+            
+            foreach ($registrasi as $p) {
+                $np = $p['NoPeserta'];
+                $pTpq = $p['IdTpq'];
+                
+                $pThreshold = $threshold;
+                if (empty($idTpq) || $idTpq == '0') {
+                    $conf = $this->db->table('tbl_munaqosah_konfigurasi')
+                        ->where('IdTpq', $pTpq)
+                        ->where('SettingKey', 'KelulusanThreshold')
+                        ->get()
+                        ->getRowArray();
+                    if ($conf && isset($conf['SettingValue']) && is_numeric($conf['SettingValue'])) {
+                        $pThreshold = (float)$conf['SettingValue'];
+                    }
+                }
+                
+                $weightedTotal = 0;
+                if (isset($pesertaScores[$np])) {
+                    foreach ($pesertaScores[$np] as $catId => $scores) {
+                        $validScores = array_filter($scores, function($s) { return $s > 0; });
+                        $avg = empty($validScores) ? 0.0 : array_sum($validScores) / count($validScores);
+                        $weight = $bobotMap[$catId] ?? 0.0;
+                        $weightedTotal += ($avg * $weight) / 100;
+                    }
+                }
+                
+                if (round($weightedTotal, 2) >= $pThreshold) {
+                    $rows2[] = [
+                        'IdSantri' => $p['IdSantri'],
+                        'IdTahunAjaran' => $ta,
+                        'NamaSantri' => $p['NamaSantri'],
+                        'JenisKelamin' => $p['JenisKelamin']
+                    ];
+                }
+            }
+        }
+        
+        // 3. Combine and de-duplicate
+        $combined = [];
+        foreach ($rows1 as $r) {
+            $key = $r['IdSantri'] . '_' . $r['IdTahunAjaran'];
+            $combined[$key] = [
+                'NamaSantri' => $r['NamaSantri'],
+                'JenisKelamin' => $r['JenisKelamin'],
+                'IdTahunAjaran' => $r['IdTahunAjaran']
+            ];
+        }
+        foreach ($rows2 as $r) {
+            $key = $r['IdSantri'] . '_' . $r['IdTahunAjaran'];
+            if (!isset($combined[$key])) {
+                $combined[$key] = [
+                    'NamaSantri' => $r['NamaSantri'],
+                    'JenisKelamin' => $r['JenisKelamin'],
+                    'IdTahunAjaran' => $r['IdTahunAjaran']
+                ];
+            }
+        }
+        
+        // Group by Year for frontend
+        $grouped = [];
+        foreach ($combined as $c) {
+            $ta = $c['IdTahunAjaran'];
+            if (!isset($grouped[$ta])) {
+                $grouped[$ta] = [];
+            }
+            $grouped[$ta][] = [
+                'NamaSantri' => $c['NamaSantri'],
+                'JenisKelamin' => $c['JenisKelamin']
+            ];
+        }
+        
+        // Sort keys DESC (latest year first)
+        krsort($grouped);
+        
+        $finalList = [];
+        foreach ($grouped as $ta => $students) {
+            $finalList[] = [
+                'TahunAjaran' => $ta,
+                'Total' => count($students),
+                'Santri' => $students
+            ];
+        }
+        
+        return $finalList;
     }
 }

@@ -34,9 +34,11 @@ class InfografisConfigModel extends Model
         ['BlockKey' => 'absensi_santri', 'IsActive' => 1, 'SortOrder' => 4],
         ['BlockKey' => 'absensi_guru',   'IsActive' => 1, 'SortOrder' => 5],
         ['BlockKey' => 'statistik_absensi', 'IsActive' => 1, 'SortOrder' => 6],
-        ['BlockKey' => 'jadwal_sholat',  'IsActive' => 1, 'SortOrder' => 7],
-        ['BlockKey' => 'galeri',         'IsActive' => 1, 'SortOrder' => 8],
-        ['BlockKey' => 'agenda',         'IsActive' => 1, 'SortOrder' => 9],
+        ['BlockKey' => 'trend_kelulusan', 'IsActive' => 1, 'SortOrder' => 7],
+        ['BlockKey' => 'daftar_alumni',  'IsActive' => 1, 'SortOrder' => 8],
+        ['BlockKey' => 'jadwal_sholat',  'IsActive' => 1, 'SortOrder' => 9],
+        ['BlockKey' => 'galeri',         'IsActive' => 1, 'SortOrder' => 10],
+        ['BlockKey' => 'agenda',         'IsActive' => 1, 'SortOrder' => 11],
     ];
 
     /**
@@ -49,6 +51,8 @@ class InfografisConfigModel extends Model
         'absensi_santri'    => '📈 Absensi Santri Harian',
         'absensi_guru'      => '📉 Absensi Guru Harian',
         'statistik_absensi' => '📊 Statistik Absensi per Kelas',
+        'trend_kelulusan'   => '🎓 Tren Kelulusan Munaqosah',
+        'daftar_alumni'     => '🎓 Daftar Alumni',
         'jadwal_sholat'     => '🕌 Jadwal Sholat',
         'galeri'            => '🖼️ Galeri Kegiatan',
         'agenda'            => '📅 Agenda Mendatang',

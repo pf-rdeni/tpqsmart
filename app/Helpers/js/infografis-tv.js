@@ -240,6 +240,54 @@ $(document).ready(function() {
             });
             $('#kehadiranKelasTableBody').html(trHtml);
         }
+
+        // Munaqosah Graduation Trend Table
+        if (appData.munaqosahGraduationStats) {
+            let trHtml = '';
+            $.each(appData.munaqosahGraduationStats, function(i, row) {
+                let taLabel = row.TahunAjaran;
+                if (taLabel && taLabel.length === 8) {
+                    taLabel = taLabel.substring(0, 4) + '/' + taLabel.substring(4);
+                }
+                trHtml += `
+                    <tr>
+                        <td class="font-weight-bold">${taLabel}</td>
+                        <td class="text-center font-weight-bold">${row.Peserta}</td>
+                        <td class="text-center text-success font-weight-bold">${row.Lulus}</td>
+                        <td class="text-center text-danger font-weight-bold">${row.TidakLulus}</td>
+                        <td class="text-center text-primary font-weight-bold">${row.Persentase}%</td>
+                    </tr>
+                `;
+            });
+            $('#graduationTrendTableBody').html(trHtml);
+        }
+
+        // Alumni Trend Table
+        if (appData.alumniList) {
+            let trHtml = '';
+            $.each(appData.alumniList, function(i, row) {
+                let taLabel = row.TahunAjaran;
+                if (taLabel && taLabel.length === 8) {
+                    taLabel = taLabel.substring(0, 4) + '/' + taLabel.substring(4);
+                }
+                let countL = 0;
+                let countP = 0;
+                if (row.Santri) {
+                    $.each(row.Santri, function(j, s) {
+                        if (s.JenisKelamin.toLowerCase().includes('laki')) countL++; else countP++;
+                    });
+                }
+                trHtml += `
+                    <tr>
+                        <td class="font-weight-bold">${taLabel}</td>
+                        <td class="text-center text-primary font-weight-bold">${countL}</td>
+                        <td class="text-center text-pink font-weight-bold">${countP}</td>
+                        <td class="text-center text-success font-weight-bold">${row.Total}</td>
+                    </tr>
+                `;
+            });
+            $('#alumniTrendTableBody').html(trHtml);
+        }
     }
 
     // ==========================================
@@ -357,6 +405,52 @@ $(document).ready(function() {
             });
             createAbsensiPerbandinganChart('kehadiranKelasPerbandinganChart', labels, dataSakit, dataIzin, dataAlfa);
         }
+
+        // 6. TREN KELULUSAN MUNAQOSAH: Line chart of graduation percentage over years
+        if (key === 'trend_kelulusan' && appData.munaqosahGraduationStats) {
+            const labels = [];
+            const dataPct = [];
+            $.each(appData.munaqosahGraduationStats, function(i, r) {
+                let taLabel = r.TahunAjaran;
+                if (taLabel && taLabel.length === 8) {
+                    taLabel = taLabel.substring(0, 4) + '/' + taLabel.substring(4);
+                }
+                labels.push(taLabel);
+                dataPct.push(r.Persentase);
+            });
+            createGraduationTrendChart('munaqosahGraduationTrendChart', labels, dataPct);
+        }
+
+        // 7. ALUMNI TREND: Bar chart of total alumni per year
+        if (key === 'daftar_alumni' && appData.alumniList) {
+            const labels = [];
+            const dataLaki = [];
+            const dataPerempuan = [];
+            const dataTotal = [];
+            
+            // Reverse list to show chronological order (oldest to newest)
+            const reversedList = [...appData.alumniList].reverse();
+            $.each(reversedList, function(i, r) {
+                let taLabel = r.TahunAjaran;
+                if (taLabel && taLabel.length === 8) {
+                    taLabel = taLabel.substring(0, 4) + '/' + taLabel.substring(4);
+                }
+                labels.push(taLabel);
+                dataTotal.push(r.Total);
+                
+                let countL = 0;
+                let countP = 0;
+                if (r.Santri) {
+                    $.each(r.Santri, function(j, s) {
+                        if (s.JenisKelamin.toLowerCase().includes('laki')) countL++; else countP++;
+                    });
+                }
+                dataLaki.push(countL);
+                dataPerempuan.push(countP);
+            });
+            
+            createAlumniTrendChart('alumniTrendChart', labels, dataLaki, dataPerempuan, dataTotal);
+        }
     }
 
     // Dynamic Chart generators helper functions
@@ -396,7 +490,76 @@ $(document).ready(function() {
                 maintainAspectRatio: false,
                 scales: {
                     x: { stacked: true, grid: { color: colors.gridColor }, ticks: { color: colors.textColor } },
-                    y: { stacked: true, grid: { color: colors.gridColor }, ticks: { color: colors.textColor } }
+                    y: { 
+                        min: 0,
+                        beginAtZero: true,
+                        stacked: true, 
+                        grid: { color: colors.gridColor }, 
+                        ticks: { 
+                            beginAtZero: true,
+                            color: colors.textColor,
+                            precision: 0,
+                            callback: function(value) {
+                                if (value % 1 === 0) {
+                                    return value;
+                                }
+                            }
+                        } 
+                    }
+                },
+                plugins: {
+                    legend: { labels: { color: colors.legendColor } }
+                }
+            }
+        });
+    }
+
+    function createAlumniTrendChart(canvasId, labels, dataL, dataP, dataTotal) {
+        if (charts[canvasId]) charts[canvasId].destroy();
+        
+        const colors = getChartThemeColors();
+        const ctx = document.getElementById(canvasId).getContext('2d');
+        charts[canvasId] = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Laki-Laki',
+                        data: dataL,
+                        backgroundColor: '#3b82f6',
+                        borderWidth: 0,
+                        borderRadius: 6
+                    },
+                    {
+                        label: 'Perempuan',
+                        data: dataP,
+                        backgroundColor: '#ec4899',
+                        borderWidth: 0,
+                        borderRadius: 6
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { grid: { color: colors.gridColor }, ticks: { color: colors.textColor } },
+                    y: { 
+                        min: 0,
+                        beginAtZero: true,
+                        grid: { color: colors.gridColor }, 
+                        ticks: { 
+                            beginAtZero: true,
+                            color: colors.textColor,
+                            precision: 0,
+                            callback: function(value) {
+                                if (value % 1 === 0) {
+                                    return value;
+                                }
+                            }
+                        }
+                    }
                 },
                 plugins: {
                     legend: { labels: { color: colors.legendColor } }
@@ -462,10 +625,64 @@ $(document).ready(function() {
                 maintainAspectRatio: false,
                 scales: {
                     x: { grid: { color: colors.gridColor }, ticks: { color: colors.textColor } },
-                    y: { grid: { color: colors.gridColor }, ticks: { color: colors.textColor } }
+                    y: { 
+                        min: 0,
+                        beginAtZero: true,
+                        grid: { color: colors.gridColor }, 
+                        ticks: { 
+                            beginAtZero: true,
+                            color: colors.textColor,
+                            precision: 0,
+                            callback: function(value) {
+                                if (value % 1 === 0) {
+                                    return value;
+                                }
+                            }
+                        } 
+                    }
                 },
                 plugins: {
                     legend: { labels: { color: colors.legendColor } }
+                }
+            }
+        });
+    }
+
+    function createGraduationTrendChart(canvasId, labels, dataPct) {
+        if (charts[canvasId]) charts[canvasId].destroy();
+        
+        const colors = getChartThemeColors();
+        const ctx = document.getElementById(canvasId).getContext('2d');
+        charts[canvasId] = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Persentase Kelulusan (%)',
+                    data: dataPct,
+                    borderColor: '#28a745', // green
+                    backgroundColor: 'rgba(40,167,69,0.1)',
+                    fill: true,
+                    tension: 0.3,
+                    borderWidth: 3,
+                    pointRadius: 6,
+                    pointBackgroundColor: '#28a745'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { grid: { color: colors.gridColor }, ticks: { color: colors.textColor } },
+                    y: { 
+                        min: 0,
+                        max: 100,
+                        grid: { color: colors.gridColor }, 
+                        ticks: { color: colors.textColor, callback: function(value) { return value + '%'; } }
+                    }
+                },
+                plugins: {
+                    legend: { display: false }
                 }
             }
         });

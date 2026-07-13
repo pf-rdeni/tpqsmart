@@ -833,6 +833,64 @@ body {
 }
 .stat-box-tv.border-orange .stat-icon {
     color: var(--color-orange);
-    background: rgba(253, 126, 20, 0.12);
+    background: rgba(255, 193, 7, 0.1);
 }
+
+/* ==========================================
+   ALUMNI SLIDESHOW STYLES
+   ========================================== */
+.alumni-stat-circle {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    border: 3px double var(--color-success);
+    background: rgba(40, 167, 69, 0.03);
+    box-shadow: 0 0 20px rgba(40, 167, 69, 0.1);
+}
+
+.alumni-names-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.2vh 1.5vw;
+    width: 100%;
+}
+
+.alumni-name-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 10px 14px;
+    font-size: 1.15rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.alumni-name-card i {
+    font-size: 1.1rem;
+}
+
+.alumni-name-card .gender-laki {
+    color: #007bff;
+}
+
+.alumni-name-card .gender-perempuan {
+    color: #e83e8c;
+}
+
+.theme-light .alumni-name-card {
+    background: rgba(0, 0, 0, 0.02);
+    color: #1e293b;
+}
+
+.theme-light .alumni-stat-circle {
+    background: rgba(40, 167, 69, 0.05);
+}
+
 
