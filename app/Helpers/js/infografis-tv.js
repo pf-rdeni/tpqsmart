@@ -970,7 +970,10 @@ $(document).ready(function() {
                             </div>
                             <div class="home-agenda-details">
                                 <h4>${a.NamaKegiatan}</h4>
-                                <span><i class="fas fa-map-marker-alt text-warning"></i> ${a.Tempat || '-'}</span>
+                                <div style="margin-top: 5px; display: flex; flex-direction: column; gap: 3px; font-size: 13px; color: var(--text-secondary);">
+                                    <span><i class="far fa-clock text-info"></i> ${a.JamFormatted || '-'}</span>
+                                    <span><i class="fas fa-map-marker-alt text-warning"></i> ${a.Tempat || '-'}</span>
+                                </div>
                             </div>
                         </div>
                     `;

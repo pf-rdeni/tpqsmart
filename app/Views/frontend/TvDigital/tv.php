@@ -90,7 +90,7 @@
                 <!-- Part 3: Alumni & Kelulusan (1fr) -->
                 <div class="glass-card d-flex flex-column" style="overflow: hidden;">
                     <h3 class="card-title-tv"><i class="fas fa-user-graduate text-info"></i> Alumni & Kelulusan</h3>
-                    <div style="display: flex; flex-direction: column; gap: 2vh; flex-grow: 1; justify-content: center;">
+                    <div style="display: flex; flex-direction: column; gap: 2vh; flex-grow: 1; justify-content: flex-start; padding-top: 1vh;">
                         <div style="display: flex; align-items: center; gap: 1vw; padding: 1.5vh 1.2vw; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);">
                             <div style="font-size: 20px; color: #28a745; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; background: rgba(40,167,69,0.1); border-radius: 50%;"><i class="fas fa-award"></i></div>
                             <div>
