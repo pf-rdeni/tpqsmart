@@ -21,4 +21,13 @@ deployment:
     - /bin/cp /home/u1525344/repositories/tpqsmart/app/Config/Services.php $DEPLOYPATH/Config/
     - /bin/cp /home/u1525344/repositories/tpqsmart/app/Helpers/js/image-upload-helper.js $DEPLOYPATH/Helpers/js/
     - /bin/cp /home/u1525344/repositories/tpqsmart/app/Controllers/Helpers.php $DEPLOYPATH/Controllers/
+    # Copy TV Digital CSS and JS to public directories
+    - /bin/mkdir -p /home/u1525344/tpqsmart/public/css || true
+    - /bin/cp /home/u1525344/repositories/tpqsmart/public/css/infografis-tv.css /home/u1525344/tpqsmart/public/css/ || true
+    - /bin/mkdir -p /home/u1525344/tpqsmart/public/js || true
+    - /bin/cp /home/u1525344/repositories/tpqsmart/public/js/infografis-tv.js /home/u1525344/tpqsmart/public/js/ || true
+    - /bin/mkdir -p /home/u1525344/public_html/css || true
+    - /bin/cp /home/u1525344/repositories/tpqsmart/public/css/infografis-tv.css /home/u1525344/public_html/css/ || true
+    - /bin/mkdir -p /home/u1525344/public_html/js || true
+    - /bin/cp /home/u1525344/repositories/tpqsmart/public/js/infografis-tv.js /home/u1525344/public_html/js/ || true
 
