@@ -15,7 +15,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <!-- Custom TV Stylesheet -->
-    <link rel="stylesheet" href="<?= base_url('css/infografis-tv.css') ?>">
+    <link rel="stylesheet" href="<?= base_url('helpers/css/infografis-tv.css') ?>">
     
     <!-- Custom script/CSS injects if any -->
     <?= $this->renderSection('styles') ?>
@@ -32,7 +32,7 @@
     <script src="<?= base_url('plugins/chart.js/Chart.min.js') ?>"></script>
     
     <!-- Custom TV JS Script -->
-    <script src="<?= base_url('js/infografis-tv.js') ?>"></script>
+    <script src="<?= base_url('helpers/js/infografis-tv.js') ?>"></script>
     
     <!-- Injected Page Scripts -->
     <?= $this->renderSection('scripts') ?>
