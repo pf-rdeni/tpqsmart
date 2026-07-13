@@ -154,6 +154,23 @@ $(document).ready(function() {
         $('#homeTotalKelas').text(stats.totalKelas);
         $('#homeSantriLp').text(`L: ${stats.santriLaki} | P: ${stats.santriPerempuan}`);
         $('#homeGuruLp').text(`L: ${stats.guruLaki} | P: ${stats.guruPerempuan}`);
+
+        // Hitung total alumni & lulus munaqosah untuk home summary card
+        let totalAlumniHome = 0;
+        if (appData.alumniList) {
+            $.each(appData.alumniList, function(i, row) {
+                totalAlumniHome += (row.Total || 0);
+            });
+        }
+        $('#homeTotalAlumni').text(totalAlumniHome + ' Santri');
+
+        let totalMunaqosahLulusHome = 0;
+        if (appData.munaqosahGraduationStats) {
+            $.each(appData.munaqosahGraduationStats, function(i, row) {
+                totalMunaqosahLulusHome += (row.Lulus || 0);
+            });
+        }
+        $('#homeMunaqosahLulus').text(totalMunaqosahLulusHome + ' Santri');
         
         // Today attendance calculations
         const totalTodayAbsen = stats.absensiSantriToday.Hadir + stats.absensiSantriToday.Izin + stats.absensiSantriToday.Sakit + stats.absensiSantriToday.Alfa;

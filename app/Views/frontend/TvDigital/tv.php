@@ -35,8 +35,8 @@
         
         <!-- 1. BLOCK: HOME -->
         <div class="tv-slide-card d-none" id="card-home">
-            <div class="card-grid-home">
-                <!-- Stat Cards -->
+            <!-- Row 1: Stat Cards (4 columns) -->
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 2vh 2vw; height: 14vh; margin-bottom: 2vh;">
                 <div class="stat-box-tv border-blue">
                     <div class="stat-icon"><i class="fas fa-user-graduate"></i></div>
                     <div class="stat-content">
@@ -69,18 +69,42 @@
                         <span class="stat-subtext" id="homeKehadiranRatio">Santri Hadir: 0/0</span>
                     </div>
                 </div>
+            </div>
 
-                <!-- Chart Ringkasan & Agenda/Table -->
-                <div class="home-span-2-card glass-card">
+            <!-- Row 2: Bottom Cards (divided into 3 proportional parts) -->
+            <div style="display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 2vh 2vw; height: calc(100% - 18vh);">
+                <!-- Part 1: Chart (1.2fr) -->
+                <div class="glass-card d-flex flex-column" style="overflow: hidden;">
                     <h3 class="card-title-tv"><i class="fas fa-chart-line text-primary"></i> Trend Absensi Santri (30 Hari Terakhir)</h3>
-                    <div class="chart-wrapper">
+                    <div class="chart-wrapper flex-grow-1">
                         <canvas id="homeAbsensiChart"></canvas>
                     </div>
                 </div>
-                <div class="home-single-card glass-card">
+                <!-- Part 2: Agenda (1fr) -->
+                <div class="glass-card d-flex flex-column" style="overflow: hidden;">
                     <h3 class="card-title-tv"><i class="fas fa-calendar-alt text-success"></i> Agenda Terdekat</h3>
-                    <div class="home-agenda-list" id="homeAgendaContainer">
+                    <div class="home-agenda-list" id="homeAgendaContainer" style="overflow-y: auto; flex-grow: 1;">
                         <div class="loading-placeholder"><i class="fas fa-spinner fa-spin"></i> Memuat agenda...</div>
+                    </div>
+                </div>
+                <!-- Part 3: Alumni & Kelulusan (1fr) -->
+                <div class="glass-card d-flex flex-column" style="overflow: hidden;">
+                    <h3 class="card-title-tv"><i class="fas fa-user-graduate text-info"></i> Alumni & Kelulusan</h3>
+                    <div style="display: flex; flex-direction: column; gap: 2vh; flex-grow: 1; justify-content: center;">
+                        <div style="display: flex; align-items: center; gap: 1vw; padding: 1.5vh 1.2vw; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);">
+                            <div style="font-size: 20px; color: #28a745; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; background: rgba(40,167,69,0.1); border-radius: 50%;"><i class="fas fa-award"></i></div>
+                            <div>
+                                <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 600; letter-spacing: 0.3px;">Lulus Munaqosah</div>
+                                <h3 style="font-size: 20px; font-weight: 700; margin: 2px 0;" id="homeMunaqosahLulus">0 Santri</h3>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 1vw; padding: 1.5vh 1.2vw; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);">
+                            <div style="font-size: 20px; color: #3b82f6; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; background: rgba(59,130,246,0.1); border-radius: 50%;"><i class="fas fa-graduation-cap"></i></div>
+                            <div>
+                                <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 600; letter-spacing: 0.3px;">Total Alumni</div>
+                                <h3 style="font-size: 20px; font-weight: 700; margin: 2px 0;" id="homeTotalAlumni">0 Santri</h3>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

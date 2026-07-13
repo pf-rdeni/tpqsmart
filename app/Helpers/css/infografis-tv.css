@@ -893,28 +893,35 @@ body {
     background: rgba(40, 167, 69, 0.05);
 }
 
-/* Custom premium scrollbar for TV Tables */
-.table-tv-wrapper::-webkit-scrollbar {
+/* Custom premium scrollbar for TV Tables and Lists */
+.table-tv-wrapper::-webkit-scrollbar,
+.home-agenda-list::-webkit-scrollbar {
     width: 6px;
     height: 6px;
 }
-.table-tv-wrapper::-webkit-scrollbar-track {
+.table-tv-wrapper::-webkit-scrollbar-track,
+.home-agenda-list::-webkit-scrollbar-track {
     background: rgba(255, 255, 255, 0.02);
 }
-.table-tv-wrapper::-webkit-scrollbar-thumb {
+.table-tv-wrapper::-webkit-scrollbar-thumb,
+.home-agenda-list::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.12);
     border-radius: 10px;
 }
-.table-tv-wrapper::-webkit-scrollbar-thumb:hover {
+.table-tv-wrapper::-webkit-scrollbar-thumb:hover,
+.home-agenda-list::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.25);
 }
 
-.theme-light .table-tv-wrapper::-webkit-scrollbar-track {
+.theme-light .table-tv-wrapper::-webkit-scrollbar-track,
+.theme-light .home-agenda-list::-webkit-scrollbar-track {
     background: rgba(0, 0, 0, 0.02);
 }
-.theme-light .table-tv-wrapper::-webkit-scrollbar-thumb {
+.theme-light .table-tv-wrapper::-webkit-scrollbar-thumb,
+.theme-light .home-agenda-list::-webkit-scrollbar-thumb {
     background: rgba(0, 0, 0, 0.1);
 }
-.theme-light .table-tv-wrapper::-webkit-scrollbar-thumb:hover {
+.theme-light .table-tv-wrapper::-webkit-scrollbar-thumb:hover,
+.theme-light .home-agenda-list::-webkit-scrollbar-thumb:hover {
     background: rgba(0, 0, 0, 0.2);
 }
