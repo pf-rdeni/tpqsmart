@@ -30,6 +30,7 @@ class VerifikasiSantriModel extends SantriBaruModel
             tbl_santri_baru.KelurahanDesaSantri,
             tbl_santri_baru.NoHpAyah,
             tbl_santri_baru.NoHpIbu,
+            tbl_santri_baru.NoHpWali,
             tbl_santri_baru.Status,
             tbl_tpq.NamaTpq
         ');

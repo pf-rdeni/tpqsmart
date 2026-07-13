@@ -13,6 +13,7 @@
                     <th width="5%">No</th>
                     <th width="8%">Poto Profil</th>
                     <th width="10%">Aksi</th>
+                    <th>IdSantri</th>
                     <th>Nama Santri</th>
                     <th>JK</th>
                     <th>TTL</th>
@@ -41,6 +42,7 @@
                             <i class="fas fa-edit"></i> Verifikasi
                         </a>
                     </td>
+                    <td><?= esc($row['IdSantri']) ?></td>
                     <td><?= esc($row['NamaSantri']) ?></td>
                     <td><?= esc($row['JenisKelamin']) ?></td>
                     <td><?= esc($row['TempatLahirSantri']) ?>, <?= !empty($row['TanggalLahirSantri']) ? formatTanggalIndonesia($row['TanggalLahirSantri'], 'd F Y') : '-' ?></td>
@@ -48,14 +50,34 @@
                     <td><?= esc($row['KelurahanDesaSantri']) ?></td>
                     <td>
                         <?php 
-                        $hp = [];
+                        $parentsHp = [];
                         if (!empty($row['NoHpAyah'])) {
-                            $hp[] = 'A: ' . esc($row['NoHpAyah']);
+                            $parentsHp['Ayah'] = $row['NoHpAyah'];
                         }
                         if (!empty($row['NoHpIbu'])) {
-                            $hp[] = 'I: ' . esc($row['NoHpIbu']);
+                            $parentsHp['Ibu'] = $row['NoHpIbu'];
                         }
-                        echo implode('<br>', $hp);
+                        if (!empty($row['NoHpWali'])) {
+                            $parentsHp['Wali'] = $row['NoHpWali'];
+                        }
+
+                        if (!empty($parentsHp)) {
+                            $hpLinks = [];
+                            foreach ($parentsHp as $label => $noHp) {
+                                $cleanHp = preg_replace('/[^0-9]/', '', $noHp);
+                                if (strpos($cleanHp, '0') === 0) {
+                                    $cleanHp = '62' . substr($cleanHp, 1);
+                                } elseif (strpos($cleanHp, '62') !== 0) {
+                                    if (strpos($cleanHp, '8') === 0) {
+                                        $cleanHp = '62' . $cleanHp;
+                                    }
+                                }
+                                $hpLinks[] = '<strong>' . $label . ':</strong> <a href="https://wa.me/' . $cleanHp . '" target="_blank" class="text-success" title="Hubungi via WhatsApp"><i class="fab fa-whatsapp"></i> ' . esc($noHp) . '</a>';
+                            }
+                            echo implode('<br>', $hpLinks);
+                        } else {
+                            echo '-';
+                        }
                         ?>
                     </td>
                     <?php if (in_groups('admin')) : ?>
@@ -143,8 +165,8 @@
                 var column = this;
                 var colIdx = column.index();
 
-                // Skip columns 0 (No), 1 (Poto Profil), 2 (Aksi)
-                if (colIdx < 3) return;
+                // Skip columns 0 (No), 1 (Poto Profil), 2 (Aksi), 3 (IdSantri)
+                if (colIdx < 4) return;
 
                 var select = $('<select class="form-control form-control-sm mt-1"><option value="">Semua</option></select>')
                     .appendTo($(column.header()))
