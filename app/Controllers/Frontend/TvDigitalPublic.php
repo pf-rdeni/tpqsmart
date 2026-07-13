@@ -180,6 +180,62 @@ class TvDigitalPublic extends BaseController
             });
         }
 
+        // 5. Statistik Kehadiran Santri Per Kelas (Pekan Ini)
+        $statistikKehadiranKelas = [];
+        $ringkasanKehadiranMingguIni = ['Hadir' => 0, 'Izin' => 0, 'Sakit' => 0, 'Alfa' => 0];
+        
+        if (!empty($idTpq) && $idTpq != '0') {
+            $dayOfWeek = date('N', strtotime($today)); // 1 (Senin) - 7 (Minggu)
+            $startOfWeek = date('Y-m-d', strtotime($today . ' -' . ($dayOfWeek - 1) . ' days'));
+            $endOfWeek = date('Y-m-d', strtotime($startOfWeek . ' +6 days'));
+
+            $rawStats = $this->db->table('tbl_absensi_santri a')
+                ->select('k.IdKelas, k.NamaKelas, a.Kehadiran, COUNT(*) as count')
+                ->join('tbl_kelas k', 'k.IdKelas = a.IdKelas')
+                ->where('a.IdTpq', $idTpq)
+                ->where('a.Tanggal >=', $startOfWeek)
+                ->where('a.Tanggal <=', $endOfWeek);
+            
+            if (!empty($idTahunAjaran)) {
+                $rawStats->where('a.IdTahunAjaran', $idTahunAjaran);
+            }
+            
+            $rawStatsResult = $rawStats->groupBy('k.IdKelas, k.NamaKelas, a.Kehadiran')
+                                       ->get()
+                                       ->getResultArray();
+
+            $kelasStats = [];
+            foreach ($rawStatsResult as $row) {
+                $idKelas = $row['IdKelas'];
+                if (!isset($kelasStats[$idKelas])) {
+                    $namaKelasMapped = $this->helpFunctionModel->convertKelasToMda(
+                        $row['NamaKelas'],
+                        $this->helpFunctionModel->checkMdaKelasMapping($idTpq, $row['NamaKelas'])['mappedMdaKelas']
+                    );
+                    $kelasStats[$idKelas] = [
+                        'IdKelas'   => $idKelas,
+                        'NamaKelas' => $namaKelasMapped,
+                        'Hadir'     => 0,
+                        'Izin'      => 0,
+                        'Sakit'     => 0,
+                        'Alfa'      => 0
+                    ];
+                }
+                $kehadiran = ucfirst(strtolower($row['Kehadiran'])); // Hadir, Izin, Sakit, Alfa
+                if (isset($kelasStats[$idKelas][$kehadiran])) {
+                    $kelasStats[$idKelas][$kehadiran] = (int)$row['count'];
+                }
+            }
+            $statistikKehadiranKelas = array_values($kelasStats);
+
+            foreach ($statistikKehadiranKelas as $ks) {
+                $ringkasanKehadiranMingguIni['Hadir'] += $ks['Hadir'];
+                $ringkasanKehadiranMingguIni['Izin'] += $ks['Izin'];
+                $ringkasanKehadiranMingguIni['Sakit'] += $ks['Sakit'];
+                $ringkasanKehadiranMingguIni['Alfa'] += $ks['Alfa'];
+            }
+        }
+
         $activeBlocks = $this->configModel->getActiveBlocks($link['Id']);
 
         return $this->response->setJSON([
@@ -207,7 +263,9 @@ class TvDigitalPublic extends BaseController
                 'slideshowInterval' => (int)$link['SlideshowInterval'],
                 'refreshInterval' => (int)$link['RefreshInterval'],
                 'activeBlocks' => $activeBlocks,
-                'theme' => $link['Theme'] ?? 'dark'
+                'theme' => $link['Theme'] ?? 'dark',
+                'statistikKehadiranKelas' => $statistikKehadiranKelas,
+                'ringkasanKehadiranMingguIni' => $ringkasanKehadiranMingguIni
             ]
         ]);
     }

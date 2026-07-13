@@ -33,23 +33,25 @@ class InfografisConfigModel extends Model
         ['BlockKey' => 'keadaan_guru',   'IsActive' => 1, 'SortOrder' => 3],
         ['BlockKey' => 'absensi_santri', 'IsActive' => 1, 'SortOrder' => 4],
         ['BlockKey' => 'absensi_guru',   'IsActive' => 1, 'SortOrder' => 5],
-        ['BlockKey' => 'jadwal_sholat',  'IsActive' => 1, 'SortOrder' => 6],
-        ['BlockKey' => 'galeri',         'IsActive' => 1, 'SortOrder' => 7],
-        ['BlockKey' => 'agenda',         'IsActive' => 1, 'SortOrder' => 8],
+        ['BlockKey' => 'statistik_absensi', 'IsActive' => 1, 'SortOrder' => 6],
+        ['BlockKey' => 'jadwal_sholat',  'IsActive' => 1, 'SortOrder' => 7],
+        ['BlockKey' => 'galeri',         'IsActive' => 1, 'SortOrder' => 8],
+        ['BlockKey' => 'agenda',         'IsActive' => 1, 'SortOrder' => 9],
     ];
 
     /**
      * Label nama untuk setiap block
      */
     public const BLOCK_LABELS = [
-        'home'           => '🏠 Home - Ringkasan',
-        'keadaan_santri' => '📊 Keadaan Santri',
-        'keadaan_guru'   => '👨‍🏫 Keadaan Guru',
-        'absensi_santri' => '📈 Absensi Santri',
-        'absensi_guru'   => '📉 Absensi Guru',
-        'jadwal_sholat'  => '🕌 Jadwal Sholat',
-        'galeri'         => '🖼️ Galeri Kegiatan',
-        'agenda'         => '📅 Agenda Mendatang',
+        'home'              => '🏠 Home - Ringkasan',
+        'keadaan_santri'    => '📊 Keadaan Santri',
+        'keadaan_guru'      => '👨‍🏫 Keadaan Guru',
+        'absensi_santri'    => '📈 Absensi Santri Harian',
+        'absensi_guru'      => '📉 Absensi Guru Harian',
+        'statistik_absensi' => '📊 Statistik Absensi per Kelas',
+        'jadwal_sholat'     => '🕌 Jadwal Sholat',
+        'galeri'            => '🖼️ Galeri Kegiatan',
+        'agenda'            => '📅 Agenda Mendatang',
     ];
 
     /**
@@ -57,6 +59,9 @@ class InfografisConfigModel extends Model
      */
     public function getActiveBlocks(int $idLink): array
     {
+        // Panggil getAllBlocks dulu agar self-healing berjalan (memastikan block baru terinisialisasi)
+        $this->getAllBlocks($idLink);
+
         return $this->where('IdInfografisLink', $idLink)
                     ->where('IsActive', 1)
                     ->orderBy('SortOrder', 'ASC')
@@ -68,9 +73,32 @@ class InfografisConfigModel extends Model
      */
     public function getAllBlocks(int $idLink): array
     {
-        return $this->where('IdInfografisLink', $idLink)
-                    ->orderBy('SortOrder', 'ASC')
-                    ->findAll();
+        $existing = $this->where('IdInfografisLink', $idLink)
+                         ->orderBy('SortOrder', 'ASC')
+                         ->findAll();
+                         
+        $existingKeys = array_column($existing, 'BlockKey');
+        
+        $missingFound = false;
+        foreach (self::DEFAULT_BLOCKS as $defaultBlock) {
+            if (!in_array($defaultBlock['BlockKey'], $existingKeys)) {
+                $this->insert([
+                    'IdInfografisLink' => $idLink,
+                    'BlockKey'         => $defaultBlock['BlockKey'],
+                    'IsActive'         => $defaultBlock['IsActive'],
+                    'SortOrder'        => $defaultBlock['SortOrder'],
+                ]);
+                $missingFound = true;
+            }
+        }
+        
+        if ($missingFound) {
+            return $this->where('IdInfografisLink', $idLink)
+                        ->orderBy('SortOrder', 'ASC')
+                        ->findAll();
+        }
+        
+        return $existing;
     }
 
     /**

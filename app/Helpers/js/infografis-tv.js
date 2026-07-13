@@ -160,10 +160,16 @@ $(document).ready(function() {
         if (totalTodayAbsen > 0) {
             const pct = Math.round((stats.absensiSantriToday.Hadir / totalTodayAbsen) * 100);
             $('#homeKehadiranPersen').text(pct + '%');
-            $('#homeKehadiranRatio').text(`Santri Hadir: ${stats.absensiSantriToday.Hadir}/${totalTodayAbsen}`);
         } else {
             $('#homeKehadiranPersen').text('0%');
-            $('#homeKehadiranRatio').text('Belum di-input hari ini');
+        }
+
+        // Tampilkan ringkasan kehadiran pekan ini di subtext
+        if (appData.ringkasanKehadiranMingguIni) {
+            const rkm = appData.ringkasanKehadiranMingguIni;
+            $('#homeKehadiranRatio').html(`Pkn Ini - H: <strong>${rkm.Hadir}</strong> | I: <strong>${rkm.Izin}</strong> | S: <strong>${rkm.Sakit}</strong> | A: <strong>${rkm.Alfa}</strong>`);
+        } else {
+            $('#homeKehadiranRatio').text('Belum ada data absensi');
         }
 
         // FKPQ Home
@@ -216,6 +222,23 @@ $(document).ready(function() {
                 `;
             });
             $('#fkpqTpqTableBody').html(trHtml);
+        }
+
+        // Kehadiran Kelas Table (Pekan Ini)
+        if (appData.statistikKehadiranKelas) {
+            let trHtml = '';
+            $.each(appData.statistikKehadiranKelas, function(i, row) {
+                trHtml += `
+                    <tr>
+                        <td class="font-weight-bold">${row.NamaKelas}</td>
+                        <td class="text-center text-success">${row.Hadir}</td>
+                        <td class="text-center text-warning">${row.Izin}</td>
+                        <td class="text-center text-info">${row.Sakit}</td>
+                        <td class="text-center text-danger">${row.Alfa}</td>
+                    </tr>
+                `;
+            });
+            $('#kehadiranKelasTableBody').html(trHtml);
         }
     }
 
@@ -319,6 +342,21 @@ $(document).ready(function() {
             const stats = appData.ringkasan;
             createPieChart('fkpqRasioChart', ['Total Santri', 'Total Guru'], [stats.totalSantri, stats.totalGuru]);
         }
+
+        // 5. DETAIL ABSENSI: Bar chart per kelas (comparing Sakit, Izin, Alfa)
+        if (key === 'statistik_absensi' && appData.statistikKehadiranKelas) {
+            const labels = [];
+            const dataSakit = [];
+            const dataIzin = [];
+            const dataAlfa = [];
+            $.each(appData.statistikKehadiranKelas, function(i, r) {
+                labels.push(r.NamaKelas);
+                dataSakit.push(r.Sakit);
+                dataIzin.push(r.Izin);
+                dataAlfa.push(r.Alfa);
+            });
+            createAbsensiPerbandinganChart('kehadiranKelasPerbandinganChart', labels, dataSakit, dataIzin, dataAlfa);
+        }
     }
 
     // Dynamic Chart generators helper functions
@@ -387,6 +425,47 @@ $(document).ready(function() {
                 maintainAspectRatio: false,
                 plugins: {
                     legend: { position: 'bottom', labels: { color: colors.legendColor, font: { size: 16 } } }
+                }
+            }
+        });
+    }
+
+    function createAbsensiPerbandinganChart(canvasId, labels, dataSakit, dataIzin, dataAlfa) {
+        if (charts[canvasId]) charts[canvasId].destroy();
+        
+        const colors = getChartThemeColors();
+        const ctx = document.getElementById(canvasId).getContext('2d');
+        charts[canvasId] = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Sakit',
+                        data: dataSakit,
+                        backgroundColor: '#17a2b8' // var(--color-info)
+                    },
+                    {
+                        label: 'Izin',
+                        data: dataIzin,
+                        backgroundColor: '#ffc107' // var(--color-warning)
+                    },
+                    {
+                        label: 'Alfa',
+                        data: dataAlfa,
+                        backgroundColor: '#dc3545' // red
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { grid: { color: colors.gridColor }, ticks: { color: colors.textColor } },
+                    y: { grid: { color: colors.gridColor }, ticks: { color: colors.textColor } }
+                },
+                plugins: {
+                    legend: { labels: { color: colors.legendColor } }
                 }
             }
         });

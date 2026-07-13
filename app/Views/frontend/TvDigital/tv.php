@@ -248,6 +248,39 @@
             </div>
         </div>
 
+        <!-- 6. BLOCK: DETAIL STATISTIK ABSENSI (Per Kelas) -->
+        <div class="tv-slide-card d-none" id="card-statistik_absensi">
+            <h2 class="slide-main-title"><i class="fas fa-chart-bar text-primary"></i> Statistik Absensi per Kelas (Pekan Ini)</h2>
+            <div class="grid-2-columns">
+                <!-- Tabel Keadaan Santri -->
+                <div class="glass-card">
+                    <h3 class="card-title-tv"><i class="fas fa-list-ol"></i> Rekapitulasi Kehadiran Kelas</h3>
+                    <div class="table-tv-wrapper">
+                        <table class="table-tv">
+                            <thead>
+                                <tr>
+                                    <th>Nama Kelas</th>
+                                    <th class="text-center text-success">Hadir</th>
+                                    <th class="text-center text-warning">Izin</th>
+                                    <th class="text-center text-info">Sakit</th>
+                                    <th class="text-center text-danger">Alfa</th>
+                                </tr>
+                            </thead>
+                            <tbody id="kehadiranKelasTableBody">
+                                <!-- Dinamis via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="glass-card">
+                    <h3 class="card-title-tv"><i class="fas fa-chart-bar text-success"></i> Grafik Perbandingan Sakit, Izin, & Alfa</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="kehadiranKelasPerbandinganChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- 7. BLOCK: GALERI KEGIATAN -->
         <div class="tv-slide-card d-none" id="card-galeri">
             <h2 class="slide-main-title"><i class="fas fa-images text-info"></i> Dokumentasi Kegiatan Lembaga</h2>
