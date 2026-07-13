@@ -366,7 +366,7 @@ $(document).ready(function() {
             fetchMonthlyChartData('homeAbsensiChart', 'home');
         }
         
-        // 2. SANTRI: Bar chart distribution
+        // 2. SANTRI: Bar chart distribution & Gender pie chart
         if (key === 'keadaan_santri' && appData.santriPerKelas) {
             const labels = [];
             const dataLaki = [];
@@ -377,6 +377,9 @@ $(document).ready(function() {
                 dataPerempuan.push(r.Perempuan);
             });
             createBarChart('santriDistribusiChart', labels, dataLaki, dataPerempuan);
+            
+            const stats = appData.ringkasan;
+            createPieChart('santriGenderRasioChart', ['Santri (L)', 'Santriwati (P)'], [stats.santriLaki, stats.santriPerempuan]);
         }
 
         // 3. GURU: Gender pie chart
@@ -489,23 +492,26 @@ $(document).ready(function() {
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {
-                    x: { stacked: true, grid: { color: colors.gridColor }, ticks: { color: colors.textColor } },
-                    y: { 
-                        min: 0,
-                        beginAtZero: true,
-                        stacked: true, 
-                        grid: { color: colors.gridColor }, 
-                        ticks: { 
+                    xAxes: [{
+                        stacked: true,
+                        gridLines: { color: colors.gridColor },
+                        ticks: { fontColor: colors.textColor }
+                    }],
+                    yAxes: [{
+                        stacked: true,
+                        gridLines: { color: colors.gridColor },
+                        ticks: {
                             beginAtZero: true,
-                            color: colors.textColor,
+                            min: 0,
+                            fontColor: colors.textColor,
                             precision: 0,
                             callback: function(value) {
                                 if (value % 1 === 0) {
                                     return value;
                                 }
                             }
-                        } 
-                    }
+                        }
+                    }]
                 },
                 plugins: {
                     legend: { labels: { color: colors.legendColor } }
@@ -544,14 +550,16 @@ $(document).ready(function() {
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {
-                    x: { grid: { color: colors.gridColor }, ticks: { color: colors.textColor } },
-                    y: { 
-                        min: 0,
-                        beginAtZero: true,
-                        grid: { color: colors.gridColor }, 
-                        ticks: { 
+                    xAxes: [{
+                        gridLines: { color: colors.gridColor },
+                        ticks: { fontColor: colors.textColor }
+                    }],
+                    yAxes: [{
+                        gridLines: { color: colors.gridColor },
+                        ticks: {
                             beginAtZero: true,
-                            color: colors.textColor,
+                            min: 0,
+                            fontColor: colors.textColor,
                             precision: 0,
                             callback: function(value) {
                                 if (value % 1 === 0) {
@@ -559,7 +567,7 @@ $(document).ready(function() {
                                 }
                             }
                         }
-                    }
+                    }]
                 },
                 plugins: {
                     legend: { labels: { color: colors.legendColor } }
@@ -579,15 +587,19 @@ $(document).ready(function() {
                 labels: labels,
                 datasets: [{
                     data: data,
-                    backgroundColor: ['#007bff', '#e83e8c'],
+                    backgroundColor: ['#3b82f6', '#ec4899'],
                     borderWidth: 0
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: {
-                    legend: { position: 'bottom', labels: { color: colors.legendColor, font: { size: 16 } } }
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        fontColor: colors.textColor,
+                        fontSize: 14
+                    }
                 }
             }
         });
@@ -624,22 +636,24 @@ $(document).ready(function() {
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {
-                    x: { grid: { color: colors.gridColor }, ticks: { color: colors.textColor } },
-                    y: { 
-                        min: 0,
-                        beginAtZero: true,
-                        grid: { color: colors.gridColor }, 
-                        ticks: { 
+                    xAxes: [{
+                        gridLines: { color: colors.gridColor },
+                        ticks: { fontColor: colors.textColor }
+                    }],
+                    yAxes: [{
+                        gridLines: { color: colors.gridColor },
+                        ticks: {
                             beginAtZero: true,
-                            color: colors.textColor,
+                            min: 0,
+                            fontColor: colors.textColor,
                             precision: 0,
                             callback: function(value) {
                                 if (value % 1 === 0) {
                                     return value;
                                 }
                             }
-                        } 
-                    }
+                        }
+                    }]
                 },
                 plugins: {
                     legend: { labels: { color: colors.legendColor } }
@@ -673,13 +687,19 @@ $(document).ready(function() {
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {
-                    x: { grid: { color: colors.gridColor }, ticks: { color: colors.textColor } },
-                    y: { 
-                        min: 0,
-                        max: 100,
-                        grid: { color: colors.gridColor }, 
-                        ticks: { color: colors.textColor, callback: function(value) { return value + '%'; } }
-                    }
+                    xAxes: [{
+                        gridLines: { color: colors.gridColor },
+                        ticks: { fontColor: colors.textColor }
+                    }],
+                    yAxes: [{
+                        gridLines: { color: colors.gridColor },
+                        ticks: {
+                            fontColor: colors.textColor,
+                            min: 0,
+                            max: 100,
+                            callback: function(value) { return value + '%'; }
+                        }
+                    }]
                 },
                 plugins: {
                     legend: { display: false }
@@ -718,8 +738,8 @@ $(document).ready(function() {
                         responsive: true,
                         maintainAspectRatio: false,
                         scales: {
-                            x: { grid: { display: false }, ticks: { color: colors.textColor } },
-                            y: { grid: { color: colors.gridColor }, ticks: { color: colors.textColor } }
+                            xAxes: [{ gridLines: { display: false }, ticks: { fontColor: colors.textColor } }],
+                            yAxes: [{ gridLines: { color: colors.gridColor }, ticks: { fontColor: colors.textColor } }]
                         },
                         plugins: {
                             legend: { display: false }
@@ -758,8 +778,8 @@ $(document).ready(function() {
                         responsive: true,
                         maintainAspectRatio: false,
                         scales: {
-                            x: { ticks: { color: colors.textColor } },
-                            y: { ticks: { color: colors.textColor } }
+                            xAxes: [{ ticks: { fontColor: colors.textColor } }],
+                            yAxes: [{ ticks: { fontColor: colors.textColor } }]
                         }
                     }
                 });
@@ -791,8 +811,8 @@ $(document).ready(function() {
                         responsive: true,
                         maintainAspectRatio: false,
                         scales: {
-                            x: { ticks: { color: colors.textColor } },
-                            y: { ticks: { color: colors.textColor } }
+                            xAxes: [{ ticks: { fontColor: colors.textColor } }],
+                            yAxes: [{ ticks: { fontColor: colors.textColor } }]
                         }
                     }
                 });
@@ -821,8 +841,8 @@ $(document).ready(function() {
                         responsive: true,
                         maintainAspectRatio: false,
                         scales: {
-                            x: { ticks: { color: colors.textColor } },
-                            y: { ticks: { color: colors.textColor } }
+                            xAxes: [{ ticks: { fontColor: colors.textColor } }],
+                            yAxes: [{ ticks: { fontColor: colors.textColor } }]
                         }
                     }
                 });
@@ -849,8 +869,8 @@ $(document).ready(function() {
                         responsive: true,
                         maintainAspectRatio: false,
                         scales: {
-                            x: { ticks: { color: colors.textColor } },
-                            y: { ticks: { color: colors.textColor } }
+                            xAxes: [{ ticks: { fontColor: colors.textColor } }],
+                            yAxes: [{ ticks: { fontColor: colors.textColor } }]
                         }
                     }
                 });

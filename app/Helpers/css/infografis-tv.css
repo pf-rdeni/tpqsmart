@@ -190,7 +190,7 @@ body {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 2.5vw;
-    height: calc(100% - 6vh);
+    height: calc(100% - 10vh);
 }
 
 /* 1. HOME Slide layouts */
@@ -368,7 +368,7 @@ body {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 2.5vw;
-    height: calc(100% - 6vh);
+    height: calc(100% - 10vh);
 }
 
 /* 6. JADWAL SHOLAT layouts */
@@ -450,7 +450,7 @@ body {
 
 /* 7. GALERI Slide Layouts */
 .galeri-tv-container {
-    height: calc(100% - 6vh);
+    height: calc(100% - 10vh);
     background: rgba(0,0,0,0.2);
     border: 1px solid var(--glass-border);
     border-radius: 24px;
@@ -893,4 +893,28 @@ body {
     background: rgba(40, 167, 69, 0.05);
 }
 
+/* Custom premium scrollbar for TV Tables */
+.table-tv-wrapper::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+.table-tv-wrapper::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.02);
+}
+.table-tv-wrapper::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 10px;
+}
+.table-tv-wrapper::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.25);
+}
 
+.theme-light .table-tv-wrapper::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.02);
+}
+.theme-light .table-tv-wrapper::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.1);
+}
+.theme-light .table-tv-wrapper::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.2);
+}

@@ -89,11 +89,11 @@
         <!-- 2. BLOCK: KEADAAN SANTRI -->
         <div class="tv-slide-card d-none" id="card-keadaan_santri">
             <h2 class="slide-main-title"><i class="fas fa-user-graduate text-primary"></i> Statistik Keadaan Santri</h2>
-            <div class="grid-2-columns">
+            <div style="display: grid; grid-template-columns: 4.2fr 4.2fr 3.6fr; gap: 2vh 1.5vw; height: calc(100% - 10vh);">
                 <!-- Tabel Keadaan Santri -->
-                <div class="glass-card">
+                <div class="glass-card d-flex flex-column" style="overflow: hidden;">
                     <h3 class="card-title-tv"><i class="fas fa-list-ol"></i> Distribusi Santri per Kelas</h3>
-                    <div class="table-tv-wrapper">
+                    <div class="table-tv-wrapper" style="overflow-y: auto; flex-grow: 1;">
                         <table class="table-tv">
                             <thead>
                                 <tr>
@@ -114,6 +114,13 @@
                     <h3 class="card-title-tv"><i class="fas fa-chart-bar"></i> Grafik Distribusi Kelas</h3>
                     <div class="chart-wrapper flex-grow-1">
                         <canvas id="santriDistribusiChart"></canvas>
+                    </div>
+                </div>
+                <!-- Chart Rasio Gender -->
+                <div class="glass-card d-flex flex-column">
+                    <h3 class="card-title-tv"><i class="fas fa-chart-pie"></i> Rasio Gender Santri (L/P)</h3>
+                    <div class="chart-wrapper flex-grow-1">
+                        <canvas id="santriGenderRasioChart"></canvas>
                     </div>
                 </div>
             </div>
@@ -272,7 +279,7 @@
         <!-- 6. BLOCK: JADWAL SHOLAT -->
         <div class="tv-slide-card d-none" id="card-jadwal_sholat">
             <h2 class="slide-main-title"><i class="fas fa-mosque text-warning"></i> Jadwal Sholat & Countdown Waktu Sholat</h2>
-            <div class="glass-card p-4">
+            <div class="glass-card p-4" style="height: calc(100% - 10vh);">
                 <div class="prayer-tv-container">
                     
                     <!-- Timer Utama -->
@@ -322,9 +329,9 @@
             <h2 class="slide-main-title"><i class="fas fa-chart-bar text-primary"></i> Statistik Absensi per Kelas (Pekan Ini)</h2>
             <div class="grid-2-columns">
                 <!-- Tabel Keadaan Santri -->
-                <div class="glass-card">
+                <div class="glass-card d-flex flex-column" style="overflow: hidden;">
                     <h3 class="card-title-tv"><i class="fas fa-list-ol"></i> Rekapitulasi Kehadiran Kelas</h3>
-                    <div class="table-tv-wrapper">
+                    <div class="table-tv-wrapper" style="overflow-y: auto; flex-grow: 1;">
                         <table class="table-tv">
                             <thead>
                                 <tr>
@@ -373,9 +380,9 @@
         <!-- 8. BLOCK: AGENDA -->
         <div class="tv-slide-card d-none" id="card-agenda">
             <h2 class="slide-main-title"><i class="fas fa-calendar-check text-warning"></i> Agenda & Kegiatan Mendatang</h2>
-            <div class="glass-card">
-                <div class="agenda-tv-container">
-                    <div class="table-tv-wrapper">
+            <div class="glass-card d-flex flex-column" style="height: calc(100% - 10vh); overflow: hidden;">
+                <div class="agenda-tv-container" style="flex-grow: 1; display: flex; flex-direction: column; overflow: hidden;">
+                    <div class="table-tv-wrapper" style="overflow-y: auto; flex-grow: 1;">
                         <table class="table-tv agenda-table">
                             <thead>
                                 <tr>

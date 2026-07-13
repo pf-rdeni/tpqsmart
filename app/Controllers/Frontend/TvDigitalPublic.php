@@ -508,12 +508,18 @@ class TvDigitalPublic extends BaseController
     {
         $taBuilder = $this->db->table('tbl_kelas_santri')
             ->select('DISTINCT(IdTahunAjaran) as IdTahunAjaran')
-            ->orderBy('IdTahunAjaran', 'ASC');
+            ->orderBy('IdTahunAjaran', 'DESC')
+            ->limit(5);
         
         if (!empty($idTpq) && $idTpq != '0') {
             $taBuilder->where('IdTpq', $idTpq);
         }
         $taRows = $taBuilder->get()->getResultArray();
+        
+        // Sort chronologically (oldest to newest)
+        usort($taRows, function($a, $b) {
+            return strcmp($a['IdTahunAjaran'], $b['IdTahunAjaran']);
+        });
         
         $stats = [];
         foreach ($taRows as $taRow) {
@@ -695,24 +701,37 @@ class TvDigitalPublic extends BaseController
      */
     private function getAlumniList($idTpq)
     {
-        // 1. Get alumni from tbl_kelas_santri (IdKelas = 10)
-        $builder1 = $this->db->table('tbl_kelas_santri ks')
-            ->select('ks.IdSantri, ks.IdTahunAjaran, s.NamaSantri, s.JenisKelamin')
-            ->join('tbl_santri_baru s', 's.IdSantri = ks.IdSantri')
-            ->where('ks.IdKelas', 10);
-        if (!empty($idTpq) && $idTpq != '0') {
-            $builder1->where('ks.IdTpq', $idTpq);
-        }
-        $rows1 = $builder1->get()->getResultArray();
-        
-        // 2. Get alumni from Munaqosah graduates (TypeUjian = 'munaqosah' and passed)
+        // 1. Find latest 5 years first
         $taBuilder = $this->db->table('tbl_kelas_santri')
             ->select('DISTINCT(IdTahunAjaran) as IdTahunAjaran')
-            ->orderBy('IdTahunAjaran', 'ASC');
+            ->orderBy('IdTahunAjaran', 'DESC')
+            ->limit(5);
         if (!empty($idTpq) && $idTpq != '0') {
             $taBuilder->where('IdTpq', $idTpq);
         }
         $taRows = $taBuilder->get()->getResultArray();
+        
+        // Sort chronologically
+        usort($taRows, function($a, $b) {
+            return strcmp($a['IdTahunAjaran'], $b['IdTahunAjaran']);
+        });
+        
+        $allowedYears = array_column($taRows, 'IdTahunAjaran');
+        
+        // Get alumni from tbl_kelas_santri (IdKelas = 10) in those 5 years
+        $builder1 = $this->db->table('tbl_kelas_santri ks')
+            ->select('ks.IdSantri, ks.IdTahunAjaran, s.NamaSantri, s.JenisKelamin')
+            ->join('tbl_santri_baru s', 's.IdSantri = ks.IdSantri')
+            ->where('ks.IdKelas', 10);
+        if (!empty($allowedYears)) {
+            $builder1->whereIn('ks.IdTahunAjaran', $allowedYears);
+        } else {
+            $builder1->where('ks.IdTahunAjaran', 'none');
+        }
+        if (!empty($idTpq) && $idTpq != '0') {
+            $builder1->where('ks.IdTpq', $idTpq);
+        }
+        $rows1 = $builder1->get()->getResultArray();
         
         $rows2 = [];
         foreach ($taRows as $taRow) {
