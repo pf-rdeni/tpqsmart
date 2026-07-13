@@ -1,0 +1,783 @@
+/**
+ * TV Digital / Digital Signage Script
+ * Handles real-time clock, slideshow engine, Chart.js rendering,
+ * MuslimSalat API integration, and AJAX data refreshing.
+ */
+
+$(document).ready(function() {
+    
+    // Core parameters
+    const hashKey = $('#tvContainer').data('hash');
+    const baseUrl = window.location.origin;
+    
+    let activeSlides = []; // List of active block keys
+    let currentSlideIndex = 0;
+    let slideshowTimer = null;
+    let refreshTimer = null;
+    let refreshSecondsLeft = 300; // Default 5 mins in seconds
+
+    // Slide-specific data placeholders
+    let appData = {};
+    let charts = {}; // ChartJS references
+    let prayerTimes = {};
+    let nextPrayerTimer = null;
+
+    // Galeri inner slideshow params
+    let galeriData = [];
+    let currentGaleriIndex = 0;
+    let galeriTimer = null;
+
+    // Start clock
+    initClock();
+
+    // Start prayer times
+    initPrayerTimes();
+
+    // Load initial layout data & start slideshow loop
+    loadData();
+
+    // Keyboard navigation (Arrow keys left/right to navigate manual)
+    $(document).keydown(function(e) {
+        if (e.keyCode === 37) { // Left arrow
+            navigateSlide(-1);
+        } else if (e.keyCode === 39) { // Right arrow
+            navigateSlide(1);
+        }
+    });
+
+    // ==========================================
+    // 1. SYSTEM CLOCK
+    // ==========================================
+    function initClock() {
+        const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+        const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+        
+        setInterval(() => {
+            const now = new Date();
+            const timeStr = now.toTimeString().split(' ')[0];
+            const dateStr = days[now.getDay()] + ', ' + now.getDate() + ' ' + months[now.getMonth()] + ' ' + now.getFullYear();
+            
+            $('#tvTime').text(timeStr);
+            $('#tvDate').text(dateStr);
+        }, 1000);
+    }
+
+    // ==========================================
+    // 2. DATA LOADER & DYNAMIC REFRESH
+    // ==========================================
+    function loadData() {
+        $.getJSON(`${baseUrl}/tv/api/data/${hashKey}`, function(response) {
+            if (response.status === 'success') {
+                appData = response.data;
+                
+                // Update header & info
+                $('#tvLembagaName').text(appData.lembaga.nama);
+                if (appData.lembaga.logo) {
+                    $('#tvLogo').attr('src', appData.lembaga.logo);
+                }
+
+                // Determine active slides configurations
+                // Filter out FKPQ Home or standard Home depending on context
+                let configBlocks = appData.santriPerKelas ? ['home'] : [];
+                if (appData.lembaga.isFkpq) {
+                    configBlocks = ['home_fkpq'];
+                }
+
+                // Build active slides list from response configs
+                // If block key is "home" and it's FKPQ, map it to "home_fkpq"
+                activeSlides = [];
+                const blocksConfig = appData.statistikPerTpq && appData.lembaga.isFkpq ? 
+                    [{BlockKey: 'home_fkpq'}] : [];
+
+                // Filter blocks based on database config
+                if (appData.lembaga.isFkpq) {
+                    activeSlides.push('home_fkpq');
+                } else {
+                    activeSlides.push('home');
+                }
+
+                // Map others
+                // Filter out 'home' because we handled it above
+                const configList = appData.lembaga.isFkpq ? 
+                    ['keadaan_guru', 'jadwal_sholat', 'galeri', 'agenda'] : 
+                    ['keadaan_santri', 'keadaan_guru', 'absensi_santri', 'absensi_guru', 'jadwal_sholat', 'galeri', 'agenda'];
+
+                // Load all items configured by operator
+                // For simplicity, we fetch all active blocks configured
+                activeSlides = [];
+                $.each(appData.santriPerKelas ? 
+                    ['home', 'keadaan_santri', 'keadaan_guru', 'absensi_santri', 'absensi_guru', 'jadwal_sholat', 'galeri', 'agenda'] :
+                    ['home_fkpq', 'keadaan_guru', 'jadwal_sholat', 'galeri', 'agenda']
+                , function(i, key) {
+                    activeSlides.push(key);
+                });
+
+                // Render dot indicators
+                buildDots();
+
+                // Populate Summary statistics cards
+                populateSummaryStats();
+
+                // Populate tables
+                populateTables();
+
+                // Fetch block specific data
+                fetchGaleri();
+                fetchAgenda();
+                fetchAbsensiCharts();
+
+                // Start or adjust timers
+                refreshSecondsLeft = appData.refreshInterval * 60;
+                startRefreshTimer();
+
+                // Show first slide
+                showSlide(currentSlideIndex);
+            }
+        });
+    }
+
+    // Refresh countdown loop
+    function startRefreshTimer() {
+        if (refreshTimer) clearInterval(refreshTimer);
+        
+        refreshTimer = setInterval(() => {
+            refreshSecondsLeft--;
+            if (refreshSecondsLeft <= 0) {
+                loadData(); // Dynamic reload statistics
+            } else {
+                const mins = Math.floor(refreshSecondsLeft / 60);
+                const secs = refreshSecondsLeft % 60;
+                const formattedTime = (mins < 10 ? '0' : '') + mins + ':' + (secs < 10 ? '0' : '') + secs;
+                $('#tvRefreshTimer').html(`<i class="fas fa-sync fa-spin text-info mr-1"></i> Data: ${formattedTime}`);
+            }
+        }, 1000);
+    }
+
+    // ==========================================
+    // 3. STATS & TABLES INJECTOR
+    // ==========================================
+    function populateSummaryStats() {
+        const stats = appData.ringkasan;
+        
+        // Standard Home
+        $('#homeTotalSantri').text(stats.totalSantri);
+        $('#homeTotalGuru').text(stats.totalGuru);
+        $('#homeTotalKelas').text(stats.totalKelas);
+        $('#homeSantriLp').text(`L: ${stats.santriLaki} | P: ${stats.santriPerempuan}`);
+        $('#homeGuruLp').text(`L: ${stats.guruLaki} | P: ${stats.guruPerempuan}`);
+        
+        // Today attendance calculations
+        const totalTodayAbsen = stats.absensiSantriToday.Hadir + stats.absensiSantriToday.Izin + stats.absensiSantriToday.Sakit + stats.absensiSantriToday.Alfa;
+        if (totalTodayAbsen > 0) {
+            const pct = Math.round((stats.absensiSantriToday.Hadir / totalTodayAbsen) * 100);
+            $('#homeKehadiranPersen').text(pct + '%');
+            $('#homeKehadiranRatio').text(`Santri Hadir: ${stats.absensiSantriToday.Hadir}/${totalTodayAbsen}`);
+        } else {
+            $('#homeKehadiranPersen').text('0%');
+            $('#homeKehadiranRatio').text('Belum di-input hari ini');
+        }
+
+        // FKPQ Home
+        $('#fkpqTotalTpq').text(appData.statistikPerTpq ? appData.statistikPerTpq.length : 0);
+        $('#fkpqTotalSantri').text(stats.totalSantri);
+        $('#fkpqTotalGuru').text(stats.totalGuru);
+        $('#fkpqSantriLp').text(`L: ${stats.santriLaki} | P: ${stats.santriPerempuan}`);
+        $('#fkpqGuruLp').text(`L: ${stats.guruLaki} | P: ${stats.guruPerempuan}`);
+        
+        // Input counters today
+        $('#fkpqKehadiranToday').text(totalTodayAbsen > 0 ? 'Aktif' : 'Nihil');
+
+        // Guru detailed slide stats
+        $('#guruTotalStat').text(stats.totalGuru);
+        $('#guruLakiStat').text(stats.guruLaki);
+        $('#guruPerempuanStat').text(stats.guruPerempuan);
+    }
+
+    function populateTables() {
+        // Santri Kelas Table
+        if (appData.santriPerKelas) {
+            let trHtml = '';
+            $.each(appData.santriPerKelas, function(i, row) {
+                trHtml += `
+                    <tr>
+                        <td class="font-weight-bold">${row.NamaKelas}</td>
+                        <td class="text-center text-primary">${row.LakiLaki}</td>
+                        <td class="text-center text-pink">${row.Perempuan}</td>
+                        <td class="text-center font-weight-bold">${row.Total}</td>
+                    </tr>
+                `;
+            });
+            $('#santriKelasTableBody').html(trHtml);
+        }
+
+        // FKPQ Tpq breakdown rank table
+        if (appData.statistikPerTpq) {
+            let trHtml = '';
+            $.each(appData.statistikPerTpq, function(i, row) {
+                const rank = i + 1;
+                const rasio = row.Guru > 0 ? Math.round(row.Santri / row.Guru) : row.Santri;
+                trHtml += `
+                    <tr>
+                        <td class="font-weight-bold">${rank}</td>
+                        <td class="font-weight-bold">${row.NamaTpq}</td>
+                        <td class="text-center text-success">${row.Santri}</td>
+                        <td class="text-center text-info">${row.Guru}</td>
+                        <td class="text-center text-muted">1 : ${rasio}</td>
+                    </tr>
+                `;
+            });
+            $('#fkpqTpqTableBody').html(trHtml);
+        }
+    }
+
+    // ==========================================
+    // 4. SLIDESHOW ENGINE
+    // ==========================================
+    function buildDots() {
+        let dotsHtml = '';
+        $.each(activeSlides, function(i, key) {
+            dotsHtml += `<span class="tv-dot" data-index="${i}"></span>`;
+        });
+        $('#tvSlideDots').html(dotsHtml);
+        
+        // Dot clicks to manually navigate
+        $('.tv-dot').click(function() {
+            showSlide($(this).data('index'));
+        });
+    }
+
+    function showSlide(index) {
+        if (activeSlides.length === 0) return;
+        
+        // Clear previous slideshow timer
+        if (slideshowTimer) clearTimeout(slideshowTimer);
+
+        // Hide all cards
+        $('.tv-slide-card').addClass('d-none');
+        
+        // Adjust index boundary
+        currentSlideIndex = (index + activeSlides.length) % activeSlides.length;
+        const currentKey = activeSlides[currentSlideIndex];
+        
+        // Display target slide
+        $(`#card-${currentKey}`).removeClass('d-none');
+        
+        // Update dots UI
+        $('.tv-dot').removeClass('active-dot');
+        $(`.tv-dot[data-index="${currentSlideIndex}"]`).addClass('active-dot');
+        
+        // Update Footer Label
+        const prettyName = currentKey.replace('_', ' ').toUpperCase();
+        $('#tvCurrentSlideName').text(prettyName);
+
+        // Re-render block specific charts/gallery loops
+        triggerSlideEnter(currentKey);
+
+        // Queue next slide auto duration
+        const duration = (appData.slideshowInterval || 15) * 1000;
+        slideshowTimer = setTimeout(() => {
+            navigateSlide(1);
+        }, duration);
+    }
+
+    function navigateSlide(direction) {
+        showSlide(currentSlideIndex + direction);
+    }
+
+    function triggerSlideEnter(key) {
+        if (key === 'galeri') {
+            startGaleriLoop();
+        } else {
+            stopGaleriLoop();
+        }
+        
+        // Initialize or update charts dynamically when that slide is shown
+        renderCharts(key);
+    }
+
+    // ==========================================
+    // 5. CHART.JS RENDERING & DATA VISUALIZATION
+    // ==========================================
+    function renderCharts(key) {
+        // Destroy existing instance if recreate is needed
+        
+        // 1. HOME: Last 30 days trend line chart
+        if ((key === 'home' || key === 'home_fkpq') && $('#homeAbsensiChart').length) {
+            fetchMonthlyChartData('homeAbsensiChart', 'home');
+        }
+        
+        // 2. SANTRI: Bar chart distribution
+        if (key === 'keadaan_santri' && appData.santriPerKelas) {
+            const labels = [];
+            const dataLaki = [];
+            const dataPerempuan = [];
+            $.each(appData.santriPerKelas, function(i, r) {
+                labels.push(r.NamaKelas);
+                dataLaki.push(r.LakiLaki);
+                dataPerempuan.push(r.Perempuan);
+            });
+            createBarChart('santriDistribusiChart', labels, dataLaki, dataPerempuan);
+        }
+
+        // 3. GURU: Gender pie chart
+        if (key === 'keadaan_guru') {
+            const stats = appData.ringkasan;
+            createPieChart('guruGenderChart', ['Ustadz (L)', 'Ustadzah (P)'], [stats.guruLaki, stats.guruPerempuan]);
+        }
+
+        // 4. FKPQ HOME: Rasio Pie Chart
+        if (key === 'home_fkpq') {
+            const stats = appData.ringkasan;
+            createPieChart('fkpqRasioChart', ['Total Santri', 'Total Guru'], [stats.totalSantri, stats.totalGuru]);
+        }
+    }
+
+    // Dynamic Chart generators helper functions
+    function createBarChart(canvasId, labels, dataL, dataP) {
+        if (charts[canvasId]) charts[canvasId].destroy();
+        
+        const ctx = document.getElementById(canvasId).getContext('2d');
+        charts[canvasId] = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Laki-Laki',
+                        data: dataL,
+                        backgroundColor: '#007bff'
+                    },
+                    {
+                        label: 'Perempuan',
+                        data: dataP,
+                        backgroundColor: '#e83e8c'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { stacked: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#a0a0c0' } },
+                    y: { stacked: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#a0a0c0' } }
+                },
+                plugins: {
+                    legend: { labels: { color: '#ffffff' } }
+                }
+            }
+        });
+    }
+
+    function createPieChart(canvasId, labels, data) {
+        if (charts[canvasId]) charts[canvasId].destroy();
+        
+        const ctx = document.getElementById(canvasId).getContext('2d');
+        charts[canvasId] = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: data,
+                    backgroundColor: ['#007bff', '#e83e8c'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { color: '#ffffff', font: { size: 16 } } }
+                }
+            }
+        });
+    }
+
+    // ==========================================
+    // 6. EXTERNAL GRAPH DATA AJAX FETCHERS
+    // ==========================================
+    function fetchMonthlyChartData(canvasId, type) {
+        if (charts[canvasId]) return; // Do not refetch if already loaded
+        
+        $.getJSON(`${baseUrl}/tv/api/absensi-santri/${hashKey}`, function(response) {
+            if (response.status === 'success') {
+                const dates = Object.keys(response.data.bulanan);
+                const values = Object.values(response.data.bulanan).map(d => d.Hadir);
+                
+                const ctx = document.getElementById(canvasId).getContext('2d');
+                charts[canvasId] = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: dates.map(d => d.substring(8, 10) + '/' + d.substring(5, 7)),
+                        datasets: [{
+                            label: 'Santri Hadir',
+                            data: values,
+                            borderColor: '#007bff',
+                            backgroundColor: 'rgba(0,123,255,0.1)',
+                            fill: true,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: { grid: { display: false }, ticks: { color: '#a0a0c0' } },
+                            y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#a0a0c0' } }
+                        },
+                        plugins: {
+                            legend: { display: false }
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    function fetchAbsensiCharts() {
+        if (appData.lembaga.isFkpq) return; // Skip for FKPQ
+
+        // 1. Santri Attendance Harian & Mingguan Charts
+        $.getJSON(`${baseUrl}/tv/api/absensi-santri/${hashKey}`, function(response) {
+            if (response.status === 'success') {
+                // Santri Harian
+                const days = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+                const thisWeekData = Object.values(response.data.mingguIni).map(d => d.Hadir).slice(0, 6);
+                
+                const ctx1 = document.getElementById('absensiSantriHarianChart').getContext('2d');
+                if (charts['absensiSantriHarianChart']) charts['absensiSantriHarianChart'].destroy();
+                charts['absensiSantriHarianChart'] = new Chart(ctx1, {
+                    type: 'bar',
+                    data: {
+                        labels: days,
+                        datasets: [{
+                            label: 'Hadir',
+                            data: thisWeekData,
+                            backgroundColor: '#6f42c1'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: { ticks: { color: '#a0a0c0' } },
+                            y: { ticks: { color: '#a0a0c0' } }
+                        }
+                    }
+                });
+
+                // Perbandingan minggu lalu vs minggu ini
+                const lastWeekData = Object.values(response.data.mingguLalu).map(d => d.Hadir).slice(0, 6);
+                const ctx2 = document.getElementById('absensiSantriPerbandinganChart').getContext('2d');
+                if (charts['absensiSantriPerbandinganChart']) charts['absensiSantriPerbandinganChart'].destroy();
+                charts['absensiSantriPerbandinganChart'] = new Chart(ctx2, {
+                    type: 'line',
+                    data: {
+                        labels: days,
+                        datasets: [
+                            {
+                                label: 'Minggu Ini',
+                                data: thisWeekData,
+                                borderColor: '#28a745',
+                                tension: 0.3
+                            },
+                            {
+                                label: 'Minggu Lalu',
+                                data: lastWeekData,
+                                borderColor: '#fd7e14',
+                                tension: 0.3
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: { ticks: { color: '#a0a0c0' } },
+                            y: { ticks: { color: '#a0a0c0' } }
+                        }
+                    }
+                });
+            }
+        });
+
+        // 2. Guru Attendance Harian & Bulanan Charts
+        $.getJSON(`${baseUrl}/tv/api/absensi-guru/${hashKey}`, function(response) {
+            if (response.status === 'success') {
+                const days = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+                const thisWeekData = Object.values(response.data.mingguIni).map(d => d.Hadir).slice(0, 6);
+                
+                const ctx1 = document.getElementById('absensiGuruHarianChart').getContext('2d');
+                if (charts['absensiGuruHarianChart']) charts['absensiGuruHarianChart'].destroy();
+                charts['absensiGuruHarianChart'] = new Chart(ctx1, {
+                    type: 'bar',
+                    data: {
+                        labels: days,
+                        datasets: [{
+                            label: 'Guru Hadir',
+                            data: thisWeekData,
+                            backgroundColor: '#28a745'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: { ticks: { color: '#a0a0c0' } },
+                            y: { ticks: { color: '#a0a0c0' } }
+                        }
+                    }
+                });
+
+                // Bulanan (Trend area chart)
+                const dates = Object.keys(response.data.bulanan);
+                const values = Object.values(response.data.bulanan).map(d => d.Hadir);
+                const ctx2 = document.getElementById('absensiGuruBulananChart').getContext('2d');
+                if (charts['absensiGuruBulananChart']) charts['absensiGuruBulananChart'].destroy();
+                charts['absensiGuruBulananChart'] = new Chart(ctx2, {
+                    type: 'line',
+                    data: {
+                        labels: dates.map(d => d.substring(8, 10)),
+                        datasets: [{
+                            label: 'Total Kehadiran',
+                            data: values,
+                            borderColor: '#dc3545',
+                            backgroundColor: 'rgba(220,53,69,0.1)',
+                            fill: true,
+                            tension: 0.3
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: { ticks: { color: '#a0a0c0' } },
+                            y: { ticks: { color: '#a0a0c0' } }
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    // ==========================================
+    // 7. PHOTO GALLERY CAROUSEL (INNER LOOP)
+    // ==========================================
+    function fetchGaleri() {
+        $.getJSON(`${baseUrl}/tv/api/galeri/${hashKey}`, function(response) {
+            if (response.status === 'success') {
+                galeriData = response.data;
+            }
+        });
+    }
+
+    function startGaleriLoop() {
+        if (galeriTimer) clearInterval(galeriTimer);
+        if (galeriData.length === 0) return;
+
+        showGaleriPhoto(0);
+        
+        // Auto slide inner photos every 5 seconds
+        galeriTimer = setInterval(() => {
+            currentGaleriIndex = (currentGaleriIndex + 1) % galeriData.length;
+            showGaleriPhoto(currentGaleriIndex);
+        }, 5000);
+    }
+
+    function stopGaleriLoop() {
+        if (galeriTimer) clearInterval(galeriTimer);
+    }
+
+    function showGaleriPhoto(index) {
+        if (galeriData.length === 0) return;
+        const photo = galeriData[index];
+        
+        $('#galeriActiveImage').attr('src', photo.FotoUrl);
+        $('#galeriActiveTitle').text(photo.Judul);
+        $('#galeriActiveDate').text(photo.TanggalFormatted);
+        $('#galeriActiveDesc').text(photo.Keterangan || '-');
+    }
+
+    // ==========================================
+    // 8. AGENDA SLIDE
+    // ==========================================
+    function fetchAgenda() {
+        $.getJSON(`${baseUrl}/tv/api/agenda/${hashKey}`, function(response) {
+            if (response.status === 'success') {
+                // Populate slide agenda
+                let trHtml = '';
+                $.each(response.data, function(i, a) {
+                    trHtml += `
+                        <tr>
+                            <td class="font-weight-bold text-success">${a.NamaKegiatan}</td>
+                            <td><i class="far fa-calendar-alt"></i> ${a.TanggalFormatted}</td>
+                            <td><i class="far fa-clock"></i> ${a.JamFormatted || '-'}</td>
+                            <td><i class="fas fa-map-marker-alt text-warning"></i> ${a.Tempat || '-'}</td>
+                            <td class="text-secondary text-sm">${a.Keterangan || '-'}</td>
+                        </tr>
+                    `;
+                });
+                $('#agendaTableBody').html(trHtml || '<tr><td colspan="5" class="text-center text-muted">Tidak ada agenda mendatang</td></tr>');
+
+                // Populate Home mini list
+                let homeHtml = '';
+                $.each(response.data.slice(0, 3), function(i, a) {
+                    const dateObj = new Date(a.TanggalMulai);
+                    const day = dateObj.getDate();
+                    const monthsShort = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+                    const month = monthsShort[dateObj.getMonth()];
+                    
+                    homeHtml += `
+                        <div class="home-agenda-item">
+                            <div class="home-agenda-date-box">
+                                <span class="had-day">${day}</span>
+                                <span class="had-month">${month}</span>
+                            </div>
+                            <div class="home-agenda-details">
+                                <h4>${a.NamaKegiatan}</h4>
+                                <span><i class="fas fa-map-marker-alt text-warning"></i> ${a.Tempat || '-'}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+                $('#homeAgendaContainer').html(homeHtml || '<div class="text-center text-muted py-4">Tidak ada agenda mendatang</div>');
+            }
+        });
+    }
+
+    // ==========================================
+    // 9. PRAYER TIMES COUNTDOWN & API CLIENT
+    // ==========================================
+    function initPrayerTimes() {
+        // Order subuh, syuruq, dzuhur, ashar, maghrib, isya
+        const prayerOrder = ["fajr", "shurooq", "dhuhr", "asr", "maghrib", "isha"];
+        const prayerNames = {
+            "fajr": "Subuh",
+            "shurooq": "Syuruq",
+            "dhuhr": "Dzuhur",
+            "asr": "Ashar",
+            "maghrib": "Maghrib",
+            "isha": "Isya"
+        };
+
+        const defaultCity = "Bintan";
+        $('#sholat-lokasi').text(defaultCity);
+
+        // Fetch dari MuslimSalat client-side API
+        // Gunakan JSONP untuk menghindari CORS
+        const url = `https://muslimsalat.com/${defaultCity}.json?key=free&jsoncallback=?`;
+        
+        $.getJSON(url, function(data) {
+            if (data && data.items && data.items.length > 0) {
+                const item = data.items[0];
+                prayerTimes = {
+                    "fajr": item.fajr,
+                    "shurooq": item.shurooq,
+                    "dhuhr": item.dhuhr,
+                    "asr": item.asr,
+                    "maghrib": item.maghrib,
+                    "isha": item.isha
+                };
+
+                // Inject UI times
+                $('#sholat-subuh').text(item.fajr);
+                $('#sholat-syuruq').text(item.shurooq);
+                $('#sholat-dzuhur').text(item.dhuhr);
+                $('#sholat-ashar').text(item.asr);
+                $('#sholat-maghrib').text(item.maghrib);
+                $('#sholat-isya').text(item.isha);
+
+                // Start countdown loop
+                startPrayerCountdown(prayerOrder, prayerNames);
+            }
+        });
+    }
+
+    function startPrayerCountdown(order, names) {
+        if (nextPrayerTimer) clearInterval(nextPrayerTimer);
+
+        nextPrayerTimer = setInterval(() => {
+            const now = new Date();
+            let nextIndex = -1;
+            let targetTime = null;
+            let isTomorrow = false;
+
+            // Cari sholat terdekat berikutnya hari ini
+            for (let i = 0; i < order.length; i++) {
+                const pKey = order[i];
+                const pTimeStr = prayerTimes[pKey];
+                if (!pTimeStr) continue;
+
+                const pTime = parseTime(pTimeStr);
+                if (pTime > now) {
+                    nextIndex = i;
+                    targetTime = pTime;
+                    break;
+                }
+            }
+
+            // Jika semua waktu sholat hari ini sudah lewat, maka target berikutnya adalah Subuh besok
+            if (nextIndex === -1) {
+                const firstKey = order[0];
+                const pTimeStr = prayerTimes[firstKey];
+                if (pTimeStr) {
+                    nextIndex = 0;
+                    targetTime = parseTime(pTimeStr);
+                    targetTime.setDate(targetTime.getDate() + 1); // Besok
+                    isTomorrow = true;
+                }
+            }
+
+            if (nextIndex !== -1 && targetTime) {
+                const nextKey = order[nextIndex];
+                const nextName = names[nextKey];
+                const diffMs = targetTime - now;
+                
+                // Format diff to hh:mm:ss
+                const diffSecs = Math.floor(diffMs / 1000);
+                const hours = Math.floor(diffSecs / 3600);
+                const mins = Math.floor((diffSecs % 3600) / 60);
+                const secs = diffSecs % 60;
+                
+                const timeStr = (hours < 10 ? '0' : '') + hours + ':' + (mins < 10 ? '0' : '') + mins + ':' + (secs < 10 ? '0' : '') + secs;
+                
+                // Update Slide widgets
+                $('#prayerTimerClock').text(timeStr);
+                $('#prayerTimerNextName').text(`${nextName} ${isTomorrow ? 'Besok' : 'Hari Ini'} jam ${prayerTimes[nextKey]}`);
+
+                // Update Header widget badge
+                $('#headerPrayerBadge').removeClass('d-none');
+                $('#headerPrayerName').text(nextName);
+                $('#headerPrayerTime').text(prayerTimes[nextKey]);
+                $('#headerPrayerCountdown').text(`(${hours}j ${mins}m)`);
+
+                // Highlight active prayer card box
+                $('.prayer-box').removeClass('active-prayer');
+                $(`.prayer-box[data-prayer="${nextKey}"]`).addClass('active-prayer');
+            }
+        }, 1000);
+    }
+
+    // Helper: Parse '5:24 am' or '12:05 pm' into Date object
+    function parseTime(timeStr) {
+        const parts = timeStr.match(/(\d+)(?::(\d\d))?\s*(p?)/i);
+        if (!parts) return null;
+        
+        let hours = parseInt(parts[1], 10);
+        const minutes = parseInt(parts[2], 10) || 0;
+        const isPm = !!parts[3];
+        
+        if (isPm && hours < 12) {
+            hours += 12;
+        } else if (!isPm && hours === 12) {
+            hours = 0;
+        }
+        
+        const d = new Date();
+        d.setHours(hours);
+        d.setMinutes(minutes);
+        d.setSeconds(0);
+        d.setMilliseconds(0);
+        return d;
+    }
+
+});

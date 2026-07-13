@@ -50,6 +50,14 @@ $routes->post('dashboard/updateTahunAjaranDanKelas', 'Dashboard::updateTahunAjar
 $routes->get('program', 'Frontend\Program::index');
 $routes->get('kontak', 'Frontend\Kontak::index');
 
+// === TV Digital (Public - No Login) ===
+$routes->get('tv/(:segment)', 'Frontend\TvDigitalPublic::index/$1');
+$routes->get('tv/api/data/(:segment)', 'Frontend\TvDigitalPublic::getData/$1');
+$routes->get('tv/api/absensi-santri/(:segment)', 'Frontend\TvDigitalPublic::getAbsensiSantri/$1');
+$routes->get('tv/api/absensi-guru/(:segment)', 'Frontend\TvDigitalPublic::getAbsensiGuru/$1');
+$routes->get('tv/api/galeri/(:segment)', 'Frontend\TvDigitalPublic::getGaleri/$1');
+$routes->get('tv/api/agenda/(:segment)', 'Frontend\TvDigitalPublic::getAgenda/$1');
+
 // Routes untuk pendaftaran santri menggunakan controller SantriPendaftaran
 // Public routes (tanpa login)
 $routes->get('pendaftaran', 'SantriPendaftaran::createEmisStep/public');
@@ -203,6 +211,22 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->post('logviewer/getLogContentByDate', 'LogViewer::getLogContentByDate');
     $routes->get('logviewer/download', 'LogViewer::download');
     $routes->post('logviewer/cleanup', 'LogViewer::cleanup');
+
+    // TV Digital / Signage Routes
+    $routes->get('tv-digital', 'TvDigital::index');
+    $routes->post('tv-digital/create-link', 'TvDigital::createLink');
+    $routes->post('tv-digital/update-link/(:num)', 'TvDigital::updateLink/$1');
+    $routes->post('tv-digital/delete-link/(:num)', 'TvDigital::deleteLink/$1');
+    $routes->post('tv-digital/save-config', 'TvDigital::saveConfig');
+    $routes->get('tv-digital/galeri', 'TvDigital::galeriIndex');
+    $routes->post('tv-digital/upload-galeri', 'TvDigital::uploadGaleri');
+    $routes->post('tv-digital/delete-galeri/(:num)', 'TvDigital::deleteGaleri/$1');
+    $routes->post('tv-digital/update-galeri/(:num)', 'TvDigital::updateGaleri/$1');
+    $routes->get('tv-digital/agenda', 'TvDigital::agendaIndex');
+    $routes->post('tv-digital/save-agenda', 'TvDigital::saveAgenda');
+    $routes->post('tv-digital/update-agenda/(:num)', 'TvDigital::updateAgenda/$1');
+    $routes->post('tv-digital/delete-agenda/(:num)', 'TvDigital::deleteAgenda/$1');
+    $routes->get('tv-digital/preview/(:num)', 'TvDigital::previewTvDigital/$1');
 
     // Routes untuk Kriteria Catatan Raport (harus didefinisikan SEBELUM route umum)
     $routes->get('rapor/kriteriaCatatanRapor', 'Rapor::kriteriaCatatanRapor');

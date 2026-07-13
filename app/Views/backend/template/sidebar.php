@@ -1270,6 +1270,39 @@
                 <?php endif; ?>
                 <!-- End Menu MyAuth -->
 
+                <!-- TV Digital Menu -->
+                <?php if ((in_groups('Admin') && !$isMyAuthPage && !$isSertifikasiPage && !$isMunaqosahPage && !$isPerlombaanPage && !$isLuckydrawPage) || $isActiveOperator): ?>
+                    <li class="nav-item <?= ($menu_open ?? '') == 'tv-digital' ? 'menu-open' : '' ?>">
+                        <a href="#" class="nav-link <?= ($menu_open ?? '') == 'tv-digital' ? 'active' : '' ?>">
+                            <i class="nav-icon fas fa-tv"></i>
+                            <p>
+                                TV Digital
+                                <i class="right fas fa-angle-left"></i>
+                            </p>
+                        </a>
+                        <ul class="nav nav-treeview" style="display: <?= ($menu_open ?? '') == 'tv-digital' ? 'block' : 'none' ?>;">
+                            <li class="nav-item">
+                                <a href="<?= base_url('backend/tv-digital') ?>" class="nav-link <?= ($menu_active ?? '') == 'tv-digital-pengaturan' ? 'active' : '' ?>">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Pengaturan</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="<?= base_url('backend/tv-digital/galeri') ?>" class="nav-link <?= ($menu_active ?? '') == 'tv-digital-galeri' ? 'active' : '' ?>">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Galeri Kegiatan</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="<?= base_url('backend/tv-digital/agenda') ?>" class="nav-link <?= ($menu_active ?? '') == 'tv-digital-agenda' ? 'active' : '' ?>">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Agenda</p>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                <?php endif; ?>
+
                 <!-- Start Menu Setting -->
                 <?php if ((in_groups('Admin') && !$isMyAuthPage && !$isSertifikasiPage && !$isMunaqosahPage && !$isPerlombaanPage && !$isLuckydrawPage) || $isActiveOperator): ?>
                     <!--  General Setting -->

@@ -106,6 +106,8 @@ class Filters extends BaseFilters
                     'luckydraw/*',         // Lucky Draw Public View
                     'survey',              // Public Survey
                     'survey/*',            // Public Survey fill, hasil, submit, api
+                    'tv',                  // TV Digital Public View
+                    'tv/*',                // TV Digital Public View & API
                 ]
             ],
         ],
