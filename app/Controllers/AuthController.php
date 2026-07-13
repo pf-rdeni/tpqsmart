@@ -92,6 +92,54 @@ class AuthController extends MythAuthController
             $this->setGuruSessionData($idGuru);
         }
 
+        // Cek apakah user adalah Operator atau Admin untuk memberikan fleksibilitas tahun ajaran
+        if (in_groups('Operator') || in_groups('Admin')) {
+            try {
+                $db = \Config\Database::connect();
+                $query = $db->query("
+                    SELECT DISTINCT IdTahunAjaran 
+                    FROM (
+                        SELECT IdTahunAjaran FROM tbl_kelas_santri
+                        UNION
+                        SELECT IdTahunAjaran FROM tbl_guru_kelas
+                    ) AS combined
+                    ORDER BY IdTahunAjaran ASC
+                ");
+                $result = $query->getResultArray();
+                $allTa = array_column($result, 'IdTahunAjaran');
+
+                // Ambil tahun ajaran saat ini
+                $tahunAjaranSaatIni = $this->helpFunctionModel->getTahunAjaranSaatIni();
+                if (!in_array($tahunAjaranSaatIni, $allTa)) {
+                    $allTa[] = $tahunAjaranSaatIni;
+                }
+                sort($allTa);
+
+                session()->set('IdTahunAjaranList', $allTa);
+
+                // Set default active tahun ajaran ke tahun ajaran berjalan (saat ini) jika ada,
+                // jika tidak ada, gunakan yang paling baru di sistem.
+                if (in_array($tahunAjaranSaatIni, $allTa)) {
+                    session()->set('IdTahunAjaran', $tahunAjaranSaatIni);
+                } else {
+                    session()->set('IdTahunAjaran', !empty($allTa) ? $allTa[count($allTa) - 1] : $tahunAjaranSaatIni);
+                }
+
+                // Bila user juga merupakan guru, kelas-kelasnya perlu disesuaikan dengan tahun ajaran default baru ini
+                if ($idGuru) {
+                    $idTpq = session()->get('IdTpq');
+                    $activeTa = session()->get('IdTahunAjaran');
+                    $listKelas = $this->helpFunctionModel->getListKelas($idTpq, $activeTa, null, $idGuru);
+                    $idKelasList = array_map(function ($kelas) {
+                        return $kelas->IdKelas;
+                    }, $listKelas);
+                    session()->set('IdKelas', $idKelasList);
+                }
+            } catch (\Exception $e) {
+                log_message('error', 'Gagal memuat list tahun ajaran untuk Operator/Admin: ' . $e->getMessage());
+            }
+        }
+
         // Cek apakah ada redirect_url yang disimpan sebelumnya
         if (session()->has('redirect_url')) {
             $redirectUrl = session()->get('redirect_url');
