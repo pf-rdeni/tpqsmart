@@ -57,7 +57,17 @@
                                             <input type="hidden" name="IdInfografisLink" value="<?= $link['Id'] ?>">
                                             
                                             <div class="row">
-                                                <div class="col-sm-4">
+                                                <div class="col-sm-3">
+                                                    <div class="form-group">
+                                                        <label class="text-sm">Tema Tampilan</label>
+                                                        <select class="form-control form-control-sm" name="Theme">
+                                                            <option value="dark" <?= ($link['Theme'] == 'dark') ? 'selected' : '' ?>>Dark Premium</option>
+                                                            <option value="colorful" <?= ($link['Theme'] == 'colorful') ? 'selected' : '' ?>>Colorful Gradient</option>
+                                                            <option value="light" <?= ($link['Theme'] == 'light') ? 'selected' : '' ?>>Light Pastel</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="col-sm-3">
                                                     <div class="form-group">
                                                         <label class="text-sm">Tahun Ajaran</label>
                                                         <select class="form-control form-control-sm" name="IdTahunAjaran">
@@ -69,15 +79,15 @@
                                                         </select>
                                                     </div>
                                                 </div>
-                                                <div class="col-sm-4">
+                                                <div class="col-sm-3">
                                                     <div class="form-group">
-                                                        <label class="text-sm">Slideshow Interval (detik)</label>
+                                                        <label class="text-sm">Slideshow (detik)</label>
                                                         <input type="number" min="5" max="300" class="form-control form-control-sm" name="SlideshowInterval" value="<?= $link['SlideshowInterval'] ?>">
                                                     </div>
                                                 </div>
-                                                <div class="col-sm-4">
+                                                <div class="col-sm-3">
                                                     <div class="form-group">
-                                                        <label class="text-sm">Refresh Data (menit)</label>
+                                                        <label class="text-sm">Refresh (menit)</label>
                                                         <input type="number" min="1" max="60" class="form-control form-control-sm" name="RefreshInterval" value="<?= $link['RefreshInterval'] ?>">
                                                     </div>
                                                 </div>
@@ -221,6 +231,7 @@ $(document).ready(function() {
     $('.form-config-link').submit(function(e) {
         e.preventDefault();
         var linkId = $(this).data('id');
+        var theme = $(this).find('select[name="Theme"]').val();
         var idTahunAjaran = $(this).find('select[name="IdTahunAjaran"]').val();
         var slideshowInterval = $(this).find('input[name="SlideshowInterval"]').val();
         var refreshInterval = $(this).find('input[name="RefreshInterval"]').val();
@@ -230,6 +241,7 @@ $(document).ready(function() {
             url: '<?= base_url('backend/tv-digital/update-link') ?>/' + linkId,
             type: 'POST',
             data: {
+                Theme: theme,
                 IdTahunAjaran: idTahunAjaran,
                 SlideshowInterval: slideshowInterval,
                 RefreshInterval: refreshInterval

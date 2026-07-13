@@ -17,6 +17,7 @@ class InfografisLinkModel extends Model
         'IdTahunAjaran',
         'HashKey',
         'NamaLink',
+        'Theme',
         'SlideshowInterval',
         'RefreshInterval',
         'IsActive',

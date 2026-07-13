@@ -138,6 +138,9 @@ class TvDigital extends BaseController
         if ($this->request->getPost('IdTahunAjaran') !== null) {
             $updateData['IdTahunAjaran'] = $this->request->getPost('IdTahunAjaran');
         }
+        if ($this->request->getPost('Theme') !== null) {
+            $updateData['Theme'] = $this->request->getPost('Theme');
+        }
 
         if (!empty($updateData)) {
             $this->linkModel->update($id, $updateData);

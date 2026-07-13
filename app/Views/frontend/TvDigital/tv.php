@@ -2,7 +2,7 @@
 <?= $this->section('content'); ?>
 
 <!-- Container utama TV -->
-<div class="tv-container" id="tvContainer" data-hash="<?= $link['HashKey'] ?>">
+<div class="tv-container theme-<?= $link['Theme'] ?? 'dark' ?>" id="tvContainer" data-hash="<?= $link['HashKey'] ?>">
     
     <!-- HEADER BAR -->
     <header class="tv-header">

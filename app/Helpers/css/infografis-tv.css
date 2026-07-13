@@ -4,14 +4,6 @@
 */
 
 :root {
-    --bg-dark-1: #06060c;
-    --bg-dark-2: #0e0e1e;
-    --glass-bg: rgba(255, 255, 255, 0.03);
-    --glass-bg-hover: rgba(255, 255, 255, 0.06);
-    --glass-border: rgba(255, 255, 255, 0.08);
-    --text-primary: #ffffff;
-    --text-secondary: #a0a0c0;
-    
     /* Signage Accent Colors */
     --color-blue: #007bff;
     --color-green: #28a745;
@@ -20,6 +12,36 @@
     --color-pink: #e83e8c;
     --color-warning: #ffc107;
     --color-info: #17a2b8;
+}
+
+/* 1. Dark Theme (Default) */
+.theme-dark {
+    --bg-gradient: linear-gradient(135deg, #06060c 0%, #0e0e1e 100%);
+    --glass-bg: rgba(255, 255, 255, 0.03);
+    --glass-bg-hover: rgba(255, 255, 255, 0.06);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --text-primary: #ffffff;
+    --text-secondary: #a0a0c0;
+}
+
+/* 2. Colorful Theme (Dynamic Glowing Gradients) */
+.theme-colorful {
+    --bg-gradient: linear-gradient(135deg, #0f0c1b 0%, #05162e 50%, #150529 100%);
+    --glass-bg: rgba(255, 255, 255, 0.05);
+    --glass-bg-hover: rgba(255, 255, 255, 0.09);
+    --glass-border: rgba(255, 255, 255, 0.12);
+    --text-primary: #ffffff;
+    --text-secondary: #c8c8e6;
+}
+
+/* 3. Light Theme (Clean Premium Pastel) */
+.theme-light {
+    --bg-gradient: linear-gradient(135deg, #f3f5f9 0%, #e2e7f1 100%);
+    --glass-bg: rgba(255, 255, 255, 0.7);
+    --glass-bg-hover: rgba(255, 255, 255, 0.9);
+    --glass-border: rgba(0, 0, 0, 0.08);
+    --text-primary: #1e293b;
+    --text-secondary: #64748b;
 }
 
 * {
@@ -31,7 +53,6 @@
 
 body {
     font-family: 'Outfit', sans-serif;
-    background: linear-gradient(135deg, var(--bg-dark-1) 0%, var(--bg-dark-2) 100%);
     color: var(--text-primary);
     width: 100vw;
     height: 100vh;
@@ -45,6 +66,9 @@ body {
     width: 100%;
     height: 100%;
     padding: 2.5vh 3vw;
+    background: var(--bg-gradient);
+    color: var(--text-primary);
+    transition: all 0.5s ease;
 }
 
 /* Header design */
@@ -653,3 +677,162 @@ body {
 ::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.2);
 }
+
+/* ==========================================
+   THEME SPECIFIC STYLE OVERRIDES
+   ========================================== */
+
+/* --- COLORFUL THEME --- */
+.theme-colorful {
+    background: radial-gradient(circle at 10% 20%, rgba(111, 66, 193, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(0, 123, 255, 0.2) 0%, transparent 50%),
+                var(--bg-gradient);
+}
+.theme-colorful .glass-card {
+    background: rgba(255, 255, 255, 0.04);
+    box-shadow: 0 15px 35px rgba(111, 66, 193, 0.1);
+}
+.theme-colorful .stat-box-tv {
+    background: rgba(255,255,255,0.03);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+}
+
+/* --- LIGHT THEME --- */
+.theme-light .live-time {
+    color: #0f172a;
+    text-shadow: none;
+}
+.theme-light .live-date {
+    color: #475569;
+}
+.theme-light .prayer-countdown-time {
+    text-shadow: 0 0 15px rgba(253, 126, 20, 0.15);
+}
+.theme-light .prayer-countdown-next {
+    color: #334155;
+}
+.theme-light .stat-number {
+    color: #0f172a;
+}
+.theme-light .stat-label {
+    color: #475569;
+}
+.theme-light .stat-subtext {
+    color: #64748b;
+}
+.theme-light .stat-box-tv {
+    background: #ffffff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+.theme-light .glass-card {
+    background: #ffffff;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+    border-color: rgba(0, 0, 0, 0.05);
+}
+.theme-light .card-title-tv {
+    color: #0f172a;
+    border-bottom-color: rgba(0, 0, 0, 0.06);
+}
+.theme-light .table-tv td {
+    color: #334155;
+    border-bottom-color: rgba(0, 0, 0, 0.04);
+}
+.theme-light .table-tv th {
+    background: rgba(0, 0, 0, 0.03);
+    color: #475569;
+    border-bottom-color: rgba(0, 0, 0, 0.05);
+}
+.theme-light .table-tv tr:nth-child(even) td {
+    background: rgba(0, 0, 0, 0.01);
+}
+.theme-light .header-titles h1 {
+    background: linear-gradient(to right, #0f172a, #0056b3);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+.theme-light .logo-image {
+    border-color: rgba(0,0,0,0.06);
+    box-shadow: 0 0 15px rgba(0, 123, 255, 0.08);
+}
+.theme-light .header-prayer-badge {
+    background: rgba(217, 119, 6, 0.08);
+    color: #b45309;
+    border-color: rgba(217, 119, 6, 0.2);
+}
+.theme-light .prayer-box {
+    background: #ffffff;
+    border-color: rgba(0, 0, 0, 0.05);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+}
+.theme-light .prayer-box .pb-name {
+    color: #475569;
+}
+.theme-light .prayer-box .pb-time {
+    color: #0f172a;
+}
+.theme-light .prayer-box.active-prayer {
+    background: rgba(217, 119, 6, 0.08);
+    border-color: var(--color-warning);
+    box-shadow: 0 4px 15px rgba(217, 119, 6, 0.12);
+}
+.theme-light .prayer-box.active-prayer .pb-name {
+    color: #b45309;
+}
+.theme-light .prayer-box.active-prayer .pb-time {
+    color: #78350f;
+}
+.theme-light .galeri-tv-caption {
+    background: rgba(255, 255, 255, 0.98);
+    border-left-color: var(--color-blue);
+}
+.theme-light .galeri-tv-caption h3 {
+    color: #0f172a;
+}
+.theme-light .galeri-tv-caption p {
+    color: #475569;
+}
+.theme-light .home-agenda-item {
+    background: #ffffff;
+    border-color: rgba(0, 0, 0, 0.05);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+}
+.theme-light .home-agenda-details h4 {
+    color: #0f172a;
+}
+.theme-light .home-agenda-details p {
+    color: #64748b;
+}
+.theme-light .prayer-countdown-tv {
+    background: #ffffff;
+    border-color: rgba(0, 0, 0, 0.05);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+}
+.theme-light .refresh-indicator {
+    background: rgba(0, 0, 0, 0.03);
+    border-color: rgba(0, 0, 0, 0.05);
+    color: #475569;
+}
+.theme-light .tv-dot {
+    background: rgba(0, 0, 0, 0.12);
+}
+
+/* ==========================================
+   VIBRANT STAT ICON COLORS FOR ALL THEMES
+   ========================================== */
+.stat-box-tv.border-blue .stat-icon {
+    color: var(--color-blue);
+    background: rgba(0, 123, 255, 0.1);
+}
+.stat-box-tv.border-green .stat-icon {
+    color: var(--color-green);
+    background: rgba(40, 167, 69, 0.1);
+}
+.stat-box-tv.border-purple .stat-icon {
+    color: var(--color-purple);
+    background: rgba(111, 66, 193, 0.12);
+}
+.stat-box-tv.border-orange .stat-icon {
+    color: var(--color-orange);
+    background: rgba(253, 126, 20, 0.12);
+}
+

@@ -76,6 +76,9 @@ $(document).ready(function() {
                     $('#tvLogo').attr('src', appData.lembaga.logo);
                 }
 
+                // Apply theme class dynamically to container
+                $('#tvContainer').removeClass('theme-dark theme-colorful theme-light').addClass('theme-' + (appData.theme || 'dark'));
+
                 // Build active slides list from response configs
                 activeSlides = [];
                 if (appData.activeBlocks && appData.activeBlocks.length > 0) {
@@ -319,9 +322,19 @@ $(document).ready(function() {
     }
 
     // Dynamic Chart generators helper functions
+    function getChartThemeColors() {
+        const isLight = $('#tvContainer').hasClass('theme-light');
+        return {
+            textColor: isLight ? '#475569' : '#a0a0c0',
+            gridColor: isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.05)',
+            legendColor: isLight ? '#1e293b' : '#ffffff'
+        };
+    }
+
     function createBarChart(canvasId, labels, dataL, dataP) {
         if (charts[canvasId]) charts[canvasId].destroy();
         
+        const colors = getChartThemeColors();
         const ctx = document.getElementById(canvasId).getContext('2d');
         charts[canvasId] = new Chart(ctx, {
             type: 'bar',
@@ -344,11 +357,11 @@ $(document).ready(function() {
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {
-                    x: { stacked: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#a0a0c0' } },
-                    y: { stacked: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#a0a0c0' } }
+                    x: { stacked: true, grid: { color: colors.gridColor }, ticks: { color: colors.textColor } },
+                    y: { stacked: true, grid: { color: colors.gridColor }, ticks: { color: colors.textColor } }
                 },
                 plugins: {
-                    legend: { labels: { color: '#ffffff' } }
+                    legend: { labels: { color: colors.legendColor } }
                 }
             }
         });
@@ -357,6 +370,7 @@ $(document).ready(function() {
     function createPieChart(canvasId, labels, data) {
         if (charts[canvasId]) charts[canvasId].destroy();
         
+        const colors = getChartThemeColors();
         const ctx = document.getElementById(canvasId).getContext('2d');
         charts[canvasId] = new Chart(ctx, {
             type: 'doughnut',
@@ -372,7 +386,7 @@ $(document).ready(function() {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: { position: 'bottom', labels: { color: '#ffffff', font: { size: 16 } } }
+                    legend: { position: 'bottom', labels: { color: colors.legendColor, font: { size: 16 } } }
                 }
             }
         });
@@ -384,6 +398,7 @@ $(document).ready(function() {
     function fetchMonthlyChartData(canvasId, type) {
         if (charts[canvasId]) return; // Do not refetch if already loaded
         
+        const colors = getChartThemeColors();
         $.getJSON(`${baseUrl}/tv/api/absensi-santri/${hashKey}`, function(response) {
             if (response.status === 'success') {
                 const dates = Object.keys(response.data.bulanan);
@@ -407,8 +422,8 @@ $(document).ready(function() {
                         responsive: true,
                         maintainAspectRatio: false,
                         scales: {
-                            x: { grid: { display: false }, ticks: { color: '#a0a0c0' } },
-                            y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#a0a0c0' } }
+                            x: { grid: { display: false }, ticks: { color: colors.textColor } },
+                            y: { grid: { color: colors.gridColor }, ticks: { color: colors.textColor } }
                         },
                         plugins: {
                             legend: { display: false }
@@ -421,6 +436,8 @@ $(document).ready(function() {
 
     function fetchAbsensiCharts() {
         if (appData.lembaga.isFkpq) return; // Skip for FKPQ
+
+        const colors = getChartThemeColors();
 
         // 1. Santri Attendance Harian & Mingguan Charts
         $.getJSON(`${baseUrl}/tv/api/absensi-santri/${hashKey}`, function(response) {
@@ -445,8 +462,8 @@ $(document).ready(function() {
                         responsive: true,
                         maintainAspectRatio: false,
                         scales: {
-                            x: { ticks: { color: '#a0a0c0' } },
-                            y: { ticks: { color: '#a0a0c0' } }
+                            x: { ticks: { color: colors.textColor } },
+                            y: { ticks: { color: colors.textColor } }
                         }
                     }
                 });
@@ -478,8 +495,8 @@ $(document).ready(function() {
                         responsive: true,
                         maintainAspectRatio: false,
                         scales: {
-                            x: { ticks: { color: '#a0a0c0' } },
-                            y: { ticks: { color: '#a0a0c0' } }
+                            x: { ticks: { color: colors.textColor } },
+                            y: { ticks: { color: colors.textColor } }
                         }
                     }
                 });
@@ -508,8 +525,8 @@ $(document).ready(function() {
                         responsive: true,
                         maintainAspectRatio: false,
                         scales: {
-                            x: { ticks: { color: '#a0a0c0' } },
-                            y: { ticks: { color: '#a0a0c0' } }
+                            x: { ticks: { color: colors.textColor } },
+                            y: { ticks: { color: colors.textColor } }
                         }
                     }
                 });
@@ -536,8 +553,8 @@ $(document).ready(function() {
                         responsive: true,
                         maintainAspectRatio: false,
                         scales: {
-                            x: { ticks: { color: '#a0a0c0' } },
-                            y: { ticks: { color: '#a0a0c0' } }
+                            x: { ticks: { color: colors.textColor } },
+                            y: { ticks: { color: colors.textColor } }
                         }
                     }
                 });

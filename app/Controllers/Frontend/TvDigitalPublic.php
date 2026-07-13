@@ -206,7 +206,8 @@ class TvDigitalPublic extends BaseController
                 'statistikPerTpq' => $statistikPerTpq,
                 'slideshowInterval' => (int)$link['SlideshowInterval'],
                 'refreshInterval' => (int)$link['RefreshInterval'],
-                'activeBlocks' => $activeBlocks
+                'activeBlocks' => $activeBlocks,
+                'theme' => $link['Theme'] ?? 'dark'
             ]
         ]);
     }
