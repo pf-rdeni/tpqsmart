@@ -1755,6 +1755,12 @@
                                         <p>Manajemen Panitia</p>
                                     </a>
                                 </li>
+                                <li class="nav-item">
+                                    <a href="<?= base_url('backend/luckydraw/undian/control-reset') ?>" class="nav-link">
+                                        <i class="fas fa-sliders-h nav-icon text-danger"></i>
+                                        <p class="text-danger" style="font-weight: 600;">Control Reset</p>
+                                    </a>
+                                </li>
                             <?php endif; ?>
                             <?php if (in_groups('PanitiaUndianPemenang') || in_groups('Admin')): ?>
                                 <li class="nav-item">

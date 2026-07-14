@@ -250,6 +250,10 @@
             <div class="menu-icon">👥</div>
             <div class="menu-label">Manajemen Panitia</div>
         </a>
+        <a href="<?= base_url('backend/luckydraw/undian/control-reset') ?>" class="admin-menu-card" style="border-color: rgba(220, 38, 38, 0.45);">
+            <div class="menu-icon">⚙️</div>
+            <div class="menu-label" style="color: #ef4444; font-weight: 700;">Control Reset</div>
+        </a>
     </div>
 
     <?php

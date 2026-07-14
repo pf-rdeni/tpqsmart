@@ -713,6 +713,9 @@ $routes->group('backend/luckydraw', ['namespace' => 'App\Controllers\Backend\Luc
     $routes->get('undian/verifikasi', 'LuckydrawUndian::verifikasi');
     $routes->post('undian/serah-terima', 'LuckydrawUndian::prosesSerahTerima');
     $routes->get('undian/semua', 'LuckydrawUndian::semuaPemenang');
+    $routes->get('undian/control-reset', 'LuckydrawUndian::controlReset');
+    $routes->post('undian/proses-reset', 'LuckydrawUndian::prosesReset');
+    $routes->get('undian/get-barang-by-kegiatan/(:num)', 'LuckydrawUndian::getBarangByKegiatan/$1');
 
     // Dashboard Panitia Lucky Draw
     $routes->get('dashboard/pemenang', 'LuckydrawUndian::dashboardPemenang');

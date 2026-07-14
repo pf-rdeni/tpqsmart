@@ -249,4 +249,139 @@ class LuckydrawUndian extends BaseController
         ];
         return view('backend/luckydraw/undian/semua', $data);
     }
+
+    public function controlReset()
+    {
+        if (!in_groups('Admin')) {
+            session()->setFlashdata('pesan', '<div class="alert alert-danger">Anda tidak memiliki hak akses ke halaman Control Reset.</div>');
+            return redirect()->to('backend/luckydraw/dashboard/admin');
+        }
+
+        $kegiatanModel = new \App\Models\Backend\Luckydraw\LuckydrawKegiatanModel();
+        $kegiatan = $kegiatanModel->orderBy('id', 'DESC')->findAll();
+
+        $data = [
+            'page_title' => 'Control Reset Lucky Draw',
+            'kegiatan'   => $kegiatan,
+            'active_id_kegiatan' => session('active_id_kegiatan')
+        ];
+
+        return view('backend/luckydraw/undian/control_reset', $data);
+    }
+
+    public function getBarangByKegiatan($idKegiatan)
+    {
+        if (!in_groups('Admin')) {
+            return $this->response->setJSON([]);
+        }
+        $barang = $this->barangModel->where('id_kegiatan', $idKegiatan)->findAll();
+        return $this->response->setJSON($barang);
+    }
+
+    public function prosesReset()
+    {
+        if (!in_groups('Admin')) {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'Anda tidak memiliki hak akses untuk melakukan reset.']);
+        }
+
+        $idKegiatan = $this->request->getPost('id_kegiatan');
+        $idBarang = $this->request->getPost('id_barang');
+        $resetPemenang = $this->request->getPost('reset_pemenang');
+        $resetStatusDiambil = $this->request->getPost('reset_status_diambil');
+        $resetBarang = $this->request->getPost('reset_barang');
+        $resetPanitia = $this->request->getPost('reset_panitia');
+
+        if (!$idKegiatan) {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'Silakan pilih kegiatan terlebih dahulu.']);
+        }
+
+        $kegiatanModel = new \App\Models\Backend\Luckydraw\LuckydrawKegiatanModel();
+        $kegiatan = $kegiatanModel->find($idKegiatan);
+        if (!$kegiatan) {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'Kegiatan tidak ditemukan.']);
+        }
+
+        $db = \Config\Database::connect();
+        $db->transBegin();
+
+        try {
+            $messages = [];
+
+            // 1. Reset Status Pengambilan Hadiah saja
+            if ($resetStatusDiambil && !$resetPemenang && !$resetBarang) {
+                $builder = $db->table('tbl_luckydraw_undian');
+                $builder->where('id_kegiatan', $idKegiatan);
+                if ($idBarang) {
+                    $builder->where('id_barang', $idBarang);
+                }
+                $builder->update([
+                    'status_diambil' => 0,
+                    'waktu_diambil'  => null
+                ]);
+                $messages[] = 'Status pengambilan hadiah berhasil di-reset.';
+            }
+
+            // 2. Reset Pemenang Undian (Hapus pemenang)
+            if ($resetPemenang && !$resetBarang) {
+                $builder = $db->table('tbl_luckydraw_undian');
+                $builder->where('id_kegiatan', $idKegiatan);
+                if ($idBarang) {
+                    $builder->where('id_barang', $idBarang);
+                }
+                $builder->delete();
+                $messages[] = 'Data pemenang undian berhasil dihapus.';
+            }
+
+            // 3. Reset Barang Hadiah (Hapus barang)
+            if ($resetBarang) {
+                // Hapus pemenang untuk barang/kegiatan ini dulu (karena foreign key / integritas data)
+                $undianBuilder = $db->table('tbl_luckydraw_undian');
+                $undianBuilder->where('id_kegiatan', $idKegiatan);
+                if ($idBarang) {
+                    $undianBuilder->where('id_barang', $idBarang);
+                }
+                $undianBuilder->delete();
+
+                // Hapus barang
+                $barangBuilder = $db->table('tbl_luckydraw_barang');
+                $barangBuilder->where('id_kegiatan', $idKegiatan);
+                if ($idBarang) {
+                    $barangBuilder->where('id', $idBarang);
+                }
+                $barangBuilder->delete();
+                $messages[] = 'Data barang hadiah berhasil dihapus.';
+            }
+
+            // 4. Reset Panitia Kegiatan
+            if ($resetPanitia) {
+                $panitiaBuilder = $db->table('tbl_luckydraw_user_kegiatan');
+                $panitiaBuilder->where('id_kegiatan', $idKegiatan);
+                $panitiaBuilder->delete();
+                $messages[] = 'Daftar penugasan panitia berhasil dihapus.';
+            }
+
+            if (empty($messages)) {
+                $db->transRollback();
+                return $this->response->setJSON(['status' => 'error', 'message' => 'Tidak ada pilihan reset yang dicentang.']);
+            }
+
+            // Hapus session pilihan terakhir barang jika kegiatan yang di-reset adalah kegiatan aktif
+            if ($idKegiatan == session('active_id_kegiatan')) {
+                session()->remove('last_selected_id_barang');
+            }
+
+            $db->transCommit();
+            return $this->response->setJSON([
+                'status'  => 'success',
+                'message' => implode(' ', $messages)
+            ]);
+
+        } catch (\Exception $e) {
+            $db->transRollback();
+            return $this->response->setJSON([
+                'status'  => 'error',
+                'message' => 'Terjadi kesalahan saat memproses reset: ' . $e->getMessage()
+            ]);
+        }
+    }
 }
