@@ -9,7 +9,7 @@
                 <div class="card">
                     <div class="card-header bg-gradient-danger">
                         <h3 class="card-title">
-                            <i class="fas fa-crown"></i> Dashboard Ujian Semester - Admin
+                            <i class="fas fa-crown"></i> Dashboard Utama - Admin - Tahun Ajaran <?= esc($TahunAjaran) ?>
                         </h3>
                         <div class="card-tools">
                             <button type="button" class="btn btn-danger btn-sm" data-card-widget="collapse">
@@ -24,7 +24,7 @@
                                 <div class="alert alert-danger alert-dismissible">
                                     <h5><i class="icon fas fa-crown"></i> Bismillahirrahmanirrahim</h5>
                                     <p class="mb-0">Assalamu'alaikum, <strong><?= esc(($SapaanLogin ?? 'Ustadz') . ' ' . ($NamaLogin ?? 'Pengguna')) ?></strong>...!
-                                        Selamat datang di dashboard ujian semester sebagai <strong>Administrator</strong>.
+                                        Selamat datang di dashboard pengelolaan lembaga sebagai <strong>Administrator</strong> pada Tahun Ajaran <strong><?= esc($TahunAjaran) ?></strong>.
                                         Dashboard ini memberikan akses penuh untuk mengelola seluruh data akademik dan administrasi sistem.</p>
                                 </div>
                             </div>
