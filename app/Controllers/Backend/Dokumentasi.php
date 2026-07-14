@@ -148,4 +148,14 @@ class Dokumentasi extends BaseController
         ];
         return view('backend/dokumentasi/santri/naikKelas', $data);
     }
+
+    public function luckydraw()
+    {
+        $data = [
+            'page_title' => 'Dokumentasi: Modul Lucky Draw',
+            'menu_open' => 'dokumentasi',
+            'menu_active' => 'luckydraw-doc'
+        ];
+        return view('backend/dokumentasi/luckydraw/index', $data);
+    }
 }

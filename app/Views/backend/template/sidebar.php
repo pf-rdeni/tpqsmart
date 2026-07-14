@@ -1169,6 +1169,12 @@
                                                 </li>
                                             </ul>
                                         </li>
+                                        <li class="nav-item">
+                                            <a href="<?= base_url('backend/dokumentasi/luckydraw') ?>" class="nav-link <?= (isset($menu_active) && $menu_active == 'luckydraw-doc') ? 'active' : ''; ?>">
+                                                <i class="far fa-circle nav-icon text-warning"></i>
+                                                <p>Lucky Draw</p>
+                                            </a>
+                                        </li>
                                     </ul>
                                 </li>
                             <?php endif; ?>
@@ -1789,6 +1795,12 @@
                                     <a href="<?= base_url('backend/luckydraw/undian/semua') ?>" class="nav-link">
                                         <i class="fas fa-history nav-icon text-warning"></i>
                                         <p>Semua Pemenang</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="<?= base_url('backend/dokumentasi/luckydraw') ?>" class="nav-link <?= (isset($menu_active) && $menu_active == 'luckydraw-doc') ? 'active' : ''; ?>">
+                                        <i class="fas fa-book nav-icon text-info"></i>
+                                        <p>Dokumentasi</p>
                                     </a>
                                 </li>
                             <?php endif; ?>

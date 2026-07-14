@@ -62,6 +62,9 @@ $totalBelum = $totalPemenang - $totalSudah;
                         <option value="belum">Belum Diambil</option>
                         <option value="sudah">Sudah Diambil</option>
                     </select>
+                    <button type="button" id="btn-cetak-pdf" class="btn btn-sm btn-danger rounded-pill px-3 mr-2">
+                        <i class="fas fa-file-pdf mr-1"></i> Cetak PDF
+                    </button>
                     <input type="text" id="search-pemenang" class="form-control form-control-sm rounded-pill px-3" placeholder="Cari nomor / barang / grup..." style="width: 220px;">
                 </div>
             </div>
@@ -183,6 +186,14 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     if (filterStatus) {
         filterStatus.addEventListener('change', filterTable);
+    }
+
+    const btnCetak = document.getElementById('btn-cetak-pdf');
+    if (btnCetak) {
+        btnCetak.addEventListener('click', function() {
+            const status = filterStatus.value;
+            window.open('<?= base_url('backend/luckydraw/undian/export-pdf') ?>?status=' + status, '_blank');
+        });
     }
 });
 </script>

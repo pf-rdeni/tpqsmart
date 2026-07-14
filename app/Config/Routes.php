@@ -666,6 +666,8 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->get('dokumentasi/santri-naik-kelas', 'Dokumentasi::santriNaikKelas');
     // Dokumentasi Guru
     $routes->get('dokumentasi/guru-berkas-lampiran', 'Dokumentasi::guruBerkasLampiran');
+    // Dokumentasi Lucky Draw
+    $routes->get('dokumentasi/luckydraw', 'Dokumentasi::luckydraw');
 });
 
 // Lucky Draw Routes
@@ -716,6 +718,7 @@ $routes->group('backend/luckydraw', ['namespace' => 'App\Controllers\Backend\Luc
     $routes->get('undian/control-reset', 'LuckydrawUndian::controlReset');
     $routes->post('undian/proses-reset', 'LuckydrawUndian::prosesReset');
     $routes->get('undian/get-barang-by-kegiatan/(:num)', 'LuckydrawUndian::getBarangByKegiatan/$1');
+    $routes->get('undian/export-pdf', 'LuckydrawUndian::exportPdf');
 
     // Dashboard Panitia Lucky Draw
     $routes->get('dashboard/pemenang', 'LuckydrawUndian::dashboardPemenang');

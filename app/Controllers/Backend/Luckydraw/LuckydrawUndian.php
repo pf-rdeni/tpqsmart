@@ -384,4 +384,58 @@ class LuckydrawUndian extends BaseController
             ]);
         }
     }
+
+    public function exportPdf()
+    {
+        $idKegiatan = session('active_id_kegiatan');
+        if (!$idKegiatan) {
+            return redirect()->to('backend/luckydraw/pilih')->with('message', 'Silakan pilih kegiatan terlebih dahulu.');
+        }
+
+        $statusFilter = $this->request->getGet('status'); // '' or 'belum' or 'sudah'
+
+        $builder = $this->undianModel->select('tbl_luckydraw_undian.*, tbl_luckydraw_barang.nama_barang, tbl_luckydraw_barang.no_barang, tbl_luckydraw_barang.kategori')
+                                    ->join('tbl_luckydraw_barang', 'tbl_luckydraw_barang.id = tbl_luckydraw_undian.id_barang')
+                                    ->where('tbl_luckydraw_undian.id_kegiatan', $idKegiatan)
+                                    ->orderBy('tbl_luckydraw_undian.no_undian', 'ASC');
+
+        if ($statusFilter === 'belum') {
+            $builder->where('tbl_luckydraw_undian.status_diambil', 0);
+            $statusLabel = 'Belum Diambil';
+        } elseif ($statusFilter === 'sudah') {
+            $builder->where('tbl_luckydraw_undian.status_diambil', 1);
+            $statusLabel = 'Sudah Diambil';
+        } else {
+            $statusLabel = 'Semua Pemenang (Keseluruhan)';
+        }
+
+        $pemenang = $builder->findAll();
+
+        $kegiatanModel = new \App\Models\Backend\Luckydraw\LuckydrawKegiatanModel();
+        $kegiatan = $kegiatanModel->find($idKegiatan);
+
+        // Generate HTML
+        $html = view('backend/luckydraw/undian/pdf_pemenang', [
+            'pemenang'    => $pemenang,
+            'kegiatan'    => $kegiatan,
+            'statusLabel' => $statusLabel
+        ]);
+
+        // Setup Dompdf
+        $options = new \Dompdf\Options();
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isRemoteEnabled', true);
+        $dompdf = new \Dompdf\Dompdf($options);
+
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+
+        $filename = 'Laporan_Pemenang_LuckyDraw_' . str_replace(' ', '_', $kegiatan->nama_kegiatan) . '.pdf';
+        
+        return $this->response
+            ->setHeader('Content-Type', 'application/pdf')
+            ->setHeader('Content-Disposition', 'inline; filename="' . $filename . '"')
+            ->setBody($dompdf->output());
+    }
 }
