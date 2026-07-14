@@ -2884,29 +2884,23 @@ class HelpFunctionModel extends Model
      */
     public function getStatistikSantriPerTpq($IdTahunAjaran = null)
     {
-        if (!empty($IdTahunAjaran)) {
-            $builder = $this->db->table('tbl_kelas_santri ks');
-            $builder->select('t.IdTpq, t.NamaTpq,
-                             COUNT(CASE WHEN s.JenisKelamin = "LAKI-LAKI" THEN 1 END) as LakiLaki,
-                             COUNT(CASE WHEN s.JenisKelamin = "PEREMPUAN" THEN 1 END) as Perempuan,
-                             COUNT(*) as Total');
-            $builder->join('tbl_santri_baru s', 's.IdSantri = ks.IdSantri', 'inner');
-            $builder->join('tbl_tpq t', 't.IdTpq = ks.IdTpq', 'inner');
-            $builder->where('s.Active <', 2);
-            $builder->where('ks.IdTahunAjaran', $IdTahunAjaran);
-            $builder->groupBy('t.IdTpq, t.NamaTpq');
-            $builder->orderBy('t.NamaTpq', 'ASC');
-        } else {
-            $builder = $this->db->table('tbl_santri_baru s');
-            $builder->select('t.IdTpq, t.NamaTpq,
-                             COUNT(CASE WHEN s.JenisKelamin = "LAKI-LAKI" THEN 1 END) as LakiLaki,
-                             COUNT(CASE WHEN s.JenisKelamin = "PEREMPUAN" THEN 1 END) as Perempuan,
-                             COUNT(*) as Total');
-            $builder->join('tbl_tpq t', 't.IdTpq = s.IdTpq', 'inner');
-            $builder->where('s.Active <', 2);
-            $builder->groupBy('t.IdTpq, t.NamaTpq');
-            $builder->orderBy('t.NamaTpq', 'ASC');
+        if (empty($IdTahunAjaran)) {
+            $IdTahunAjaran = $this->getTahunAjaranSaatIni();
         }
+
+        $builder = $this->db->table('tbl_kelas_santri ks');
+        $builder->select('t.IdTpq, t.NamaTpq,
+                         COUNT(CASE WHEN s.JenisKelamin = "LAKI-LAKI" THEN 1 END) as LakiLaki,
+                         COUNT(CASE WHEN s.JenisKelamin = "PEREMPUAN" THEN 1 END) as Perempuan,
+                         COUNT(DISTINCT ks.IdSantri) as Total');
+        $builder->join('tbl_santri_baru s', 's.IdSantri = ks.IdSantri', 'inner');
+        $builder->join('tbl_tpq t', 't.IdTpq = ks.IdTpq', 'inner');
+        $builder->join('tbl_kelas k', 'k.IdKelas = ks.IdKelas', 'inner');
+        $builder->where('s.Active <', 2);
+        $builder->whereNotIn('k.NamaKelas', ['ALUMNI', 'Alumni', 'alumni']);
+        $builder->where('ks.IdTahunAjaran', $IdTahunAjaran);
+        $builder->groupBy('t.IdTpq, t.NamaTpq');
+        $builder->orderBy('t.NamaTpq', 'ASC');
 
         return $builder->get()->getResultArray();
     }
