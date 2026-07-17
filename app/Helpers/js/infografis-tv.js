@@ -1362,33 +1362,98 @@ $(document).ready(function () {
         $.getJSON(baseUrl + '/tv/api/ulang-tahun/' + hashKey, function (response) {
             if (response.status !== 'success') return;
 
+            // --- HOME WIDGET (Today/Nearest Guru & Santri - showing all with the same closest date) ---
+            var homeBdayEl = document.getElementById('homeBirthdayTodayList');
+            if (homeBdayEl) {
+                var homeHtml = '';
+                var closestGurus = [];
+                var closestSantris = [];
+
+                if (response.data.guru && response.data.guru.length > 0) {
+                    var minGuruSisa = response.data.guru[0].SisaHari;
+                    closestGurus = response.data.guru.filter(function(g) {
+                        return g.SisaHari === minGuruSisa;
+                    });
+                }
+
+                if (response.data.santri && response.data.santri.length > 0) {
+                    var minSantriSisa = response.data.santri[0].SisaHari;
+                    closestSantris = response.data.santri.filter(function(s) {
+                        return s.SisaHari === minSantriSisa;
+                    });
+                }
+
+                $.each(closestGurus, function(i, guru) {
+                    var avatar = buildAvatarHtml(guru, 32);
+                    var badge = guru.SisaHari === 0 
+                        ? '<span class="badge badge-danger" style="font-size:10px;animation:pulse-red 1.5s infinite;padding:3px 6px;"><i class="fas fa-gift"></i> HARI INI!</span>'
+                        : '<span class="badge badge-secondary" style="font-size:10px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);padding:3px 6px;">' + guru.SisaHari + ' Hari Lagi</span>';
+                    
+                    var labelRole = (guru.JenisKelamin && guru.JenisKelamin.toLowerCase() === 'laki-laki') ? 'Ustadz' : 'Ustadzah';
+                    homeHtml += '<div style="display:flex;align-items:center;gap:10px;padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:8px;border:1px solid rgba(255,255,255,0.05);">'
+                        + '<div style="display:flex;align-items:center;flex-shrink:0;">' + avatar + '</div>'
+                        + '<div style="flex:1;min-width:0;">'
+                        + '<div style="font-weight:700;font-size:12px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + $('<div>').text(guru.Nama).html() + '</div>'
+                        + '<div style="font-size:10px;color:rgba(255,255,255,0.5);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><i class="fas fa-user-tie text-success" style="margin-right:3px;"></i>' + labelRole + ' &nbsp;|&nbsp; ' + guru.TanggalUlangTahun + '</div>'
+                        + '</div>'
+                        + '<div style="flex-shrink:0;">' + badge + '</div>'
+                        + '</div>';
+                });
+
+                $.each(closestSantris, function(i, santri) {
+                    var avatar = buildAvatarHtml(santri, 32);
+                    var badge = santri.SisaHari === 0 
+                        ? '<span class="badge badge-danger" style="font-size:10px;animation:pulse-red 1.5s infinite;padding:3px 6px;"><i class="fas fa-gift"></i> HARI INI!</span>'
+                        : '<span class="badge badge-secondary" style="font-size:10px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);padding:3px 6px;">' + santri.SisaHari + ' Hari Lagi</span>';
+                    
+                    homeHtml += '<div style="display:flex;align-items:center;gap:10px;padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:8px;border:1px solid rgba(255,255,255,0.05);">'
+                        + '<div style="display:flex;align-items:center;flex-shrink:0;">' + avatar + '</div>'
+                        + '<div style="flex:1;min-width:0;">'
+                        + '<div style="font-weight:700;font-size:12px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + $('<div>').text(santri.Nama).html() + '</div>'
+                        + '<div style="font-size:10px;color:rgba(255,255,255,0.5);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><i class="fas fa-user-graduate text-primary" style="margin-right:3px;"></i>' + (santri.NamaKelas || '-') + ' &nbsp;|&nbsp; ' + santri.TanggalUlangTahun + '</div>'
+                        + '</div>'
+                        + '<div style="flex-shrink:0;">' + badge + '</div>'
+                        + '</div>';
+                });
+
+                if (closestGurus.length === 0 && closestSantris.length === 0) {
+                    homeHtml = '<div style="font-size:11px;color:rgba(255,255,255,0.4);font-style:italic;text-align:center;padding:10px 0;">Tidak ada data ulang tahun terdekat</div>';
+                }
+
+                homeBdayEl.innerHTML = homeHtml;
+            }
+
             // --- GURU (1 kolom, full width) ---
             var guruEl = document.getElementById('birthdayGuruList');
-            if (response.data.guru && response.data.guru.length > 0) {
-                var guruHtml = '';
-                $.each(response.data.guru, function (i, row) {
-                    guruHtml += renderBirthdayRow(row, false);
-                });
-                guruEl.innerHTML = guruHtml;
-            } else {
-                guruEl.innerHTML = '<div style="text-align:center;padding:40px 0;color:rgba(255,255,255,0.4);">'
-                    + '<i class="fas fa-user-slash" style="font-size:36px;display:block;margin-bottom:10px;"></i>'
-                    + 'Tidak ada ustadz/ah berulang tahun dekat ini</div>';
+            if (guruEl) {
+                if (response.data.guru && response.data.guru.length > 0) {
+                    var guruHtml = '';
+                    $.each(response.data.guru, function (i, row) {
+                        guruHtml += renderBirthdayRow(row, false);
+                    });
+                    guruEl.innerHTML = guruHtml;
+                } else {
+                    guruEl.innerHTML = '<div style="text-align:center;padding:40px 0;color:rgba(255,255,255,0.4);">'
+                        + '<i class="fas fa-user-slash" style="font-size:36px;display:block;margin-bottom:10px;"></i>'
+                        + 'Tidak ada ustadz/ah berulang tahun dekat ini</div>';
+                }
             }
 
             // --- SANTRI (2 kolom, compact) ---
             var santriEl = document.getElementById('birthdaySantriList');
-            if (response.data.santri && response.data.santri.length > 0) {
-                var itemsHtml = '';
-                $.each(response.data.santri, function (i, row) {
-                    itemsHtml += renderBirthdayRowCompact(row);
-                });
-                santriEl.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">'
-                    + itemsHtml + '</div>';
-            } else {
-                santriEl.innerHTML = '<div style="text-align:center;padding:40px 0;color:rgba(255,255,255,0.4);">'
-                    + '<i class="fas fa-user-slash" style="font-size:36px;display:block;margin-bottom:10px;"></i>'
-                    + 'Tidak ada santri berulang tahun dekat ini</div>';
+            if (santriEl) {
+                if (response.data.santri && response.data.santri.length > 0) {
+                    var itemsHtml = '';
+                    $.each(response.data.santri, function (i, row) {
+                        itemsHtml += renderBirthdayRowCompact(row);
+                    });
+                    santriEl.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">'
+                        + itemsHtml + '</div>';
+                } else {
+                    santriEl.innerHTML = '<div style="text-align:center;padding:40px 0;color:rgba(255,255,255,0.4);">'
+                        + '<i class="fas fa-user-slash" style="font-size:36px;display:block;margin-bottom:10px;"></i>'
+                        + 'Tidak ada santri berulang tahun dekat ini</div>';
+                }
             }
         });
     }

@@ -106,6 +106,15 @@
                             </div>
                         </div>
                     </div>
+                    <!-- Mini Birthday Widget -->
+                    <div style="border-top: 1px solid rgba(255,255,255,0.08); padding-top: 1.2vh; margin-top: 1.5vh;">
+                        <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 600; letter-spacing: 0.3px; margin-bottom: 0.8vh;">
+                            <i class="fas fa-birthday-cake text-danger" style="margin-right: 5px;"></i> Ulang Tahun Hari Ini / Terdekat
+                        </div>
+                        <div id="homeBirthdayTodayList" style="display: flex; flex-direction: column; gap: 0.8vh;">
+                            <div style="font-size: 12px; color: rgba(255,255,255,0.35); font-style: italic;">Memuat...</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
