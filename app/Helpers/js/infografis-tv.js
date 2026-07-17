@@ -805,7 +805,8 @@ $(document).ready(function() {
                             backgroundColor: color, // Solid color
                             borderColor: color,
                             borderWidth: 1,
-                            yAxisID: 'y-axis-bars' // Bind to left axis
+                            yAxisID: 'y-axis-bars', // Bind to left axis
+                            order: 2 // Render behind the line
                         });
 
                         // Sum daily attendance for total line
@@ -839,9 +840,24 @@ $(document).ready(function() {
                         pointBackgroundColor: totalLineColor,
                         pointBorderColor: '#fff',
                         pointBorderWidth: 2,
-                        yAxisID: 'y-axis-line' // Bind to hidden right axis
+                        yAxisID: 'y-axis-line', // Bind to hidden right axis
+                        order: 1 // Render on top of the bars
                     });
                 }
+
+                // Calculate max bar value for left Y-axis suggestedMax offset
+                let maxBarValue = 0;
+                if (response.data.kehadiranPerKelas && response.data.kehadiranPerKelas.datasets) {
+                    response.data.kehadiranPerKelas.datasets.forEach(function(dataset) {
+                        if (dataset.data) {
+                            const datasetMax = Math.max(...dataset.data.map(v => v || 0));
+                            if (datasetMax > maxBarValue) {
+                                maxBarValue = datasetMax;
+                            }
+                        }
+                    });
+                }
+                const suggestedBarsMax = maxBarValue > 0 ? (maxBarValue + 2) : 5;
 
                 const ctx = document.getElementById('absensiSantriCombinedChart').getContext('2d');
                 if (charts['absensiSantriCombinedChart']) charts['absensiSantriCombinedChart'].destroy();
@@ -880,16 +896,19 @@ $(document).ready(function() {
                                     ticks: {
                                         fontColor: colors.textColor,
                                         beginAtZero: true,
-                                        stepSize: 1
+                                        stepSize: 1,
+                                        suggestedMax: suggestedBarsMax
                                     }
                                 },
                                 {
                                     id: 'y-axis-line',
                                     position: 'right',
-                                    display: false, // Hide right axis ticks/lines
+                                    display: true, // Show right axis ticks/lines
                                     gridLines: { display: false },
                                     ticks: {
-                                        beginAtZero: true
+                                        fontColor: colors.textColor,
+                                        beginAtZero: true,
+                                        precision: 0
                                     }
                                 }
                             ]
