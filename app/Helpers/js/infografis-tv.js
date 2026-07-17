@@ -244,17 +244,48 @@ $(document).ready(function() {
         // Kehadiran Kelas Table (Pekan Ini)
         if (appData.statistikKehadiranKelas) {
             let trHtml = '';
+            let totalHadir = 0;
+            let totalIzin = 0;
+            let totalSakit = 0;
+            let totalAlfa = 0;
+            let grandTotal = 0;
+
             $.each(appData.statistikKehadiranKelas, function(i, row) {
+                const rowHadir = parseInt(row.Hadir) || 0;
+                const rowIzin = parseInt(row.Izin) || 0;
+                const rowSakit = parseInt(row.Sakit) || 0;
+                const rowAlfa = parseInt(row.Alfa) || 0;
+                const rowTotal = rowHadir + rowIzin + rowSakit + rowAlfa;
+
+                totalHadir += rowHadir;
+                totalIzin += rowIzin;
+                totalSakit += rowSakit;
+                totalAlfa += rowAlfa;
+                grandTotal += rowTotal;
+
                 trHtml += `
                     <tr>
                         <td class="font-weight-bold">${row.NamaKelas}</td>
-                        <td class="text-center text-success">${row.Hadir}</td>
-                        <td class="text-center text-warning">${row.Izin}</td>
-                        <td class="text-center text-info">${row.Sakit}</td>
-                        <td class="text-center text-danger">${row.Alfa}</td>
+                        <td class="text-center text-success">${rowHadir}</td>
+                        <td class="text-center text-warning">${rowIzin}</td>
+                        <td class="text-center text-info">${rowSakit}</td>
+                        <td class="text-center text-danger">${rowAlfa}</td>
+                        <td class="text-center text-primary font-weight-bold">${rowTotal}</td>
                     </tr>
                 `;
             });
+
+            // Append Total row
+            trHtml += `
+                <tr class="font-weight-bold" style="background: rgba(255, 255, 255, 0.05); border-top: 2px solid rgba(255, 255, 255, 0.1);">
+                    <td>TOTAL</td>
+                    <td class="text-center text-success">${totalHadir}</td>
+                    <td class="text-center text-warning">${totalIzin}</td>
+                    <td class="text-center text-info">${totalSakit}</td>
+                    <td class="text-center text-danger">${totalAlfa}</td>
+                    <td class="text-center text-primary">${grandTotal}</td>
+                </tr>
+            `;
             $('#kehadiranKelasTableBody').html(trHtml);
         }
 
@@ -417,13 +448,17 @@ $(document).ready(function() {
             const dataSakit = [];
             const dataIzin = [];
             const dataAlfa = [];
+            const dataTotal = [];
             $.each(appData.statistikKehadiranKelas, function(i, r) {
                 labels.push(r.NamaKelas);
                 dataSakit.push(r.Sakit);
                 dataIzin.push(r.Izin);
                 dataAlfa.push(r.Alfa);
+                
+                const total = (parseInt(r.Sakit) || 0) + (parseInt(r.Izin) || 0) + (parseInt(r.Alfa) || 0);
+                dataTotal.push(total);
             });
-            createAbsensiPerbandinganChart('kehadiranKelasPerbandinganChart', labels, dataSakit, dataIzin, dataAlfa);
+            createAbsensiPerbandinganChart('kehadiranKelasPerbandinganChart', labels, dataSakit, dataIzin, dataAlfa, dataTotal);
         }
 
         // 6. TREN KELULUSAN MUNAQOSAH: Line chart of graduation percentage over years
@@ -622,58 +657,118 @@ $(document).ready(function() {
         });
     }
 
-    function createAbsensiPerbandinganChart(canvasId, labels, dataSakit, dataIzin, dataAlfa) {
+    function createAbsensiPerbandinganChart(canvasId, labels, dataSakit, dataIzin, dataAlfa, dataTotal) {
         if (charts[canvasId]) charts[canvasId].destroy();
         
         const colors = getChartThemeColors();
         const ctx = document.getElementById(canvasId).getContext('2d');
+        
+        // Calculate max bar value for left Y-axis suggestedMax offset
+        const maxBarValue = Math.max(
+            dataSakit.length > 0 ? Math.max(...dataSakit.map(v => parseInt(v) || 0)) : 0,
+            dataIzin.length > 0 ? Math.max(...dataIzin.map(v => parseInt(v) || 0)) : 0,
+            dataAlfa.length > 0 ? Math.max(...dataAlfa.map(v => parseInt(v) || 0)) : 0
+        );
+        const suggestedBarsMax = maxBarValue > 0 ? (maxBarValue + 2) : 5;
+
+        const isLight = $('#tvContainer').hasClass('theme-light');
+        const totalLineColor = isLight ? '#4f46e5' : '#c084fc'; // Indigo for light, Violet for dark
+
         charts[canvasId] = new Chart(ctx, {
             type: 'bar',
             data: {
                 labels: labels,
                 datasets: [
                     {
+                        type: 'bar',
                         label: 'Sakit',
                         data: dataSakit,
-                        backgroundColor: '#17a2b8' // var(--color-info)
+                        backgroundColor: '#17a2b8', // var(--color-info)
+                        borderColor: '#17a2b8',
+                        borderWidth: 1,
+                        yAxisID: 'y-axis-bars',
+                        order: 2
                     },
                     {
+                        type: 'bar',
                         label: 'Izin',
                         data: dataIzin,
-                        backgroundColor: '#ffc107' // var(--color-warning)
+                        backgroundColor: '#ffc107', // var(--color-warning)
+                        borderColor: '#ffc107',
+                        borderWidth: 1,
+                        yAxisID: 'y-axis-bars',
+                        order: 2
                     },
                     {
+                        type: 'bar',
                         label: 'Alfa',
                         data: dataAlfa,
-                        backgroundColor: '#dc3545' // red
+                        backgroundColor: '#dc3545', // red
+                        borderColor: '#dc3545',
+                        borderWidth: 1,
+                        yAxisID: 'y-axis-bars',
+                        order: 2
+                    },
+                    {
+                        type: 'line',
+                        label: 'Total Tidak Hadir',
+                        data: dataTotal,
+                        borderColor: totalLineColor,
+                        backgroundColor: 'transparent',
+                        borderWidth: 3,
+                        fill: false,
+                        lineTension: 0.25,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        pointBackgroundColor: totalLineColor,
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 1.5,
+                        yAxisID: 'y-axis-line',
+                        order: 1
                     }
                 ]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        fontColor: colors.textColor,
+                        boxWidth: 10,
+                        fontSize: 10
+                    }
+                },
                 scales: {
                     xAxes: [{
                         gridLines: { color: colors.gridColor },
                         ticks: { fontColor: colors.textColor }
                     }],
-                    yAxes: [{
-                        gridLines: { color: colors.gridColor },
-                        ticks: {
-                            beginAtZero: true,
-                            min: 0,
-                            fontColor: colors.textColor,
-                            precision: 0,
-                            callback: function(value) {
-                                if (value % 1 === 0) {
-                                    return value;
-                                }
+                    yAxes: [
+                        {
+                            id: 'y-axis-bars',
+                            position: 'left',
+                            gridLines: { color: colors.gridColor },
+                            ticks: {
+                                fontColor: colors.textColor,
+                                beginAtZero: true,
+                                stepSize: 1,
+                                suggestedMax: suggestedBarsMax
+                            }
+                        },
+                        {
+                            id: 'y-axis-line',
+                            position: 'right',
+                            display: true, // Show right Y-axis for Total scale
+                            gridLines: { display: false },
+                            ticks: {
+                                fontColor: colors.textColor,
+                                beginAtZero: true,
+                                precision: 0
                             }
                         }
-                    }]
-                },
-                plugins: {
-                    legend: { labels: { color: colors.legendColor } }
+                    ]
                 }
             }
         });

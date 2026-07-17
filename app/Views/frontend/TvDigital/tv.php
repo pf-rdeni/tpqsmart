@@ -354,6 +354,7 @@
                                     <th class="text-center text-warning">Izin</th>
                                     <th class="text-center text-info">Sakit</th>
                                     <th class="text-center text-danger">Alfa</th>
+                                    <th class="text-center text-primary">Total</th>
                                 </tr>
                             </thead>
                             <tbody id="kehadiranKelasTableBody">
