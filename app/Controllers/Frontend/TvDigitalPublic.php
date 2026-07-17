@@ -1038,7 +1038,7 @@ class TvDigitalPublic extends BaseController
         $guruList = $this->db->table('tbl_guru')
                             ->select('Nama as Nama, TanggalLahir, LinkPhoto as Photo, JenisKelamin')
                             ->where('IdTpq', $idTpq)
-                            ->where('Status', 'Aktif')
+                            ->where('Status', 1)
                             ->where('TanggalLahir IS NOT NULL')
                             ->get()
                             ->getResultArray();
