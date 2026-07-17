@@ -789,37 +789,55 @@ $(document).ready(function() {
                 ];
 
                 let combinedDatasets = [];
+                let totalAttendanceData = Array(14).fill(0);
+                let hasData = false;
+
                 if (response.data.kehadiranPerKelas && response.data.kehadiranPerKelas.datasets) {
                     response.data.kehadiranPerKelas.datasets.forEach(function(dataset, index) {
                         const colorIndex = index % classColors.length;
                         const color = classColors[colorIndex];
 
-                        // Line dataset (14 Hari)
-                        combinedDatasets.push({
-                            type: 'line',
-                            label: dataset.label, // legend name (e.g. "Kelas A")
-                            data: dataset.data,
-                            borderColor: color,
-                            backgroundColor: 'transparent',
-                            borderWidth: 3,
-                            fill: false,
-                            lineTension: 0.2,
-                            pointRadius: 4,
-                            pointHoverRadius: 6,
-                            pointBackgroundColor: color,
-                            pointBorderColor: '#fff',
-                            pointBorderWidth: 1.5
-                        });
-
                         // Bar dataset (14 Hari)
                         combinedDatasets.push({
                             type: 'bar',
-                            label: dataset.label + ' (Bar)', // Hidden from legend using filter
+                            label: dataset.label, // legend name (e.g. "Kelas A")
                             data: dataset.data,
-                            backgroundColor: color + '50', // semi-transparent bars
+                            backgroundColor: color + '70', // semi-transparent bars
                             borderColor: color,
                             borderWidth: 1
                         });
+
+                        // Sum daily attendance for total line
+                        if (dataset.data && dataset.data.length > 0) {
+                            hasData = true;
+                            dataset.data.forEach(function(val, dayIdx) {
+                                if (dayIdx < 14) {
+                                    totalAttendanceData[dayIdx] += (val || 0);
+                                }
+                            });
+                        }
+                    });
+                }
+
+                // Add single Line dataset for Total Attendance
+                if (hasData) {
+                    const isLight = $('#tvContainer').hasClass('theme-light');
+                    const totalLineColor = isLight ? '#4f46e5' : '#c084fc'; // Indigo for light, Violet for dark
+                    
+                    combinedDatasets.push({
+                        type: 'line',
+                        label: 'Total Kehadiran',
+                        data: totalAttendanceData,
+                        borderColor: totalLineColor,
+                        backgroundColor: 'transparent',
+                        borderWidth: 3.5,
+                        fill: false,
+                        lineTension: 0.25,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        pointBackgroundColor: totalLineColor,
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2
                     });
                 }
 
@@ -840,11 +858,7 @@ $(document).ready(function() {
                             labels: {
                                 fontColor: colors.textColor,
                                 boxWidth: 10,
-                                fontSize: 10,
-                                filter: function(item, chartData) {
-                                    // Sembunyikan label yang mengandung "(Bar)" agar tidak duplikat di legenda
-                                    return !item.text.includes('(Bar)');
-                                }
+                                fontSize: 10
                             }
                         },
                         scales: {
