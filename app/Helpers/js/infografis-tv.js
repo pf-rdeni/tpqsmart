@@ -794,35 +794,29 @@ $(document).ready(function() {
                         const colorIndex = index % classColors.length;
                         const color = classColors[colorIndex];
 
-                        // Split data: first 7 days (last week), next 7 days (this week)
-                        const lastWeekData = dataset.data.slice(0, 7);
-                        const thisWeekData = dataset.data.slice(7, 14);
-
-                        // Line dataset (Minggu Lalu)
-                        const lineData = [...lastWeekData, null, null, null, null, null, null, null];
+                        // Line dataset (14 Hari)
                         combinedDatasets.push({
                             type: 'line',
                             label: dataset.label, // legend name (e.g. "Kelas A")
-                            data: lineData,
+                            data: dataset.data,
                             borderColor: color,
-                            backgroundColor: color + '15',
-                            borderWidth: 2,
+                            backgroundColor: 'transparent',
+                            borderWidth: 3,
                             fill: false,
                             lineTension: 0.2,
-                            pointRadius: 3,
-                            pointHoverRadius: 5,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
                             pointBackgroundColor: color,
                             pointBorderColor: '#fff',
                             pointBorderWidth: 1.5
                         });
 
-                        // Bar dataset (Minggu Ini)
-                        const barData = [null, null, null, null, null, null, null, ...thisWeekData];
+                        // Bar dataset (14 Hari)
                         combinedDatasets.push({
                             type: 'bar',
                             label: dataset.label + ' (Bar)', // Hidden from legend using filter
-                            data: barData,
-                            backgroundColor: color,
+                            data: dataset.data,
+                            backgroundColor: color + '50', // semi-transparent bars
                             borderColor: color,
                             borderWidth: 1
                         });
