@@ -400,6 +400,29 @@ class TvDigitalPublic extends BaseController
             $kelasLabels[] = $dateObj->format('d/m');
         }
 
+        // Generate data absensi harian per kelas (Minggu Berjalan - Senin s/d Sabtu)
+        $currentWeekDates = [];
+        $currentDate = new \DateTime($currentWeekMonday);
+        for ($i = 0; $i < 6; $i++) {
+            $currentWeekDates[] = $currentDate->format('Y-m-d');
+            $currentDate->modify('+1 day');
+        }
+
+        $harianPerKelasDatasets = [];
+        foreach ($kelasMap as $idKelas => $namaKelas) {
+            $data = [];
+            foreach ($currentWeekDates as $tanggal) {
+                $count = isset($kehadiranData[$tanggal][$idKelas]) ? (int)$kehadiranData[$tanggal][$idKelas] : 0;
+                $data[] = $count;
+            }
+
+            $harianPerKelasDatasets[] = [
+                'label' => $namaKelas,
+                'data' => $data,
+                'IdKelas' => $idKelas
+            ];
+        }
+
         return $this->response->setJSON([
             'status' => 'success',
             'data' => [
@@ -409,6 +432,10 @@ class TvDigitalPublic extends BaseController
                 'kehadiranPerKelas' => [
                     'labels' => $kelasLabels,
                     'datasets' => $kelasDatasets
+                ],
+                'harianPerKelas' => [
+                    'labels' => ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'],
+                    'datasets' => $harianPerKelasDatasets
                 ]
             ]
         ]);

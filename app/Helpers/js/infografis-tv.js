@@ -775,33 +775,6 @@ $(document).ready(function() {
         // 1. Santri Attendance Harian & Mingguan Charts
         $.getJSON(`${baseUrl}/tv/api/absensi-santri/${hashKey}`, function(response) {
             if (response.status === 'success') {
-                // Santri Harian
-                const days = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
-                const thisWeekData = Object.values(response.data.mingguIni).map(d => d.Hadir).slice(0, 6);
-                
-                const ctx1 = document.getElementById('absensiSantriHarianChart').getContext('2d');
-                if (charts['absensiSantriHarianChart']) charts['absensiSantriHarianChart'].destroy();
-                charts['absensiSantriHarianChart'] = new Chart(ctx1, {
-                    type: 'bar',
-                    data: {
-                        labels: days,
-                        datasets: [{
-                            label: 'Hadir',
-                            data: thisWeekData,
-                            backgroundColor: '#6f42c1'
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            xAxes: [{ ticks: { fontColor: colors.textColor } }],
-                            yAxes: [{ ticks: { fontColor: colors.textColor } }]
-                        }
-                    }
-                });
-
-                // Fluktuasi Kehadiran Per Kelas (2 Minggu)
                 const classColors = [
                     '#28a745', // Hijau
                     '#007bff', // Biru
@@ -815,6 +788,61 @@ $(document).ready(function() {
                     '#6c757d' // Gray
                 ];
 
+                // 1. Santri Harian Per Kelas
+                const days = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+                let harianDatasets = [];
+                if (response.data.harianPerKelas && response.data.harianPerKelas.datasets) {
+                    harianDatasets = response.data.harianPerKelas.datasets.map(function(dataset, index) {
+                        const colorIndex = index % classColors.length;
+                        const color = classColors[colorIndex];
+                        return {
+                            label: dataset.label,
+                            data: dataset.data,
+                            backgroundColor: color,
+                            borderColor: color,
+                            borderWidth: 1
+                        };
+                    });
+                }
+
+                const ctx1 = document.getElementById('absensiSantriHarianChart').getContext('2d');
+                if (charts['absensiSantriHarianChart']) charts['absensiSantriHarianChart'].destroy();
+                charts['absensiSantriHarianChart'] = new Chart(ctx1, {
+                    type: 'bar',
+                    data: {
+                        labels: response.data.harianPerKelas ? response.data.harianPerKelas.labels : days,
+                        datasets: harianDatasets
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                fontColor: colors.textColor,
+                                boxWidth: 10,
+                                fontSize: 10
+                            }
+                        },
+                        scales: {
+                            xAxes: [{
+                                gridLines: { color: colors.gridColor },
+                                ticks: { fontColor: colors.textColor }
+                            }],
+                            yAxes: [{
+                                gridLines: { color: colors.gridColor },
+                                ticks: {
+                                    fontColor: colors.textColor,
+                                    beginAtZero: true,
+                                    stepSize: 1
+                                }
+                            }]
+                        }
+                    }
+                });
+
+                // Fluktuasi Kehadiran Per Kelas (2 Minggu)
                 let classDatasets = [];
                 if (response.data.kehadiranPerKelas && response.data.kehadiranPerKelas.datasets) {
                     classDatasets = response.data.kehadiranPerKelas.datasets.map(function(dataset, index) {

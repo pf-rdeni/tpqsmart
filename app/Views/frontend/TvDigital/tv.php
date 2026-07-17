@@ -195,7 +195,7 @@
             <div class="card-grid-absensi">
                 <!-- Grafik Harian Minggu Ini -->
                 <div class="glass-card">
-                    <h3 class="card-title-tv"><i class="fas fa-chart-bar"></i> Absensi Harian (Minggu Berjalan)</h3>
+                    <h3 class="card-title-tv"><i class="fas fa-chart-bar"></i> Absensi Harian Per Kelas (Minggu Berjalan)</h3>
                     <div class="chart-wrapper">
                         <canvas id="absensiSantriHarianChart"></canvas>
                     </div>
