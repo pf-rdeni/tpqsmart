@@ -215,7 +215,6 @@ class Dashboard extends BaseController
         );
         $totalSantriBaru = $this->helpFunctionModel->getTotalSantriBaru(
             IdTpq: $idTpq,
-            IdKelas: session()->get('IdKelas'),
         );
         $tahunAjaran = $this->helpFunctionModel->convertTahunAjaran($idTahunAjaran);
 
