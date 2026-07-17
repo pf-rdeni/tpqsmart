@@ -213,7 +213,7 @@
                 </div>
                 <!-- Trend Bulanan -->
                 <div class="glass-card">
-                    <h3 class="card-title-tv"><i class="fas fa-chart-area"></i> Trend Kehadiran Guru (30 Hari Terakhir)</h3>
+                    <h3 class="card-title-tv"><i class="fas fa-chart-area"></i> Trend Kehadiran Guru (<span id="trendGuruBulanTahun">30 Hari Terakhir</span>)</h3>
                     <div class="chart-wrapper">
                         <canvas id="absensiGuruBulananChart"></canvas>
                     </div>

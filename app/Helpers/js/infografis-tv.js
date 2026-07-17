@@ -1078,6 +1078,32 @@ $(document).ready(function() {
                     }
                 });
 
+                // Hitung bulan dan tahun untuk 30 hari terakhir guru
+                const today = new Date();
+                const start = new Date();
+                start.setDate(today.getDate() - 30);
+                
+                const formatMonthYear = (date1, date2) => {
+                    const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+                    const m1 = months[date1.getMonth()];
+                    const y1 = date1.getFullYear();
+                    const m2 = months[date2.getMonth()];
+                    const y2 = date2.getFullYear();
+                    
+                    if (y1 === y2) {
+                        if (m1 === m2) {
+                            return `${m1} ${y1}`;
+                        } else {
+                            return `${m1} - ${m2} ${y1}`;
+                        }
+                    } else {
+                        return `${m1} ${y1} - ${m2} ${y2}`;
+                    }
+                };
+
+                const monthYearText = formatMonthYear(start, today);
+                $('#trendGuruBulanTahun').text(monthYearText);
+
                 // Bulanan (Trend area chart)
                 const dates = Object.keys(response.data.bulanan);
                 const values = Object.values(response.data.bulanan).map(d => d.Hadir);
@@ -1090,18 +1116,30 @@ $(document).ready(function() {
                         datasets: [{
                             label: 'Total Kehadiran',
                             data: values,
-                            borderColor: '#dc3545',
-                            backgroundColor: 'rgba(220,53,69,0.1)',
+                            borderColor: '#28a745', // Green color
+                            backgroundColor: 'rgba(40,167,69,0.1)', // Green transparency
                             fill: true,
-                            tension: 0.3
+                            tension: 0.3,
+                            borderWidth: 3,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            pointBackgroundColor: '#28a745',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 1.5
                         }]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
                         scales: {
-                            xAxes: [{ ticks: { fontColor: colors.textColor } }],
-                            yAxes: [{ ticks: { fontColor: colors.textColor } }]
+                            xAxes: [{
+                                gridLines: { color: colors.gridColor },
+                                ticks: { fontColor: colors.textColor }
+                            }],
+                            yAxes: [{
+                                gridLines: { color: colors.gridColor },
+                                ticks: { fontColor: colors.textColor, beginAtZero: true, precision: 0 }
+                            }]
                         }
                     }
                 });
