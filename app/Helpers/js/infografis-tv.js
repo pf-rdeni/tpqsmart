@@ -797,14 +797,15 @@ $(document).ready(function() {
                         const colorIndex = index % classColors.length;
                         const color = classColors[colorIndex];
 
-                        // Bar dataset (14 Hari)
+                        // Bar dataset (14 Hari) - Solid 100% color
                         combinedDatasets.push({
                             type: 'bar',
                             label: dataset.label, // legend name (e.g. "Kelas A")
                             data: dataset.data,
-                            backgroundColor: color + '70', // semi-transparent bars
+                            backgroundColor: color, // Solid color
                             borderColor: color,
-                            borderWidth: 1
+                            borderWidth: 1,
+                            yAxisID: 'y-axis-bars' // Bind to left axis
                         });
 
                         // Sum daily attendance for total line
@@ -837,7 +838,8 @@ $(document).ready(function() {
                         pointHoverRadius: 7,
                         pointBackgroundColor: totalLineColor,
                         pointBorderColor: '#fff',
-                        pointBorderWidth: 2
+                        pointBorderWidth: 2,
+                        yAxisID: 'y-axis-line' // Bind to hidden right axis
                     });
                 }
 
@@ -870,14 +872,27 @@ $(document).ready(function() {
                                     minRotation: 45
                                 }
                             }],
-                            yAxes: [{
-                                gridLines: { color: colors.gridColor },
-                                ticks: {
-                                    fontColor: colors.textColor,
-                                    beginAtZero: true,
-                                    stepSize: 1
+                            yAxes: [
+                                {
+                                    id: 'y-axis-bars',
+                                    position: 'left',
+                                    gridLines: { color: colors.gridColor },
+                                    ticks: {
+                                        fontColor: colors.textColor,
+                                        beginAtZero: true,
+                                        stepSize: 1
+                                    }
+                                },
+                                {
+                                    id: 'y-axis-line',
+                                    position: 'right',
+                                    display: false, // Hide right axis ticks/lines
+                                    gridLines: { display: false },
+                                    ticks: {
+                                        beginAtZero: true
+                                    }
                                 }
-                            }]
+                            ]
                         }
                     }
                 });
