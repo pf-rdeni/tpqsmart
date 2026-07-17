@@ -788,71 +788,24 @@ $(document).ready(function() {
                     '#6c757d' // Gray
                 ];
 
-                // 1. Santri Harian Per Kelas
-                const days = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
-                let harianDatasets = [];
-                if (response.data.harianPerKelas && response.data.harianPerKelas.datasets) {
-                    harianDatasets = response.data.harianPerKelas.datasets.map(function(dataset, index) {
-                        const colorIndex = index % classColors.length;
-                        const color = classColors[colorIndex];
-                        return {
-                            label: dataset.label,
-                            data: dataset.data,
-                            backgroundColor: color,
-                            borderColor: color,
-                            borderWidth: 1
-                        };
-                    });
-                }
-
-                const ctx1 = document.getElementById('absensiSantriHarianChart').getContext('2d');
-                if (charts['absensiSantriHarianChart']) charts['absensiSantriHarianChart'].destroy();
-                charts['absensiSantriHarianChart'] = new Chart(ctx1, {
-                    type: 'bar',
-                    data: {
-                        labels: response.data.harianPerKelas ? response.data.harianPerKelas.labels : days,
-                        datasets: harianDatasets
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        legend: {
-                            display: true,
-                            position: 'top',
-                            labels: {
-                                fontColor: colors.textColor,
-                                boxWidth: 10,
-                                fontSize: 10
-                            }
-                        },
-                        scales: {
-                            xAxes: [{
-                                gridLines: { color: colors.gridColor },
-                                ticks: { fontColor: colors.textColor }
-                            }],
-                            yAxes: [{
-                                gridLines: { color: colors.gridColor },
-                                ticks: {
-                                    fontColor: colors.textColor,
-                                    beginAtZero: true,
-                                    stepSize: 1
-                                }
-                            }]
-                        }
-                    }
-                });
-
-                // Fluktuasi Kehadiran Per Kelas (2 Minggu)
-                let classDatasets = [];
+                let combinedDatasets = [];
                 if (response.data.kehadiranPerKelas && response.data.kehadiranPerKelas.datasets) {
-                    classDatasets = response.data.kehadiranPerKelas.datasets.map(function(dataset, index) {
+                    response.data.kehadiranPerKelas.datasets.forEach(function(dataset, index) {
                         const colorIndex = index % classColors.length;
                         const color = classColors[colorIndex];
-                        return {
-                            label: dataset.label,
-                            data: dataset.data,
+
+                        // Split data: first 7 days (last week), next 7 days (this week)
+                        const lastWeekData = dataset.data.slice(0, 7);
+                        const thisWeekData = dataset.data.slice(7, 14);
+
+                        // Line dataset (Minggu Lalu)
+                        const lineData = [...lastWeekData, null, null, null, null, null, null, null];
+                        combinedDatasets.push({
+                            type: 'line',
+                            label: dataset.label, // legend name (e.g. "Kelas A")
+                            data: lineData,
                             borderColor: color,
-                            backgroundColor: color + '15', // 15% opacity
+                            backgroundColor: color + '15',
                             borderWidth: 2,
                             fill: false,
                             lineTension: 0.2,
@@ -861,17 +814,28 @@ $(document).ready(function() {
                             pointBackgroundColor: color,
                             pointBorderColor: '#fff',
                             pointBorderWidth: 1.5
-                        };
+                        });
+
+                        // Bar dataset (Minggu Ini)
+                        const barData = [null, null, null, null, null, null, null, ...thisWeekData];
+                        combinedDatasets.push({
+                            type: 'bar',
+                            label: dataset.label + ' (Bar)', // Hidden from legend using filter
+                            data: barData,
+                            backgroundColor: color,
+                            borderColor: color,
+                            borderWidth: 1
+                        });
                     });
                 }
 
-                const ctx2 = document.getElementById('absensiSantriPerbandinganChart').getContext('2d');
-                if (charts['absensiSantriPerbandinganChart']) charts['absensiSantriPerbandinganChart'].destroy();
-                charts['absensiSantriPerbandinganChart'] = new Chart(ctx2, {
-                    type: 'line',
+                const ctx = document.getElementById('absensiSantriCombinedChart').getContext('2d');
+                if (charts['absensiSantriCombinedChart']) charts['absensiSantriCombinedChart'].destroy();
+                charts['absensiSantriCombinedChart'] = new Chart(ctx, {
+                    type: 'bar', // Baseline type for mixed chart
                     data: {
                         labels: response.data.kehadiranPerKelas ? response.data.kehadiranPerKelas.labels : [],
-                        datasets: classDatasets
+                        datasets: combinedDatasets
                     },
                     options: {
                         responsive: true,
@@ -882,7 +846,11 @@ $(document).ready(function() {
                             labels: {
                                 fontColor: colors.textColor,
                                 boxWidth: 10,
-                                fontSize: 10
+                                fontSize: 10,
+                                filter: function(item, chartData) {
+                                    // Sembunyikan label yang mengandung "(Bar)" agar tidak duplikat di legenda
+                                    return !item.text.includes('(Bar)');
+                                }
                             }
                         },
                         scales: {

@@ -192,20 +192,10 @@
         <!-- 4. BLOCK: ABSENSI SANTRI -->
         <div class="tv-slide-card d-none" id="card-absensi_santri">
             <h2 class="slide-main-title"><i class="fas fa-chart-line text-purple"></i> Kehadiran / Absensi Santri</h2>
-            <div class="card-grid-absensi">
-                <!-- Grafik Harian Minggu Ini -->
-                <div class="glass-card">
-                    <h3 class="card-title-tv"><i class="fas fa-chart-bar"></i> Absensi Harian Per Kelas (Minggu Berjalan)</h3>
-                    <div class="chart-wrapper">
-                        <canvas id="absensiSantriHarianChart"></canvas>
-                    </div>
-                </div>
-                <!-- Grafik Fluktuasi Kehadiran Per Kelas -->
-                <div class="glass-card">
-                    <h3 class="card-title-tv"><i class="fas fa-chart-line"></i> Fluktuasi Kehadiran Per Kelas (2 Minggu)</h3>
-                    <div class="chart-wrapper">
-                        <canvas id="absensiSantriPerbandinganChart"></canvas>
-                    </div>
+            <div class="glass-card d-flex flex-column" style="height: calc(100% - 10vh); overflow: hidden;">
+                <h3 class="card-title-tv"><i class="fas fa-chart-bar"></i> Kehadiran Per Kelas (Kombinasi Garis & Batang - 2 Minggu)</h3>
+                <div class="chart-wrapper flex-grow-1" style="height: 100%; min-height: 0;">
+                    <canvas id="absensiSantriCombinedChart"></canvas>
                 </div>
             </div>
         </div>
