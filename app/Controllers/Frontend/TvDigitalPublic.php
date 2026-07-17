@@ -286,6 +286,7 @@ class TvDigitalPublic extends BaseController
         }
 
         $idTpq = $link['IdTpq'];
+        $idTahunAjaran = $link['IdTahunAjaran'];
         
         // 1. Data Absensi Harian (Minggu Kemarin & Minggu Ini)
         // Senin - Sabtu
@@ -307,12 +308,108 @@ class TvDigitalPublic extends BaseController
         $startMonth = date('Y-m-d', strtotime('-30 days'));
         $bulanan = $this->queryKehadiranHarian($idTpq, $startMonth, $today);
 
+        // 3. Data Kehadiran Per Kelas Per Hari (2 Minggu)
+        $absensiModel = new \App\Models\AbsensiModel();
+        
+        $dayOfWeekNum = (int)date('N', strtotime($today));
+        $subDays = $dayOfWeekNum - 1;
+        $currentWeekMonday = date('Y-m-d', strtotime("$today - $subDays days"));
+        $previousWeekMonday = date('Y-m-d', strtotime("$currentWeekMonday - 7 days"));
+        $currentWeekSunday = date('Y-m-d', strtotime("$currentWeekMonday + 6 days"));
+        
+        $startDate = $previousWeekMonday;
+        $endDate = $currentWeekSunday;
+        
+        $kehadiranData = $absensiModel->getKehadiranPerKelasPerHari($idTpq, $startDate, $endDate, $idTahunAjaran);
+        
+        // Ambil daftar IdKelas yang unik dari data kehadiran
+        $kelasIds = [];
+        foreach ($kehadiranData as $tanggal => $kelasData) {
+            if (is_array($kelasData)) {
+                foreach ($kelasData as $idKelas => $count) {
+                    if (!in_array($idKelas, $kelasIds)) {
+                        $kelasIds[] = $idKelas;
+                    }
+                }
+            }
+        }
+
+        // Jika tidak ada data kehadiran, ambil semua kelas dari TPQ
+        if (empty($kelasIds)) {
+            $kelasList = $this->helpFunctionModel->getListKelas($idTpq, $idTahunAjaran, null, null, true);
+            foreach ($kelasList as $kelas) {
+                $idKelas = is_array($kelas) ? ($kelas['IdKelas'] ?? 0) : ($kelas->IdKelas ?? 0);
+                if ($idKelas && !in_array($idKelas, $kelasIds)) {
+                    $kelasIds[] = $idKelas;
+                }
+            }
+        }
+
+        // Ambil nama kelas dari database
+        $kelasMap = [];
+        if (!empty($kelasIds)) {
+            $builder = $this->db->table('tbl_kelas');
+            $builder->select('IdKelas, NamaKelas');
+            $builder->whereIn('IdKelas', $kelasIds);
+            $kelasList = $builder->get()->getResultArray();
+
+            foreach ($kelasList as $kelas) {
+                $idKelas = $kelas['IdKelas'] ?? 0;
+                $namaKelas = $kelas['NamaKelas'] ?? '';
+
+                // Konversi nama kelas ke MDA jika perlu
+                $mdaCheckResult = $this->helpFunctionModel->checkMdaKelasMapping($idTpq, $namaKelas);
+                $namaKelasDisplay = $this->helpFunctionModel->convertKelasToMda($namaKelas, $mdaCheckResult['mappedMdaKelas']);
+
+                $kelasMap[$idKelas] = $namaKelasDisplay;
+            }
+        }
+
+        // Generate semua tanggal dalam periode
+        $tanggalList = [];
+        $currentDate = new \DateTime($startDate);
+        $endDateTime = new \DateTime($endDate);
+
+        while ($currentDate <= $endDateTime) {
+            $tanggalStr = $currentDate->format('Y-m-d');
+            $tanggalList[] = $tanggalStr;
+            $currentDate->modify('+1 day');
+        }
+
+        // Format data untuk chart: setiap kelas menjadi satu dataset
+        $kelasDatasets = [];
+        foreach ($kelasMap as $idKelas => $namaKelas) {
+            $data = [];
+            foreach ($tanggalList as $tanggal) {
+                // Ambil count untuk tanggal dan kelas ini
+                $count = isset($kehadiranData[$tanggal][$idKelas]) ? (int)$kehadiranData[$tanggal][$idKelas] : 0;
+                $data[] = $count;
+            }
+
+            $kelasDatasets[] = [
+                'label' => $namaKelas,
+                'data' => $data,
+                'IdKelas' => $idKelas
+            ];
+        }
+
+        // Format label tanggal (format: d/m)
+        $kelasLabels = [];
+        foreach ($tanggalList as $tanggal) {
+            $dateObj = new \DateTime($tanggal);
+            $kelasLabels[] = $dateObj->format('d/m');
+        }
+
         return $this->response->setJSON([
             'status' => 'success',
             'data' => [
                 'mingguIni' => $harianThisWeek,
                 'mingguLalu' => $harianLastWeek,
-                'bulanan' => $bulanan
+                'bulanan' => $bulanan,
+                'kehadiranPerKelas' => [
+                    'labels' => $kelasLabels,
+                    'datasets' => $kelasDatasets
+                ]
             ]
         ]);
     }

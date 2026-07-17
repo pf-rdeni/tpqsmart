@@ -200,9 +200,9 @@
                         <canvas id="absensiSantriHarianChart"></canvas>
                     </div>
                 </div>
-                <!-- Grafik Mingguan Perbandingan -->
+                <!-- Grafik Fluktuasi Kehadiran Per Kelas -->
                 <div class="glass-card">
-                    <h3 class="card-title-tv"><i class="fas fa-sync-alt"></i> Perbandingan Minggu Lalu vs Minggu Ini</h3>
+                    <h3 class="card-title-tv"><i class="fas fa-chart-line"></i> Fluktuasi Kehadiran Per Kelas (2 Minggu)</h3>
                     <div class="chart-wrapper">
                         <canvas id="absensiSantriPerbandinganChart"></canvas>
                     </div>

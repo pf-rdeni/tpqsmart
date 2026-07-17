@@ -801,35 +801,79 @@ $(document).ready(function() {
                     }
                 });
 
-                // Perbandingan minggu lalu vs minggu ini
-                const lastWeekData = Object.values(response.data.mingguLalu).map(d => d.Hadir).slice(0, 6);
+                // Fluktuasi Kehadiran Per Kelas (2 Minggu)
+                const classColors = [
+                    '#28a745', // Hijau
+                    '#007bff', // Biru
+                    '#ffc107', // Kuning
+                    '#dc3545', // Merah
+                    '#6f42c1', // Ungu
+                    '#20c997', // Teal
+                    '#fd7e14', // Orange
+                    '#e83e8c', // Pink
+                    '#17a2b8', // Cyan
+                    '#6c757d' // Gray
+                ];
+
+                let classDatasets = [];
+                if (response.data.kehadiranPerKelas && response.data.kehadiranPerKelas.datasets) {
+                    classDatasets = response.data.kehadiranPerKelas.datasets.map(function(dataset, index) {
+                        const colorIndex = index % classColors.length;
+                        const color = classColors[colorIndex];
+                        return {
+                            label: dataset.label,
+                            data: dataset.data,
+                            borderColor: color,
+                            backgroundColor: color + '15', // 15% opacity
+                            borderWidth: 2,
+                            fill: false,
+                            lineTension: 0.2,
+                            pointRadius: 3,
+                            pointHoverRadius: 5,
+                            pointBackgroundColor: color,
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 1.5
+                        };
+                    });
+                }
+
                 const ctx2 = document.getElementById('absensiSantriPerbandinganChart').getContext('2d');
                 if (charts['absensiSantriPerbandinganChart']) charts['absensiSantriPerbandinganChart'].destroy();
                 charts['absensiSantriPerbandinganChart'] = new Chart(ctx2, {
                     type: 'line',
                     data: {
-                        labels: days,
-                        datasets: [
-                            {
-                                label: 'Minggu Ini',
-                                data: thisWeekData,
-                                borderColor: '#28a745',
-                                tension: 0.3
-                            },
-                            {
-                                label: 'Minggu Lalu',
-                                data: lastWeekData,
-                                borderColor: '#fd7e14',
-                                tension: 0.3
-                            }
-                        ]
+                        labels: response.data.kehadiranPerKelas ? response.data.kehadiranPerKelas.labels : [],
+                        datasets: classDatasets
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                fontColor: colors.textColor,
+                                boxWidth: 10,
+                                fontSize: 10
+                            }
+                        },
                         scales: {
-                            xAxes: [{ ticks: { fontColor: colors.textColor } }],
-                            yAxes: [{ ticks: { fontColor: colors.textColor } }]
+                            xAxes: [{
+                                gridLines: { color: colors.gridColor },
+                                ticks: {
+                                    fontColor: colors.textColor,
+                                    maxRotation: 45,
+                                    minRotation: 45
+                                }
+                            }],
+                            yAxes: [{
+                                gridLines: { color: colors.gridColor },
+                                ticks: {
+                                    fontColor: colors.textColor,
+                                    beginAtZero: true,
+                                    stepSize: 1
+                                }
+                            }]
                         }
                     }
                 });
