@@ -4,12 +4,12 @@
  * MuslimSalat API integration, and AJAX data refreshing.
  */
 
-$(document).ready(function() {
-    
+$(document).ready(function () {
+
     // Core parameters
     const hashKey = $('#tvContainer').data('hash');
     const baseUrl = window.location.origin;
-    
+
     let activeSlides = []; // List of active block keys
     let currentSlideIndex = 0;
     let slideshowTimer = null;
@@ -37,7 +37,7 @@ $(document).ready(function() {
     loadData();
 
     // Keyboard navigation (Arrow keys left/right to navigate manual)
-    $(document).keydown(function(e) {
+    $(document).keydown(function (e) {
         if (e.keyCode === 37) { // Left arrow
             navigateSlide(-1);
         } else if (e.keyCode === 39) { // Right arrow
@@ -51,12 +51,12 @@ $(document).ready(function() {
     function initClock() {
         const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
         const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-        
+
         setInterval(() => {
             const now = new Date();
             const timeStr = now.toTimeString().split(' ')[0];
             const dateStr = days[now.getDay()] + ', ' + now.getDate() + ' ' + months[now.getMonth()] + ' ' + now.getFullYear();
-            
+
             $('#tvTime').text(timeStr);
             $('#tvDate').text(dateStr);
         }, 1000);
@@ -66,10 +66,10 @@ $(document).ready(function() {
     // 2. DATA LOADER & DYNAMIC REFRESH
     // ==========================================
     function loadData() {
-        $.getJSON(`${baseUrl}/tv/api/data/${hashKey}`, function(response) {
+        $.getJSON(`${baseUrl}/tv/api/data/${hashKey}`, function (response) {
             if (response.status === 'success') {
                 appData = response.data;
-                
+
                 // Update header & info
                 $('#tvLembagaName').text(appData.lembaga.nama);
                 if (appData.lembaga.logo) {
@@ -82,7 +82,7 @@ $(document).ready(function() {
                 // Build active slides list from response configs
                 activeSlides = [];
                 if (appData.activeBlocks && appData.activeBlocks.length > 0) {
-                    $.each(appData.activeBlocks, function(i, block) {
+                    $.each(appData.activeBlocks, function (i, block) {
                         let key = block.BlockKey;
                         // Map home to home_fkpq for FKPQ
                         if (key === 'home' && appData.lembaga.isFkpq) {
@@ -129,7 +129,7 @@ $(document).ready(function() {
     // Refresh countdown loop
     function startRefreshTimer() {
         if (refreshTimer) clearInterval(refreshTimer);
-        
+
         refreshTimer = setInterval(() => {
             refreshSecondsLeft--;
             if (refreshSecondsLeft <= 0) {
@@ -148,7 +148,7 @@ $(document).ready(function() {
     // ==========================================
     function populateSummaryStats() {
         const stats = appData.ringkasan;
-        
+
         // Standard Home
         $('#homeTotalSantri').text(stats.totalSantri);
         $('#homeTotalGuru').text(stats.totalGuru);
@@ -159,7 +159,7 @@ $(document).ready(function() {
         // Hitung total alumni & lulus munaqosah untuk home summary card
         let totalAlumniHome = 0;
         if (appData.alumniList) {
-            $.each(appData.alumniList, function(i, row) {
+            $.each(appData.alumniList, function (i, row) {
                 totalAlumniHome += (row.Total || 0);
             });
         }
@@ -167,12 +167,12 @@ $(document).ready(function() {
 
         let totalMunaqosahLulusHome = 0;
         if (appData.munaqosahGraduationStats) {
-            $.each(appData.munaqosahGraduationStats, function(i, row) {
+            $.each(appData.munaqosahGraduationStats, function (i, row) {
                 totalMunaqosahLulusHome += (row.Lulus || 0);
             });
         }
         $('#homeMunaqosahLulus').text(totalMunaqosahLulusHome + ' Santri');
-        
+
         // Today attendance calculations
         const totalTodayAbsen = stats.absensiSantriToday.Hadir + stats.absensiSantriToday.Izin + stats.absensiSantriToday.Sakit + stats.absensiSantriToday.Alfa;
         if (totalTodayAbsen > 0) {
@@ -196,7 +196,7 @@ $(document).ready(function() {
         $('#fkpqTotalGuru').text(stats.totalGuru);
         $('#fkpqSantriLp').text(`L: ${stats.santriLaki} | P: ${stats.santriPerempuan}`);
         $('#fkpqGuruLp').text(`L: ${stats.guruLaki} | P: ${stats.guruPerempuan}`);
-        
+
         // Input counters today
         $('#fkpqKehadiranToday').text(totalTodayAbsen > 0 ? 'Aktif' : 'Nihil');
 
@@ -210,7 +210,7 @@ $(document).ready(function() {
         // Santri Kelas Table
         if (appData.santriPerKelas) {
             let trHtml = '';
-            $.each(appData.santriPerKelas, function(i, row) {
+            $.each(appData.santriPerKelas, function (i, row) {
                 trHtml += `
                     <tr>
                         <td class="font-weight-bold">${row.NamaKelas}</td>
@@ -226,7 +226,7 @@ $(document).ready(function() {
         // FKPQ Tpq breakdown rank table
         if (appData.statistikPerTpq) {
             let trHtml = '';
-            $.each(appData.statistikPerTpq, function(i, row) {
+            $.each(appData.statistikPerTpq, function (i, row) {
                 const rank = i + 1;
                 const rasio = row.Guru > 0 ? Math.round(row.Santri / row.Guru) : row.Santri;
                 trHtml += `
@@ -248,10 +248,10 @@ $(document).ready(function() {
             const today = new Date();
             const dayOfWeek = today.getDay(); // 0 = Minggu, 1 = Senin, dst
             const mondayOffset = (dayOfWeek == 0) ? -6 : (1 - dayOfWeek);
-            
+
             const monday = new Date(today);
             monday.setDate(today.getDate() + mondayOffset);
-            
+
             const sunday = new Date(monday);
             sunday.setDate(monday.getDate() + 6);
 
@@ -260,7 +260,7 @@ $(document).ready(function() {
                 return date.getDate() + ' ' + months[date.getMonth()];
             };
             const currentYear = monday.getFullYear();
-            
+
             $('#statistikAbsensiPekanIni').text(`(${formatDate(monday)} - ${formatDate(sunday)} ${currentYear})`);
 
             let trHtml = '';
@@ -270,7 +270,7 @@ $(document).ready(function() {
             let totalAlfa = 0;
             let grandTotal = 0;
 
-            $.each(appData.statistikKehadiranKelas, function(i, row) {
+            $.each(appData.statistikKehadiranKelas, function (i, row) {
                 const rowHadir = parseInt(row.Hadir) || 0;
                 const rowIzin = parseInt(row.Izin) || 0;
                 const rowSakit = parseInt(row.Sakit) || 0;
@@ -312,7 +312,7 @@ $(document).ready(function() {
         // Munaqosah Graduation Trend Table
         if (appData.munaqosahGraduationStats) {
             let trHtml = '';
-            $.each(appData.munaqosahGraduationStats, function(i, row) {
+            $.each(appData.munaqosahGraduationStats, function (i, row) {
                 let taLabel = row.TahunAjaran;
                 if (taLabel && taLabel.length === 8) {
                     taLabel = taLabel.substring(0, 4) + '/' + taLabel.substring(4);
@@ -333,7 +333,7 @@ $(document).ready(function() {
         // Alumni Trend Table
         if (appData.alumniList) {
             let trHtml = '';
-            $.each(appData.alumniList, function(i, row) {
+            $.each(appData.alumniList, function (i, row) {
                 let taLabel = row.TahunAjaran;
                 if (taLabel && taLabel.length === 8) {
                     taLabel = taLabel.substring(0, 4) + '/' + taLabel.substring(4);
@@ -341,7 +341,7 @@ $(document).ready(function() {
                 let countL = 0;
                 let countP = 0;
                 if (row.Santri) {
-                    $.each(row.Santri, function(j, s) {
+                    $.each(row.Santri, function (j, s) {
                         if (s.JenisKelamin.toLowerCase().includes('laki')) countL++; else countP++;
                     });
                 }
@@ -363,37 +363,37 @@ $(document).ready(function() {
     // ==========================================
     function buildDots() {
         let dotsHtml = '';
-        $.each(activeSlides, function(i, key) {
+        $.each(activeSlides, function (i, key) {
             dotsHtml += `<span class="tv-dot" data-index="${i}"></span>`;
         });
         $('#tvSlideDots').html(dotsHtml);
-        
+
         // Dot clicks to manually navigate
-        $('.tv-dot').click(function() {
+        $('.tv-dot').click(function () {
             showSlide($(this).data('index'));
         });
     }
 
     function showSlide(index) {
         if (activeSlides.length === 0) return;
-        
+
         // Clear previous slideshow timer
         if (slideshowTimer) clearTimeout(slideshowTimer);
 
         // Hide all cards
         $('.tv-slide-card').addClass('d-none');
-        
+
         // Adjust index boundary
         currentSlideIndex = (index + activeSlides.length) % activeSlides.length;
         const currentKey = activeSlides[currentSlideIndex];
-        
+
         // Display target slide
         $(`#card-${currentKey}`).removeClass('d-none');
-        
+
         // Update dots UI
         $('.tv-dot').removeClass('active-dot');
         $(`.tv-dot[data-index="${currentSlideIndex}"]`).addClass('active-dot');
-        
+
         // Update Footer Label
         const prettyName = currentKey.replace('_', ' ').toUpperCase();
         $('#tvCurrentSlideName').text(prettyName);
@@ -418,7 +418,7 @@ $(document).ready(function() {
         } else {
             stopGaleriLoop();
         }
-        
+
         // Initialize or update charts dynamically when that slide is shown
         renderCharts(key);
     }
@@ -428,24 +428,24 @@ $(document).ready(function() {
     // ==========================================
     function renderCharts(key) {
         // Destroy existing instance if recreate is needed
-        
+
         // 1. HOME: Last 30 days trend line chart
         if ((key === 'home' || key === 'home_fkpq') && $('#homeAbsensiChart').length) {
             fetchMonthlyChartData('homeAbsensiChart', 'home');
         }
-        
+
         // 2. SANTRI: Bar chart distribution & Gender pie chart
         if (key === 'keadaan_santri' && appData.santriPerKelas) {
             const labels = [];
             const dataLaki = [];
             const dataPerempuan = [];
-            $.each(appData.santriPerKelas, function(i, r) {
+            $.each(appData.santriPerKelas, function (i, r) {
                 labels.push(r.NamaKelas);
                 dataLaki.push(r.LakiLaki);
                 dataPerempuan.push(r.Perempuan);
             });
             createBarChart('santriDistribusiChart', labels, dataLaki, dataPerempuan);
-            
+
             const stats = appData.ringkasan;
             createPieChart('santriGenderRasioChart', ['Santri (L)', 'Santriwati (P)'], [stats.santriLaki, stats.santriPerempuan]);
         }
@@ -469,12 +469,12 @@ $(document).ready(function() {
             const dataIzin = [];
             const dataAlfa = [];
             const dataTotal = [];
-            $.each(appData.statistikKehadiranKelas, function(i, r) {
+            $.each(appData.statistikKehadiranKelas, function (i, r) {
                 labels.push(r.NamaKelas);
                 dataSakit.push(r.Sakit);
                 dataIzin.push(r.Izin);
                 dataAlfa.push(r.Alfa);
-                
+
                 const total = (parseInt(r.Sakit) || 0) + (parseInt(r.Izin) || 0) + (parseInt(r.Alfa) || 0);
                 dataTotal.push(total);
             });
@@ -485,7 +485,7 @@ $(document).ready(function() {
         if (key === 'trend_kelulusan' && appData.munaqosahGraduationStats) {
             const labels = [];
             const dataPct = [];
-            $.each(appData.munaqosahGraduationStats, function(i, r) {
+            $.each(appData.munaqosahGraduationStats, function (i, r) {
                 let taLabel = r.TahunAjaran;
                 if (taLabel && taLabel.length === 8) {
                     taLabel = taLabel.substring(0, 4) + '/' + taLabel.substring(4);
@@ -502,28 +502,28 @@ $(document).ready(function() {
             const dataLaki = [];
             const dataPerempuan = [];
             const dataTotal = [];
-            
+
             // Reverse list to show chronological order (oldest to newest)
             const reversedList = [...appData.alumniList].reverse();
-            $.each(reversedList, function(i, r) {
+            $.each(reversedList, function (i, r) {
                 let taLabel = r.TahunAjaran;
                 if (taLabel && taLabel.length === 8) {
                     taLabel = taLabel.substring(0, 4) + '/' + taLabel.substring(4);
                 }
                 labels.push(taLabel);
                 dataTotal.push(r.Total);
-                
+
                 let countL = 0;
                 let countP = 0;
                 if (r.Santri) {
-                    $.each(r.Santri, function(j, s) {
+                    $.each(r.Santri, function (j, s) {
                         if (s.JenisKelamin.toLowerCase().includes('laki')) countL++; else countP++;
                     });
                 }
                 dataLaki.push(countL);
                 dataPerempuan.push(countP);
             });
-            
+
             createAlumniTrendChart('alumniTrendChart', labels, dataLaki, dataPerempuan, dataTotal);
         }
     }
@@ -540,7 +540,7 @@ $(document).ready(function() {
 
     function createBarChart(canvasId, labels, dataL, dataP) {
         if (charts[canvasId]) charts[canvasId].destroy();
-        
+
         const colors = getChartThemeColors();
         const ctx = document.getElementById(canvasId).getContext('2d');
         charts[canvasId] = new Chart(ctx, {
@@ -577,7 +577,7 @@ $(document).ready(function() {
                             min: 0,
                             fontColor: colors.textColor,
                             precision: 0,
-                            callback: function(value) {
+                            callback: function (value) {
                                 if (value % 1 === 0) {
                                     return value;
                                 }
@@ -594,7 +594,7 @@ $(document).ready(function() {
 
     function createAlumniTrendChart(canvasId, labels, dataL, dataP, dataTotal) {
         if (charts[canvasId]) charts[canvasId].destroy();
-        
+
         const colors = getChartThemeColors();
         const ctx = document.getElementById(canvasId).getContext('2d');
         charts[canvasId] = new Chart(ctx, {
@@ -633,7 +633,7 @@ $(document).ready(function() {
                             min: 0,
                             fontColor: colors.textColor,
                             precision: 0,
-                            callback: function(value) {
+                            callback: function (value) {
                                 if (value % 1 === 0) {
                                     return value;
                                 }
@@ -650,7 +650,7 @@ $(document).ready(function() {
 
     function createPieChart(canvasId, labels, data) {
         if (charts[canvasId]) charts[canvasId].destroy();
-        
+
         const colors = getChartThemeColors();
         const ctx = document.getElementById(canvasId).getContext('2d');
         charts[canvasId] = new Chart(ctx, {
@@ -679,10 +679,10 @@ $(document).ready(function() {
 
     function createAbsensiPerbandinganChart(canvasId, labels, dataSakit, dataIzin, dataAlfa, dataTotal) {
         if (charts[canvasId]) charts[canvasId].destroy();
-        
+
         const colors = getChartThemeColors();
         const ctx = document.getElementById(canvasId).getContext('2d');
-        
+
         // Calculate max bar value for left Y-axis suggestedMax offset
         const maxBarValue = Math.max(
             dataSakit.length > 0 ? Math.max(...dataSakit.map(v => parseInt(v) || 0)) : 0,
@@ -796,7 +796,7 @@ $(document).ready(function() {
 
     function createGraduationTrendChart(canvasId, labels, dataPct) {
         if (charts[canvasId]) charts[canvasId].destroy();
-        
+
         const colors = getChartThemeColors();
         const ctx = document.getElementById(canvasId).getContext('2d');
         charts[canvasId] = new Chart(ctx, {
@@ -829,7 +829,7 @@ $(document).ready(function() {
                             fontColor: colors.textColor,
                             min: 0,
                             max: 100,
-                            callback: function(value) { return value + '%'; }
+                            callback: function (value) { return value + '%'; }
                         }
                     }]
                 },
@@ -845,13 +845,13 @@ $(document).ready(function() {
     // ==========================================
     function fetchMonthlyChartData(canvasId, type) {
         if (charts[canvasId]) return; // Do not refetch if already loaded
-        
+
         const colors = getChartThemeColors();
-        $.getJSON(`${baseUrl}/tv/api/absensi-santri/${hashKey}`, function(response) {
+        $.getJSON(`${baseUrl}/tv/api/absensi-santri/${hashKey}`, function (response) {
             if (response.status === 'success') {
                 const dates = Object.keys(response.data.bulanan);
                 const values = Object.values(response.data.bulanan).map(d => d.Hadir);
-                
+
                 const ctx = document.getElementById(canvasId).getContext('2d');
                 charts[canvasId] = new Chart(ctx, {
                     type: 'line',
@@ -888,7 +888,7 @@ $(document).ready(function() {
         const colors = getChartThemeColors();
 
         // 1. Santri Attendance Harian & Mingguan Charts
-        $.getJSON(`${baseUrl}/tv/api/absensi-santri/${hashKey}`, function(response) {
+        $.getJSON(`${baseUrl}/tv/api/absensi-santri/${hashKey}`, function (response) {
             if (response.status === 'success') {
                 // Update range 2 minggu title (Senin minggu lalu s/d Ahad minggu ini)
                 const today = new Date();
@@ -900,7 +900,7 @@ $(document).ready(function() {
                 previousWeekMonday.setDate(currentWeekMonday.getDate() - 7);
                 const currentWeekSunday = new Date(currentWeekMonday);
                 currentWeekSunday.setDate(currentWeekMonday.getDate() + 6);
-                
+
                 const formatDate = (date) => {
                     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'];
                     return date.getDate() + ' ' + months[date.getMonth()];
@@ -926,7 +926,7 @@ $(document).ready(function() {
                 let hasData = false;
 
                 if (response.data.kehadiranPerKelas && response.data.kehadiranPerKelas.datasets) {
-                    response.data.kehadiranPerKelas.datasets.forEach(function(dataset, index) {
+                    response.data.kehadiranPerKelas.datasets.forEach(function (dataset, index) {
                         const colorIndex = index % classColors.length;
                         const color = classColors[colorIndex];
 
@@ -945,7 +945,7 @@ $(document).ready(function() {
                         // Sum daily attendance for total line
                         if (dataset.data && dataset.data.length > 0) {
                             hasData = true;
-                            dataset.data.forEach(function(val, dayIdx) {
+                            dataset.data.forEach(function (val, dayIdx) {
                                 if (dayIdx < 14) {
                                     totalAttendanceData[dayIdx] += (val || 0);
                                 }
@@ -958,7 +958,7 @@ $(document).ready(function() {
                 if (hasData) {
                     const isLight = $('#tvContainer').hasClass('theme-light');
                     const totalLineColor = isLight ? '#4f46e5' : '#c084fc'; // Indigo for light, Violet for dark
-                    
+
                     combinedDatasets.push({
                         type: 'line',
                         label: 'Total Kehadiran',
@@ -981,7 +981,7 @@ $(document).ready(function() {
                 // Calculate max bar value for left Y-axis suggestedMax offset
                 let maxBarValue = 0;
                 if (response.data.kehadiranPerKelas && response.data.kehadiranPerKelas.datasets) {
-                    response.data.kehadiranPerKelas.datasets.forEach(function(dataset) {
+                    response.data.kehadiranPerKelas.datasets.forEach(function (dataset) {
                         if (dataset.data) {
                             const datasetMax = Math.max(...dataset.data.map(v => v || 0));
                             if (datasetMax > maxBarValue) {
@@ -1052,11 +1052,11 @@ $(document).ready(function() {
         });
 
         // 2. Guru Attendance Harian & Bulanan Charts
-        $.getJSON(`${baseUrl}/tv/api/absensi-guru/${hashKey}`, function(response) {
+        $.getJSON(`${baseUrl}/tv/api/absensi-guru/${hashKey}`, function (response) {
             if (response.status === 'success') {
                 const days = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
                 const thisWeekData = Object.values(response.data.mingguIni).map(d => d.Hadir).slice(0, 6);
-                
+
                 const ctx1 = document.getElementById('absensiGuruHarianChart').getContext('2d');
                 if (charts['absensiGuruHarianChart']) charts['absensiGuruHarianChart'].destroy();
                 charts['absensiGuruHarianChart'] = new Chart(ctx1, {
@@ -1083,14 +1083,14 @@ $(document).ready(function() {
                 const today = new Date();
                 const start = new Date();
                 start.setDate(today.getDate() - 30);
-                
+
                 const formatMonthYear = (date1, date2) => {
                     const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
                     const m1 = months[date1.getMonth()];
                     const y1 = date1.getFullYear();
                     const m2 = months[date2.getMonth()];
                     const y2 = date2.getFullYear();
-                    
+
                     if (y1 === y2) {
                         if (m1 === m2) {
                             return `${m1} ${y1}`;
@@ -1152,7 +1152,7 @@ $(document).ready(function() {
     // 7. PHOTO GALLERY CAROUSEL (INNER LOOP)
     // ==========================================
     function fetchGaleri() {
-        $.getJSON(`${baseUrl}/tv/api/galeri/${hashKey}`, function(response) {
+        $.getJSON(`${baseUrl}/tv/api/galeri/${hashKey}`, function (response) {
             if (response.status === 'success') {
                 galeriData = response.data;
             }
@@ -1164,7 +1164,7 @@ $(document).ready(function() {
         if (galeriData.length === 0) return;
 
         showGaleriPhoto(0);
-        
+
         // Auto slide inner photos every 5 seconds
         galeriTimer = setInterval(() => {
             currentGaleriIndex = (currentGaleriIndex + 1) % galeriData.length;
@@ -1179,7 +1179,7 @@ $(document).ready(function() {
     function showGaleriPhoto(index) {
         if (galeriData.length === 0) return;
         const photo = galeriData[index];
-        
+
         $('#galeriActiveImage').attr('src', photo.FotoUrl);
         $('#galeriActiveTitle').text(photo.Judul);
         $('#galeriActiveDate').text(photo.TanggalFormatted);
@@ -1190,11 +1190,11 @@ $(document).ready(function() {
     // 8. AGENDA SLIDE
     // ==========================================
     function fetchAgenda() {
-        $.getJSON(`${baseUrl}/tv/api/agenda/${hashKey}`, function(response) {
+        $.getJSON(`${baseUrl}/tv/api/agenda/${hashKey}`, function (response) {
             if (response.status === 'success') {
                 // Populate slide agenda
                 let trHtml = '';
-                $.each(response.data, function(i, a) {
+                $.each(response.data, function (i, a) {
                     trHtml += `
                         <tr>
                             <td class="font-weight-bold text-success">${a.NamaKegiatan}</td>
@@ -1209,12 +1209,12 @@ $(document).ready(function() {
 
                 // Populate Home mini list
                 let homeHtml = '';
-                $.each(response.data.slice(0, 3), function(i, a) {
+                $.each(response.data.slice(0, 3), function (i, a) {
                     const dateObj = new Date(a.TanggalMulai);
                     const day = dateObj.getDate();
                     const monthsShort = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
                     const month = monthsShort[dateObj.getMonth()];
-                    
+
                     homeHtml += `
                         <div class="home-agenda-item">
                             <div class="home-agenda-date-box">
@@ -1239,93 +1239,127 @@ $(document).ready(function() {
     // ==========================================
     // 9. ULANG TAHUN SLIDE
     // ==========================================
+
+    // Helper: 2 huruf inisial nama
+    function getBirthdayInitials(name) {
+        if (!name) return '?';
+        var parts = name.trim().split(/\s+/);
+        if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+        return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+
+    // Helper: warna avatar konsisten berdasarkan nama
+    function getBirthdayAvatarColor(name) {
+        var palette = ['#3b82f6','#10b981','#ef4444','#f59e0b','#06b6d4','#8b5cf6','#ec4899','#f97316'];
+        var h = 0;
+        for (var i = 0; i < name.length; i++) { h = name.charCodeAt(i) + ((h << 5) - h); }
+        return palette[Math.abs(h) % palette.length];
+    }
+
+    // Render satu baris item ulang tahun, kembalikan string HTML
+    function renderBirthdayRow(row, isSantri) {
+        var initials = getBirthdayInitials(row.Nama || '');
+        var bgColor  = getBirthdayAvatarColor(row.Nama || '');
+        var nama     = $('<div>').text(row.Nama || '-').html();  // escape HTML
+        var namaKelas = isSantri ? ($('<div>').text(row.NamaKelas || '-').html()) : '';
+        var tglUt    = $('<div>').text(row.TanggalUlangTahun || '-').html();
+        var sisaHari = parseInt(row.SisaHari, 10);
+
+        var avatarHtml;
+        if (row.PhotoUrl) {
+            avatarHtml = '<img src="' + row.PhotoUrl + '" alt="Foto" '
+                + 'onerror="this.style.display=\'none\';this.nextSibling.style.display=\'flex\';" '
+                + 'style="width:55px;height:55px;min-width:55px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,0.2);">'
+                + '<div style="display:none;width:55px;height:55px;min-width:55px;border-radius:50%;'
+                + 'background:' + bgColor + ';color:#fff;font-weight:700;font-size:18px;'
+                + 'align-items:center;justify-content:center;border:2px solid rgba(255,255,255,0.2);">'
+                + initials + '</div>';
+        } else {
+            avatarHtml = '<div style="width:55px;height:55px;min-width:55px;border-radius:50%;'
+                + 'background:' + bgColor + ';color:#fff;font-weight:700;font-size:18px;'
+                + 'display:flex;align-items:center;justify-content:center;'
+                + 'border:2px solid rgba(255,255,255,0.2);">' + initials + '</div>';
+        }
+
+        var badgeHtml;
+        if (sisaHari === 0) {
+            badgeHtml = '<span style="display:inline-flex;align-items:center;gap:5px;'
+                + 'background:#dc3545;color:#fff;padding:5px 10px;border-radius:20px;'
+                + 'font-size:13px;font-weight:700;animation:pulse-red 1.5s infinite;">'
+                + '<i class="fas fa-birthday-cake"></i> HARI INI!</span>';
+        } else {
+            badgeHtml = '<span style="display:inline-flex;align-items:center;'
+                + 'background:rgba(255,255,255,0.12);color:#ccc;padding:5px 10px;'
+                + 'border-radius:20px;font-size:13px;border:1px solid rgba(255,255,255,0.2);">'
+                + sisaHari + ' Hari Lagi</span>';
+        }
+
+        var subInfo = isSantri
+            ? '<small style="color:rgba(255,255,255,0.55);font-size:12px;">'
+                + '<i class="fas fa-graduation-cap" style="color:#3b82f6;margin-right:4px;"></i>' + namaKelas
+                + ' &nbsp;|&nbsp; '
+                + '<i class="fas fa-calendar-alt" style="color:#10b981;margin-right:4px;"></i>' + tglUt
+                + '</small>'
+            : '<small style="color:rgba(255,255,255,0.55);font-size:12px;">'
+                + '<i class="fas fa-calendar-alt" style="color:#10b981;margin-right:4px;"></i>' + tglUt
+                + '</small>';
+
+        return '<div style="display:flex;align-items:center;gap:14px;'
+            + 'padding:12px 14px;margin-bottom:10px;border-radius:12px;'
+            + 'background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">'
+            + '<div style="display:flex;align-items:center;">' + avatarHtml + '</div>'
+            + '<div style="flex:1;min-width:0;">'
+            + '<div style="font-weight:700;color:#fff;font-size:15px;white-space:nowrap;'
+            + 'overflow:hidden;text-overflow:ellipsis;">' + nama + '</div>'
+            + subInfo
+            + '</div>'
+            + '<div>' + badgeHtml + '</div>'
+            + '</div>';
+    }
+
     function fetchUlangTahun() {
-        if (appData.lembaga.isFkpq) return; // Skip for FKPQ
+        if (appData.lembaga.isFkpq) return; // Skip untuk FKPQ
 
-        $.getJSON(`${baseUrl}/tv/api/ulang-tahun/${hashKey}`, function(response) {
-            if (response.status === 'success') {
-                const defaultAvatar = `${baseUrl}/template/backend/dist/img/avatar5.png`;
-                
-                // Append pulse-red animation style if not already added
-                if ($('#pulseRedStyle').length === 0) {
-                    $('head').append(`
-                        <style id="pulseRedStyle">
-                            @keyframes pulse-red {
-                                0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); }
-                                70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
-                                100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
-                            }
-                        </style>
-                    `);
-                }
+        // Inject animasi pulse-red sekali saja
+        if (!document.getElementById('pulseRedStyle')) {
+            var s = document.createElement('style');
+            s.id = 'pulseRedStyle';
+            s.textContent = '@keyframes pulse-red{'
+                + '0%{transform:scale(0.95);box-shadow:0 0 0 0 rgba(220,53,69,.7)}'
+                + '70%{transform:scale(1);box-shadow:0 0 0 10px rgba(220,53,69,0)}'
+                + '100%{transform:scale(0.95);box-shadow:0 0 0 0 rgba(220,53,69,0)}}';
+            document.head.appendChild(s);
+        }
 
-                // Populate Guru
-                let guruHtml = '';
-                if (response.data.guru && response.data.guru.length > 0) {
-                    $.each(response.data.guru, function(i, row) {
-                        const photoUrl = row.PhotoUrl || defaultAvatar;
-                        const badgeHtml = row.SisaHari === 0 
-                            ? `<span class="badge badge-danger p-2 text-md pulse" style="animation: pulse-red 1.5s infinite; font-size: 14px;"><i class="fas fa-gift"></i> HARI INI!</span>`
-                            : `<span class="badge badge-secondary p-2" style="font-size: 13px; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25);">${row.SisaHari} Hari Lagi</span>`;
+        $.getJSON(baseUrl + '/tv/api/ulang-tahun/' + hashKey, function (response) {
+            if (response.status !== 'success') return;
 
-                        guruHtml += `
-                            <div class="d-flex align-items-center mb-3 p-3 rounded" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); transition: transform 0.2s;">
-                                <img src="${photoUrl}" class="rounded-circle mr-3" style="width: 55px; height: 55px; object-fit: cover; border: 2px solid rgba(255,255,255,0.15);" onerror="this.src='${defaultAvatar}'">
-                                <div class="flex-grow-1">
-                                    <h4 class="m-0 font-weight-bold text-white" style="font-size: 16px;">${row.Nama}</h4>
-                                    <small class="text-muted"><i class="fas fa-calendar-alt text-success mr-1"></i> ${row.TanggalUlangTahun}</small>
-                                </div>
-                                <div class="text-right">
-                                    ${badgeHtml}
-                                </div>
-                            </div>
-                        `;
-                    });
-                } else {
-                    guruHtml = `
-                        <div class="text-center py-5 text-muted">
-                            <i class="fas fa-user-slash fa-3x mb-3 text-muted"></i>
-                            <p>Tidak ada ustadz/ah berulang tahun dekat ini</p>
-                        </div>
-                    `;
-                }
-                $('#birthdayGuruList').html(guruHtml);
+            // --- GURU ---
+            var guruEl = document.getElementById('birthdayGuruList');
+            if (response.data.guru && response.data.guru.length > 0) {
+                var guruHtml = '';
+                $.each(response.data.guru, function (i, row) {
+                    guruHtml += renderBirthdayRow(row, false);
+                });
+                guruEl.innerHTML = guruHtml;
+            } else {
+                guruEl.innerHTML = '<div style="text-align:center;padding:40px 0;color:rgba(255,255,255,0.4);">'
+                    + '<i class="fas fa-user-slash" style="font-size:36px;display:block;margin-bottom:10px;"></i>'
+                    + 'Tidak ada ustadz/ah berulang tahun dekat ini</div>';
+            }
 
-                // Populate Santri
-                let santriHtml = '';
-                if (response.data.santri && response.data.santri.length > 0) {
-                    $.each(response.data.santri, function(i, row) {
-                        const photoUrl = row.PhotoUrl || defaultAvatar;
-                        const badgeHtml = row.SisaHari === 0 
-                            ? `<span class="badge badge-danger p-2 text-md pulse" style="animation: pulse-red 1.5s infinite; font-size: 14px;"><i class="fas fa-gift"></i> HARI INI!</span>`
-                            : `<span class="badge badge-secondary p-2" style="font-size: 13px; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25);">${row.SisaHari} Hari Lagi</span>`;
-
-                        santriHtml += `
-                            <div class="d-flex align-items-center mb-3 p-3 rounded" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); transition: transform 0.2s;">
-                                <img src="${photoUrl}" class="rounded-circle mr-3" style="width: 55px; height: 55px; object-fit: cover; border: 2px solid rgba(255,255,255,0.15);" onerror="this.src='${defaultAvatar}'">
-                                <div class="flex-grow-1">
-                                    <h4 class="m-0 font-weight-bold text-white" style="font-size: 16px;">${row.Nama}</h4>
-                                    <small class="text-muted">
-                                        <i class="fas fa-graduation-cap text-primary mr-1"></i> ${row.NamaKelas} 
-                                        <span class="mx-1">|</span> 
-                                        <i class="fas fa-calendar-alt text-success mr-1"></i> ${row.TanggalUlangTahun}
-                                    </small>
-                                </div>
-                                <div class="text-right">
-                                    ${badgeHtml}
-                                </div>
-                            </div>
-                        `;
-                    });
-                } else {
-                    santriHtml = `
-                        <div class="text-center py-5 text-muted">
-                            <i class="fas fa-user-slash fa-3x mb-3 text-muted"></i>
-                            <p>Tidak ada santri berulang tahun dekat ini</p>
-                        </div>
-                    `;
-                }
-                $('#birthdaySantriList').html(santriHtml);
+            // --- SANTRI ---
+            var santriEl = document.getElementById('birthdaySantriList');
+            if (response.data.santri && response.data.santri.length > 0) {
+                var santriHtml = '';
+                $.each(response.data.santri, function (i, row) {
+                    santriHtml += renderBirthdayRow(row, true);
+                });
+                santriEl.innerHTML = santriHtml;
+            } else {
+                santriEl.innerHTML = '<div style="text-align:center;padding:40px 0;color:rgba(255,255,255,0.4);">'
+                    + '<i class="fas fa-user-slash" style="font-size:36px;display:block;margin-bottom:10px;"></i>'
+                    + 'Tidak ada santri berulang tahun dekat ini</div>';
             }
         });
     }
@@ -1351,8 +1385,8 @@ $(document).ready(function() {
         // Fetch dari MuslimSalat client-side API
         // Gunakan JSONP untuk menghindari CORS
         const url = `https://muslimsalat.com/${defaultCity}.json?key=free&jsoncallback=?`;
-        
-        $.getJSON(url, function(data) {
+
+        $.getJSON(url, function (data) {
             if (data && data.items && data.items.length > 0) {
                 const item = data.items[0];
                 prayerTimes = {
@@ -1417,15 +1451,15 @@ $(document).ready(function() {
                 const nextKey = order[nextIndex];
                 const nextName = names[nextKey];
                 const diffMs = targetTime - now;
-                
+
                 // Format diff to hh:mm:ss
                 const diffSecs = Math.floor(diffMs / 1000);
                 const hours = Math.floor(diffSecs / 3600);
                 const mins = Math.floor((diffSecs % 3600) / 60);
                 const secs = diffSecs % 60;
-                
+
                 const timeStr = (hours < 10 ? '0' : '') + hours + ':' + (mins < 10 ? '0' : '') + mins + ':' + (secs < 10 ? '0' : '') + secs;
-                
+
                 // Update Slide widgets
                 $('#prayerTimerClock').text(timeStr);
                 $('#prayerTimerNextName').text(`${nextName} ${isTomorrow ? 'Besok' : 'Hari Ini'} jam ${prayerTimes[nextKey]}`);
@@ -1447,17 +1481,17 @@ $(document).ready(function() {
     function parseTime(timeStr) {
         const parts = timeStr.match(/(\d+)(?::(\d\d))?\s*(p?)/i);
         if (!parts) return null;
-        
+
         let hours = parseInt(parts[1], 10);
         const minutes = parseInt(parts[2], 10) || 0;
         const isPm = !!parts[3];
-        
+
         if (isPm && hours < 12) {
             hours += 12;
         } else if (!isPm && hours === 12) {
             hours = 0;
         }
-        
+
         const d = new Date();
         d.setHours(hours);
         d.setMinutes(minutes);

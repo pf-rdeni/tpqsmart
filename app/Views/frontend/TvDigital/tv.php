@@ -368,6 +368,7 @@
                     <div class="chart-wrapper">
                         <canvas id="kehadiranKelasPerbandinganChart"></canvas>
                     </div>
+                </div>
             </div>
         </div>
 

@@ -1026,24 +1026,20 @@ class TvDigitalPublic extends BaseController
 
         // 1. Ambil data santri aktif
         $santriList = $this->db->table('tbl_santri_baru s')
-                              ->select('s.NamaSantri as Nama, s.TanggalLahirSantri as TanggalLahir, s.PhotoProfil as Photo, k.NamaKelas')
+                              ->select('s.NamaSantri as Nama, s.TanggalLahirSantri as TanggalLahir, s.PhotoProfil as Photo, k.NamaKelas, s.JenisKelamin')
                               ->join('tbl_kelas k', 'k.IdKelas = s.IdKelas', 'left')
                               ->where('s.IdTpq', $idTpq)
                               ->where('s.Active', 1)
                               ->where('s.TanggalLahirSantri IS NOT NULL')
-                              ->where('s.TanggalLahirSantri !=', '')
-                              ->where('s.TanggalLahirSantri !=', '0000-00-00')
                               ->get()
                               ->getResultArray();
 
         // 2. Ambil data guru aktif
         $guruList = $this->db->table('tbl_guru')
-                            ->select('Nama as Nama, TanggalLahir, LinkPhoto as Photo')
+                            ->select('Nama as Nama, TanggalLahir, LinkPhoto as Photo, JenisKelamin')
                             ->where('IdTpq', $idTpq)
                             ->where('Status', 'Aktif')
                             ->where('TanggalLahir IS NOT NULL')
-                            ->where('TanggalLahir !=', '')
-                            ->where('TanggalLahir !=', '0000-00-00')
                             ->get()
                             ->getResultArray();
 
@@ -1086,7 +1082,7 @@ class TvDigitalPublic extends BaseController
         $list = [];
         foreach ($people as $person) {
             $dobStr = $person['TanggalLahir'] ?? '';
-            if (empty($dobStr)) continue;
+            if (empty($dobStr) || $dobStr === '0000-00-00') continue;
 
             try {
                 $dob = new \DateTime($dobStr);
@@ -1111,19 +1107,13 @@ class TvDigitalPublic extends BaseController
                 $person['SisaHari'] = $days;
                 $person['Kategori'] = $isSantri ? 'Santri' : 'Guru';
 
-                // Format Photo URL
+                // Format Photo URL (tanpa konversi kelas di sini untuk menghindari N+1 query)
                 if ($isSantri) {
-                    $person['PhotoUrl'] = !empty($person['Photo']) ? base_url('uploads/santri/' . $person['Photo']) : '';
-                    
-                    // Format kelas ke MDA jika terpetakan
-                    $namaKelas = $person['NamaKelas'] ?? '-';
-                    if (!empty($namaKelas) && $namaKelas !== '-') {
-                        $mdaCheckResult = $this->helpFunctionModel->checkMdaKelasMapping($idTpq, $namaKelas);
-                        $namaKelas = $this->helpFunctionModel->convertKelasToMda($namaKelas, $mdaCheckResult['mappedMdaKelas']);
-                    }
-                    $person['NamaKelas'] = $namaKelas;
+                    $defaultAvatar = base_url('images/' . (strtolower($person['JenisKelamin'] ?? '') === 'laki-laki' ? 'putra.png' : 'putri.png'));
+                    $person['PhotoUrl'] = !empty($person['Photo']) ? base_url('uploads/santri/' . $person['Photo']) : $defaultAvatar;
                 } else {
-                    $person['PhotoUrl'] = !empty($person['Photo']) ? base_url('uploads/profil/user/' . $person['Photo']) : '';
+                    $defaultAvatar = base_url('images/' . (strtolower($person['JenisKelamin'] ?? '') === 'laki-laki' ? 'putra.png' : 'putri.png'));
+                    $person['PhotoUrl'] = !empty($person['Photo']) ? base_url('uploads/profil/user/' . $person['Photo']) : $defaultAvatar;
                 }
 
                 $list[] = $person;
@@ -1137,6 +1127,25 @@ class TvDigitalPublic extends BaseController
             return $a['SisaHari'] <=> $b['SisaHari'];
         });
 
-        return array_slice($list, 0, $limit);
+        // Ambil hanya $limit teratas DULU, baru konversi kelas MDA (hemat query, hindari N+1)
+        $sliced = array_slice($list, 0, $limit);
+
+        // Konversi kelas MDA hanya untuk santri yang masuk hasil, dengan cache per nama kelas unik
+        if ($isSantri && !empty($sliced)) {
+            $kelasCache = [];
+            foreach ($sliced as &$person) {
+                $namaKelas = $person['NamaKelas'] ?? '-';
+                if (!empty($namaKelas) && $namaKelas !== '-') {
+                    if (!isset($kelasCache[$namaKelas])) {
+                        $mdaCheck = $this->helpFunctionModel->checkMdaKelasMapping($idTpq, $namaKelas);
+                        $kelasCache[$namaKelas] = $this->helpFunctionModel->convertKelasToMda($namaKelas, $mdaCheck['mappedMdaKelas']);
+                    }
+                    $person['NamaKelas'] = $kelasCache[$namaKelas];
+                }
+            }
+            unset($person);
+        }
+
+        return $sliced;
     }
 }
