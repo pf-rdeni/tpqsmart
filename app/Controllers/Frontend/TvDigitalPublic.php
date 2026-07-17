@@ -1011,4 +1011,132 @@ class TvDigitalPublic extends BaseController
         
         return $finalList;
     }
+
+    /**
+     * API JSON: Mengambil data ulang tahun terdekat (Guru & Santri)
+     */
+    public function getUlangTahun($hashKey)
+    {
+        $link = $this->linkModel->getLinkByHash($hashKey);
+        if (!$link) {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'Link tidak valid'])->setStatusCode(404);
+        }
+
+        $idTpq = $link['IdTpq'];
+
+        // 1. Ambil data santri aktif
+        $santriList = $this->db->table('tbl_santri_baru s')
+                              ->select('s.NamaSantri as Nama, s.TanggalLahirSantri as TanggalLahir, s.PhotoProfil as Photo, k.NamaKelas')
+                              ->join('tbl_kelas k', 'k.IdKelas = s.IdKelas', 'left')
+                              ->where('s.IdTpq', $idTpq)
+                              ->where('s.Active', 1)
+                              ->where('s.TanggalLahirSantri IS NOT NULL')
+                              ->where('s.TanggalLahirSantri !=', '')
+                              ->where('s.TanggalLahirSantri !=', '0000-00-00')
+                              ->get()
+                              ->getResultArray();
+
+        // 2. Ambil data guru aktif
+        $guruList = $this->db->table('tbl_guru')
+                            ->select('Nama as Nama, TanggalLahir, LinkPhoto as Photo')
+                            ->where('IdTpq', $idTpq)
+                            ->where('Status', 'Aktif')
+                            ->where('TanggalLahir IS NOT NULL')
+                            ->where('TanggalLahir !=', '')
+                            ->where('TanggalLahir !=', '0000-00-00')
+                            ->get()
+                            ->getResultArray();
+
+        $closestSantri = $this->calculateUpcomingBirthdays($santriList, 5, true, $idTpq);
+        $closestGuru = $this->calculateUpcomingBirthdays($guruList, 5, false, $idTpq);
+
+        return $this->response->setJSON([
+            'status' => 'success',
+            'data' => [
+                'santri' => $closestSantri,
+                'guru' => $closestGuru
+            ]
+        ]);
+    }
+
+    /**
+     * Helper untuk menghitung sisa hari ulang tahun berikutnya
+     */
+    private function calculateUpcomingBirthdays($people, $limit = 5, $isSantri = true, $idTpq = 0)
+    {
+        $today = new \DateTime();
+        $today->setTime(0, 0, 0); // reset time to avoid partial days
+        $todayYear = (int)$today->format('Y');
+
+        $monthsIndo = [
+            1 => 'Januari',
+            2 => 'Februari',
+            3 => 'Maret',
+            4 => 'April',
+            5 => 'Mei',
+            6 => 'Juni',
+            7 => 'Juli',
+            8 => 'Agustus',
+            9 => 'September',
+            10 => 'Oktober',
+            11 => 'November',
+            12 => 'Desember'
+        ];
+
+        $list = [];
+        foreach ($people as $person) {
+            $dobStr = $person['TanggalLahir'] ?? '';
+            if (empty($dobStr)) continue;
+
+            try {
+                $dob = new \DateTime($dobStr);
+                $nextBday = new \DateTime($dob->format("Y-m-d"));
+                $nextBday->setDate($todayYear, (int)$dob->format('m'), (int)$dob->format('d'));
+                $nextBday->setTime(0, 0, 0);
+
+                // If birthday has passed this year, it falls on next year
+                if ($nextBday < $today) {
+                    $nextBday->modify('+1 year');
+                }
+
+                $diff = $today->diff($nextBday);
+                $days = (int)$diff->days;
+
+                // Format occurrence date: "18 Juli 2026"
+                $day = $nextBday->format('j');
+                $monthNum = (int)$nextBday->format('n');
+                $year = $nextBday->format('Y');
+                $person['TanggalUlangTahun'] = $day . ' ' . $monthsIndo[$monthNum] . ' ' . $year;
+
+                $person['SisaHari'] = $days;
+                $person['Kategori'] = $isSantri ? 'Santri' : 'Guru';
+
+                // Format Photo URL
+                if ($isSantri) {
+                    $person['PhotoUrl'] = !empty($person['Photo']) ? base_url('uploads/santri/' . $person['Photo']) : '';
+                    
+                    // Format kelas ke MDA jika terpetakan
+                    $namaKelas = $person['NamaKelas'] ?? '-';
+                    if (!empty($namaKelas) && $namaKelas !== '-') {
+                        $mdaCheckResult = $this->helpFunctionModel->checkMdaKelasMapping($idTpq, $namaKelas);
+                        $namaKelas = $this->helpFunctionModel->convertKelasToMda($namaKelas, $mdaCheckResult['mappedMdaKelas']);
+                    }
+                    $person['NamaKelas'] = $namaKelas;
+                } else {
+                    $person['PhotoUrl'] = !empty($person['Photo']) ? base_url('uploads/profil/user/' . $person['Photo']) : '';
+                }
+
+                $list[] = $person;
+            } catch (\Exception $e) {
+                // Ignore invalid date strings
+            }
+        }
+
+        // Sort by sisa hari ascending
+        usort($list, function($a, $b) {
+            return $a['SisaHari'] <=> $b['SisaHari'];
+        });
+
+        return array_slice($list, 0, $limit);
+    }
 }

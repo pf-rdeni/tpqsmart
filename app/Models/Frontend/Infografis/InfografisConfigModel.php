@@ -39,6 +39,7 @@ class InfografisConfigModel extends Model
         ['BlockKey' => 'jadwal_sholat',  'IsActive' => 1, 'SortOrder' => 9],
         ['BlockKey' => 'galeri',         'IsActive' => 1, 'SortOrder' => 10],
         ['BlockKey' => 'agenda',         'IsActive' => 1, 'SortOrder' => 11],
+        ['BlockKey' => 'ulang_tahun',    'IsActive' => 1, 'SortOrder' => 12],
     ];
 
     /**
@@ -56,6 +57,7 @@ class InfografisConfigModel extends Model
         'jadwal_sholat'     => '🕌 Jadwal Sholat',
         'galeri'            => '🖼️ Galeri Kegiatan',
         'agenda'            => '📅 Agenda Mendatang',
+        'ulang_tahun'       => '🎂 Ulang Tahun Terdekat',
     ];
 
     /**

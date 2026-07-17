@@ -59,6 +59,7 @@ $routes->get('tv/api/absensi-santri/(:segment)', 'Frontend\TvDigitalPublic::getA
 $routes->get('tv/api/absensi-guru/(:segment)', 'Frontend\TvDigitalPublic::getAbsensiGuru/$1');
 $routes->get('tv/api/galeri/(:segment)', 'Frontend\TvDigitalPublic::getGaleri/$1');
 $routes->get('tv/api/agenda/(:segment)', 'Frontend\TvDigitalPublic::getAgenda/$1');
+$routes->get('tv/api/ulang-tahun/(:segment)', 'Frontend\TvDigitalPublic::getUlangTahun/$1');
 
 // Routes untuk pendaftaran santri menggunakan controller SantriPendaftaran
 // Public routes (tanpa login)

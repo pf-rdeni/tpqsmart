@@ -368,6 +368,32 @@
                     <div class="chart-wrapper">
                         <canvas id="kehadiranKelasPerbandinganChart"></canvas>
                     </div>
+            </div>
+        </div>
+
+        <!-- BLOCK: ULANG TAHUN TERDEKAT -->
+        <div class="tv-slide-card d-none" id="card-ulang_tahun">
+            <h2 class="slide-main-title"><i class="fas fa-birthday-cake text-danger"></i> Ulang Tahun Terdekat</h2>
+            <div class="grid-2-columns" style="height: calc(100% - 10vh); gap: 2vh 1.5vw;">
+                <!-- List Guru Ulang Tahun -->
+                <div class="glass-card d-flex flex-column" style="overflow: hidden;">
+                    <h3 class="card-title-tv"><i class="fas fa-user-tie text-success"></i> Guru / Ustadz-Ustadzah</h3>
+                    <div class="table-tv-wrapper" style="overflow-y: auto; flex-grow: 1; padding: 10px 15px;" id="birthdayGuruList">
+                        <div class="text-center py-5 text-muted">
+                            <i class="fas fa-birthday-cake fa-3x mb-3"></i>
+                            <p>Memuat data ulang tahun...</p>
+                        </div>
+                    </div>
+                </div>
+                <!-- List Santri Ulang Tahun -->
+                <div class="glass-card d-flex flex-column" style="overflow: hidden;">
+                    <h3 class="card-title-tv"><i class="fas fa-user-graduate text-primary"></i> Santri / Santriwati</h3>
+                    <div class="table-tv-wrapper" style="overflow-y: auto; flex-grow: 1; padding: 10px 15px;" id="birthdaySantriList">
+                        <div class="text-center py-5 text-muted">
+                            <i class="fas fa-birthday-cake fa-3x mb-3"></i>
+                            <p>Memuat data ulang tahun...</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

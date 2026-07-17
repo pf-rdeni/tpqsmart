@@ -114,6 +114,7 @@ $(document).ready(function() {
                 fetchGaleri();
                 fetchAgenda();
                 fetchAbsensiCharts();
+                fetchUlangTahun();
 
                 // Start or adjust timers
                 refreshSecondsLeft = appData.refreshInterval * 60;
@@ -1231,6 +1232,100 @@ $(document).ready(function() {
                     `;
                 });
                 $('#homeAgendaContainer').html(homeHtml || '<div class="text-center text-muted py-4">Tidak ada agenda mendatang</div>');
+            }
+        });
+    }
+
+    // ==========================================
+    // 9. ULANG TAHUN SLIDE
+    // ==========================================
+    function fetchUlangTahun() {
+        if (appData.lembaga.isFkpq) return; // Skip for FKPQ
+
+        $.getJSON(`${baseUrl}/tv/api/ulang-tahun/${hashKey}`, function(response) {
+            if (response.status === 'success') {
+                const defaultAvatar = `${baseUrl}/template/backend/dist/img/avatar5.png`;
+                
+                // Append pulse-red animation style if not already added
+                if ($('#pulseRedStyle').length === 0) {
+                    $('head').append(`
+                        <style id="pulseRedStyle">
+                            @keyframes pulse-red {
+                                0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); }
+                                70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
+                                100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+                            }
+                        </style>
+                    `);
+                }
+
+                // Populate Guru
+                let guruHtml = '';
+                if (response.data.guru && response.data.guru.length > 0) {
+                    $.each(response.data.guru, function(i, row) {
+                        const photoUrl = row.PhotoUrl || defaultAvatar;
+                        const badgeHtml = row.SisaHari === 0 
+                            ? `<span class="badge badge-danger p-2 text-md pulse" style="animation: pulse-red 1.5s infinite; font-size: 14px;"><i class="fas fa-gift"></i> HARI INI!</span>`
+                            : `<span class="badge badge-secondary p-2" style="font-size: 13px; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25);">${row.SisaHari} Hari Lagi</span>`;
+
+                        guruHtml += `
+                            <div class="d-flex align-items-center mb-3 p-3 rounded" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); transition: transform 0.2s;">
+                                <img src="${photoUrl}" class="rounded-circle mr-3" style="width: 55px; height: 55px; object-fit: cover; border: 2px solid rgba(255,255,255,0.15);" onerror="this.src='${defaultAvatar}'">
+                                <div class="flex-grow-1">
+                                    <h4 class="m-0 font-weight-bold text-white" style="font-size: 16px;">${row.Nama}</h4>
+                                    <small class="text-muted"><i class="fas fa-calendar-alt text-success mr-1"></i> ${row.TanggalUlangTahun}</small>
+                                </div>
+                                <div class="text-right">
+                                    ${badgeHtml}
+                                </div>
+                            </div>
+                        `;
+                    });
+                } else {
+                    guruHtml = `
+                        <div class="text-center py-5 text-muted">
+                            <i class="fas fa-user-slash fa-3x mb-3 text-muted"></i>
+                            <p>Tidak ada ustadz/ah berulang tahun dekat ini</p>
+                        </div>
+                    `;
+                }
+                $('#birthdayGuruList').html(guruHtml);
+
+                // Populate Santri
+                let santriHtml = '';
+                if (response.data.santri && response.data.santri.length > 0) {
+                    $.each(response.data.santri, function(i, row) {
+                        const photoUrl = row.PhotoUrl || defaultAvatar;
+                        const badgeHtml = row.SisaHari === 0 
+                            ? `<span class="badge badge-danger p-2 text-md pulse" style="animation: pulse-red 1.5s infinite; font-size: 14px;"><i class="fas fa-gift"></i> HARI INI!</span>`
+                            : `<span class="badge badge-secondary p-2" style="font-size: 13px; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25);">${row.SisaHari} Hari Lagi</span>`;
+
+                        santriHtml += `
+                            <div class="d-flex align-items-center mb-3 p-3 rounded" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); transition: transform 0.2s;">
+                                <img src="${photoUrl}" class="rounded-circle mr-3" style="width: 55px; height: 55px; object-fit: cover; border: 2px solid rgba(255,255,255,0.15);" onerror="this.src='${defaultAvatar}'">
+                                <div class="flex-grow-1">
+                                    <h4 class="m-0 font-weight-bold text-white" style="font-size: 16px;">${row.Nama}</h4>
+                                    <small class="text-muted">
+                                        <i class="fas fa-graduation-cap text-primary mr-1"></i> ${row.NamaKelas} 
+                                        <span class="mx-1">|</span> 
+                                        <i class="fas fa-calendar-alt text-success mr-1"></i> ${row.TanggalUlangTahun}
+                                    </small>
+                                </div>
+                                <div class="text-right">
+                                    ${badgeHtml}
+                                </div>
+                            </div>
+                        `;
+                    });
+                } else {
+                    santriHtml = `
+                        <div class="text-center py-5 text-muted">
+                            <i class="fas fa-user-slash fa-3x mb-3 text-muted"></i>
+                            <p>Tidak ada santri berulang tahun dekat ini</p>
+                        </div>
+                    `;
+                }
+                $('#birthdaySantriList').html(santriHtml);
             }
         });
     }
