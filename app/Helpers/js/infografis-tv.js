@@ -243,6 +243,25 @@ $(document).ready(function() {
 
         // Kehadiran Kelas Table (Pekan Ini)
         if (appData.statistikKehadiranKelas) {
+            // Update title range tanggal pekan ini (Senin - Ahad)
+            const today = new Date();
+            const dayOfWeek = today.getDay(); // 0 = Minggu, 1 = Senin, dst
+            const mondayOffset = (dayOfWeek == 0) ? -6 : (1 - dayOfWeek);
+            
+            const monday = new Date(today);
+            monday.setDate(today.getDate() + mondayOffset);
+            
+            const sunday = new Date(monday);
+            sunday.setDate(monday.getDate() + 6);
+
+            const formatDate = (date) => {
+                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'];
+                return date.getDate() + ' ' + months[date.getMonth()];
+            };
+            const currentYear = monday.getFullYear();
+            
+            $('#statistikAbsensiPekanIni').text(`(${formatDate(monday)} - ${formatDate(sunday)} ${currentYear})`);
+
             let trHtml = '';
             let totalHadir = 0;
             let totalIzin = 0;
@@ -870,6 +889,24 @@ $(document).ready(function() {
         // 1. Santri Attendance Harian & Mingguan Charts
         $.getJSON(`${baseUrl}/tv/api/absensi-santri/${hashKey}`, function(response) {
             if (response.status === 'success') {
+                // Update range 2 minggu title (Senin minggu lalu s/d Ahad minggu ini)
+                const today = new Date();
+                const dayOfWeek = today.getDay();
+                const mondayOffset = (dayOfWeek == 0) ? -6 : (1 - dayOfWeek);
+                const currentWeekMonday = new Date(today);
+                currentWeekMonday.setDate(today.getDate() + mondayOffset);
+                const previousWeekMonday = new Date(currentWeekMonday);
+                previousWeekMonday.setDate(currentWeekMonday.getDate() - 7);
+                const currentWeekSunday = new Date(currentWeekMonday);
+                currentWeekSunday.setDate(currentWeekMonday.getDate() + 6);
+                
+                const formatDate = (date) => {
+                    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'];
+                    return date.getDate() + ' ' + months[date.getMonth()];
+                };
+                const currentYear = currentWeekSunday.getFullYear();
+                $('#kehadiranKelasDuaMinggu').text(`${formatDate(previousWeekMonday)} - ${formatDate(currentWeekSunday)} ${currentYear}`);
+
                 const classColors = [
                     '#28a745', // Hijau
                     '#007bff', // Biru

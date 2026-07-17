@@ -193,7 +193,7 @@
         <div class="tv-slide-card d-none" id="card-absensi_santri">
             <h2 class="slide-main-title"><i class="fas fa-chart-line text-purple"></i> Kehadiran / Absensi Santri</h2>
             <div class="glass-card d-flex flex-column" style="height: calc(100% - 10vh); overflow: hidden;">
-                <h3 class="card-title-tv"><i class="fas fa-chart-bar"></i> Kehadiran Per Kelas (Kombinasi Garis & Batang - 2 Minggu)</h3>
+                <h3 class="card-title-tv"><i class="fas fa-chart-bar"></i> Kehadiran Per Kelas (Kombinasi Garis & Batang - <span id="kehadiranKelasDuaMinggu">2 Minggu</span>)</h3>
                 <div class="chart-wrapper flex-grow-1" style="height: 100%; min-height: 0;">
                     <canvas id="absensiSantriCombinedChart"></canvas>
                 </div>
@@ -340,7 +340,7 @@
 
         <!-- 6. BLOCK: DETAIL STATISTIK ABSENSI (Per Kelas) -->
         <div class="tv-slide-card d-none" id="card-statistik_absensi">
-            <h2 class="slide-main-title"><i class="fas fa-chart-bar text-primary"></i> Statistik Absensi per Kelas (Pekan Ini)</h2>
+            <h2 class="slide-main-title"><i class="fas fa-chart-bar text-primary"></i> Statistik Absensi per Kelas <span id="statistikAbsensiPekanIni">(Pekan Ini)</span></h2>
             <div class="grid-2-columns">
                 <!-- Tabel Keadaan Santri -->
                 <div class="glass-card d-flex flex-column" style="overflow: hidden;">
