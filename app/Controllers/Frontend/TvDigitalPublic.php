@@ -1043,7 +1043,7 @@ class TvDigitalPublic extends BaseController
                             ->get()
                             ->getResultArray();
 
-        $closestSantri = $this->calculateUpcomingBirthdays($santriList, 5, true, $idTpq);
+        $closestSantri = $this->calculateUpcomingBirthdays($santriList, 10, true, $idTpq);
         $closestGuru = $this->calculateUpcomingBirthdays($guruList, 5, false, $idTpq);
 
         return $this->response->setJSON([

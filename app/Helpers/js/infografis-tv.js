@@ -1256,64 +1256,92 @@ $(document).ready(function () {
         return palette[Math.abs(h) % palette.length];
     }
 
-    // Render satu baris item ulang tahun, kembalikan string HTML
-    function renderBirthdayRow(row, isSantri) {
+    // Helper: build avatar HTML (bisa dipakai 2 ukuran)
+    function buildAvatarHtml(row, size) {
         var initials = getBirthdayInitials(row.Nama || '');
         var bgColor  = getBirthdayAvatarColor(row.Nama || '');
-        var nama     = $('<div>').text(row.Nama || '-').html();  // escape HTML
-        var namaKelas = isSantri ? ($('<div>').text(row.NamaKelas || '-').html()) : '';
+        var sz = size + 'px';
+        var fs = Math.round(size * 0.33) + 'px';
+        if (row.PhotoUrl) {
+            return '<img src="' + row.PhotoUrl + '" alt="Foto" '
+                + 'onerror="this.style.display=\'none\';this.nextSibling.style.display=\'flex\';" '
+                + 'style="width:' + sz + ';height:' + sz + ';min-width:' + sz + ';border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,0.2);">'
+                + '<div style="display:none;width:' + sz + ';height:' + sz + ';min-width:' + sz + ';border-radius:50%;'
+                + 'background:' + bgColor + ';color:#fff;font-weight:700;font-size:' + fs + ';'
+                + 'align-items:center;justify-content:center;border:2px solid rgba(255,255,255,0.2);">'
+                + initials + '</div>';
+        }
+        return '<div style="width:' + sz + ';height:' + sz + ';min-width:' + sz + ';border-radius:50%;'
+            + 'background:' + bgColor + ';color:#fff;font-weight:700;font-size:' + fs + ';'
+            + 'display:flex;align-items:center;justify-content:center;'
+            + 'border:2px solid rgba(255,255,255,0.2);">' + initials + '</div>';
+    }
+
+    // Render baris GURU — full width, ukuran normal
+    function renderBirthdayRow(row, isSantri) {
+        var nama     = $('<div>').text(row.Nama || '-').html();
+        var namaKelas = isSantri ? $('<div>').text(row.NamaKelas || '-').html() : '';
         var tglUt    = $('<div>').text(row.TanggalUlangTahun || '-').html();
         var sisaHari = parseInt(row.SisaHari, 10);
 
-        var avatarHtml;
-        if (row.PhotoUrl) {
-            avatarHtml = '<img src="' + row.PhotoUrl + '" alt="Foto" '
-                + 'onerror="this.style.display=\'none\';this.nextSibling.style.display=\'flex\';" '
-                + 'style="width:55px;height:55px;min-width:55px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,0.2);">'
-                + '<div style="display:none;width:55px;height:55px;min-width:55px;border-radius:50%;'
-                + 'background:' + bgColor + ';color:#fff;font-weight:700;font-size:18px;'
-                + 'align-items:center;justify-content:center;border:2px solid rgba(255,255,255,0.2);">'
-                + initials + '</div>';
-        } else {
-            avatarHtml = '<div style="width:55px;height:55px;min-width:55px;border-radius:50%;'
-                + 'background:' + bgColor + ';color:#fff;font-weight:700;font-size:18px;'
-                + 'display:flex;align-items:center;justify-content:center;'
-                + 'border:2px solid rgba(255,255,255,0.2);">' + initials + '</div>';
-        }
+        var avatarHtml = buildAvatarHtml(row, 50);
 
-        var badgeHtml;
-        if (sisaHari === 0) {
-            badgeHtml = '<span style="display:inline-flex;align-items:center;gap:5px;'
-                + 'background:#dc3545;color:#fff;padding:5px 10px;border-radius:20px;'
-                + 'font-size:13px;font-weight:700;animation:pulse-red 1.5s infinite;">'
-                + '<i class="fas fa-birthday-cake"></i> HARI INI!</span>';
-        } else {
-            badgeHtml = '<span style="display:inline-flex;align-items:center;'
-                + 'background:rgba(255,255,255,0.12);color:#ccc;padding:5px 10px;'
-                + 'border-radius:20px;font-size:13px;border:1px solid rgba(255,255,255,0.2);">'
-                + sisaHari + ' Hari Lagi</span>';
-        }
+        var badgeHtml = sisaHari === 0
+            ? '<span style="display:inline-flex;align-items:center;gap:4px;background:#dc3545;color:#fff;'
+              + 'padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;animation:pulse-red 1.5s infinite;">'
+              + '<i class="fas fa-birthday-cake"></i> HARI INI!</span>'
+            : '<span style="display:inline-flex;align-items:center;background:rgba(255,255,255,0.12);'
+              + 'color:#ccc;padding:4px 10px;border-radius:20px;font-size:12px;border:1px solid rgba(255,255,255,0.2);">'
+              + sisaHari + ' Hari Lagi</span>';
 
         var subInfo = isSantri
-            ? '<small style="color:rgba(255,255,255,0.55);font-size:12px;">'
-                + '<i class="fas fa-graduation-cap" style="color:#3b82f6;margin-right:4px;"></i>' + namaKelas
-                + ' &nbsp;|&nbsp; '
-                + '<i class="fas fa-calendar-alt" style="color:#10b981;margin-right:4px;"></i>' + tglUt
-                + '</small>'
-            : '<small style="color:rgba(255,255,255,0.55);font-size:12px;">'
-                + '<i class="fas fa-calendar-alt" style="color:#10b981;margin-right:4px;"></i>' + tglUt
-                + '</small>';
+            ? '<div style="color:rgba(255,255,255,0.5);font-size:11px;margin-top:2px;">'
+              + '<i class="fas fa-graduation-cap" style="color:#3b82f6;margin-right:3px;"></i>' + namaKelas
+              + ' &nbsp;|&nbsp; <i class="fas fa-calendar-alt" style="color:#10b981;margin-right:3px;"></i>' + tglUt + '</div>'
+            : '<div style="color:rgba(255,255,255,0.5);font-size:11px;margin-top:2px;">'
+              + '<i class="fas fa-calendar-alt" style="color:#10b981;margin-right:3px;"></i>' + tglUt + '</div>';
 
-        return '<div style="display:flex;align-items:center;gap:14px;'
-            + 'padding:12px 14px;margin-bottom:10px;border-radius:12px;'
-            + 'background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">'
+        return '<div style="display:flex;align-items:center;gap:12px;padding:10px 12px;margin-bottom:8px;'
+            + 'border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">'
             + '<div style="display:flex;align-items:center;">' + avatarHtml + '</div>'
             + '<div style="flex:1;min-width:0;">'
-            + '<div style="font-weight:700;color:#fff;font-size:15px;white-space:nowrap;'
-            + 'overflow:hidden;text-overflow:ellipsis;">' + nama + '</div>'
+            + '<div style="font-weight:700;color:#fff;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + nama + '</div>'
             + subInfo
             + '</div>'
-            + '<div>' + badgeHtml + '</div>'
+            + '<div style="flex-shrink:0;">' + badgeHtml + '</div>'
+            + '</div>';
+    }
+
+    // Render item SANTRI — compact, untuk grid 2 kolom
+    function renderBirthdayRowCompact(row) {
+        var nama     = $('<div>').text(row.Nama || '-').html();
+        var namaKelas = $('<div>').text(row.NamaKelas || '-').html();
+        var tglUt    = $('<div>').text(row.TanggalUlangTahun || '-').html();
+        var sisaHari = parseInt(row.SisaHari, 10);
+
+        var avatarHtml = buildAvatarHtml(row, 40);
+
+        var badgeHtml = sisaHari === 0
+            ? '<span style="display:inline-flex;align-items:center;gap:3px;background:#dc3545;color:#fff;'
+              + 'padding:3px 8px;border-radius:16px;font-size:10px;font-weight:700;animation:pulse-red 1.5s infinite;">'
+              + '<i class="fas fa-birthday-cake"></i> HARI INI!</span>'
+            : '<span style="display:inline-flex;align-items:center;background:rgba(255,255,255,0.12);'
+              + 'color:#bbb;padding:3px 8px;border-radius:16px;font-size:10px;border:1px solid rgba(255,255,255,0.18);">'
+              + sisaHari + ' Hari</span>';
+
+        return '<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;'
+            + 'border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">'
+            + '<div style="display:flex;align-items:center;">' + avatarHtml + '</div>'
+            + '<div style="flex:1;min-width:0;">'
+            + '<div style="font-weight:700;color:#fff;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + nama + '</div>'
+            + '<div style="color:rgba(255,255,255,0.5);font-size:10px;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'
+            + '<i class="fas fa-graduation-cap" style="color:#3b82f6;margin-right:2px;"></i>' + namaKelas
+            + '</div>'
+            + '<div style="color:rgba(255,255,255,0.45);font-size:10px;">'
+            + '<i class="fas fa-calendar-alt" style="color:#10b981;margin-right:2px;"></i>' + tglUt
+            + '</div>'
+            + '</div>'
+            + '<div style="flex-shrink:0;">' + badgeHtml + '</div>'
             + '</div>';
     }
 
@@ -1334,7 +1362,7 @@ $(document).ready(function () {
         $.getJSON(baseUrl + '/tv/api/ulang-tahun/' + hashKey, function (response) {
             if (response.status !== 'success') return;
 
-            // --- GURU ---
+            // --- GURU (1 kolom, full width) ---
             var guruEl = document.getElementById('birthdayGuruList');
             if (response.data.guru && response.data.guru.length > 0) {
                 var guruHtml = '';
@@ -1348,14 +1376,15 @@ $(document).ready(function () {
                     + 'Tidak ada ustadz/ah berulang tahun dekat ini</div>';
             }
 
-            // --- SANTRI ---
+            // --- SANTRI (2 kolom, compact) ---
             var santriEl = document.getElementById('birthdaySantriList');
             if (response.data.santri && response.data.santri.length > 0) {
-                var santriHtml = '';
+                var itemsHtml = '';
                 $.each(response.data.santri, function (i, row) {
-                    santriHtml += renderBirthdayRow(row, true);
+                    itemsHtml += renderBirthdayRowCompact(row);
                 });
-                santriEl.innerHTML = santriHtml;
+                santriEl.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">'
+                    + itemsHtml + '</div>';
             } else {
                 santriEl.innerHTML = '<div style="text-align:center;padding:40px 0;color:rgba(255,255,255,0.4);">'
                     + '<i class="fas fa-user-slash" style="font-size:36px;display:block;margin-bottom:10px;"></i>'
@@ -1363,6 +1392,7 @@ $(document).ready(function () {
             }
         });
     }
+
 
     // ==========================================
     // 9. PRAYER TIMES COUNTDOWN & API CLIENT
