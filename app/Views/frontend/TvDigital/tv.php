@@ -36,7 +36,7 @@
         <!-- 1. BLOCK: HOME -->
         <div class="tv-slide-card d-none" id="card-home">
             <!-- Row 1: Stat Cards (4 columns) -->
-            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 2vh 2vw; height: 14vh; margin-bottom: 2vh;">
+            <div class="home-stats-grid">
                 <div class="stat-box-tv border-blue">
                     <div class="stat-icon"><i class="fas fa-user-graduate"></i></div>
                     <div class="stat-content">
@@ -72,49 +72,49 @@
             </div>
 
             <!-- Row 2: Bottom Cards (divided into 4 proportional parts) -->
-            <div style="display: grid; grid-template-columns: 1.2fr 1fr 1fr 1fr; gap: 2vh 1.5vw; height: calc(100% - 18vh);">
+            <div class="home-widgets-grid">
                 <!-- Part 1: Chart (1.2fr) -->
-                <div class="glass-card d-flex flex-column" style="overflow: hidden;">
+                <div class="glass-card d-flex flex-column overflow-hidden">
                     <h3 class="card-title-tv"><i class="fas fa-chart-line text-primary"></i> Trend Absensi Santri (30 Hari Terakhir)</h3>
-                    <div class="chart-wrapper flex-grow-1" style="display: flex; flex-direction: column; gap: 2vh; height: 100%; min-height: 0;">
-                        <div style="position: relative; height: 48%; width: 100%;">
+                    <div class="chart-wrapper flex-grow-1 home-charts-flex">
+                        <div class="home-chart-container">
                             <canvas id="homeAbsensiChart"></canvas>
                         </div>
-                        <div style="position: relative; height: 48%; width: 100%;">
+                        <div class="home-chart-container">
                             <canvas id="homeAbsensiBarChart"></canvas>
                         </div>
                     </div>
                 </div>
                 <!-- Part 2: Agenda (1fr) -->
-                <div class="glass-card d-flex flex-column" style="overflow: hidden;">
+                <div class="glass-card d-flex flex-column overflow-hidden">
                     <h3 class="card-title-tv"><i class="fas fa-calendar-alt text-success"></i> Agenda Terdekat</h3>
-                    <div class="home-agenda-list" id="homeAgendaContainer" style="overflow-y: auto; flex-grow: 1;">
+                    <div class="home-agenda-list flex-grow-1 overflow-y-auto" id="homeAgendaContainer">
                         <div class="loading-placeholder"><i class="fas fa-spinner fa-spin"></i> Memuat agenda...</div>
                     </div>
                 </div>
                 <!-- Part 3: Ulang Tahun (1fr) -->
-                <div class="glass-card d-flex flex-column" style="overflow: hidden;">
+                <div class="glass-card d-flex flex-column overflow-hidden">
                     <h3 class="card-title-tv"><i class="fas fa-birthday-cake text-danger"></i> Ulang Tahun</h3>
-                    <div id="homeBirthdayTodayList" style="display: flex; flex-direction: column; gap: 1vh; overflow-y: auto; flex-grow: 1; padding-top: 1vh;">
-                        <div style="font-size: 12px; color: rgba(255,255,255,0.35); font-style: italic;">Memuat...</div>
+                    <div id="homeBirthdayTodayList" class="home-birthday-list flex-grow-1 overflow-y-auto">
+                        <div class="home-birthday-loading">Memuat...</div>
                     </div>
                 </div>
                 <!-- Part 4: Alumni & Kelulusan (1fr) -->
-                <div class="glass-card d-flex flex-column" style="overflow: hidden;">
+                <div class="glass-card d-flex flex-column overflow-hidden">
                     <h3 class="card-title-tv"><i class="fas fa-user-graduate text-info"></i> Alumni & Kelulusan</h3>
-                    <div style="display: flex; flex-direction: column; gap: 2vh; flex-grow: 1; justify-content: flex-start; padding-top: 1vh;">
-                        <div style="display: flex; align-items: center; gap: 1vw; padding: 1.5vh 1.2vw; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);">
-                            <div style="font-size: 20px; color: #28a745; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; background: rgba(40,167,69,0.1); border-radius: 50%;"><i class="fas fa-award"></i></div>
+                    <div class="home-alumni-container flex-grow-1">
+                        <div class="home-alumni-item">
+                            <div class="home-alumni-icon award-color"><i class="fas fa-award"></i></div>
                             <div>
-                                <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 600; letter-spacing: 0.3px;">Lulus Munaqosah</div>
-                                <h3 style="font-size: 20px; font-weight: 700; margin: 2px 0;" id="homeMunaqosahLulus">0 Santri</h3>
+                                <div class="home-alumni-label">Lulus Munaqosah</div>
+                                <h3 class="home-alumni-number" id="homeMunaqosahLulus">0 Santri</h3>
                             </div>
                         </div>
-                        <div style="display: flex; align-items: center; gap: 1vw; padding: 1.5vh 1.2vw; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);">
-                            <div style="font-size: 20px; color: #3b82f6; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; background: rgba(59,130,246,0.1); border-radius: 50%;"><i class="fas fa-graduation-cap"></i></div>
+                        <div class="home-alumni-item">
+                            <div class="home-alumni-icon alumni-color"><i class="fas fa-graduation-cap"></i></div>
                             <div>
-                                <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 600; letter-spacing: 0.3px;">Total Alumni</div>
-                                <h3 style="font-size: 20px; font-weight: 700; margin: 2px 0;" id="homeTotalAlumni">0 Santri</h3>
+                                <div class="home-alumni-label">Total Alumni</div>
+                                <h3 class="home-alumni-number" id="homeTotalAlumni">0 Santri</h3>
                             </div>
                         </div>
                     </div>
@@ -125,11 +125,11 @@
         <!-- 2. BLOCK: KEADAAN SANTRI -->
         <div class="tv-slide-card d-none" id="card-keadaan_santri">
             <h2 class="slide-main-title"><i class="fas fa-user-graduate text-primary"></i> Statistik Keadaan Santri</h2>
-            <div style="display: grid; grid-template-columns: 4.2fr 4.2fr 3.6fr; gap: 2vh 1.5vw; height: calc(100% - 10vh);">
+            <div class="keadaan-santri-grid">
                 <!-- Tabel Keadaan Santri -->
-                <div class="glass-card d-flex flex-column" style="overflow: hidden;">
+                <div class="glass-card d-flex flex-column overflow-hidden">
                     <h3 class="card-title-tv"><i class="fas fa-list-ol"></i> Distribusi Santri per Kelas</h3>
-                    <div class="table-tv-wrapper" style="overflow-y: auto; flex-grow: 1;">
+                    <div class="table-tv-wrapper flex-grow-1 overflow-y-auto">
                         <table class="table-tv">
                             <thead>
                                 <tr>
@@ -204,9 +204,9 @@
         <!-- 4. BLOCK: ABSENSI SANTRI -->
         <div class="tv-slide-card d-none" id="card-absensi_santri">
             <h2 class="slide-main-title"><i class="fas fa-chart-line text-purple"></i> Kehadiran / Absensi Santri</h2>
-            <div class="glass-card d-flex flex-column" style="height: calc(100% - 10vh); overflow: hidden;">
+            <div class="glass-card d-flex flex-column card-full-height overflow-hidden">
                 <h3 class="card-title-tv"><i class="fas fa-chart-bar"></i> Kehadiran Per Kelas (Kombinasi Garis & Batang - <span id="kehadiranKelasDuaMinggu">2 Minggu</span>)</h3>
-                <div class="chart-wrapper flex-grow-1" style="height: 100%; min-height: 0;">
+                <div class="chart-wrapper flex-grow-1">
                     <canvas id="absensiSantriCombinedChart"></canvas>
                 </div>
             </div>
@@ -305,7 +305,7 @@
         <!-- 6. BLOCK: JADWAL SHOLAT -->
         <div class="tv-slide-card d-none" id="card-jadwal_sholat">
             <h2 class="slide-main-title"><i class="fas fa-mosque text-warning"></i> Jadwal Sholat & Countdown Waktu Sholat</h2>
-            <div class="glass-card p-4" style="height: calc(100% - 10vh);">
+            <div class="glass-card p-4 card-full-height">
                 <div class="prayer-tv-container">
                     
                     <!-- Timer Utama -->
@@ -355,9 +355,9 @@
             <h2 class="slide-main-title"><i class="fas fa-chart-bar text-primary"></i> Statistik Absensi per Kelas <span id="statistikAbsensiPekanIni">(Pekan Ini)</span></h2>
             <div class="grid-2-columns">
                 <!-- Tabel Keadaan Santri -->
-                <div class="glass-card d-flex flex-column" style="overflow: hidden;">
+                <div class="glass-card d-flex flex-column overflow-hidden">
                     <h3 class="card-title-tv"><i class="fas fa-list-ol"></i> Rekapitulasi Kehadiran Kelas</h3>
-                    <div class="table-tv-wrapper" style="overflow-y: auto; flex-grow: 1;">
+                    <div class="table-tv-wrapper flex-grow-1 overflow-y-auto">
                         <table class="table-tv">
                             <thead>
                                 <tr>
@@ -387,11 +387,11 @@
         <!-- BLOCK: ULANG TAHUN TERDEKAT -->
         <div class="tv-slide-card d-none" id="card-ulang_tahun">
             <h2 class="slide-main-title"><i class="fas fa-birthday-cake text-danger"></i> Ulang Tahun Terdekat</h2>
-            <div class="grid-2-columns" style="height: calc(100% - 10vh); gap: 2vh 1.5vw;">
+            <div class="grid-2-columns grid-birthday-full">
                 <!-- List Guru Ulang Tahun -->
-                <div class="glass-card d-flex flex-column" style="overflow: hidden;">
+                <div class="glass-card d-flex flex-column overflow-hidden">
                     <h3 class="card-title-tv"><i class="fas fa-user-tie text-success"></i> Guru / Ustadz-Ustadzah</h3>
-                    <div class="table-tv-wrapper" style="overflow-y: auto; flex-grow: 1; padding: 10px 15px;" id="birthdayGuruList">
+                    <div class="table-tv-wrapper flex-grow-1 overflow-y-auto p-3" id="birthdayGuruList">
                         <div class="text-center py-5 text-muted">
                             <i class="fas fa-birthday-cake fa-3x mb-3"></i>
                             <p>Memuat data ulang tahun...</p>
@@ -399,9 +399,9 @@
                     </div>
                 </div>
                 <!-- List Santri Ulang Tahun -->
-                <div class="glass-card d-flex flex-column" style="overflow: hidden;">
+                <div class="glass-card d-flex flex-column overflow-hidden">
                     <h3 class="card-title-tv"><i class="fas fa-user-graduate text-primary"></i> Santri / Santriwati</h3>
-                    <div class="table-tv-wrapper" style="overflow-y: auto; flex-grow: 1; padding: 10px 15px;" id="birthdaySantriList">
+                    <div class="table-tv-wrapper flex-grow-1 overflow-y-auto p-3" id="birthdaySantriList">
                         <div class="text-center py-5 text-muted">
                             <i class="fas fa-birthday-cake fa-3x mb-3"></i>
                             <p>Memuat data ulang tahun...</p>
@@ -434,9 +434,9 @@
         <!-- 8. BLOCK: AGENDA -->
         <div class="tv-slide-card d-none" id="card-agenda">
             <h2 class="slide-main-title"><i class="fas fa-calendar-check text-warning"></i> Agenda & Kegiatan Mendatang</h2>
-            <div class="glass-card d-flex flex-column" style="height: calc(100% - 10vh); overflow: hidden;">
-                <div class="agenda-tv-container" style="flex-grow: 1; display: flex; flex-direction: column; overflow: hidden;">
-                    <div class="table-tv-wrapper" style="overflow-y: auto; flex-grow: 1;">
+            <div class="glass-card d-flex flex-column card-full-height overflow-hidden">
+                <div class="agenda-tv-container flex-grow-1 d-flex flex-column overflow-hidden">
+                    <div class="table-tv-wrapper flex-grow-1 overflow-y-auto">
                         <table class="table-tv agenda-table">
                             <thead>
                                 <tr>

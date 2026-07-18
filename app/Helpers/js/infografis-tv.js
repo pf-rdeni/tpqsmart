@@ -1552,7 +1552,7 @@ $(document).ready(function () {
                     $.each(response.data.santri, function (i, row) {
                         itemsHtml += renderBirthdayRowCompact(row);
                     });
-                    santriEl.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">'
+                    santriEl.innerHTML = '<div class="birthday-santri-grid">'
                         + itemsHtml + '</div>';
                 } else {
                     santriEl.innerHTML = '<div style="text-align:center;padding:40px 0;color:rgba(255,255,255,0.4);">'

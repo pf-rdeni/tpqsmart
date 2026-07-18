@@ -925,3 +925,702 @@ body {
 .theme-light .home-agenda-list::-webkit-scrollbar-thumb:hover {
     background: rgba(0, 0, 0, 0.2);
 }
+
+/* Layout helper class overrides for extracted inline styles */
+.home-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2vh 2vw;
+    height: 14vh;
+    margin-bottom: 2vh;
+}
+.home-widgets-grid {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr 1fr 1fr;
+    gap: 2vh 1.5vw;
+    height: calc(100% - 18vh);
+}
+.home-charts-flex {
+    display: flex;
+    flex-direction: column;
+    gap: 2vh;
+    height: 100%;
+    min-height: 0;
+}
+.home-chart-container {
+    position: relative;
+    height: 48%;
+    width: 100%;
+}
+.home-birthday-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1vh;
+    padding-top: 1vh;
+}
+.home-birthday-loading {
+    font-size: 12px;
+    color: rgba(255,255,255,0.35);
+    font-style: italic;
+}
+.birthday-santri-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+.home-alumni-container {
+    display: flex;
+    flex-direction: column;
+    gap: 2vh;
+    justify-content: flex-start;
+    padding-top: 1vh;
+}
+.home-alumni-item {
+    display: flex;
+    align-items: center;
+    gap: 1vw;
+    padding: 1.5vh 1.2vw;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+.home-alumni-icon {
+    font-size: 20px;
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+.home-alumni-icon.award-color {
+    color: #28a745;
+    background: rgba(40, 167, 69, 0.1);
+}
+.home-alumni-icon.alumni-color {
+    color: #3b82f6;
+    background: rgba(59, 130, 246, 0.1);
+}
+.home-alumni-label {
+    font-size: 11px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+.home-alumni-number {
+    font-size: 20px;
+    font-weight: 700;
+    margin: 2px 0;
+}
+.keadaan-santri-grid {
+    display: grid;
+    grid-template-columns: 4.2fr 4.2fr 3.6fr;
+    gap: 2vh 1.5vw;
+    height: calc(100% - 10vh);
+}
+.card-full-height {
+    height: calc(100% - 10vh);
+}
+.grid-birthday-full {
+    height: calc(100% - 10vh);
+    gap: 2vh 1.5vw;
+}
+.overflow-hidden {
+    overflow: hidden !important;
+}
+.overflow-y-auto {
+    overflow-y: auto !important;
+}
+
+/* ==========================================
+   RESPONSIVE DESIGN FOR MOBILE VIEWS
+   ========================================== */
+
+/* --- MOBILE PORTRAIT VIEW --- */
+@media (max-width: 768px) {
+    body {
+        overflow: auto; /* Allow general body scrolling on mobile if absolutely needed */
+    }
+
+    .tv-container {
+        padding: 15px 12px;
+        height: auto;
+        min-height: 100vh;
+        overflow-x: hidden;
+    }
+
+    /* Header adaptations */
+    .tv-header {
+        flex-direction: column;
+        align-items: center;
+        height: auto;
+        gap: 12px;
+        margin-bottom: 20px;
+        padding-bottom: 12px;
+        border-bottom-width: 1px;
+    }
+
+    .header-logo-section {
+        flex-direction: column;
+        text-align: center;
+        gap: 8px;
+    }
+
+    .logo-image {
+        width: 55px;
+        height: 55px;
+        border-width: 2px;
+    }
+
+    .header-titles h1 {
+        font-size: 20px;
+        text-align: center;
+    }
+
+    .header-subtitle {
+        font-size: 12px;
+    }
+
+    .header-info-section {
+        width: 100%;
+        flex-direction: column-reverse;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .header-time-badge {
+        text-align: center;
+    }
+
+    .live-time {
+        font-size: 24px;
+    }
+
+    .live-date {
+        font-size: 12px;
+    }
+
+    .header-prayer-badge {
+        width: 100%;
+        justify-content: center;
+        font-size: 13px;
+        padding: 6px 12px;
+        border-radius: 8px;
+    }
+
+    /* TV Body and slides height adjust */
+    .tv-body {
+        height: auto;
+        min-height: 60vh;
+        position: relative;
+    }
+
+    .tv-slide-card {
+        position: relative;
+        height: auto;
+        min-height: 100%;
+        overflow-y: visible;
+        padding-bottom: 20px;
+    }
+
+    .slide-main-title {
+        font-size: 18px;
+        margin-bottom: 15px;
+        gap: 8px;
+    }
+
+    /* Cards stack */
+    .glass-card {
+        padding: 15px;
+        border-radius: 12px;
+        margin-bottom: 15px;
+        height: auto !important;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+
+    /* Grids stacking */
+    .home-stats-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        height: auto;
+        margin-bottom: 15px;
+    }
+
+    .home-widgets-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        height: auto;
+    }
+
+    .keadaan-santri-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        height: auto;
+    }
+
+    .grid-2-columns,
+    .card-grid-absensi,
+    .grid-birthday-full {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        height: auto;
+    }
+
+    /* Stat Box adapt */
+    .stat-box-tv {
+        padding: 10px 12px;
+        gap: 10px;
+        border-radius: 12px;
+    }
+
+    .stat-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 18px;
+    }
+
+    .stat-label {
+        font-size: 9px;
+        letter-spacing: 0.2px;
+    }
+
+    .stat-number {
+        font-size: 20px;
+    }
+
+    .stat-subtext {
+        font-size: 9px;
+    }
+
+    /* Alumni styling mobile */
+    .home-alumni-container {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .home-alumni-item {
+        padding: 12px;
+        gap: 10px;
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .home-alumni-icon {
+        width: 32px;
+        height: 32px;
+        font-size: 16px;
+    }
+
+    .home-alumni-number {
+        font-size: 16px;
+    }
+
+    /* Home charts adapt */
+    .home-charts-flex {
+        gap: 15px;
+        height: auto;
+    }
+
+    .home-chart-container {
+        height: 180px;
+    }
+
+    .chart-wrapper {
+        height: 220px !important;
+    }
+
+    /* Table styling for mobile */
+    .table-tv-wrapper {
+        max-height: none !important;
+        overflow-x: auto; /* Enable horizontal scrolling if table overflows */
+    }
+
+    .table-tv {
+        font-size: 13px;
+    }
+
+    .table-tv th,
+    .table-tv td {
+        padding: 8px 10px;
+    }
+
+    /* Agenda table transform to block layout/cards */
+    .agenda-table,
+    .agenda-table thead,
+    .agenda-table tbody,
+    .agenda-table th,
+    .agenda-table td,
+    .agenda-table tr {
+        display: block;
+    }
+
+    .agenda-table thead {
+        display: none;
+    }
+
+    .agenda-table tr {
+        margin-bottom: 12px;
+        border: 1px solid var(--glass-border);
+        border-radius: 10px;
+        background: rgba(255,255,255,0.02);
+        padding: 12px;
+    }
+
+    .agenda-table td {
+        border-bottom: none !important;
+        padding: 3px 0;
+        text-align: left;
+    }
+
+    .agenda-table td.font-weight-bold {
+        font-size: 14px;
+        margin-bottom: 4px;
+    }
+
+    /* Home agenda list widgets */
+    .home-agenda-list {
+        max-height: none !important;
+        gap: 10px;
+    }
+
+    .home-agenda-item {
+        padding: 10px;
+        gap: 10px;
+    }
+
+    .home-agenda-date-box {
+        min-width: 50px;
+        padding: 4px 8px;
+    }
+
+    .had-day {
+        font-size: 15px;
+    }
+
+    .had-month {
+        font-size: 9px;
+    }
+
+    .home-agenda-details h4 {
+        font-size: 13px;
+    }
+
+    /* Prayer times adapt */
+    .prayer-tv-container {
+        gap: 20px;
+    }
+
+    .prayer-countdown-tv {
+        padding: 15px;
+        border-radius: 12px;
+    }
+
+    .prayer-countdown-label {
+        font-size: 11px;
+    }
+
+    .prayer-countdown-time {
+        font-size: 36px;
+        margin: 6px 0;
+    }
+
+    .prayer-countdown-next {
+        font-size: 13px;
+    }
+
+    .prayer-times-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+
+    .prayer-box {
+        padding: 12px 6px;
+        border-radius: 10px;
+    }
+
+    .pb-name {
+        font-size: 11px;
+        margin-bottom: 4px;
+    }
+
+    .pb-time {
+        font-size: 18px;
+    }
+
+    .prayer-box.active-prayer {
+        transform: none;
+    }
+
+    /* Galeri slide mobile vertical stack */
+    .galeri-tv-container {
+        height: auto;
+    }
+
+    .galeri-tv-slide {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto;
+        height: auto;
+    }
+
+    .galeri-tv-image-wrapper {
+        height: 200px;
+    }
+
+    .galeri-tv-caption {
+        padding: 15px;
+        background: rgba(14, 14, 30, 0.95);
+    }
+
+    .galeri-tv-caption h3 {
+        font-size: 18px;
+    }
+
+    .galeri-date {
+        font-size: 13px;
+        margin-bottom: 10px;
+    }
+
+    .galeri-tv-caption p {
+        font-size: 13px;
+        line-height: 1.4;
+    }
+
+    /* Guru slide elements stacking */
+    .stat-row {
+        flex-direction: column;
+        gap: 8px;
+        margin-top: 10px;
+    }
+
+    .stat-row-item {
+        padding: 12px;
+        border-radius: 10px;
+    }
+
+    .stat-row-item h1 {
+        font-size: 28px !important;
+    }
+
+    .alert-info-signage {
+        padding: 10px 12px;
+        margin-top: 15px;
+    }
+
+    /* Alumni and Birthdays adapt */
+    .alumni-names-grid {
+        grid-template-columns: 1fr;
+        gap: 6px;
+    }
+
+    .alumni-name-card {
+        font-size: 0.9rem;
+        padding: 6px 10px;
+    }
+
+    .alumni-stat-circle {
+        width: 110px;
+        height: 110px;
+    }
+
+    .birthday-santri-grid {
+        grid-template-columns: 1fr;
+    }
+
+    /* FKPQ Layout mobile stack */
+    .card-grid-home-fkpq {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        height: auto;
+    }
+
+    /* Footer adjustments */
+    .tv-footer {
+        flex-direction: column;
+        align-items: center;
+        height: auto;
+        gap: 8px;
+        padding-top: 12px;
+        margin-top: 15px;
+        border-top-width: 1px;
+    }
+
+    .refresh-indicator {
+        font-size: 11px;
+        padding: 4px 10px;
+    }
+
+    .tv-slide-dots {
+        gap: 8px;
+    }
+
+    .tv-dot {
+        width: 9px;
+        height: 9px;
+    }
+
+    .footer-status-label {
+        font-size: 11px;
+    }
+}
+
+/* --- MOBILE LANDSCAPE VIEW --- */
+@media (max-width: 991px) and (orientation: landscape) {
+    body {
+        overflow: auto;
+    }
+
+    .tv-container {
+        padding: 12px;
+        height: auto;
+        min-height: 100vh;
+    }
+
+    .tv-header {
+        height: auto;
+        padding-bottom: 8px;
+        margin-bottom: 15px;
+        border-bottom-width: 1px;
+    }
+
+    .logo-image {
+        width: 45px;
+        height: 45px;
+        border-width: 2px;
+    }
+
+    .header-titles h1 {
+        font-size: 20px;
+    }
+
+    .header-subtitle {
+        font-size: 11px;
+    }
+
+    .live-time {
+        font-size: 22px;
+    }
+
+    .live-date {
+        font-size: 11px;
+    }
+
+    .header-prayer-badge {
+        font-size: 12px;
+        padding: 5px 10px;
+    }
+
+    .tv-body {
+        height: auto;
+        min-height: 70vh;
+    }
+
+    .tv-slide-card {
+        position: relative;
+        height: auto;
+        min-height: 100%;
+        overflow-y: visible;
+        padding-bottom: 15px;
+    }
+
+    /* Grid stack/compaction in landscape */
+    .home-stats-grid {
+        grid-template-columns: repeat(4, 1fr);
+        height: auto;
+        gap: 10px;
+        margin-bottom: 15px;
+    }
+
+    .home-widgets-grid {
+        grid-template-columns: 1fr 1fr;
+        height: auto;
+        gap: 12px;
+    }
+
+    .keadaan-santri-grid {
+        grid-template-columns: 1fr 1fr;
+        height: auto;
+        gap: 12px;
+    }
+
+    .keadaan-santri-grid > .glass-card:last-child {
+        grid-column: span 2;
+    }
+
+    .grid-2-columns,
+    .card-grid-absensi,
+    .grid-birthday-full {
+        grid-template-columns: 1fr 1fr;
+        height: auto;
+        gap: 12px;
+    }
+
+    .stat-box-tv {
+        padding: 8px 12px;
+        gap: 8px;
+    }
+
+    .stat-icon {
+        width: 35px;
+        height: 35px;
+        font-size: 16px;
+    }
+
+    .stat-number {
+        font-size: 20px;
+    }
+
+    .glass-card {
+        padding: 15px;
+        border-radius: 12px;
+        height: auto !important;
+    }
+
+    .chart-wrapper {
+        height: 180px !important;
+    }
+
+    .prayer-times-grid {
+        grid-template-columns: repeat(6, 1fr);
+        gap: 8px;
+    }
+
+    .pb-time {
+        font-size: 18px;
+    }
+
+    .prayer-countdown-time {
+        font-size: 40px;
+    }
+
+    .galeri-tv-slide {
+        grid-template-columns: 1.2fr 1fr;
+        height: auto;
+    }
+
+    .galeri-tv-image-wrapper {
+        height: 250px;
+    }
+
+    .galeri-tv-caption h3 {
+        font-size: 20px;
+    }
+
+    .galeri-tv-caption p {
+        font-size: 13px;
+    }
+
+    .tv-footer {
+        height: auto;
+        padding-top: 8px;
+        margin-top: 10px;
+        border-top-width: 1px;
+    }
+}
