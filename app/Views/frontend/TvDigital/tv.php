@@ -71,8 +71,8 @@
                 </div>
             </div>
 
-            <!-- Row 2: Bottom Cards (divided into 3 proportional parts) -->
-            <div style="display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 2vh 2vw; height: calc(100% - 18vh);">
+            <!-- Row 2: Bottom Cards (divided into 4 proportional parts) -->
+            <div style="display: grid; grid-template-columns: 1.2fr 1fr 1fr 1fr; gap: 2vh 1.5vw; height: calc(100% - 18vh);">
                 <!-- Part 1: Chart (1.2fr) -->
                 <div class="glass-card d-flex flex-column" style="overflow: hidden;">
                     <h3 class="card-title-tv"><i class="fas fa-chart-line text-primary"></i> Trend Absensi Santri (30 Hari Terakhir)</h3>
@@ -92,7 +92,14 @@
                         <div class="loading-placeholder"><i class="fas fa-spinner fa-spin"></i> Memuat agenda...</div>
                     </div>
                 </div>
-                <!-- Part 3: Alumni & Kelulusan (1fr) -->
+                <!-- Part 3: Ulang Tahun (1fr) -->
+                <div class="glass-card d-flex flex-column" style="overflow: hidden;">
+                    <h3 class="card-title-tv"><i class="fas fa-birthday-cake text-danger"></i> Ulang Tahun</h3>
+                    <div id="homeBirthdayTodayList" style="display: flex; flex-direction: column; gap: 1vh; overflow-y: auto; flex-grow: 1; padding-top: 1vh;">
+                        <div style="font-size: 12px; color: rgba(255,255,255,0.35); font-style: italic;">Memuat...</div>
+                    </div>
+                </div>
+                <!-- Part 4: Alumni & Kelulusan (1fr) -->
                 <div class="glass-card d-flex flex-column" style="overflow: hidden;">
                     <h3 class="card-title-tv"><i class="fas fa-user-graduate text-info"></i> Alumni & Kelulusan</h3>
                     <div style="display: flex; flex-direction: column; gap: 2vh; flex-grow: 1; justify-content: flex-start; padding-top: 1vh;">
@@ -109,15 +116,6 @@
                                 <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 600; letter-spacing: 0.3px;">Total Alumni</div>
                                 <h3 style="font-size: 20px; font-weight: 700; margin: 2px 0;" id="homeTotalAlumni">0 Santri</h3>
                             </div>
-                        </div>
-                    </div>
-                    <!-- Mini Birthday Widget -->
-                    <div style="border-top: 1px solid rgba(255,255,255,0.08); padding-top: 1.2vh; margin-top: 1.5vh;">
-                        <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 600; letter-spacing: 0.3px; margin-bottom: 0.8vh;">
-                            <i class="fas fa-birthday-cake text-danger" style="margin-right: 5px;"></i> Ulang Tahun Hari Ini / Terdekat
-                        </div>
-                        <div id="homeBirthdayTodayList" style="display: flex; flex-direction: column; gap: 0.8vh;">
-                            <div style="font-size: 12px; color: rgba(255,255,255,0.35); font-style: italic;">Memuat...</div>
                         </div>
                     </div>
                 </div>
