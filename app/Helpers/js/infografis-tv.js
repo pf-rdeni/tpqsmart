@@ -66,6 +66,16 @@ $(document).ready(function () {
     // 2. DATA LOADER & DYNAMIC REFRESH
     // ==========================================
     function loadData() {
+        // Destroy monthly charts to force recreate with fresh data on slide enter
+        if (charts['homeAbsensiChart']) {
+            charts['homeAbsensiChart'].destroy();
+            delete charts['homeAbsensiChart'];
+        }
+        if (charts['homeAbsensiBarChart']) {
+            charts['homeAbsensiBarChart'].destroy();
+            delete charts['homeAbsensiBarChart'];
+        }
+
         $.getJSON(`${baseUrl}/tv/api/data/${hashKey}`, function (response) {
             if (response.status === 'success') {
                 appData = response.data;
@@ -850,34 +860,129 @@ $(document).ready(function () {
         $.getJSON(`${baseUrl}/tv/api/absensi-santri/${hashKey}`, function (response) {
             if (response.status === 'success') {
                 const dates = Object.keys(response.data.bulanan);
-                const values = Object.values(response.data.bulanan).map(d => d.Hadir);
+                const hadirValues = Object.values(response.data.bulanan).map(d => d.Hadir || 0);
+                const tidakHadirValues = Object.values(response.data.bulanan).map(d => (d.Izin || 0) + (d.Sakit || 0) + (d.Alfa || 0));
+                const formattedDates = dates.map(d => d.substring(8, 10) + '/' + d.substring(5, 7));
 
-                const ctx = document.getElementById(canvasId).getContext('2d');
-                charts[canvasId] = new Chart(ctx, {
+                // 1. Line Chart: Kehadiran vs Ketidakhadiran
+                const ctxLine = document.getElementById(canvasId).getContext('2d');
+                charts[canvasId] = new Chart(ctxLine, {
                     type: 'line',
                     data: {
-                        labels: dates.map(d => d.substring(8, 10) + '/' + d.substring(5, 7)),
-                        datasets: [{
-                            label: 'Santri Hadir',
-                            data: values,
-                            borderColor: '#007bff',
-                            backgroundColor: 'rgba(0,123,255,0.1)',
-                            fill: true,
-                            tension: 0.4
-                        }]
+                        labels: formattedDates,
+                        datasets: [
+                            {
+                                label: 'Hadir',
+                                data: hadirValues,
+                                borderColor: '#28a745',
+                                backgroundColor: 'rgba(40,167,69,0.08)',
+                                fill: true,
+                                tension: 0.4,
+                                borderWidth: 3,
+                                pointRadius: 3,
+                                pointBackgroundColor: '#28a745'
+                            },
+                            {
+                                label: 'Tidak Hadir',
+                                data: tidakHadirValues,
+                                borderColor: '#dc3545',
+                                backgroundColor: 'rgba(220,53,69,0.08)',
+                                fill: true,
+                                tension: 0.4,
+                                borderWidth: 3,
+                                pointRadius: 3,
+                                pointBackgroundColor: '#dc3545'
+                            }
+                        ]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
-                        scales: {
-                            xAxes: [{ gridLines: { display: false }, ticks: { fontColor: colors.textColor } }],
-                            yAxes: [{ gridLines: { color: colors.gridColor }, ticks: { fontColor: colors.textColor } }]
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                fontColor: colors.textColor,
+                                boxWidth: 12,
+                                fontSize: 11
+                            }
                         },
-                        plugins: {
-                            legend: { display: false }
+                        scales: {
+                            xAxes: [{
+                                gridLines: { display: false },
+                                ticks: { display: false } // Hide bottom ticks to prevent duplication with bar chart
+                            }],
+                            yAxes: [{
+                                gridLines: { color: colors.gridColor },
+                                ticks: { fontColor: colors.textColor, fontSize: 10, min: 0 }
+                            }]
                         }
                     }
                 });
+
+                // 2. Bar Chart: Breakdown Ketidakhadiran (Izin, Sakit, Alfa)
+                const barCanvasId = 'homeAbsensiBarChart';
+                if ($('#' + barCanvasId).length) {
+                    const izinValues = Object.values(response.data.bulanan).map(d => d.Izin || 0);
+                    const sakitValues = Object.values(response.data.bulanan).map(d => d.Sakit || 0);
+                    const alfaValues = Object.values(response.data.bulanan).map(d => d.Alfa || 0);
+
+                    const ctxBar = document.getElementById(barCanvasId).getContext('2d');
+                    charts[barCanvasId] = new Chart(ctxBar, {
+                        type: 'bar',
+                        data: {
+                            labels: formattedDates,
+                            datasets: [
+                                {
+                                    label: 'Izin',
+                                    data: izinValues,
+                                    backgroundColor: '#ffc107',
+                                    borderColor: '#ffc107',
+                                    borderWidth: 1
+                                },
+                                {
+                                    label: 'Sakit',
+                                    data: sakitValues,
+                                    backgroundColor: '#007bff',
+                                    borderColor: '#007bff',
+                                    borderWidth: 1
+                                },
+                                {
+                                    label: 'Alfa',
+                                    data: alfaValues,
+                                    backgroundColor: '#fd7e14',
+                                    borderColor: '#fd7e14',
+                                    borderWidth: 1
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            legend: {
+                                display: true,
+                                position: 'top',
+                                labels: {
+                                    fontColor: colors.textColor,
+                                    boxWidth: 12,
+                                    fontSize: 11
+                                }
+                            },
+                            scales: {
+                                xAxes: [{
+                                    stacked: true,
+                                    gridLines: { display: false },
+                                    ticks: { fontColor: colors.textColor, fontSize: 10 }
+                                }],
+                                yAxes: [{
+                                    stacked: true,
+                                    gridLines: { color: colors.gridColor },
+                                    ticks: { fontColor: colors.textColor, fontSize: 10, min: 0 }
+                                }]
+                            }
+                        }
+                    });
+                }
             }
         });
     }

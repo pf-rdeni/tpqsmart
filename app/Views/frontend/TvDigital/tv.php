@@ -76,8 +76,13 @@
                 <!-- Part 1: Chart (1.2fr) -->
                 <div class="glass-card d-flex flex-column" style="overflow: hidden;">
                     <h3 class="card-title-tv"><i class="fas fa-chart-line text-primary"></i> Trend Absensi Santri (30 Hari Terakhir)</h3>
-                    <div class="chart-wrapper flex-grow-1">
-                        <canvas id="homeAbsensiChart"></canvas>
+                    <div class="chart-wrapper flex-grow-1" style="display: flex; flex-direction: column; gap: 2vh; height: 100%; min-height: 0;">
+                        <div style="position: relative; height: 48%; width: 100%;">
+                            <canvas id="homeAbsensiChart"></canvas>
+                        </div>
+                        <div style="position: relative; height: 48%; width: 100%;">
+                            <canvas id="homeAbsensiBarChart"></canvas>
+                        </div>
                     </div>
                 </div>
                 <!-- Part 2: Agenda (1fr) -->
