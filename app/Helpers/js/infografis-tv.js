@@ -950,8 +950,8 @@ $(document).ready(function () {
                                 {
                                     label: 'Alfa',
                                     data: alfaValues,
-                                    backgroundColor: '#fd7e14',
-                                    borderColor: '#fd7e14',
+                                    backgroundColor: '#dc3545',
+                                    borderColor: '#dc3545',
                                     borderWidth: 1
                                 }
                             ]
