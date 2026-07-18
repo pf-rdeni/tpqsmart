@@ -1025,23 +1025,27 @@ class TvDigitalPublic extends BaseController
         $idTpq = $link['IdTpq'];
 
         // 1. Ambil data santri aktif
-        $santriList = $this->db->table('tbl_santri_baru s')
-                              ->select('s.NamaSantri as Nama, s.TanggalLahirSantri as TanggalLahir, s.PhotoProfil as Photo, k.NamaKelas, s.JenisKelamin')
+        $santriQuery = $this->db->table('tbl_santri_baru s')
+                              ->select('s.NamaSantri as Nama, s.TanggalLahirSantri as TanggalLahir, s.PhotoProfil as Photo, k.NamaKelas, s.JenisKelamin, t.NamaTpq')
                               ->join('tbl_kelas k', 'k.IdKelas = s.IdKelas', 'left')
-                              ->where('s.IdTpq', $idTpq)
+                              ->join('tbl_tpq t', 't.IdTpq = s.IdTpq', 'left')
                               ->where('s.Active', 1)
-                              ->where('s.TanggalLahirSantri IS NOT NULL')
-                              ->get()
-                              ->getResultArray();
+                              ->where('s.TanggalLahirSantri IS NOT NULL');
+        if (!empty($idTpq) && $idTpq != '0') {
+            $santriQuery->where('s.IdTpq', $idTpq);
+        }
+        $santriList = $santriQuery->get()->getResultArray();
 
         // 2. Ambil data guru aktif
-        $guruList = $this->db->table('tbl_guru')
-                            ->select('Nama as Nama, TanggalLahir, LinkPhoto as Photo, JenisKelamin')
-                            ->where('IdTpq', $idTpq)
-                            ->where('Status', 1)
-                            ->where('TanggalLahir IS NOT NULL')
-                            ->get()
-                            ->getResultArray();
+        $guruQuery = $this->db->table('tbl_guru g')
+                            ->select('g.Nama as Nama, g.TanggalLahir, g.LinkPhoto as Photo, g.JenisKelamin, t.NamaTpq')
+                            ->join('tbl_tpq t', 't.IdTpq = g.IdTpq', 'left')
+                            ->where('g.Status', 1)
+                            ->where('g.TanggalLahir IS NOT NULL');
+        if (!empty($idTpq) && $idTpq != '0') {
+            $guruQuery->where('g.IdTpq', $idTpq);
+        }
+        $guruList = $guruQuery->get()->getResultArray();
 
         $closestSantri = $this->calculateUpcomingBirthdays($santriList, 14, true, $idTpq);
         $closestGuru = $this->calculateUpcomingBirthdays($guruList, 5, false, $idTpq);

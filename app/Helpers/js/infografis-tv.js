@@ -1399,12 +1399,16 @@ $(document).ready(function () {
               + 'color:#ccc;padding:4px 10px;border-radius:20px;font-size:12px;border:1px solid rgba(255,255,255,0.2);">'
               + sisaHari + ' Hari Lagi</span>';
 
+        var tpqInfo = appData.lembaga.isFkpq ? ' &nbsp;|&nbsp; <i class="fas fa-mosque" style="color:#fd7e14;margin-right:3px;"></i>' + $('<div>').text(row.NamaTpq || '').html() : '';
+
         var subInfo = isSantri
             ? '<div style="color:rgba(255,255,255,0.5);font-size:11px;margin-top:2px;">'
               + '<i class="fas fa-graduation-cap" style="color:#3b82f6;margin-right:3px;"></i>' + namaKelas
+              + tpqInfo
               + ' &nbsp;|&nbsp; <i class="fas fa-calendar-alt" style="color:#10b981;margin-right:3px;"></i>' + tglUt + '</div>'
             : '<div style="color:rgba(255,255,255,0.5);font-size:11px;margin-top:2px;">'
-              + '<i class="fas fa-calendar-alt" style="color:#10b981;margin-right:3px;"></i>' + tglUt + '</div>';
+              + '<i class="fas fa-calendar-alt" style="color:#10b981;margin-right:3px;"></i>' + tglUt
+              + tpqInfo + '</div>';
 
         return '<div style="display:flex;align-items:center;gap:12px;padding:10px 12px;margin-bottom:8px;'
             + 'border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">'
@@ -1442,6 +1446,7 @@ $(document).ready(function () {
             + '<div style="color:rgba(255,255,255,0.5);font-size:10px;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'
             + '<i class="fas fa-graduation-cap" style="color:#3b82f6;margin-right:2px;"></i>' + namaKelas
             + '</div>'
+            + (appData.lembaga.isFkpq ? '<div style="color:rgba(255,255,255,0.4);font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><i class="fas fa-mosque" style="color:#fd7e14;margin-right:2px;"></i>' + $('<div>').text(row.NamaTpq || '').html() + '</div>' : '')
             + '<div style="color:rgba(255,255,255,0.45);font-size:10px;">'
             + '<i class="fas fa-calendar-alt" style="color:#10b981;margin-right:2px;"></i>' + tglUt
             + '</div>'
@@ -1451,7 +1456,6 @@ $(document).ready(function () {
     }
 
     function fetchUlangTahun() {
-        if (appData.lembaga.isFkpq) return; // Skip untuk FKPQ
 
         // Inject animasi pulse-red sekali saja
         if (!document.getElementById('pulseRedStyle')) {
@@ -1499,7 +1503,7 @@ $(document).ready(function () {
                         + '<div style="display:flex;align-items:center;flex-shrink:0;">' + avatar + '</div>'
                         + '<div style="flex:1;min-width:0;">'
                         + '<div style="font-weight:700;font-size:12px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + $('<div>').text(guru.Nama).html() + '</div>'
-                        + '<div style="font-size:10px;color:rgba(255,255,255,0.5);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><i class="fas fa-user-tie text-success" style="margin-right:3px;"></i>' + labelRole + ' &nbsp;|&nbsp; ' + guru.TanggalUlangTahun + '</div>'
+                        + '<div style="font-size:10px;color:rgba(255,255,255,0.5);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><i class="fas fa-user-tie text-success" style="margin-right:3px;"></i>' + labelRole + (appData.lembaga.isFkpq ? ' &nbsp;|&nbsp; ' + (guru.NamaTpq || '') : '') + ' &nbsp;|&nbsp; ' + guru.TanggalUlangTahun + '</div>'
                         + '</div>'
                         + '<div style="flex-shrink:0;">' + badge + '</div>'
                         + '</div>';
@@ -1515,7 +1519,7 @@ $(document).ready(function () {
                         + '<div style="display:flex;align-items:center;flex-shrink:0;">' + avatar + '</div>'
                         + '<div style="flex:1;min-width:0;">'
                         + '<div style="font-weight:700;font-size:12px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + $('<div>').text(santri.Nama).html() + '</div>'
-                        + '<div style="font-size:10px;color:rgba(255,255,255,0.5);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><i class="fas fa-user-graduate text-primary" style="margin-right:3px;"></i>' + (santri.NamaKelas || '-') + ' &nbsp;|&nbsp; ' + santri.TanggalUlangTahun + '</div>'
+                        + '<div style="font-size:10px;color:rgba(255,255,255,0.5);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><i class="fas fa-user-graduate text-primary" style="margin-right:3px;"></i>' + (santri.NamaKelas || '-') + (appData.lembaga.isFkpq ? ' &nbsp;|&nbsp; ' + (santri.NamaTpq || '') : '') + ' &nbsp;|&nbsp; ' + santri.TanggalUlangTahun + '</div>'
                         + '</div>'
                         + '<div style="flex-shrink:0;">' + badge + '</div>'
                         + '</div>';
