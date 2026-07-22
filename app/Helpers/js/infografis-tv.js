@@ -1583,8 +1583,33 @@ $(document).ready(function () {
             "isha": "Isya"
         };
 
-        const defaultCity = "Bintan";
-        $('#sholat-lokasi').text(defaultCity);
+        const LOCATION_SETTING_KEY = "prayerLocationSetting";
+        let defaultCity = "Bintan";
+        let mode = "city";
+        let gpsLat = null;
+        let gpsLng = null;
+
+        try {
+            const saved = localStorage.getItem(LOCATION_SETTING_KEY);
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if (parsed.mode === "city" && parsed.city) {
+                    defaultCity = parsed.city;
+                } else if (parsed.mode === "gps" && parsed.lat && parsed.lng) {
+                    mode = "gps";
+                    gpsLat = parsed.lat;
+                    gpsLng = parsed.lng;
+                } else if (parsed.city) {
+                    defaultCity = parsed.city;
+                }
+            }
+        } catch (e) {}
+
+        if (mode === "gps" && gpsLat && gpsLng) {
+            $('#sholat-lokasi').text(`GPS (${parseFloat(gpsLat).toFixed(2)}, ${parseFloat(gpsLng).toFixed(2)})`);
+        } else {
+            $('#sholat-lokasi').text(defaultCity);
+        }
 
         // Fetch dari Aladhan client-side API (dengan fallback backend)
         const today = new Date();
@@ -1592,7 +1617,13 @@ $(document).ready(function () {
         const mm = String(today.getMonth() + 1).padStart(2, '0');
         const yyyy = today.getFullYear();
         const dateStr = `${dd}-${mm}-${yyyy}`;
-        const url = `https://api.aladhan.com/v1/timingsByCity/${dateStr}?city=${encodeURIComponent(defaultCity)}&country=Indonesia&method=20`;
+        
+        let url = "";
+        if (mode === "gps" && gpsLat && gpsLng) {
+            url = `https://api.aladhan.com/v1/timings/${dateStr}?latitude=${gpsLat}&longitude=${gpsLng}&method=20`;
+        } else {
+            url = `https://api.aladhan.com/v1/timingsByCity/${dateStr}?city=${encodeURIComponent(defaultCity)}&country=Indonesia&method=20`;
+        }
 
         function applyPrayerData(times) {
             prayerTimes = {
@@ -1627,7 +1658,12 @@ $(document).ready(function () {
             })
             .catch(err => {
                 console.warn("Gagal fetch Aladhan API client-side, mencoba fallback ke backend API...", err);
-                const backendUrl = `${window.location.origin}/backend/jadwal-sholat/${encodeURIComponent(defaultCity)}?format=json`;
+                let backendUrl = "";
+                if (mode === "gps" && gpsLat && gpsLng) {
+                    backendUrl = `${window.location.origin}/backend/jadwal-sholat/${gpsLat}/${gpsLng}?format=json`;
+                } else {
+                    backendUrl = `${window.location.origin}/backend/jadwal-sholat/${encodeURIComponent(defaultCity)}?format=json`;
+                }
                 fetch(backendUrl)
                     .then(res => res.json())
                     .then(bData => {
@@ -1706,18 +1742,23 @@ $(document).ready(function () {
         }, 1000);
     }
 
-    // Helper: Parse '5:24 am' or '12:05 pm' into Date object
+    // Helper: Parse '5:24 am', '12:05 pm', or '12:09' into Date object
     function parseTime(timeStr) {
-        const parts = timeStr.match(/(\d+)(?::(\d\d))?\s*(p?)/i);
-        if (!parts) return null;
+        if (!timeStr) return null;
+        const trimmed = timeStr.trim().toLowerCase();
+        const hasAm = trimmed.includes("am");
+        const hasPm = trimmed.includes("pm");
+        const timeOnly = trimmed.replace(/\s*(am|pm)\s*/gi, "");
+        const parts = timeOnly.split(":");
+        if (parts.length < 2) return null;
 
-        let hours = parseInt(parts[1], 10);
-        const minutes = parseInt(parts[2], 10) || 0;
-        const isPm = !!parts[3];
+        let hours = parseInt(parts[0], 10);
+        const minutes = parseInt(parts[1], 10) || 0;
+        if (isNaN(hours) || isNaN(minutes)) return null;
 
-        if (isPm && hours < 12) {
+        if (hasPm && hours < 12) {
             hours += 12;
-        } else if (!isPm && hours === 12) {
+        } else if (hasAm && hours === 12) {
             hours = 0;
         }
 
