@@ -195,11 +195,12 @@ $(document).ready(function () {
         }
 
         if (totalTodayAbsen > 0) {
-            const pct = Math.round((stats.absensiSantriToday.Hadir / totalTodayAbsen) * 100);
+            const totalSantriAktif = stats.totalSantri || totalTodayAbsen;
+            const pct = Math.round((stats.absensiSantriToday.Hadir / totalSantriAktif) * 100);
             $('#homeKehadiranLabel').text('Kehadiran Hari Ini');
             $('#homeKehadiranPersen').text(pct + '%');
             const h = stats.absensiSantriToday;
-            $('#homeKehadiranRatio').html(`Hari Ini - H: <strong>${h.Hadir}</strong> | I: <strong>${h.Izin}</strong> | S: <strong>${h.Sakit}</strong> | A: <strong>${h.Alfa}</strong>`);
+            $('#homeKehadiranRatio').html(`Hari Ini - H: <strong>${h.Hadir}/${totalSantriAktif}</strong> | I: <strong>${h.Izin}</strong> | S: <strong>${h.Sakit}</strong> | A: <strong>${h.Alfa}</strong>`);
         } else if (totalPekanIni > 0) {
             const pct = Math.round((hadirPekanIni / totalPekanIni) * 100);
             $('#homeKehadiranLabel').text('Kehadiran Pekan Ini');
