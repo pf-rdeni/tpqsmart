@@ -17,9 +17,9 @@ use Exception;
 class IslamicApiService
 {
     /**
-     * Base URL untuk MuslimSalat API
+     * Base URL untuk Aladhan API (Jadwal Sholat)
      */
-    private const MUSLIMSALAT_BASE_URL = 'https://muslimsalat.com';
+    private const ALADHAN_BASE_URL = 'https://api.aladhan.com/v1';
 
     /**
      * Base URL untuk Al-Qur'an API
@@ -40,6 +40,11 @@ class IslamicApiService
         $config = [
             'timeout' => 30,
             'connect_timeout' => 10,
+            'allow_redirects' => [
+                'max' => 5,
+                'strict' => false,
+                'protocols' => ['https', 'http']
+            ],
         ];
 
         // Cek apakah file CA certificate ada
@@ -89,13 +94,8 @@ class IslamicApiService
                 throw new Exception('Nama kota tidak boleh kosong');
             }
 
-            $url = self::MUSLIMSALAT_BASE_URL . '/' . urlencode($city) . '.json';
-            
-            if ($date) {
-                $url .= '?key=free&date=' . $date;
-            } else {
-                $url .= '?key=free';
-            }
+            $dateFormatted = !empty($date) ? date('d-m-Y', strtotime($date)) : date('d-m-Y');
+            $url = self::ALADHAN_BASE_URL . '/timingsByCity/' . $dateFormatted . '?city=' . urlencode($city) . '&country=Indonesia&method=20';
 
             $response = $this->client->get($url);
             $statusCode = $response->getStatusCode();
@@ -111,23 +111,25 @@ class IslamicApiService
                 throw new Exception('Gagal memparse response JSON: ' . json_last_error_msg());
             }
 
-            if (!isset($data['items']) || empty($data['items'])) {
+            if (!isset($data['data']['timings']) || empty($data['data']['timings'])) {
                 throw new Exception('Data jadwal sholat tidak ditemukan untuk kota: ' . $city);
             }
 
+            $timings = $data['data']['timings'];
+
             return [
                 'success' => true,
-                'city' => $data['query'] ?? $city,
-                'country' => $data['country'] ?? '',
-                'timezone' => $data['timezone'] ?? '',
-                'date' => $data['items'][0]['date_for'] ?? date('Y-m-d'),
+                'city' => $city,
+                'country' => 'Indonesia',
+                'timezone' => $data['data']['meta']['timezone'] ?? 'Asia/Jakarta',
+                'date' => $date ?? date('Y-m-d'),
                 'prayer_times' => [
-                    'fajr' => $data['items'][0]['fajr'] ?? '',
-                    'shurooq' => $data['items'][0]['shurooq'] ?? '',
-                    'dhuhr' => $data['items'][0]['dhuhr'] ?? '',
-                    'asr' => $data['items'][0]['asr'] ?? '',
-                    'maghrib' => $data['items'][0]['maghrib'] ?? '',
-                    'isha' => $data['items'][0]['isha'] ?? '',
+                    'fajr' => $timings['Fajr'] ?? '',
+                    'shurooq' => $timings['Sunrise'] ?? '',
+                    'dhuhr' => $timings['Dhuhr'] ?? '',
+                    'asr' => $timings['Asr'] ?? '',
+                    'maghrib' => $timings['Maghrib'] ?? '',
+                    'isha' => $timings['Isha'] ?? '',
                 ],
                 'raw_data' => $data
             ];
@@ -157,13 +159,8 @@ class IslamicApiService
                 throw new Exception('Koordinat tidak valid');
             }
 
-            $url = self::MUSLIMSALAT_BASE_URL . '/' . $lat . ',' . $long . '.json';
-            
-            if ($date) {
-                $url .= '?key=free&date=' . $date;
-            } else {
-                $url .= '?key=free';
-            }
+            $dateFormatted = !empty($date) ? date('d-m-Y', strtotime($date)) : date('d-m-Y');
+            $url = self::ALADHAN_BASE_URL . '/timings/' . $dateFormatted . '?latitude=' . $lat . '&longitude=' . $long . '&method=20';
 
             $response = $this->client->get($url);
             $statusCode = $response->getStatusCode();
@@ -179,23 +176,25 @@ class IslamicApiService
                 throw new Exception('Gagal memparse response JSON: ' . json_last_error_msg());
             }
 
-            if (!isset($data['items']) || empty($data['items'])) {
+            if (!isset($data['data']['timings']) || empty($data['data']['timings'])) {
                 throw new Exception('Data jadwal sholat tidak ditemukan untuk koordinat: ' . $lat . ',' . $long);
             }
+
+            $timings = $data['data']['timings'];
 
             return [
                 'success' => true,
                 'latitude' => $lat,
                 'longitude' => $long,
-                'timezone' => $data['timezone'] ?? '',
-                'date' => $data['items'][0]['date_for'] ?? date('Y-m-d'),
+                'timezone' => $data['data']['meta']['timezone'] ?? 'Asia/Jakarta',
+                'date' => $date ?? date('Y-m-d'),
                 'prayer_times' => [
-                    'fajr' => $data['items'][0]['fajr'] ?? '',
-                    'shurooq' => $data['items'][0]['shurooq'] ?? '',
-                    'dhuhr' => $data['items'][0]['dhuhr'] ?? '',
-                    'asr' => $data['items'][0]['asr'] ?? '',
-                    'maghrib' => $data['items'][0]['maghrib'] ?? '',
-                    'isha' => $data['items'][0]['isha'] ?? '',
+                    'fajr' => $timings['Fajr'] ?? '',
+                    'shurooq' => $timings['Sunrise'] ?? '',
+                    'dhuhr' => $timings['Dhuhr'] ?? '',
+                    'asr' => $timings['Asr'] ?? '',
+                    'maghrib' => $timings['Maghrib'] ?? '',
+                    'isha' => $timings['Isha'] ?? '',
                 ],
                 'raw_data' => $data
             ];

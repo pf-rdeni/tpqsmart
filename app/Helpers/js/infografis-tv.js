@@ -1586,34 +1586,59 @@ $(document).ready(function () {
         const defaultCity = "Bintan";
         $('#sholat-lokasi').text(defaultCity);
 
-        // Fetch dari MuslimSalat client-side API
-        // Gunakan JSONP untuk menghindari CORS
-        const url = `https://muslimsalat.com/${defaultCity}.json?key=free&jsoncallback=?`;
+        // Fetch dari Aladhan client-side API (dengan fallback backend)
+        const today = new Date();
+        const dd = String(today.getDate()).padStart(2, '0');
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const yyyy = today.getFullYear();
+        const dateStr = `${dd}-${mm}-${yyyy}`;
+        const url = `https://api.aladhan.com/v1/timingsByCity/${dateStr}?city=${encodeURIComponent(defaultCity)}&country=Indonesia&method=20`;
 
-        $.getJSON(url, function (data) {
-            if (data && data.items && data.items.length > 0) {
-                const item = data.items[0];
-                prayerTimes = {
-                    "fajr": item.fajr,
-                    "shurooq": item.shurooq,
-                    "dhuhr": item.dhuhr,
-                    "asr": item.asr,
-                    "maghrib": item.maghrib,
-                    "isha": item.isha
-                };
+        function applyPrayerData(times) {
+            prayerTimes = {
+                "fajr": times.fajr || times.Fajr,
+                "shurooq": times.shurooq || times.Sunrise,
+                "dhuhr": times.dhuhr || times.Dhuhr,
+                "asr": times.asr || times.Asr,
+                "maghrib": times.maghrib || times.Maghrib,
+                "isha": times.isha || times.Isha
+            };
 
-                // Inject UI times
-                $('#sholat-subuh').text(item.fajr);
-                $('#sholat-syuruq').text(item.shurooq);
-                $('#sholat-dzuhur').text(item.dhuhr);
-                $('#sholat-ashar').text(item.asr);
-                $('#sholat-maghrib').text(item.maghrib);
-                $('#sholat-isya').text(item.isha);
+            // Inject UI times
+            $('#sholat-subuh').text(prayerTimes.fajr);
+            $('#sholat-syuruq').text(prayerTimes.shurooq);
+            $('#sholat-dzuhur').text(prayerTimes.dhuhr);
+            $('#sholat-ashar').text(prayerTimes.asr);
+            $('#sholat-maghrib').text(prayerTimes.maghrib);
+            $('#sholat-isya').text(prayerTimes.isha);
 
-                // Start countdown loop
-                startPrayerCountdown(prayerOrder, prayerNames);
-            }
-        });
+            // Start countdown loop
+            startPrayerCountdown(prayerOrder, prayerNames);
+        }
+
+        fetch(url)
+            .then(res => res.json())
+            .then(data => {
+                if (data && data.code === 200 && data.data && data.data.timings) {
+                    applyPrayerData(data.data.timings);
+                } else {
+                    throw new Error("Aladhan API response invalid");
+                }
+            })
+            .catch(err => {
+                console.warn("Gagal fetch Aladhan API client-side, mencoba fallback ke backend API...", err);
+                const backendUrl = `${window.location.origin}/backend/jadwal-sholat/${encodeURIComponent(defaultCity)}?format=json`;
+                fetch(backendUrl)
+                    .then(res => res.json())
+                    .then(bData => {
+                        if (bData && bData.success && bData.prayer_times) {
+                            applyPrayerData(bData.prayer_times);
+                        }
+                    })
+                    .catch(bErr => {
+                        console.error("Gagal mengambil data jadwal sholat dari backend:", bErr);
+                    });
+            });
     }
 
     function startPrayerCountdown(order, names) {
