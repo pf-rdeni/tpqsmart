@@ -276,7 +276,11 @@ class TvDigitalPublic extends BaseController
         // 6. Statistik Kelulusan Munaqosah per Tahun Ajaran
         $munaqosahGraduationStats = $this->getMunaqosahGraduationStats($idTpq);
 
-        return $this->response->setJSON([
+        return $this->response
+            ->setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+            ->setHeader('Pragma', 'no-cache')
+            ->setHeader('Expires', '0')
+            ->setJSON([
             'status' => 'success',
             'data' => [
                 'lembaga' => [
@@ -459,7 +463,11 @@ class TvDigitalPublic extends BaseController
             ];
         }
 
-        return $this->response->setJSON([
+        return $this->response
+            ->setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+            ->setHeader('Pragma', 'no-cache')
+            ->setHeader('Expires', '0')
+            ->setJSON([
             'status' => 'success',
             'data' => [
                 'mingguIni' => $harianThisWeek,

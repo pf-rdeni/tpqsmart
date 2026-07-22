@@ -65,20 +65,32 @@ $(document).ready(function () {
     // ==========================================
     // 2. DATA LOADER & DYNAMIC REFRESH
     // ==========================================
-    function loadData() {
-        // Destroy monthly charts to force recreate with fresh data on slide enter
-        if (charts['homeAbsensiChart']) {
-            charts['homeAbsensiChart'].destroy();
-            delete charts['homeAbsensiChart'];
-        }
-        if (charts['homeAbsensiBarChart']) {
-            charts['homeAbsensiBarChart'].destroy();
-            delete charts['homeAbsensiBarChart'];
-        }
+    let lastAppDataJson = null;
 
-        $.getJSON(`${baseUrl}/tv/api/data/${hashKey}`, function (response) {
+    function loadData() {
+        $.getJSON(`${baseUrl}/tv/api/data/${hashKey}?_=${Date.now()}`, function (response) {
             if (response.status === 'success') {
+                const currentJsonStr = JSON.stringify(response.data);
+
+                // Smart Comparison: Jika data dari server SAMA PERSIS dengan data sebelumnya di memori,
+                // tidak perlu merusak DOM/Chart. Cukup reset timer refresh secara halus (zero flicker & zero lag).
+                if (lastAppDataJson && lastAppDataJson === currentJsonStr) {
+                    refreshSecondsLeft = (appData.refreshInterval || 5) * 60;
+                    startRefreshTimer();
+                    return;
+                }
+
+                // Jika data BERBEDA / ADA PERUBAHAN:
+                lastAppDataJson = currentJsonStr;
                 appData = response.data;
+
+                // Destroy existing charts hanya saat data benar-benar berubah
+                Object.keys(charts).forEach(function(key) {
+                    if (charts[key]) {
+                        try { charts[key].destroy(); } catch(e) {}
+                        delete charts[key];
+                    }
+                });
 
                 // Update header & info
                 $('#tvLembagaName').text(appData.lembaga.nama);
@@ -94,7 +106,6 @@ $(document).ready(function () {
                 if (appData.activeBlocks && appData.activeBlocks.length > 0) {
                     $.each(appData.activeBlocks, function (i, block) {
                         let key = block.BlockKey;
-                        // Map home to home_fkpq for FKPQ
                         if (key === 'home' && appData.lembaga.isFkpq) {
                             key = 'home_fkpq';
                         }
@@ -102,7 +113,6 @@ $(document).ready(function () {
                     });
                 }
 
-                // Fallback jika tidak ada block aktif sama sekali
                 if (activeSlides.length === 0) {
                     if (appData.lembaga.isFkpq) {
                         activeSlides.push('home_fkpq');
@@ -111,26 +121,18 @@ $(document).ready(function () {
                     }
                 }
 
-                // Render dot indicators
                 buildDots();
-
-                // Populate Summary statistics cards
                 populateSummaryStats();
-
-                // Populate tables
                 populateTables();
 
-                // Fetch block specific data
                 fetchGaleri();
                 fetchAgenda();
                 fetchAbsensiCharts();
                 fetchUlangTahun();
 
-                // Start or adjust timers
-                refreshSecondsLeft = appData.refreshInterval * 60;
+                refreshSecondsLeft = (appData.refreshInterval || 5) * 60;
                 startRefreshTimer();
 
-                // Show first slide
                 showSlide(currentSlideIndex);
             }
         });
@@ -871,10 +873,13 @@ $(document).ready(function () {
     // 6. EXTERNAL GRAPH DATA AJAX FETCHERS
     // ==========================================
     function fetchMonthlyChartData(canvasId, type) {
-        if (charts[canvasId]) return; // Do not refetch if already loaded
+        if (charts[canvasId]) {
+            try { charts[canvasId].destroy(); } catch(e) {}
+            delete charts[canvasId];
+        }
 
         const colors = getChartThemeColors();
-        $.getJSON(`${baseUrl}/tv/api/absensi-santri/${hashKey}`, function (response) {
+        $.getJSON(`${baseUrl}/tv/api/absensi-santri/${hashKey}?_=${Date.now()}`, function (response) {
             if (response.status === 'success') {
                 const dates = Object.keys(response.data.bulanan);
                 const hadirValues = Object.values(response.data.bulanan).map(d => d.Hadir || 0);
@@ -1010,7 +1015,7 @@ $(document).ready(function () {
         const colors = getChartThemeColors();
 
         // 1. Santri Attendance Harian & Mingguan Charts
-        $.getJSON(`${baseUrl}/tv/api/absensi-santri/${hashKey}`, function (response) {
+        $.getJSON(`${baseUrl}/tv/api/absensi-santri/${hashKey}?_=${Date.now()}`, function (response) {
             if (response.status === 'success') {
                 // Update range 2 minggu title (Senin minggu lalu s/d Ahad minggu ini)
                 const today = new Date();
@@ -1274,7 +1279,7 @@ $(document).ready(function () {
     // 7. PHOTO GALLERY CAROUSEL (INNER LOOP)
     // ==========================================
     function fetchGaleri() {
-        $.getJSON(`${baseUrl}/tv/api/galeri/${hashKey}`, function (response) {
+        $.getJSON(`${baseUrl}/tv/api/galeri/${hashKey}?_=${Date.now()}`, function (response) {
             if (response.status === 'success') {
                 galeriData = response.data;
             }
@@ -1312,7 +1317,7 @@ $(document).ready(function () {
     // 8. AGENDA SLIDE
     // ==========================================
     function fetchAgenda() {
-        $.getJSON(`${baseUrl}/tv/api/agenda/${hashKey}`, function (response) {
+        $.getJSON(`${baseUrl}/tv/api/agenda/${hashKey}?_=${Date.now()}`, function (response) {
             if (response.status === 'success') {
                 // Populate slide agenda
                 let trHtml = '';
@@ -1485,7 +1490,7 @@ $(document).ready(function () {
             document.head.appendChild(s);
         }
 
-        $.getJSON(baseUrl + '/tv/api/ulang-tahun/' + hashKey, function (response) {
+        $.getJSON(`${baseUrl}/tv/api/ulang-tahun/${hashKey}?_=${Date.now()}`, function (response) {
             if (response.status !== 'success') return;
 
             // --- HOME WIDGET (Today/Nearest Guru & Santri - showing all with the same closest date) ---
