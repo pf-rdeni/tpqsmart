@@ -64,7 +64,7 @@
                 <div class="stat-box-tv border-orange">
                     <div class="stat-icon"><i class="fas fa-calendar-check"></i></div>
                     <div class="stat-content">
-                        <span class="stat-label">Kehadiran Hari Ini</span>
+                        <span class="stat-label" id="homeKehadiranLabel">Kehadiran Hari Ini</span>
                         <h2 class="stat-number" id="homeKehadiranPersen">0%</h2>
                         <span class="stat-subtext" id="homeKehadiranRatio">Santri Hadir: 0/0</span>
                     </div>

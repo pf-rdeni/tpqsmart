@@ -183,20 +183,32 @@ $(document).ready(function () {
         }
         $('#homeMunaqosahLulus').text(totalMunaqosahLulusHome + ' Santri');
 
-        // Today attendance calculations
-        const totalTodayAbsen = stats.absensiSantriToday.Hadir + stats.absensiSantriToday.Izin + stats.absensiSantriToday.Sakit + stats.absensiSantriToday.Alfa;
-        if (totalTodayAbsen > 0) {
-            const pct = Math.round((stats.absensiSantriToday.Hadir / totalTodayAbsen) * 100);
-            $('#homeKehadiranPersen').text(pct + '%');
-        } else {
-            $('#homeKehadiranPersen').text('0%');
+        // Attendance calculations for Home Card
+        const totalTodayAbsen = (stats.absensiSantriToday ? (stats.absensiSantriToday.Hadir + stats.absensiSantriToday.Izin + stats.absensiSantriToday.Sakit + stats.absensiSantriToday.Alfa) : 0);
+        
+        let totalPekanIni = 0;
+        let hadirPekanIni = 0;
+        if (appData.ringkasanKehadiranMingguIni) {
+            const rkm = appData.ringkasanKehadiranMingguIni;
+            totalPekanIni = (rkm.Hadir || 0) + (rkm.Izin || 0) + (rkm.Sakit || 0) + (rkm.Alfa || 0);
+            hadirPekanIni = rkm.Hadir || 0;
         }
 
-        // Tampilkan ringkasan kehadiran pekan ini di subtext
-        if (appData.ringkasanKehadiranMingguIni) {
+        if (totalTodayAbsen > 0) {
+            const pct = Math.round((stats.absensiSantriToday.Hadir / totalTodayAbsen) * 100);
+            $('#homeKehadiranLabel').text('Kehadiran Hari Ini');
+            $('#homeKehadiranPersen').text(pct + '%');
+            const h = stats.absensiSantriToday;
+            $('#homeKehadiranRatio').html(`Hari Ini - H: <strong>${h.Hadir}</strong> | I: <strong>${h.Izin}</strong> | S: <strong>${h.Sakit}</strong> | A: <strong>${h.Alfa}</strong>`);
+        } else if (totalPekanIni > 0) {
+            const pct = Math.round((hadirPekanIni / totalPekanIni) * 100);
+            $('#homeKehadiranLabel').text('Kehadiran Pekan Ini');
+            $('#homeKehadiranPersen').text(pct + '%');
             const rkm = appData.ringkasanKehadiranMingguIni;
             $('#homeKehadiranRatio').html(`Pkn Ini - H: <strong>${rkm.Hadir}</strong> | I: <strong>${rkm.Izin}</strong> | S: <strong>${rkm.Sakit}</strong> | A: <strong>${rkm.Alfa}</strong>`);
         } else {
+            $('#homeKehadiranLabel').text('Kehadiran Hari Ini');
+            $('#homeKehadiranPersen').text('0%');
             $('#homeKehadiranRatio').text('Belum ada data absensi');
         }
 
