@@ -183,34 +183,38 @@ $(document).ready(function () {
         }
         $('#homeMunaqosahLulus').text(totalMunaqosahLulusHome + ' Santri');
 
-        // Attendance calculations for Home Card
+        // Attendance calculations for Home Card (Dual Info: Harian & Pekanan)
         const totalTodayAbsen = (stats.absensiSantriToday ? (stats.absensiSantriToday.Hadir + stats.absensiSantriToday.Izin + stats.absensiSantriToday.Sakit + stats.absensiSantriToday.Alfa) : 0);
-        
-        let totalPekanIni = 0;
-        let hadirPekanIni = 0;
-        if (appData.ringkasanKehadiranMingguIni) {
-            const rkm = appData.ringkasanKehadiranMingguIni;
-            totalPekanIni = (rkm.Hadir || 0) + (rkm.Izin || 0) + (rkm.Sakit || 0) + (rkm.Alfa || 0);
-            hadirPekanIni = rkm.Hadir || 0;
-        }
+        const totalSantriAktif = stats.totalSantri || 1;
 
+        // 1. HARIAN (Hari Ini atau Kemarin/Terakhir Input)
         if (totalTodayAbsen > 0) {
-            const totalSantriAktif = stats.totalSantri || totalTodayAbsen;
-            const pct = Math.round((stats.absensiSantriToday.Hadir / totalSantriAktif) * 100);
-            $('#homeKehadiranLabel').text('Kehadiran Hari Ini');
-            $('#homeKehadiranPersen').text(pct + '%');
+            const pctToday = Math.round((stats.absensiSantriToday.Hadir / totalSantriAktif) * 100);
+            $('#homeKehadiranLabel').html('<i class="fas fa-calendar-day text-warning"></i> Kehadiran Hari Ini');
+            $('#homeKehadiranPersen').text(pctToday + '%');
             const h = stats.absensiSantriToday;
             $('#homeKehadiranRatio').html(`Hari Ini - H: <strong>${h.Hadir}/${totalSantriAktif}</strong> | I: <strong>${h.Izin}</strong> | S: <strong>${h.Sakit}</strong> | A: <strong>${h.Alfa}</strong>`);
-        } else if (totalPekanIni > 0) {
-            const pct = Math.round((hadirPekanIni / totalPekanIni) * 100);
-            $('#homeKehadiranLabel').text('Kehadiran Pekan Ini');
-            $('#homeKehadiranPersen').text(pct + '%');
-            const rkm = appData.ringkasanKehadiranMingguIni;
-            $('#homeKehadiranRatio').html(`Pkn Ini - H: <strong>${rkm.Hadir}</strong> | I: <strong>${rkm.Izin}</strong> | S: <strong>${rkm.Sakit}</strong> | A: <strong>${rkm.Alfa}</strong>`);
+        } else if (stats.absensiSantriLast && stats.absensiSantriLast.Tanggal) {
+            const last = stats.absensiSantriLast;
+            const pctLast = Math.round((last.Hadir / totalSantriAktif) * 100);
+            const tglStr = last.TanggalFormatted || last.Tanggal;
+            $('#homeKehadiranLabel').html(`<i class="fas fa-history text-warning"></i> Kehadiran Terakhir (${tglStr})`);
+            $('#homeKehadiranPersen').text(pctLast + '%');
+            $('#homeKehadiranRatio').html(`Tgl ${tglStr} - H: <strong>${last.Hadir}/${totalSantriAktif}</strong> | I: <strong>${last.Izin}</strong> | S: <strong>${last.Sakit}</strong> | A: <strong>${last.Alfa}</strong>`);
         } else {
-            $('#homeKehadiranLabel').text('Kehadiran Hari Ini');
+            $('#homeKehadiranLabel').html('<i class="fas fa-calendar-day text-warning"></i> Kehadiran Hari Ini');
             $('#homeKehadiranPersen').text('0%');
-            $('#homeKehadiranRatio').text('Belum ada data absensi');
+            $('#homeKehadiranRatio').text('Belum ada data absensi harian');
+        }
+
+        // 2. PEKANAN (Pekan Ini)
+        if (appData.ringkasanKehadiranMingguIni) {
+            const rkm = appData.ringkasanKehadiranMingguIni;
+            const totalPekan = (rkm.Hadir || 0) + (rkm.Izin || 0) + (rkm.Sakit || 0) + (rkm.Alfa || 0);
+            const pctPekan = totalPekan > 0 ? Math.round(((rkm.Hadir || 0) / totalPekan) * 100) : 0;
+            $('#homeKehadiranPekanSubtext').html(`<i class="fas fa-calendar-week text-info"></i> Pkn Ini: <strong>${pctPekan}%</strong> (H: <strong>${rkm.Hadir || 0}</strong> | I: <strong>${rkm.Izin || 0}</strong> | S: <strong>${rkm.Sakit || 0}</strong> | A: <strong>${rkm.Alfa || 0}</strong>)`);
+        } else {
+            $('#homeKehadiranPekanSubtext').html('<i class="fas fa-calendar-week text-info"></i> Pkn Ini: Belum ada data');
         }
 
         // FKPQ Home

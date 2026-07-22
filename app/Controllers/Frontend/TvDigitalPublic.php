@@ -130,6 +130,41 @@ class TvDigitalPublic extends BaseController
             }
         }
 
+        // Absensi Santri Terakhir (jika hari ini belum di-input)
+        $statAbsensiSantriLast = ['Tanggal' => null, 'TanggalFormatted' => null, 'Hadir' => 0, 'Izin' => 0, 'Sakit' => 0, 'Alfa' => 0];
+        $totalTodayCount = array_sum($statAbsensiSantriToday);
+        if ($totalTodayCount == 0) {
+            $builderLastDate = $this->db->table('tbl_absensi_santri')
+                                        ->select('Tanggal')
+                                        ->where('Tanggal <', $today);
+            if (!empty($idTpq) && $idTpq != '0') {
+                $builderLastDate->where('IdTpq', $idTpq);
+            }
+            $lastDateRow = $builderLastDate->orderBy('Tanggal', 'DESC')->get()->getRowArray();
+            
+            if (!empty($lastDateRow['Tanggal'])) {
+                $lastDate = $lastDateRow['Tanggal'];
+                $statAbsensiSantriLast['Tanggal'] = $lastDate;
+                $statAbsensiSantriLast['TanggalFormatted'] = date('d/m', strtotime($lastDate));
+                
+                $bLast = $this->db->table('tbl_absensi_santri');
+                if (!empty($idTpq) && $idTpq != '0') {
+                    $bLast->where('IdTpq', $idTpq);
+                }
+                $lastRows = $bLast->where('Tanggal', $lastDate)
+                                  ->select('Kehadiran, COUNT(*) as count')
+                                  ->groupBy('Kehadiran')
+                                  ->get()
+                                  ->getResultArray();
+                foreach ($lastRows as $row) {
+                    $kehadiran = ucfirst(strtolower($row['Kehadiran']));
+                    if (isset($statAbsensiSantriLast[$kehadiran])) {
+                        $statAbsensiSantriLast[$kehadiran] = (int)$row['count'];
+                    }
+                }
+            }
+        }
+
         // Absensi Guru Hari Ini (StatusKehadiran: Hadir, Izin, Sakit, Alfa dll)
         $builderAbsensiGuru = $this->db->table('tbl_absensi_guru ag');
         $builderAbsensiGuru->join('tbl_guru g', 'CONVERT(g.IdGuru USING utf8) = CONVERT(ag.IdGuru USING utf8)');
@@ -259,6 +294,7 @@ class TvDigitalPublic extends BaseController
                     'guruLaki' => (int)$statGuru['laki_laki'],
                     'guruPerempuan' => (int)$statGuru['perempuan'],
                     'absensiSantriToday' => $statAbsensiSantriToday,
+                    'absensiSantriLast' => $statAbsensiSantriLast,
                     'absensiGuruToday' => $statAbsensiGuruToday
                 ],
                 'santriPerKelas' => $statSantri['per_kelas'],

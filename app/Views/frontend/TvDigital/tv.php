@@ -63,10 +63,11 @@
                 </div>
                 <div class="stat-box-tv border-orange">
                     <div class="stat-icon"><i class="fas fa-calendar-check"></i></div>
-                    <div class="stat-content">
+                    <div class="stat-content w-100">
                         <span class="stat-label" id="homeKehadiranLabel">Kehadiran Hari Ini</span>
                         <h2 class="stat-number" id="homeKehadiranPersen">0%</h2>
-                        <span class="stat-subtext" id="homeKehadiranRatio">Santri Hadir: 0/0</span>
+                        <span class="stat-subtext" id="homeKehadiranRatio">H: 0/0 | I: 0 | S: 0 | A: 0</span>
+                        <span class="stat-subtext text-info mt-1" style="font-size: 0.72rem; border-top: 1px dashed rgba(255,255,255,0.12); padding-top: 3px;" id="homeKehadiranPekanSubtext">Pkn Ini: 0% (H: 0 | I: 0 | S: 0 | A: 0)</span>
                     </div>
                 </div>
             </div>
