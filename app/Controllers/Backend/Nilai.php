@@ -1647,4 +1647,470 @@ class Nilai extends BaseController
             ]);
         }
     }
+
+    /**
+     * AJAX — Salin nilai Ujian MDTA terbaik ke tabel nilai santri (`tbl_nilai`).
+     */
+    public function copyNilaiUjianMdta()
+    {
+        $idSantri      = $this->request->getPost('IdSantri');
+        $idMateri      = $this->request->getPost('IdMateri');
+        $idTahunAjaran = $this->request->getPost('IdTahunAjaran') ?? session()->get('IdTahunAjaran');
+        $semester      = $this->request->getPost('Semester') ?? '1';
+
+        if (empty($idSantri) || empty($idMateri)) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Parameter tidak lengkap.']);
+        }
+
+        // Cari nilai Ujian MDTA terbaik untuk santri, materi, dan semester ini
+        $builder = $this->db->table('tbl_ujian_mdta_sesi sesi');
+        $builder->select('sesi.NilaiAkhir');
+        $builder->join('tbl_ujian_mdta_jadwal j', 'j.id = sesi.IdJadwal');
+        $builder->join('tbl_ujian_mdta_paket p', 'p.id = j.IdPaket');
+        $builder->where('sesi.IdSantri', $idSantri);
+        $builder->where('p.IdMateri', $idMateri);
+        $builder->where('j.Semester', (strtolower($semester) == 'genap' || $semester == '2') ? 2 : 1);
+        $builder->where('sesi.StatusSesi IN ("selesai", "timeout")');
+        $builder->orderBy('sesi.NilaiAkhir', 'DESC');
+        $row = $builder->get()->getRowArray();
+
+        if (!$row || $row['NilaiAkhir'] === null) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Nilai Ujian MDTA tidak ditemukan untuk santri dan materi ini.']);
+        }
+
+        $nilaiUjian = (float)$row['NilaiAkhir'];
+
+        return $this->response->setJSON([
+            'success' => true,
+            'nilai'   => $nilaiUjian,
+            'message' => "Berhasil mengambil nilai Ujian MDTA: {$nilaiUjian}",
+        ]);
+    }
+
+    /**
+     * Helper — Cari record nilai eksisting di tbl_nilai secara ultra-presisi
+     * berdasarkan IdSantri, IdMateri, IdTahunAjaran, Semester, IdTpq, dan IdKelas.
+     */
+    private function findExistingNilaiRow(string $santriId, string $materiId, string $idTahunAjaran, array $semVariants, ?string $idTpq = null, ?string $idKelas = null)
+    {
+        $builder = $this->db->table('tbl_nilai')
+            ->where('IdSantri', $santriId)
+            ->where('IdMateri', $materiId)
+            ->where('IdTahunAjaran', $idTahunAjaran)
+            ->whereIn('Semester', $semVariants);
+
+        if (!empty($idTpq) && (string)$idTpq !== '0') {
+            $builder->where('IdTpq', $idTpq);
+        }
+
+        if (!empty($idKelas) && (string)$idKelas !== '0') {
+            $builder->where('IdKelas', $idKelas);
+        }
+
+        return $builder->orderBy('Id', 'DESC')->get()->getRowArray();
+    }
+
+    /**
+     * AJAX — Salin masal nilai Ujian MDTA terbaik seluruh santri dalam 1 kelas / santri individual ke tabel nilai (`tbl_nilai`).
+     */
+    public function copyNilaiUjianMdtaBulkKelas()
+    {
+        $idSantriParam = $this->request->getPost('IdSantri');
+        $idKelas       = $this->request->getPost('IdKelas');
+        $idTpq         = $this->request->getPost('IdTpq') ?? session()->get('IdTpq') ?? '0';
+        $idTahunAjaran = $this->request->getPost('IdTahunAjaran') ?? session()->get('IdTahunAjaran');
+        $semester      = $this->request->getPost('Semester') ?? '1';
+        $semText       = (strtolower((string)$semester) === 'genap' || (string)$semester === '2') ? 'Genap' : 'Ganjil';
+        $semNum        = ($semText === 'Genap') ? '2' : '1';
+        $semVariants   = [$semText, $semNum];
+        $idGuru        = session()->get('IdGuru') ?? '0';
+
+        if (empty($idKelas) && empty($idSantriParam)) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Parameter tidak lengkap.']);
+        }
+
+        // Jika IdSantri diberikan (misal dari halaman detail 1 santri), prioritaskan santri tersebut saja!
+        if (!empty($idSantriParam)) {
+            $santriIds = [(string)$idSantriParam];
+        } else {
+            // Ambil seluruh santri aktif di kelas ini (dengan filter IdTpq & IdTahunAjaran & IdKelas)
+            $santriBuilder = $this->db->table('tbl_kelas_santri')
+                ->select('IdSantri, IdTpq, IdKelas')
+                ->where('IdKelas', $idKelas)
+                ->where('IdTahunAjaran', $idTahunAjaran)
+                ->where('Status', 1);
+
+            if (!empty($idTpq) && (string)$idTpq !== '0') {
+                $santriBuilder->where('IdTpq', $idTpq);
+            }
+
+            $santriRows = $santriBuilder->get()->getResultArray();
+
+            if (empty($santriRows)) {
+                return $this->response->setJSON(['success' => false, 'message' => 'Tidak ada santri aktif di kelas ini.']);
+            }
+
+            $santriIds = array_column($santriRows, 'IdSantri');
+        }
+
+        // Cari nilai Ujian MDTA terbaik per santri & per materi
+        $builder = $this->db->table('tbl_ujian_mdta_sesi sesi');
+        $builder->select('sesi.IdSantri, p.IdMateri, MAX(sesi.NilaiAkhir) as NilaiTerbaik');
+        $builder->join('tbl_ujian_mdta_jadwal j', 'j.id = sesi.IdJadwal');
+        $builder->join('tbl_ujian_mdta_paket p', 'p.id = j.IdPaket');
+        $builder->whereIn('sesi.IdSantri', $santriIds);
+        $builder->whereIn('j.Semester', $semVariants);
+        $builder->whereIn('sesi.StatusSesi', ['selesai', 'timeout']);
+        $builder->groupBy('sesi.IdSantri, p.IdMateri');
+
+        $results = $builder->get()->getResultArray();
+
+        if (empty($results)) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Belum ada data nilai Ujian MDTA (UMBK) yang selesai untuk santri/kelas ini pada semester yang dipilih.']);
+        }
+
+        $importedCount = 0;
+        foreach ($results as $row) {
+            if ($row['NilaiTerbaik'] !== null) {
+                $numNilai = round((float)$row['NilaiTerbaik'], 2);
+                $santriId = (string)$row['IdSantri'];
+                $materiId = (string)$row['IdMateri'];
+
+                // Cek apakah data nilai sudah ada di tbl_nilai (secara ultra-presisi: IdSantri, IdMateri, IdTahunAjaran, Semester, IdTpq, IdKelas)
+                $existing = $this->findExistingNilaiRow($santriId, $materiId, (string)$idTahunAjaran, $semVariants, (string)$idTpq, (string)$idKelas);
+
+                if ($existing) {
+                    // Update data yang sudah ada — TIDAK MEMBUAT ROW DUPLIKAT
+                    $this->db->table('tbl_nilai')
+                        ->where('Id', $existing['Id'])
+                        ->update([
+                            'Nilai'      => $numNilai,
+                            'IdGuru'     => $idGuru,
+                            'updated_at' => date('Y-m-d H:i:s'),
+                        ]);
+                } else {
+                    // Jika belum pernah ada record sama sekali di tbl_nilai untuk presisi ini, baru lakukan insert
+                    $targetKelas = !empty($idKelas) ? $idKelas : ($existing['IdKelas'] ?? session()->get('IdKelas') ?? '');
+                    $this->db->table('tbl_nilai')->insert([
+                        'IdTpq'         => $idTpq,
+                        'IdSantri'      => $santriId,
+                        'IdKelas'       => $targetKelas,
+                        'IdMateri'      => $materiId,
+                        'IdGuru'        => $idGuru,
+                        'IdTahunAjaran' => $idTahunAjaran,
+                        'Semester'      => $semText,
+                        'Nilai'         => $numNilai,
+                        'created_at'    => date('Y-m-d H:i:s'),
+                        'updated_at'    => date('Y-m-d H:i:s'),
+                    ]);
+                }
+                $importedCount++;
+            }
+        }
+
+        // Clear cache
+        $this->DataNilai->clearNilaiCache();
+
+        return $this->response->setJSON([
+            'success'       => true,
+            'totalImported' => $importedCount,
+            'message'       => 'Berhasil menarik & menyimpan ' . $importedCount . ' nilai Ujian MDTA!',
+        ]);
+    }
+
+    /**
+     * AJAX — Ambil rincian ketersediaan nilai Ujian MDTA (CBT) per materi untuk seorang santri / kelas.
+     * Mengembalikan status per materi, nilai CBT, status sudah ditarik/belum, dan rekomendasi warna tombol.
+     */
+    public function getMdtaStatusInfo()
+    {
+        $idSantri      = $this->request->getGet('IdSantri') ?? $this->request->getPost('IdSantri');
+        $idKelas       = $this->request->getGet('IdKelas') ?? $this->request->getPost('IdKelas');
+        $idTpq         = $this->request->getGet('IdTpq') ?? $this->request->getPost('IdTpq') ?? session()->get('IdTpq');
+        $idTahunAjaran = $this->request->getGet('IdTahunAjaran') ?? session()->get('IdTahunAjaran');
+        $semester      = $this->request->getGet('Semester') ?? $this->request->getPost('Semester') ?? '1';
+        $semText       = (strtolower((string)$semester) === 'genap' || (string)$semester === '2') ? 'Genap' : 'Ganjil';
+        $semNum        = ($semText === 'Genap') ? '2' : '1';
+        $semVariants   = [$semText, $semNum];
+
+        if (empty($idSantri) && empty($idKelas)) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Parameter tidak lengkap.']);
+        }
+
+        // 1. Ambil seluruh materi pelajaran grup MDTA untuk kelas ini (tanpa duplikat)
+        $materiList = [];
+        if (!empty($idKelas)) {
+            $materiRows = $this->db->table('tbl_kelas_materi_pelajaran kmp')
+                ->select('m.IdMateri, m.NamaMateri, m.Kategori')
+                ->join('tbl_materi_pelajaran m', 'm.IdMateri = kmp.IdMateri')
+                ->where('kmp.IdKelas', $idKelas)
+                ->groupStart()
+                    ->like('m.Kategori', 'MDTA')
+                    ->orLike('m.Kategori', 'MDA')
+                    ->orWhereIn('m.IdKategori', ['KM009', 'KM010'])
+                ->groupEnd()
+                ->groupBy('m.IdMateri')
+                ->orderBy('m.NamaMateri', 'ASC')
+                ->get()->getResultArray();
+            $materiList = $materiRows;
+        }
+
+        if (empty($materiList)) {
+            // Fallback ke daftar materi MDTA/MDA umum (tanpa duplikat)
+            $materiList = $this->db->table('tbl_materi_pelajaran m')
+                ->select('m.IdMateri, m.NamaMateri, m.Kategori')
+                ->groupStart()
+                    ->like('m.Kategori', 'MDTA')
+                    ->orLike('m.Kategori', 'MDA')
+                    ->orWhereIn('m.IdKategori', ['KM009', 'KM010'])
+                ->groupEnd()
+                ->groupBy('m.IdMateri')
+                ->orderBy('m.NamaMateri', 'ASC')
+                ->get()->getResultArray();
+        }
+
+        $totalMateriCount = count($materiList);
+
+        // Jika request khusus santri individual ($idSantri)
+        if (!empty($idSantri)) {
+            // 2. Ambil nilai CBT terbaik per materi untuk santri ini
+            $cbtBuilder = $this->db->table('tbl_ujian_mdta_sesi sesi');
+            $cbtBuilder->select('p.IdMateri, MAX(sesi.NilaiAkhir) as NilaiCbt');
+            $cbtBuilder->join('tbl_ujian_mdta_jadwal j', 'j.id = sesi.IdJadwal');
+            $cbtBuilder->join('tbl_ujian_mdta_paket p', 'p.id = j.IdPaket');
+            $cbtBuilder->where('sesi.IdSantri', $idSantri);
+            $cbtBuilder->whereIn('j.Semester', $semVariants);
+            $cbtBuilder->whereIn('sesi.StatusSesi', ['selesai', 'timeout']);
+            $cbtBuilder->groupBy('p.IdMateri');
+            $cbtRows = $cbtBuilder->get()->getResultArray();
+
+            $cbtMap = [];
+            foreach ($cbtRows as $cr) {
+                if ($cr['NilaiCbt'] !== null) {
+                    $cbtMap[$cr['IdMateri']] = round((float)$cr['NilaiCbt'], 2);
+                }
+            }
+
+            // 3. Ambil nilai yang sudah ada di tbl_nilai untuk santri ini (ultra-presisi)
+            $existingNilaiBuilder = $this->db->table('tbl_nilai')
+                ->select('IdMateri, Nilai')
+                ->where('IdSantri', $idSantri)
+                ->where('IdTahunAjaran', $idTahunAjaran)
+                ->whereIn('Semester', $semVariants);
+
+            if (!empty($idTpq) && (string)$idTpq !== '0') {
+                $existingNilaiBuilder->where('IdTpq', $idTpq);
+            }
+            if (!empty($idKelas) && (string)$idKelas !== '0') {
+                $existingNilaiBuilder->where('IdKelas', $idKelas);
+            }
+
+            $existingNilaiRows = $existingNilaiBuilder->get()->getResultArray();
+
+            $existingMap = [];
+            foreach ($existingNilaiRows as $er) {
+                if ($er['Nilai'] !== null && $er['Nilai'] !== '' && (float)$er['Nilai'] > 0) {
+                    $existingMap[$er['IdMateri']] = (float)$er['Nilai'];
+                }
+            }
+
+            // 4. Rincian status per materi
+            $details = [];
+            $availableCbtCount = 0;
+            $alreadyPulledCount = 0;
+
+            foreach ($materiList as $m) {
+                $matId = $m['IdMateri'];
+                $matNama = $m['NamaMateri'];
+                $hasCbt = isset($cbtMap[$matId]);
+                $cbtVal = $hasCbt ? $cbtMap[$matId] : null;
+                $hasExisting = isset($existingMap[$matId]);
+                $existingVal = $hasExisting ? $existingMap[$matId] : null;
+
+                $isPulled = false;
+                if ($hasCbt) {
+                    $availableCbtCount++;
+                    if ($hasExisting && abs($existingVal - $cbtVal) < 0.01) {
+                        $isPulled = true;
+                        $alreadyPulledCount++;
+                    }
+                }
+
+                $details[] = [
+                    'IdMateri'    => $matId,
+                    'NamaMateri'  => $matNama,
+                    'hasCbt'      => $hasCbt,
+                    'nilaiCbt'    => $cbtVal,
+                    'hasExisting' => $hasExisting,
+                    'nilaiRapor'  => $existingVal,
+                    'isPulled'    => $isPulled,
+                ];
+            }
+
+            // Tentukan indikator warna tombol:
+            // Hijau: Semua materi MDTA ada nilai CBT
+            // Kuning: Baru sebagian materi MDTA yang ada nilai CBT
+            // Merah: Belum ada nilai CBT sama sekali
+            // Abu-abu (Gray/Secondary): Semua nilai CBT yang ada SUDAH ditarik / diinput
+            $buttonColor = 'danger';
+            $btnClass    = 'btn-danger';
+
+            if ($availableCbtCount === 0) {
+                $buttonColor = 'danger';
+                $btnClass    = 'btn-danger';
+            } else if ($alreadyPulledCount === $availableCbtCount && $availableCbtCount > 0) {
+                $buttonColor = 'secondary';
+                $btnClass    = 'btn-secondary';
+            } else if ($availableCbtCount >= $totalMateriCount && $totalMateriCount > 0) {
+                $buttonColor = 'success';
+                $btnClass    = 'btn-success';
+            } else {
+                $buttonColor = 'warning';
+                $btnClass    = 'btn-warning';
+            }
+
+            return $this->response->setJSON([
+                'success'            => true,
+                'totalMateri'        => $totalMateriCount,
+                'availableCbtCount'  => $availableCbtCount,
+                'alreadyPulledCount' => $alreadyPulledCount,
+                'buttonColor'        => $buttonColor,
+                'btnClass'           => $btnClass,
+                'details'            => $details,
+            ]);
+        }
+
+        // Jika request kelas masal ($idKelas tanpa $idSantri)
+        if (!empty($idKelas)) {
+            // Ambil daftar santri aktif di kelas ini (presisi IdKelas, IdTpq, IdTahunAjaran)
+            $santriBuilder = $this->db->table('tbl_kelas_santri ks')
+                ->select('ks.IdSantri, s.NamaSantri')
+                ->join('tbl_santri_baru s', 's.IdSantri = ks.IdSantri')
+                ->where('ks.IdKelas', $idKelas)
+                ->where('ks.IdTahunAjaran', $idTahunAjaran)
+                ->where('ks.Status', 1);
+
+            if (!empty($idTpq) && (string)$idTpq !== '0') {
+                $santriBuilder->where('ks.IdTpq', $idTpq);
+            }
+
+            $santriRows = $santriBuilder->orderBy('s.NamaSantri', 'ASC')->get()->getResultArray();
+            $santriIds  = array_column($santriRows, 'IdSantri');
+
+            // Ambil semua sesi UMBK/CBT untuk santri di kelas ini
+            $cbtMapPerSantri = [];
+            if (!empty($santriIds)) {
+                $cbtBuilder = $this->db->table('tbl_ujian_mdta_sesi sesi');
+                $cbtBuilder->select('sesi.IdSantri, p.IdMateri, MAX(sesi.NilaiAkhir) as NilaiCbt');
+                $cbtBuilder->join('tbl_ujian_mdta_jadwal j', 'j.id = sesi.IdJadwal');
+                $cbtBuilder->join('tbl_ujian_mdta_paket p', 'p.id = j.IdPaket');
+                $cbtBuilder->whereIn('sesi.IdSantri', $santriIds);
+                $cbtBuilder->whereIn('j.Semester', $semVariants);
+                $cbtBuilder->whereIn('sesi.StatusSesi', ['selesai', 'timeout']);
+                $cbtBuilder->groupBy('sesi.IdSantri, p.IdMateri');
+                $cbtRows = $cbtBuilder->get()->getResultArray();
+
+                foreach ($cbtRows as $cr) {
+                    if ($cr['NilaiCbt'] !== null) {
+                        $sId = (string)$cr['IdSantri'];
+                        $mId = (string)$cr['IdMateri'];
+                        if (!isset($cbtMapPerSantri[$sId])) {
+                            $cbtMapPerSantri[$sId] = [];
+                        }
+                        $cbtMapPerSantri[$sId][$mId] = round((float)$cr['NilaiCbt'], 2);
+                    }
+                }
+            }
+
+            // Ambil semua nilai eksisting di tbl_nilai untuk santri di kelas ini pada tahun ajaran & semester aktif (ultra-presisi)
+            $existingMapPerSantri = [];
+            if (!empty($santriIds)) {
+                $existingNilaiBuilder = $this->db->table('tbl_nilai')
+                    ->select('IdSantri, IdMateri, Nilai')
+                    ->whereIn('IdSantri', $santriIds)
+                    ->where('IdTahunAjaran', $idTahunAjaran)
+                    ->whereIn('Semester', $semVariants);
+
+                if (!empty($idTpq) && (string)$idTpq !== '0') {
+                    $existingNilaiBuilder->where('IdTpq', $idTpq);
+                }
+                if (!empty($idKelas) && (string)$idKelas !== '0') {
+                    $existingNilaiBuilder->where('IdKelas', $idKelas);
+                }
+
+                $existingNilaiRows = $existingNilaiBuilder->get()->getResultArray();
+
+                foreach ($existingNilaiRows as $er) {
+                    if ($er['Nilai'] !== null && $er['Nilai'] !== '' && (float)$er['Nilai'] > 0) {
+                        $sId = (string)$er['IdSantri'];
+                        $mId = (string)$er['IdMateri'];
+                        if (!isset($existingMapPerSantri[$sId])) {
+                            $existingMapPerSantri[$sId] = [];
+                        }
+                        $existingMapPerSantri[$sId][$mId] = (float)$er['Nilai'];
+                    }
+                }
+            }
+
+            // Susun rincian per santri
+            $santriSummary = [];
+            $totalSantriAdaCbt = 0;
+
+            foreach ($santriRows as $s) {
+                $sId   = (string)$s['IdSantri'];
+                $sNama = $s['NamaSantri'];
+
+                $cbtData      = $cbtMapPerSantri[$sId] ?? [];
+                $cbtCount     = count($cbtData);
+                $existingData = $existingMapPerSantri[$sId] ?? [];
+
+                if ($cbtCount > 0) {
+                    $totalSantriAdaCbt++;
+                }
+
+                // Hitung berapa materi UMBK yang sudah ditarik/sama
+                $pulledCount = 0;
+                foreach ($cbtData as $mId => $valCbt) {
+                    if (isset($existingData[$mId]) && abs($existingData[$mId] - $valCbt) < 0.01) {
+                        $pulledCount++;
+                    }
+                }
+
+                $statusText = '';
+                $statusBadgeClass = '';
+                if ($cbtCount == 0) {
+                    $statusText = 'Belum Ujian';
+                    $statusBadgeClass = 'bg-danger';
+                } else if ($pulledCount == $cbtCount) {
+                    $statusText = 'Sudah Ditarik';
+                    $statusBadgeClass = 'bg-secondary';
+                } else {
+                    $statusText = 'Siap Ditarik (' . ($cbtCount - $pulledCount) . ' Materi)';
+                    $statusBadgeClass = 'bg-primary';
+                }
+
+                $santriSummary[] = [
+                    'IdSantri'          => $sId,
+                    'NamaSantri'        => $sNama,
+                    'availableCbtCount' => $cbtCount,
+                    'alreadyPulledCount'=> $pulledCount,
+                    'statusText'        => $statusText,
+                    'statusBadgeClass'  => $statusBadgeClass,
+                ];
+            }
+
+            return $this->response->setJSON([
+                'success'           => true,
+                'totalSantri'       => count($santriRows),
+                'totalSantriAdaCbt' => $totalSantriAdaCbt,
+                'totalMateri'       => $totalMateriCount,
+                'santriSummary'     => $santriSummary,
+            ]);
+        }
+
+        return $this->response->setJSON([
+            'success'     => true,
+            'totalMateri' => $totalMateriCount
+        ]);
+    }
 }

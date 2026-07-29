@@ -99,13 +99,19 @@
         ?>
 
         <div class="card-header">
-            <div class="d-flex justify-content-between align-items-center">
-                <h3 class="card-title">
+            <div class="d-flex justify-content-between align-items-center flex-wrap">
+                <h3 class="card-title mb-2 mb-md-0">
                     Data Nilai Santri <strong><?= $IdSantri . ' - ' . $NamaSantri ?></strong> Kelas <?= $NamaKelas ?> Tahun <?= $Tahun ?> Semester <?= $Semester ?>
                 </h3>
-                <a href="javascript:history.back()" class="btn btn-primary">
-                    <i class="fas fa-arrow-left"></i> Kembali
-                </a>
+                <div>
+                    <button type="button" class="btn btn-secondary btn-sm font-weight-bold shadow-sm mr-2 btn-tarik-mdta-santri" id="btnTarikMdtaSantri" data-id-santri="<?= $IdSantri ?>" data-nama-santri="<?= esc($NamaSantri) ?>">
+                        <i class="fas fa-file-import me-1"></i> Tarik Nilai Ujian MDTA
+                        <span class="badge badge-light text-dark ms-1" id="badgeMdtaCount">Memeriksa...</span>
+                    </button>
+                    <a href="javascript:history.back()" class="btn btn-primary btn-sm">
+                        <i class="fas fa-arrow-left"></i> Kembali
+                    </a>
+                </div>
             </div>
         </div> <!-- /.card-header -->
         <div class="card-body">
@@ -1717,5 +1723,180 @@ foreach ($nilai as $DataNilai) : ?>
             currentPageNilai = 1;
         });
     }
+
+    // 1. Auto-check CBT Status on page load for dynamic button color & badge
+    function checkMdtaButtonStatus() {
+        let idSantri = '<?= esc($IdSantri ?? '') ?>';
+        let idKelas  = '<?= esc($firstResult->IdKelas ?? '') ?>';
+        let semester = '<?= esc($Semester ?? '1') ?>';
+
+        if (!idSantri) return;
+
+        $.ajax({
+            url: '<?= base_url("backend/nilai/get-mdta-status-info") ?>',
+            type: 'GET',
+            data: {
+                IdSantri: idSantri,
+                IdKelas: idKelas,
+                Semester: semester
+            },
+            dataType: 'json',
+            success: function(res) {
+                if (res.success) {
+                    let btn = $('#btnTarikMdtaSantri');
+                    btn.removeClass('btn-secondary btn-success btn-warning btn-danger btn-outline-info');
+                    btn.addClass(res.btnClass);
+
+                    let badgeText = res.availableCbtCount + '/' + res.totalMateri + ' Materi';
+                    if (res.availableCbtCount > 0 && res.alreadyPulledCount === res.availableCbtCount) {
+                        badgeText += ' (Sudah Ditarik)';
+                    }
+                    $('#badgeMdtaCount').text(badgeText);
+                }
+            }
+        });
+    }
+
+    checkMdtaButtonStatus();
+
+    // 2. Interactive Popup Handler on click
+    $(document).on('click', '.btn-tarik-mdta-santri', function(e) {
+        e.preventDefault();
+
+        let idSantri    = $(this).data('id-santri') || '<?= esc($IdSantri ?? '') ?>';
+        let namaSantri  = $(this).data('nama-santri') || '<?= esc($NamaSantri ?? '') ?>';
+        let idKelas     = '<?= esc($firstResult->IdKelas ?? '') ?>';
+        let semesterVal = '<?= esc($Semester ?? '1') ?>';
+
+        Swal.fire({
+            title: 'Memeriksa Data UMBK...',
+            html: 'Sedang mengecek ketersediaan nilai Ujian MDTA santri...',
+            allowOutsideClick: false,
+            didOpen: () => { Swal.showLoading(); }
+        });
+
+        $.ajax({
+            url: '<?= base_url("backend/nilai/get-mdta-status-info") ?>',
+            type: 'GET',
+            data: {
+                IdSantri: idSantri,
+                IdKelas: idKelas,
+                Semester: semesterVal
+            },
+            dataType: 'json',
+            success: function(res) {
+                if (!res.success || !res.details || res.details.length === 0) {
+                    Swal.fire({
+                        title: 'Tidak Ada Data',
+                        text: res.message || 'Belum ada data Ujian MDTA untuk santri ini.',
+                        icon: 'info',
+                        confirmButtonColor: '#6c757d'
+                    });
+                    return;
+                }
+
+                // Susun tabel transparan rincian nilai UMBK
+                let tableHtml = `
+                    <div class="text-left mb-3">
+                        <p class="mb-1 text-sm">Santri: <strong>${namaSantri}</strong></p>
+                        <p class="mb-2 text-sm">Ketersediaan UMBK: <span class="badge bg-${res.buttonColor === 'secondary' ? 'secondary' : (res.buttonColor === 'success' ? 'success' : (res.buttonColor === 'warning' ? 'warning text-dark' : 'danger'))}">${res.availableCbtCount} dari ${res.totalMateri} Materi Tersedia</span></p>
+                    </div>
+                    <div class="table-responsive text-left mb-2" style="max-height:300px; overflow-y:auto;">
+                        <table class="table table-sm table-bordered table-striped text-xs mb-0" style="font-size:12px;">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th>Mata Pelajaran</th>
+                                    <th class="text-center">Nilai UMBK</th>
+                                    <th class="text-center">Nilai Rapor</th>
+                                    <th class="text-center">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
+
+                res.details.forEach(function(item) {
+                    let cbtText = item.hasCbt ? `<span class="badge bg-success font-weight-bold" style="font-size:12px;">${item.nilaiCbt}</span>` : `<span class="text-muted">-</span>`;
+                    let raporText = item.hasExisting ? `<span class="font-weight-bold text-dark">${item.nilaiRapor}</span>` : `<span class="text-muted">-</span>`;
+                    let statusBadge = '';
+
+                    if (!item.hasCbt) {
+                        statusBadge = `<span class="badge bg-danger">Belum Ujian</span>`;
+                    } else if (item.isPulled) {
+                        statusBadge = `<span class="badge bg-secondary"><i class="fas fa-check me-1"></i>Sudah Ditarik</span>`;
+                    } else {
+                        statusBadge = `<span class="badge bg-primary"><i class="fas fa-arrow-down me-1"></i>Siap Ditarik</span>`;
+                    }
+
+                    tableHtml += `
+                        <tr>
+                            <td class="text-left"><strong>${item.NamaMateri}</strong></td>
+                            <td class="text-center">${cbtText}</td>
+                            <td class="text-center">${raporText}</td>
+                            <td class="text-center">${statusBadge}</td>
+                        </tr>`;
+                });
+
+                tableHtml += `
+                            </tbody>
+                        </table>
+                    </div>`;
+
+                let showConfirm = (res.availableCbtCount > 0);
+                let confirmText = (res.alreadyPulledCount === res.availableCbtCount) ? '<i class="fas fa-sync-alt me-1"></i> Tetap Tarik & Timpa' : '<i class="fas fa-file-import me-1"></i> Ya, Tarik Nilai UMBK';
+
+                Swal.fire({
+                    title: 'Rincian Nilai Ujian MDTA (UMBK)',
+                    html: tableHtml,
+                    icon: 'info',
+                    showCancelButton: true,
+                    showConfirmButton: showConfirm,
+                    confirmButtonText: confirmText,
+                    cancelButtonText: 'Tutup',
+                    confirmButtonColor: '#28a745',
+                    cancelButtonColor: '#6c757d',
+                    width: '620px'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        Swal.fire({
+                            title: 'Menarik & Menyimpan Nilai...',
+                            html: 'Mohon tunggu sejenak...',
+                            allowOutsideClick: false,
+                            didOpen: () => { Swal.showLoading(); }
+                        });
+
+                        $.ajax({
+                            url: '<?= base_url("backend/nilai/copy-ujian-mdta-bulk-kelas") ?>',
+                            type: 'POST',
+                            data: {
+                                IdSantri: idSantri,
+                                IdKelas: idKelas,
+                                Semester: semesterVal
+                            },
+                            dataType: 'json',
+                            success: function(saveRes) {
+                                if (saveRes.success) {
+                                    Swal.fire({
+                                        title: '🎉 Penarikan Nilai Berhasil!',
+                                        html: `Nilai Ujian MDTA santri <strong>${namaSantri}</strong> telah berhasil ditarik & disimpan.<br><br><span class="text-success"><i class="fas fa-check-circle me-1"></i> Halaman akan dimuat ulang.</span>`,
+                                        icon: 'success',
+                                        confirmButtonColor: '#28a745'
+                                    }).then(() => {
+                                        window.location.reload();
+                                    });
+                                } else {
+                                    Swal.fire('Informasi', saveRes.message || 'Gagal menarik nilai MDTA.', 'info');
+                                }
+                            },
+                            error: function() {
+                                Swal.fire('Error', 'Terjadi kesalahan sistem saat menarik nilai Ujian MDTA.', 'error');
+                            }
+                        });
+                    }
+                });
+            },
+            error: function() {
+                Swal.fire('Error', 'Gagal memuat status CBT santri.', 'error');
+            }
+        });
+    });
 </script>
 <?= $this->endSection(); ?>

@@ -222,6 +222,11 @@ class AuthController extends MythAuthController
 
                 if ($idTpqFromGuru) {
                     session()->set('IdTpq', $idTpqFromGuru);
+                } else {
+                    $gRow = $this->db->table('tbl_guru')->select('IdTpq')->where('IdGuru', $idGuru)->get()->getRowArray();
+                    if (!empty($gRow['IdTpq'])) {
+                        session()->set('IdTpq', $gRow['IdTpq']);
+                    }
                 }
 
                 if ($tahunAjaranFromGuruKelas && !empty($tahunAjaranFromGuruKelas)) {
@@ -231,8 +236,10 @@ class AuthController extends MythAuthController
                 }
             }
 
+            $currentIdTpq = session()->get('IdTpq');
             // Set MDA settings ke session
-            $this->setMdaSessionSettings($IdTpq ?? $idTpqFromGuru);
+            $this->setMdaSessionSettings($currentIdTpq ?? $IdTpq ?? $idTpqFromGuru);
+
         } catch (\Exception $e) {
             // Log error and fallback to original method if needed
             log_message('error', 'Error in optimized setGuruSessionData: ' . $e->getMessage());
@@ -251,9 +258,10 @@ class AuthController extends MythAuthController
         }
 
         try {
-            // Ambil setting MDA_S1_ApakahMemilikiLembagaMDATA
-            $hasMda = $this->toolsModel->getSettingAsBool($idTpq, 'MDA_S1_ApakahMemilikiLembagaMDATA', false);
+            // Ambil setting MDA_S1_ApakahMemilikiLembagaMDATA (strict per IdTpq tanpa fallback default)
+            $hasMda = $this->toolsModel->getSettingAsBoolStrict($idTpq, 'MDA_S1_ApakahMemilikiLembagaMDATA', false);
             session()->set('MDA_S1_ApakahMemilikiLembagaMDATA', $hasMda);
+
 
             // Ambil setting MDA_S1_PersamaanKelasMDA
             $persamaanKelas = $this->toolsModel->getSettingAsString($idTpq, 'MDA_S1_PersamaanKelasMDA', '');

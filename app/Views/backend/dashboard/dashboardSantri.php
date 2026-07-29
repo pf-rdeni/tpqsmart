@@ -58,81 +58,101 @@
                             </div>
                         </div>
 
+                        <!-- ===== UJIAN MDTA AKTIF ===== -->
+                        <?php if (!empty($jadwalUjian)): ?>
+                        <div class="row mt-2 mb-3">
+                            <div class="col-12">
+                                <div class="card card-outline card-danger shadow-sm">
+                                    <div class="card-header" style="background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%); border-radius: 4px 4px 0 0;">
+                                        <h3 class="card-title text-white font-weight-bold">
+                                            <i class="fas fa-file-alt mr-2"></i>
+                                            Ujian Aktif — Segera Kerjakan!
+                                        </h3>
+                                        <div class="card-tools">
+                                            <a href="<?= base_url('backend/ujian-mdta/santri') ?>" class="btn btn-sm btn-light text-danger font-weight-bold">
+                                                <i class="fas fa-list mr-1"></i> Lihat Semua
+                                            </a>
+                                        </div>
+                                    </div>
+                                    <div class="card-body p-0">
+                                        <div class="table-responsive">
+                                            <table class="table table-hover mb-0">
+                                                <thead class="thead-light">
+                                                    <tr>
+                                                        <th class="border-0">Nama Ujian</th>
+                                                        <th class="border-0 d-none d-md-table-cell">Mata Pelajaran</th>
+                                                        <th class="border-0 d-none d-sm-table-cell text-center">Durasi</th>
+                                                        <th class="border-0 d-none d-sm-table-cell text-center">Berakhir</th>
+                                                        <th class="border-0 text-center">Status</th>
+                                                        <th class="border-0 text-center">Aksi</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <?php foreach ($jadwalUjian as $j): ?>
+                                                    <tr>
+                                                        <td class="align-middle">
+                                                            <strong><?= esc($j['NamaUjian']) ?></strong>
+                                                            <?php if (($j['TipeJadwal'] ?? 'utama') === 'remedial'): ?>
+                                                                <span class="badge badge-warning ml-1">Remedial</span>
+                                                            <?php endif; ?>
+                                                        </td>
+                                                        <td class="align-middle d-none d-md-table-cell">
+                                                            <small class="text-muted"><?= esc($j['NamaMateri'] ?? '-') ?></small>
+                                                        </td>
+                                                        <td class="align-middle d-none d-sm-table-cell text-center">
+                                                            <span class="badge badge-secondary"><?= (int)($j['DurasiMenit'] ?? 0) ?> mnt</span>
+                                                        </td>
+                                                        <td class="align-middle d-none d-sm-table-cell text-center">
+                                                            <small class="text-danger font-weight-bold">
+                                                                <?= date('d M, H:i', strtotime($j['TanggalSelesai'])) ?>
+                                                            </small>
+                                                        </td>
+                                                        <td class="align-middle text-center">
+                                                            <?php
+                                                            $statusSesi = $j['status_sesi'] ?? 'belum';
+                                                            if ($statusSesi === 'selesai'):
+                                                            ?>
+                                                                <span class="badge badge-success"><i class="fas fa-check mr-1"></i>Selesai</span>
+                                                            <?php elseif ($statusSesi === 'berlangsung'): ?>
+                                                                <span class="badge badge-warning"><i class="fas fa-clock mr-1"></i>Berlangsung</span>
+                                                            <?php else: ?>
+                                                                <span class="badge badge-danger"><i class="fas fa-circle mr-1"></i>Belum Dikerjakan</span>
+                                                            <?php endif; ?>
+                                                        </td>
+                                                        <td class="align-middle text-center">
+                                                            <?php if ($statusSesi === 'berlangsung' && !empty($j['token_sesi'])): ?>
+                                                                <a href="<?= base_url('backend/ujian-mdta/santri/ujian/' . $j['token_sesi']) ?>"
+                                                                   class="btn btn-warning btn-sm font-weight-bold">
+                                                                    <i class="fas fa-play mr-1"></i> Lanjutkan
+                                                                </a>
+                                                            <?php elseif ($statusSesi === 'selesai'): ?>
+                                                                <a href="<?= base_url('backend/ujian-mdta/santri') ?>"
+                                                                   class="btn btn-outline-success btn-sm">
+                                                                    <i class="fas fa-eye mr-1"></i> Lihat Hasil
+                                                                </a>
+                                                            <?php else: ?>
+                                                                <form method="post" action="<?= base_url('backend/ujian-mdta/santri/mulai/' . $j['id']) ?>" style="display:inline;">
+                                                                    <?= csrf_field() ?>
+                                                                    <button type="button" class="btn btn-danger btn-sm font-weight-bold btn-mulai-ujian-dash"
+                                                                            data-nama="<?= esc($j['NamaUjian']) ?>">
+                                                                        <i class="fas fa-play-circle mr-1"></i> Mulai Ujian
+                                                                    </button>
+                                                                </form>
+                                                            <?php endif; ?>
+                                                        </td>
+                                                    </tr>
+                                                    <?php endforeach; ?>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <?php endif; ?>
+                        <!-- ===== END UJIAN MDTA AKTIF ===== -->
+
                         <?= prayer_schedule_widget() ?>
-
-                        <!-- Info Cards -->
-                        <div class="row">
-                            <!-- Card Nilai -->
-                            <div class="col-lg-3 col-md-6 col-12 mb-3">
-                                <div class="small-box bg-warning">
-                                    <div class="inner">
-                                        <h3 class="mobile-h3">Nilai</h3>
-                                        <p class="mb-1">Rata-rata</p>
-                                        <small class="d-block">
-                                            Ganjil: <?= number_format($rataRataGanjil ?? 0, 1) ?><br>
-                                            Genap: <?= number_format($rataRataGenap ?? 0, 1) ?>
-                                        </small>
-                                    </div>
-                                    <div class="icon">
-                                        <i class="fas fa-chart-line"></i>
-                                    </div>
-                                    <a href="<?= base_url('backend/nilai/showNilaiProfilDetail') ?>" class="small-box-footer">
-                                        <span>Lihat Nilai </span><i class="fas fa-arrow-circle-right"></i>
-                                    </a>
-                                </div>
-                            </div>
-
-                            <!-- Card Absensi -->
-                            <div class="col-lg-3 col-md-6 col-12 mb-3">
-                                <div class="small-box bg-success">
-                                    <div class="inner">
-                                        <h3 class="mobile-h3"><?= ($absensiGanjil['persenHadir'] ?? 0) ?>%</h3>
-                                        <p class="mb-1">Kehadiran</p>
-                                        <small class="d-block">Semester Ganjil</small>
-                                    </div>
-                                    <div class="icon">
-                                        <i class="fas fa-check-circle"></i>
-                                    </div>
-                                    <a href="<?= base_url('backend/absensi/showAbsensiSantri') ?>" class="small-box-footer">
-                                        <span>Detail Absensi </span><i class="fas fa-arrow-circle-right"></i>
-                                    </a>
-                                </div>
-                            </div>
-
-                            <!-- Card Tabungan -->
-                            <div class="col-lg-3 col-md-6 col-12 mb-3">
-                                <div class="small-box bg-primary">
-                                    <div class="inner">
-                                        <h3 class="mobile-h3">Rp <?= number_format($tabungan['saldo'] ?? 0, 0, ',', '.') ?></h3>
-                                        <p class="mb-1">Tabungan</p>
-                                        <small class="d-block">Saldo Saat Ini</small>
-                                    </div>
-                                    <div class="icon">
-                                        <i class="fas fa-piggy-bank"></i>
-                                    </div>
-                                    <a href="<?= base_url('backend/tabungan/showTabunganSantri') ?>" class="small-box-footer">
-                                        <span>Lihat Tabungan </span><i class="fas fa-arrow-circle-right"></i>
-                                    </a>
-                            </div>
-                        </div>
-
-                            <!-- Card Prestasi -->
-                            <div class="col-lg-3 col-md-6 col-12 mb-3">
-                                <div class="small-box" style="background-color: #6f42c1; color: white;">
-                                    <div class="inner">
-                                        <h3 class="mobile-h3"><?= $prestasi['total'] ?? 0 ?></h3>
-                                        <p class="mb-1">Prestasi</p>
-                                        <small class="d-block">Total Prestasi</small>
-                                    </div>
-                                    <div class="icon">
-                                        <i class="fas fa-trophy"></i>
-                                    </div>
-                                    <a href="<?= base_url('backend/prestasi/showPrestasiSantri') ?>" class="small-box-footer" style="background: rgba(0,0,0,.1); color: rgba(255,255,255,.8);">
-                                        <span>Lihat Prestasi </span><i class="fas fa-arrow-circle-right"></i>
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
 
                         <!-- Card Status Serah Terima Rapor -->
                         <?php
@@ -782,6 +802,34 @@ $(document).ready(function() {
         });
     }
     <?php endif; ?>
+
+    document.querySelectorAll('.btn-mulai-ujian-dash').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const form = this.closest('form');
+            const namaUjian = this.dataset.nama || 'Ujian';
+
+            Swal.fire({
+                title: '📝 Mulai Ujian Online?',
+                html: `Apakah Anda yakin ingin memulai ujian <strong>${namaUjian}</strong>?<br><br><span class="text-warning small"><i class="fas fa-clock me-1"></i> Timer pengerjaan akan langsung berjalan begitu Anda mengklik Ya.</span>`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: '<i class="fas fa-play me-1"></i> Ya, Mulai Sekarang!',
+                cancelButtonText: 'Batal',
+                confirmButtonColor: '#10b981'
+            }).then((res) => {
+                if (res.isConfirmed) {
+                    Swal.fire({
+                        title: 'Menyiapkan Lembar Ujian...',
+                        text: 'Mendistribusikan soal acak Anda',
+                        allowOutsideClick: false,
+                        didOpen: () => { Swal.showLoading(); }
+                    });
+                    form.submit();
+                }
+            });
+        });
+    });
 });
 </script>
 <?= prayer_schedule_js(base_url('backend/jadwal-sholat')) ?>

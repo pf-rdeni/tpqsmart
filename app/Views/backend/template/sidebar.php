@@ -562,7 +562,26 @@
                     </li>
                 <?php endif; ?>
                 <!-- End Menu Munaqosah -->
-                
+
+                <!-- Start Logic Access Ujian MDTA -->
+                <?php
+                $idTpqSession = session()->get('IdTpq');
+                $isAdminUser  = in_groups('Admin') && (empty($idTpqSession) || (string)$idTpqSession === '0');
+
+                // Cek presisi per IdTpq dari DB tanpa fallback default
+                $hasMdaSetting = false;
+                if (!empty($idTpqSession) && (string)$idTpqSession !== '0') {
+                    $toolsModel    = new \App\Models\ToolsModel();
+                    $hasMdaSetting = $toolsModel->getSettingAsBoolStrict((string)$idTpqSession, 'MDA_S1_ApakahMemilikiLembagaMDATA', false);
+                }
+                session()->set('MDA_S1_ApakahMemilikiLembagaMDATA', $hasMdaSetting);
+
+                $canAccessUjianMdta = $isAdminUser || (!empty($idTpqSession) && (string)$idTpqSession !== '0' && $hasMdaSetting);
+                ?>
+
+
+
+
                 <!-- Start Menu Perlombaan -->
                 <?php 
                 // Cek apakah user adalah Juri Lomba
@@ -852,6 +871,45 @@
                             <?php endif; ?>
                         </ul>
                     </li>
+                    <!-- Menu Ujian MDTA (UMBK) -->
+                    <?php if (!empty($canAccessUjianMdta) && (in_groups('Admin') || $hasOperatorRole || $isActiveGuru) && !$isMyAuthPage && !$isSertifikasiPage && !$isLuckydrawPage && !$isPerlombaanPage): ?>
+                        <li class="nav-item <?= ($menu_open ?? '') == 'ujian-mdta' ? 'menu-open' : '' ?>">
+                            <a href="#" class="nav-link <?= ($menu_open ?? '') == 'ujian-mdta' ? 'active' : '' ?>">
+                                <i class="nav-icon fas fa-laptop-code"></i>
+                                <p>
+                                    Ujian MDTA
+                                    <i class="right fas fa-angle-left"></i>
+                                </p>
+                            </a>
+                            <ul class="nav nav-treeview" style="display: <?= ($menu_open ?? '') == 'ujian-mdta' ? 'block' : 'none' ?>;">
+                                <li class="nav-item">
+                                    <a href="<?= base_url('backend/ujian-mdta') ?>" class="nav-link <?= ($menu_active ?? '') == 'ujian-mdta-dashboard' ? 'active' : '' ?>">
+                                        <i class="fas fa-tachometer-alt nav-icon text-warning"></i>
+                                        <p>Dashboard Ujian</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="<?= base_url('backend/ujian-mdta/paket') ?>" class="nav-link <?= ($menu_active ?? '') == 'ujian-mdta-paket' ? 'active' : '' ?>">
+                                        <i class="fas fa-layer-group nav-icon text-warning"></i>
+                                        <p>Paket & Bank Soal</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="<?= base_url('backend/ujian-mdta/jadwal') ?>" class="nav-link <?= ($menu_active ?? '') == 'ujian-mdta-jadwal' ? 'active' : '' ?>">
+                                        <i class="fas fa-calendar-alt nav-icon text-warning"></i>
+                                        <p>Jadwal Ujian</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="<?= base_url('backend/ujian-mdta/laporan-hasil') ?>" class="nav-link <?= ($menu_active ?? '') == 'ujian-mdta-laporan' ? 'active' : '' ?>">
+                                        <i class="fas fa-file-invoice nav-icon text-warning"></i>
+                                        <p>Laporan Hasil Ujian</p>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                    <?php endif; ?>
+
                     <!--  Raport Santri-->
                     <li class="nav-item">
                         <a href="#" class="nav-link">
@@ -1490,6 +1548,14 @@
                                         <p>Prestasi</p>
                                     </a>
                                 </li>
+                                <?php if (!empty($canAccessUjianMdta) && (in_groups('Admin') || in_groups('Operator') || !empty($isActiveGuru) || !empty($isActiveOperator))): ?>
+                                    <li class="nav-item">
+                                        <a href="<?= base_url('backend/ujian-mdta/jadwal') ?>" class="nav-link <?= ($menu_active ?? '') == 'ujian-mdta-jadwal' ? 'active' : '' ?>">
+                                            <i class="fas fa-calendar-alt nav-icon text-warning"></i>
+                                            <p>Jadwal UMBK</p>
+                                        </a>
+                                    </li>
+                                <?php endif; ?>
                                 <li class="nav-item">
                                     <a href="#" class="nav-link no-hover">
                                         <i class="fas fa-pen nav-icon text-warning"></i>
@@ -1677,7 +1743,7 @@
                 <?php endif; ?>
 
                 <!-- Start Santri -->
-                <?php if (in_groups('Santri') && !$isSertifikasiPage && !$isMunaqosahPage && !$isPerlombaanPage && !$isAktivitasKepalaTpq): ?>
+                <?php if (in_groups('Santri') && !$isSertifikasiPage && !$isMunaqosahPage && !$isPerlombaanPage): ?>
                     <!-- Kesantrian -->
                     <li class="nav-item no-hover">
                         <a href="#" class="nav-link">

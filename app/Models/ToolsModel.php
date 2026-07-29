@@ -42,11 +42,15 @@ class ToolsModel extends Model
     public function getSetting(string $idTpq, string $settingKey)
     {
         // Coba ambil pengaturan untuk IdTpq spesifik
-        $setting = $this->where(['IdTpq' => $idTpq, 'SettingKey' => $settingKey])->first();
+        $setting = $this->db->table($this->table)
+            ->where(['IdTpq' => $idTpq, 'SettingKey' => $settingKey])
+            ->get()->getRowArray();
 
         // Jika tidak ditemukan, coba ambil pengaturan default
         if (empty($setting)) {
-            $setting = $this->where(['IdTpq' => 'default', 'SettingKey' => $settingKey])->first();
+            $setting = $this->db->table($this->table)
+                ->where(['IdTpq' => 'default', 'SettingKey' => $settingKey])
+                ->get()->getRowArray();
         }
 
         // Kembalikan nilai pengaturan dengan type data yang sesuai atau null jika tidak ada
@@ -56,6 +60,7 @@ class ToolsModel extends Model
         
         return null;
     }
+
 
     /**
      * Convert SettingValue based on SettingType
@@ -136,9 +141,38 @@ class ToolsModel extends Model
      */
     public function getSettingAsBool(string $idTpq, string $settingKey, bool $default = false): bool
     {
-        $value = $this->getSettingAsType($idTpq, $settingKey, 'boolean');
-        return $value !== null ? (bool)$value : $default;
+        $val = $this->getSettingAsType($idTpq, $settingKey, 'boolean');
+        if ($val === null) {
+            return $default;
+        }
+        return is_bool($val) ? $val : in_array(strtolower(trim((string)$val)), ['1', 'true', 'yes', 'on', 'enabled', 'active']);
     }
+
+    /**
+     * Ambil nilai pengaturan khusus IdTpq TANPA fallback ke 'default'.
+     */
+    public function getSettingStrict(string $idTpq, string $settingKey)
+    {
+        $setting = $this->db->table($this->table)
+            ->where(['IdTpq' => $idTpq, 'SettingKey' => $settingKey])
+            ->get()->getRowArray();
+        return $setting ? $this->convertSettingValue($setting['SettingValue'], $setting['SettingType']) : null;
+    }
+
+    /**
+     * Ambil nilai boolean khusus IdTpq TANPA fallback ke 'default'.
+     */
+    public function getSettingAsBoolStrict(string $idTpq, string $settingKey, bool $default = false): bool
+    {
+        $val = $this->getSettingStrict($idTpq, $settingKey);
+        if ($val === null) {
+            return $default;
+        }
+        return is_bool($val) ? $val : in_array(strtolower(trim((string)$val)), ['1', 'true', 'yes', 'on', 'enabled', 'active']);
+    }
+
+
+
 
     /**
      * Get setting as JSON array

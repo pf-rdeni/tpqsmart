@@ -209,6 +209,65 @@ $routes->post('backend/strukturlembaga/update/(:num)', 'Backend\StrukturLembaga:
 $routes->get('backend/strukturlembaga/delete/(:num)', 'Backend\StrukturLembaga::delete/$1');
 
 $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function ($routes) {
+    // Routes Ujian MDTA
+    $routes->get('ujian-mdta/paket', 'UjianMdta::daftarPaket');
+    $routes->get('ujian-mdta/paket/arsip', 'UjianMdta::arsipPaket');
+    $routes->get('ujian-mdta/paket/create', 'UjianMdta::createPaket');
+    $routes->post('ujian-mdta/paket/save', 'UjianMdta::savePaket');
+    $routes->get('ujian-mdta/paket/edit/(:num)', 'UjianMdta::editPaket/$1');
+    $routes->post('ujian-mdta/paket/update/(:num)', 'UjianMdta::updatePaket/$1');
+    $routes->get('ujian-mdta/paket/preview/(:num)', 'UjianMdta::previewPaket/$1');
+    $routes->get('ujian-mdta/paket/export-pdf/(:num)', 'UjianMdta::exportPaketPdf/$1');
+    $routes->get('ujian-mdta/paket/export-word/(:num)', 'UjianMdta::exportPaketWord/$1');
+    $routes->post('ujian-mdta/paket/duplikasi/(:num)', 'UjianMdta::duplikasiPaket/$1');
+    $routes->post('ujian-mdta/paket/arsipkan/(:num)', 'UjianMdta::arsipkanPaket/$1');
+    $routes->post('ujian-mdta/paket/delete/(:num)', 'UjianMdta::deletePaket/$1');
+
+    $routes->get('ujian-mdta/paket/(:num)/soal', 'UjianMdta::daftarSoal/$1');
+    $routes->get('ujian-mdta/paket/(:num)/soal/create', 'UjianMdta::createSoal/$1');
+    $routes->post('ujian-mdta/paket/(:num)/soal/save', 'UjianMdta::saveSoal/$1');
+    $routes->get('ujian-mdta/soal/edit/(:num)', 'UjianMdta::editSoal/$1');
+    $routes->post('ujian-mdta/soal/update/(:num)', 'UjianMdta::updateSoal/$1');
+    $routes->post('ujian-mdta/soal/delete/(:num)', 'UjianMdta::deleteSoal/$1');
+    $routes->post('ujian-mdta/soal/upload-gambar', 'UjianMdta::uploadGambarSoal');
+    $routes->post('ujian-mdta/soal/upload-audio', 'UjianMdta::uploadAudioSoal');
+
+    $routes->get('ujian-mdta/jadwal', 'UjianMdta::daftarJadwal');
+    $routes->get('ujian-mdta/jadwal/create', 'UjianMdta::createJadwal');
+    $routes->post('ujian-mdta/jadwal/save', 'UjianMdta::saveJadwal');
+    $routes->get('ujian-mdta/jadwal/edit/(:num)', 'UjianMdta::editJadwal/$1');
+    $routes->post('ujian-mdta/jadwal/update/(:num)', 'UjianMdta::updateJadwal/$1');
+    $routes->post('ujian-mdta/jadwal/delete/(:num)', 'UjianMdta::deleteJadwal/$1');
+    $routes->post('ujian-mdta/jadwal/archive/(:num)', 'UjianMdta::archiveJadwal/$1');
+
+    $routes->post('ujian-mdta/jadwal/delete-remedial/(:num)/(:num)', 'UjianMdta::deleteRemedialSubrow/$1/$2');
+    $routes->get('ujian-mdta/jadwal/monitor/(:num)', 'UjianMdta::monitorUjian/$1');
+    $routes->get('ujian-mdta/jadwal/monitor/(:num)/(:num)', 'UjianMdta::monitorUjian/$1/$2');
+    $routes->get('ujian-mdta/jadwal/get-monitor-ajax/(:num)', 'UjianMdta::getMonitorDataAjax/$1');
+    $routes->get('ujian-mdta/jadwal/get-monitor-ajax/(:num)/(:num)', 'UjianMdta::getMonitorDataAjax/$1/$2');
+    $routes->get('ujian-mdta/jadwal/sesi/(:num)', 'UjianMdta::daftarSesi/$1');
+    $routes->get('ujian-mdta/jadwal/sesi/(:num)/create', 'UjianMdta::createSesi/$1');
+    $routes->post('ujian-mdta/jadwal/sesi/(:num)/save', 'UjianMdta::saveSesi/$1');
+    $routes->get('ujian-mdta/sesi/edit/(:num)', 'UjianMdta::editSesi/$1');
+    $routes->post('ujian-mdta/sesi/update/(:num)', 'UjianMdta::updateSesi/$1');
+    $routes->post('ujian-mdta/sesi/delete/(:num)', 'UjianMdta::deleteSesi/$1');
+
+    $routes->get('ujian-mdta/nilai', 'UjianMdta::daftarNilai');
+    $routes->get('ujian-mdta/nilai/detail/(:num)', 'UjianMdta::detailNilai/$1');
+    $routes->post('ujian-mdta/nilai/simpan-koreksi-esai/(:num)', 'UjianMdta::simpanKoreksiEsai/$1');
+    $routes->get('ujian-mdta/laporan/export-pdf/(:num)', 'UjianMdta::exportLaporan/$1');
+
+    // Laporan Hasil Ujian MDTA Routes (Gambar 1, 2, 3)
+    $routes->get('ujian-mdta/laporan-hasil', 'UjianMdta::laporanHasil');
+    $routes->get('ujian-mdta/rekap-materi', 'UjianMdta::rekapMateriExcel');
+    $routes->get('ujian-mdta/rekap-sesi', 'UjianMdta::rekapSesiExcel');
+    $routes->get('ujian-mdta/laporan/presensi/(:num)', 'UjianMdta::cetakPresensi/$1');
+    $routes->get('ujian-mdta/laporan/presensi-excel/(:num)', 'UjianMdta::cetakPresensiExcel/$1');
+    $routes->get('ujian-mdta/laporan/berita-acara/(:num)', 'UjianMdta::cetakBeritaAcara/$1');
+    $routes->get('ujian-mdta/laporan/analisis-soal/(:num)', 'UjianMdta::analisisButirSoal/$1');
+    $routes->get('ujian-mdta/laporan/rekap-jawaban/(:num)', 'UjianMdta::rekapJawaban/$1');
+
+
     // Log Viewer Routes
     $routes->get('logviewer', 'LogViewer::index');
     $routes->post('logviewer/getLogContentByDate', 'LogViewer::getLogContentByDate');
@@ -789,6 +848,110 @@ $routes->group('backend/survey', ['namespace' => 'App\Controllers\Backend\Survey
     $routes->get('results/public-settings/(:num)', 'SurveyResult::publicResultSettings/$1');
     $routes->post('results/save-public-settings/(:num)', 'SurveyResult::savePublicResultSettings/$1');
 });
+
+// ===========================================================
+// UJIAN MDTA — Phase 2: Paket Soal & Bank Soal
+// ===========================================================
+$routes->get('backend/ujian-mdta', 'Backend\UjianMdta::index');
+
+// Paket Soal
+$routes->get('backend/ujian-mdta/paket', 'Backend\UjianMdta::daftarPaket');
+$routes->get('backend/ujian-mdta/paket/arsip', 'Backend\UjianMdta::arsipPaket');
+$routes->get('backend/ujian-mdta/paket/create', 'Backend\UjianMdta::createPaket');
+$routes->post('backend/ujian-mdta/paket/save', 'Backend\UjianMdta::savePaket');
+$routes->get('backend/ujian-mdta/paket/edit/(:num)', 'Backend\UjianMdta::editPaket/$1');
+$routes->post('backend/ujian-mdta/paket/update/(:num)', 'Backend\UjianMdta::updatePaket/$1');
+$routes->post('backend/ujian-mdta/paket/delete/(:num)', 'Backend\UjianMdta::deletePaket/$1');
+$routes->post('backend/ujian-mdta/paket/duplikasi/(:num)', 'Backend\UjianMdta::duplikasiPaket/$1');
+$routes->post('backend/ujian-mdta/paket/arsipkan/(:num)', 'Backend\UjianMdta::arsipkanPaket/$1');
+$routes->post('backend/ujian-mdta/paket/restore/(:num)', 'Backend\UjianMdta::restorePaket/$1');
+$routes->get('backend/ujian-mdta/paket/preview/(:num)', 'Backend\UjianMdta::previewPaket/$1');
+
+// Soal dalam Paket
+$routes->get('backend/ujian-mdta/paket/(:num)/soal', 'Backend\UjianMdta::daftarSoal/$1');
+$routes->get('backend/ujian-mdta/paket/(:num)/soal/create', 'Backend\UjianMdta::createSoal/$1');
+$routes->post('backend/ujian-mdta/paket/(:num)/soal/save', 'Backend\UjianMdta::saveSoal/$1');
+$routes->get('backend/ujian-mdta/soal/edit/(:num)', 'Backend\UjianMdta::editSoal/$1');
+$routes->post('backend/ujian-mdta/soal/update/(:num)', 'Backend\UjianMdta::updateSoal/$1');
+$routes->post('backend/ujian-mdta/soal/delete/(:num)', 'Backend\UjianMdta::deleteSoal/$1');
+$routes->get('backend/ujian-mdta/soal/duplikasi/(:num)', 'Backend\UjianMdta::duplikasiSoal/$1');
+$routes->post('backend/ujian-mdta/soal/duplikasi/(:num)', 'Backend\UjianMdta::duplikasiSoal/$1');
+$routes->post('backend/ujian-mdta/paket/(:num)/soal/kosongkan', 'Backend\UjianMdta::kosongkanSoal/$1');
+$routes->post('backend/ujian-mdta/soal/upload-gambar', 'Backend\UjianMdta::uploadGambarSoal');
+$routes->post('backend/ujian-mdta/soal/upload-audio', 'Backend\UjianMdta::uploadAudioSoal');
+
+// AJAX helpers
+$routes->get('backend/ujian-mdta/ajax/kelas-options', 'Backend\UjianMdta::getKelasOptions');
+$routes->get('backend/ujian-mdta/ajax/paket-options', 'Backend\UjianMdta::getPaketOptions');
+
+// ===========================================================
+// UJIAN MDTA — Phase 3: Jadwal Ujian
+// ===========================================================
+$routes->get('backend/ujian-mdta/jadwal', 'Backend\UjianMdta::daftarJadwal');
+$routes->get('backend/ujian-mdta/jadwal/create', 'Backend\UjianMdta::createJadwal');
+$routes->post('backend/ujian-mdta/jadwal/save', 'Backend\UjianMdta::saveJadwal');
+$routes->get('backend/ujian-mdta/jadwal/edit/(:num)', 'Backend\UjianMdta::editJadwal/$1');
+$routes->post('backend/ujian-mdta/jadwal/update/(:num)', 'Backend\UjianMdta::updateJadwal/$1');
+$routes->post('backend/ujian-mdta/jadwal/delete/(:num)', 'Backend\UjianMdta::deleteJadwal/$1');
+$routes->post('backend/ujian-mdta/jadwal/aktivasi/(:num)', 'Backend\UjianMdta::aktivasiJadwal/$1');
+$routes->get('backend/ujian-mdta/jadwal/remedial/(:num)', 'Backend\UjianMdta::createJadwalRemedial/$1');
+$routes->post('backend/ujian-mdta/jadwal/remedial/save/(:num)', 'Backend\UjianMdta::saveJadwalRemedial/$1');
+
+// ===========================================================
+// UJIAN MDTA — Phase 5: Laporan & Monitor
+// ===========================================================
+$routes->get('backend/ujian-mdta/jadwal/monitor/(:num)', 'Backend\UjianMdta::monitorUjian/$1');
+$routes->get('backend/ujian-mdta/jadwal/getMonitorDataAjax/(:num)', 'Backend\UjianMdta::getMonitorDataAjax/$1');
+$routes->post('backend/ujian-mdta/jadwal/tambahWaktuSesi/(:num)', 'Backend\UjianMdta::tambahWaktuSesi/$1');
+$routes->post('backend/ujian-mdta/jadwal/pauseSesi/(:num)', 'Backend\UjianMdta::pauseSesi/$1');
+$routes->post('backend/ujian-mdta/jadwal/resumeSesi/(:num)', 'Backend\UjianMdta::resumeSesi/$1');
+$routes->post('backend/ujian-mdta/jadwal/stopSesi/(:num)', 'Backend\UjianMdta::stopSesi/$1');
+$routes->post('backend/ujian-mdta/jadwal/resetSesiIndividual/(:num)', 'Backend\UjianMdta::resetSesiIndividual/$1');
+$routes->post('backend/ujian-mdta/jadwal/tambahWaktuSemua/(:num)', 'Backend\UjianMdta::tambahWaktuSemua/$1');
+$routes->post('backend/ujian-mdta/jadwal/pauseSemua/(:num)', 'Backend\UjianMdta::pauseSemua/$1');
+$routes->post('backend/ujian-mdta/jadwal/resumeSemua/(:num)', 'Backend\UjianMdta::resumeSemua/$1');
+$routes->post('backend/ujian-mdta/jadwal/stopSemua/(:num)', 'Backend\UjianMdta::stopSemua/$1');
+$routes->post('backend/ujian-mdta/jadwal/resetSemuaMonitor/(:num)', 'Backend\UjianMdta::resetSemuaMonitor/$1');
+$routes->get('backend/ujian-mdta/laporan/(:num)', 'Backend\UjianMdta::laporanNilai/$1');
+$routes->get('backend/ujian-mdta/laporan/export/(:num)', 'Backend\UjianMdta::exportLaporan/$1');
+$routes->post('backend/ujian-mdta/laporan/reset-santri/(:num)/(:segment)', 'Backend\UjianMdta::resetSesiSantri/$1/$2');
+$routes->post('backend/ujian-mdta/laporan/reset-semua/(:num)', 'Backend\UjianMdta::resetSemuaSesi/$1');
+
+// ===========================================================
+// UJIAN MDTA — Phase 4: CBT Santri
+// ===========================================================
+$routes->get('backend/ujian-mdta/santri', 'Backend\UjianMdtaSantri::daftarUjian');
+$routes->post('backend/ujian-mdta/santri/mulai/(:num)', 'Backend\UjianMdtaSantri::mulaiUjian/$1');
+$routes->get('backend/ujian-mdta/santri/ujian/(:segment)', 'Backend\UjianMdtaSantri::lembarUjian/$1');
+$routes->post('backend/ujian-mdta/santri/jawaban/(:segment)', 'Backend\UjianMdtaSantri::simpanJawaban/$1');
+$routes->post('backend/ujian-mdta/santri/ragu/(:segment)', 'Backend\UjianMdtaSantri::simpanRagu/$1');
+$routes->get('backend/ujian-mdta/santri/cek-status/(:segment)', 'Backend\UjianMdtaSantri::cekStatusSesi/$1');
+$routes->post('backend/ujian-mdta/santri/selesai/(:segment)', 'Backend\UjianMdtaSantri::selesaikanUjian/$1');
+$routes->get('backend/ujian-mdta/santri/hasil/(:segment)', 'Backend\UjianMdtaSantri::hasilUjian/$1');
+$routes->get('backend/ujian-mdta/santri/cek-waktu/(:segment)', 'Backend\UjianMdtaSantri::cekWaktu/$1');
+
+// Route Penilaian & Koreksi Esai oleh Pengawas
+$routes->get('backend/ujian-mdta/jadwal/getDetailJawabanEsai/(:num)', 'Backend\UjianMdta::getDetailJawabanEsai/$1');
+$routes->get('backend/ujianMdta/jadwal/getDetailJawabanEsai/(:num)', 'Backend\UjianMdta::getDetailJawabanEsai/$1');
+$routes->post('backend/ujian-mdta/jadwal/simpanPenilaianEsai/(:num)', 'Backend\UjianMdta::simpanPenilaianEsai/$1');
+$routes->post('backend/ujianMdta/jadwal/simpanPenilaianEsai/(:num)', 'Backend\UjianMdta::simpanPenilaianEsai/$1');
+
+// Route Aktivasi Remedial oleh Pengawas
+$routes->post('backend/ujian-mdta/jadwal/aktifkanRemedialSesi/(:num)', 'Backend\UjianMdta::aktifkanRemedialSesi/$1');
+$routes->post('backend/ujianMdta/jadwal/aktifkanRemedialSesi/(:num)', 'Backend\UjianMdta::aktifkanRemedialSesi/$1');
+$routes->post('backend/ujian-mdta/jadwal/aktifkanRemedialSemua/(:num)', 'Backend\UjianMdta::aktifkanRemedialSemua/$1');
+$routes->post('backend/ujianMdta/jadwal/aktifkanRemedialSemua/(:num)', 'Backend\UjianMdta::aktifkanRemedialSemua/$1');
+$routes->post('backend/ujian-mdta/jadwal/aktifkanRemedialJadwal/(:num)', 'Backend\UjianMdta::aktifkanRemedialJadwal/$1');
+$routes->post('backend/ujianMdta/jadwal/aktifkanRemedialJadwal/(:num)', 'Backend\UjianMdta::aktifkanRemedialJadwal/$1');
+$routes->post('backend/ujian-mdta/jadwal/resetAndEdit/(:num)', 'Backend\UjianMdta::resetAndEditJadwal/$1');
+$routes->post('backend/ujianMdta/jadwal/resetAndEdit/(:num)', 'Backend\UjianMdta::resetAndEditJadwal/$1');
+
+// Integrasi copy nilai ke raport (Phase 5)
+$routes->post('backend/nilai/copy-ujian-mdta', 'Backend\Nilai::copyNilaiUjianMdta');
+$routes->post('backend/nilai/copy-ujian-mdta-bulk-kelas', 'Backend\Nilai::copyNilaiUjianMdtaBulkKelas');
+$routes->match(['GET', 'POST'], 'backend/nilai/get-mdta-status-info', 'Backend\Nilai::getMdtaStatusInfo');
+
+
 
 $routes->get('logout', 'Dashboard::logout');
 

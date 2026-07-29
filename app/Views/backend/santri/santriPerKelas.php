@@ -92,6 +92,11 @@
     <div class="card">
         <div class="card-header">
             <h3 class="card-title">List Santri TPQ Per Kelas</h3>
+            <div class="card-tools">
+                <button type="button" class="btn btn-success btn-sm btn-tarik-mdta-kelas shadow-sm font-weight-bold mr-2">
+                    <i class="fas fa-file-import me-1"></i> Tarik Nilai UMBK Kelas Ini
+                </button>
+            </div>
         </div>
         <!-- /.card-header -->
         <div class="card-body">
@@ -306,17 +311,151 @@
         <?php endforeach; ?>
 
         // Recalculate DataTable untuk tab aktif setelah semua tabel diinisialisasi
-        setTimeout(function() {
-            const activeTab = $('.nav-link.active');
-            if (activeTab.length) {
-                const activeTabId = activeTab.attr('id').replace('tab-', '');
-                const activeTableSelector = "#TableNilaiSemester-" + activeTabId;
-                if ($.fn.DataTable.isDataTable(activeTableSelector)) {
-                    const activeTable = $(activeTableSelector).DataTable();
-                    activeTable.columns.adjust();
-                }
+        // Handler Tarik Nilai UMBK Masal Per Kelas (Dengan Popup Ringkasan Rincian Santri)
+        $(document).on('click', '.btn-tarik-mdta-kelas', function(e) {
+            e.preventDefault();
+
+            let activeTabId = $('#kelasTab .nav-link.active').attr('id');
+            let kelasId = $(this).data('id-kelas');
+
+            if (!kelasId && activeTabId) {
+                kelasId = activeTabId.replace('tab-', '');
             }
-        }, 500);
+
+            if (kelasId == '0' || !kelasId) {
+                Swal.fire('Informasi', 'Silakan pilih tab kelas tertentu (bukan tab SEMUA) untuk menarik nilai per kelas.', 'info');
+                return;
+            }
+
+            let namaKelas = $('#tab-' + kelasId).text().trim() || 'Kelas';
+            let semesterVal = '<?= esc($semester ?? '1') ?>';
+
+            Swal.fire({
+                title: 'Memeriksa Data UMBK Kelas...',
+                html: `Sedang mengecek ketersediaan nilai UMBK santri di <strong>${namaKelas}</strong>...`,
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+
+            $.ajax({
+                url: '<?= base_url("backend/nilai/get-mdta-status-info") ?>',
+                type: 'GET',
+                data: {
+                    IdKelas: kelasId,
+                    Semester: semesterVal,
+                    IdTpq: '<?= session()->get("IdTpq") ?>',
+                    IdTahunAjaran: '<?= session()->get("IdTahunAjaran") ?>'
+                },
+                dataType: 'json',
+                success: function(res) {
+                    if (!res.success || !res.santriSummary || res.santriSummary.length === 0) {
+                        Swal.fire({
+                            title: 'Tidak Ada Data',
+                            text: res.message || 'Belum ada data Ujian UMBK untuk santri di kelas ini.',
+                            icon: 'info',
+                            confirmButtonColor: '#6c757d'
+                        });
+                        return;
+                    }
+
+                    // Susun tabel transparan rincian nilai UMBK per santri
+                    let tableHtml = `
+                        <div class="text-left mb-3" style="font-size:13px;">
+                            <p class="mb-1">Kelas: <strong>${namaKelas}</strong> (Semester: ${semesterVal})</p>
+                            <p class="mb-2">Ketersediaan Nilai: <span class="badge bg-success" style="font-size:12px;">${res.totalSantriAdaCbt} dari ${res.totalSantri} Santri Memiliki Nilai UMBK</span></p>
+                        </div>
+                        <div class="table-responsive text-left mb-2" style="max-height:300px; overflow-y:auto;">
+                            <table class="table table-sm table-bordered table-striped text-xs mb-0" style="font-size:12px;">
+                                <thead class="bg-light">
+                                    <tr>
+                                        <th style="width:35px;" class="text-center">No</th>
+                                        <th>Nama Santri</th>
+                                        <th class="text-center">Ketersediaan UMBK</th>
+                                        <th class="text-center">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>`;
+
+                    res.santriSummary.forEach(function(s, idx) {
+                        let cbtBadge = s.availableCbtCount > 0 
+                            ? `<span class="badge bg-success font-weight-bold" style="font-size:11px;">${s.availableCbtCount} dari ${res.totalMateri} Materi</span>`
+                            : `<span class="text-muted">-</span>`;
+
+                        let statusBadge = `<span class="badge ${s.statusBadgeClass}">${s.statusText}</span>`;
+
+                        tableHtml += `
+                            <tr>
+                                <td class="text-center">${idx + 1}</td>
+                                <td class="text-left"><strong>${s.NamaSantri}</strong></td>
+                                <td class="text-center">${cbtBadge}</td>
+                                <td class="text-center">${statusBadge}</td>
+                            </tr>`;
+                    });
+
+                    tableHtml += `
+                                </tbody>
+                            </table>
+                        </div>`;
+
+                    let showConfirm = (res.totalSantriAdaCbt > 0);
+                    let confirmText = '<i class="fas fa-file-import me-1"></i> Ya, Tarik Nilai UMBK Kelas Ini';
+
+                    Swal.fire({
+                        title: `Rincian UMBK — ${namaKelas}`,
+                        html: tableHtml,
+                        icon: 'info',
+                        showCancelButton: true,
+                        showConfirmButton: showConfirm,
+                        confirmButtonText: confirmText,
+                        cancelButtonText: 'Tutup',
+                        confirmButtonColor: '#28a745',
+                        cancelButtonColor: '#6c757d',
+                        width: '650px'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            Swal.fire({
+                                title: 'Menarik & Menyimpan Nilai...',
+                                html: 'Mohon tunggu sejenak, sedang meng-update data nilai santri...',
+                                allowOutsideClick: false,
+                                didOpen: () => { Swal.showLoading(); }
+                            });
+
+                            $.ajax({
+                                url: '<?= base_url("backend/nilai/copy-ujian-mdta-bulk-kelas") ?>',
+                                type: 'POST',
+                                data: {
+                                    IdKelas: kelasId,
+                                    Semester: semesterVal,
+                                    IdTahunAjaran: '<?= session()->get("IdTahunAjaran") ?>',
+                                    IdTpq: '<?= session()->get("IdTpq") ?>'
+                                },
+                                dataType: 'json',
+                                success: function(saveRes) {
+                                    if (saveRes.success) {
+                                        Swal.fire({
+                                            title: '🎉 Penarikan Nilai Berhasil!',
+                                            html: `Berhasil menarik/meng-update <strong>${saveRes.totalImported} data Nilai UMBK</strong> untuk <strong>${namaKelas}</strong>.<br><br><span class="text-success"><i class="fas fa-check-circle me-1"></i> Halaman akan dimuat ulang.</span>`,
+                                            icon: 'success',
+                                            confirmButtonColor: '#28a745'
+                                        }).then(() => {
+                                            window.location.reload();
+                                        });
+                                    } else {
+                                        Swal.fire('Informasi', saveRes.message || 'Gagal menarik nilai UMBK.', 'info');
+                                    }
+                                },
+                                error: function() {
+                                    Swal.fire('Error', 'Terjadi kesalahan sistem saat menarik nilai UMBK.', 'error');
+                                }
+                            });
+                        }
+                    });
+                },
+                error: function() {
+                    Swal.fire('Error', 'Gagal memuat rincian UMBK kelas.', 'error');
+                }
+            });
+        });
     });
 </script>
 <?= $this->endSection(); ?>

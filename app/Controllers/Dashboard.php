@@ -1058,6 +1058,27 @@ class Dashboard extends BaseController
         $serahTerimaRaporModel = new \App\Models\SerahTerimaRaporModel();
         $data['serahTerimaRapor'] = $this->getSerahTerimaRaporSantri($idSantri, $idTahunAjaran);
 
+        // Ambil jadwal ujian MDTA aktif untuk santri (berdasarkan IdKelas dan IdTpq)
+        if (!empty($idKelas)) {
+            $jadwalModel = new \App\Models\Frontend\UjianMdta\UjianMdtaJadwalModel();
+            $jadwalAktif = $jadwalModel->getJadwalAktifBySantri((string)$idKelas, (string)$idTpq);
+
+            // Tempelkan status sesi santri tiap jadwal
+            $sesiModel = new \App\Models\Frontend\UjianMdta\UjianMdtaSesiModel();
+            foreach ($jadwalAktif as &$j) {
+                $sesi = $sesiModel->where('IdSantri', $idSantri)
+                                  ->where('IdJadwal', $j['id'])
+                                  ->orderBy('AttemptKe', 'DESC')
+                                  ->first();
+                $j['status_sesi'] = $sesi['StatusSesi'] ?? 'belum';
+                $j['token_sesi']  = $sesi['TokenSesi'] ?? null;
+                $j['nilai_akhir'] = $sesi['NilaiAkhir'] ?? null;
+            }
+            $data['jadwalUjian'] = $jadwalAktif;
+        } else {
+            $data['jadwalUjian'] = [];
+        }
+
         return $data;
     }
 
