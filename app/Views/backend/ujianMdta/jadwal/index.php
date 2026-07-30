@@ -274,9 +274,19 @@ div.dataTables_wrapper .dataTables_paginate {
                                                      </a>
                                                  <?php endif; ?>
 
-                                                 <a href="<?= base_url("backend/ujian-mdta/laporan/{$j['id']}") ?>" class="dropdown-item text-info fw-semibold">
-                                                     <i class="fas fa-chart-bar me-2"></i> Laporan Nilai
-                                                 </a>
+                                                  <a href="<?= base_url("backend/ujian-mdta/laporan/{$j['id']}") ?>" class="dropdown-item text-info fw-semibold">
+                                                      <i class="fas fa-chart-bar me-2"></i> Laporan Nilai
+                                                  </a>
+
+                                                  <div class="dropdown-divider"></div>
+
+                                                  <a href="javascript:void(0)" class="dropdown-item text-dark fw-semibold" onclick="openModalCetakManual(<?= $j['id'] ?>, '<?= esc($j['NamaUjian'], 'js') ?>')">
+                                                      <i class="fas fa-print me-2 text-primary"></i> Cetak Soal & LJK Manual
+                                                  </a>
+
+                                                  <a href="<?= base_url("backend/ujian-mdta/jadwal/verifikasi-manual/{$j['id']}") ?>" class="dropdown-item text-success fw-semibold">
+                                                      <i class="fas fa-camera me-2 text-success"></i> Verifikasi Jawaban Manual
+                                                  </a>
 
                                                  <div class="dropdown-divider"></div>
 
@@ -766,6 +776,92 @@ $(document).ready(function() {
         });
     });
 });
+
+function openModalCetakManual(idJadwal, namaUjian) {
+    $('#modalCetakIdJadwal').val(idJadwal);
+    $('#modalCetakNamaUjian').text(namaUjian);
+    $('#modalCetakManual').modal('show');
+}
+
+function executeCetakManualProcess() {
+    let idJadwal = $('#modalCetakIdJadwal').val();
+    let format   = $('input[name="formatCetakRadio"]:checked').val() || 'langsung_soal';
+    if (!idJadwal) return;
+
+    let url = '<?= base_url('backend/ujian-mdta/jadwal/cetak-manual') ?>/' + idJadwal + '?format=' + format;
+    window.open(url, '_blank');
+    $('#modalCetakManual').modal('hide');
+}
 </script>
+
+<!-- MODAL OPSI CETAK SOAL & LJK MANUAL -->
+<div class="modal fade" id="modalCetakManual" tabindex="-1" role="dialog" aria-labelledby="modalCetakManualLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title font-weight-bold" id="modalCetakManualLabel">
+                    <i class="fas fa-print me-2"></i> Pilihan Format Cetak Ujian Manual
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body p-4">
+                <p class="mb-3 text-muted">
+                    Silakan pilih format tampilan naskah soal dan LJK yang sesuai dengan kelas/karakteristik santri MDTA untuk Ujian <strong id="modalCetakNamaUjian"></strong>:
+                </p>
+
+                <input type="hidden" id="modalCetakIdJadwal" value="">
+
+                <div class="list-group">
+                    <label class="list-group-item list-group-item-action p-3 border rounded mb-2 cursor-pointer">
+                        <div class="d-flex w-100 justify-content-between align-items-center">
+                            <div class="form-check">
+                                <input class="form-check-input me-2" type="radio" name="formatCetakRadio" id="formatDirect" value="langsung_soal" checked>
+                                <strong class="text-success">Format A: Jawaban Langsung pada Soal</strong>
+                            </div>
+                            <span class="badge bg-success">Rekomen Kelas 3-4 SD</span>
+                        </div>
+                        <small class="text-muted d-block mt-1 ms-4">
+                            Santri menjawab langsung dengan <strong>menyilang (X) / melingkari (O)</strong> pilihan [A] [B] [C] [D] pada lembar naskah soal. Sangat intuitif untuk santri usia 8-10 tahun.
+                        </small>
+                    </label>
+
+                    <label class="list-group-item list-group-item-action p-3 border rounded mb-2 cursor-pointer">
+                        <div class="d-flex w-100 justify-content-between align-items-center">
+                            <div class="form-check">
+                                <input class="form-check-input me-2" type="radio" name="formatCetakRadio" id="formatSide" value="ljk_menyatu">
+                                <strong class="text-primary">Format B: LJK Menyatu Side-by-Side</strong>
+                            </div>
+                            <span class="badge bg-primary">Rekomen Kelas 4-5 SD</span>
+                        </div>
+                        <small class="text-muted d-block mt-1 ms-4">
+                            Layout 2 Kolom per halaman (Kolom Kiri: Naskah Soal 1-10, Kolom Kanan: Grid Bulatan LJK 1-10 di halaman yang sama).
+                        </small>
+                    </label>
+
+                    <label class="list-group-item list-group-item-action p-3 border rounded cursor-pointer">
+                        <div class="d-flex w-100 justify-content-between align-items-center">
+                            <div class="form-check">
+                                <input class="form-check-input me-2" type="radio" name="formatCetakRadio" id="formatSeparate" value="ljk_terpisah">
+                                <strong class="text-secondary">Format C: LJK Terpisah (Separate Sheet)</strong>
+                            </div>
+                            <span class="badge bg-secondary">Rekomen Kelas 5-6 SD</span>
+                        </div>
+                        <small class="text-muted d-block mt-1 ms-4">
+                            Naskah soal utuh di depan, Lembar Jawaban Komputer (LJK) khusus dicetak di halaman paling akhir/tersendiri.
+                        </small>
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer bg-light p-2">
+                <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal" data-bs-dismiss="modal">Batal</button>
+                <button type="button" class="btn btn-success btn-sm font-weight-bold" onclick="executeCetakManualProcess()">
+                    <i class="fas fa-print me-1"></i> Buka Halaman Cetak
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <?= $this->endSection(); ?>

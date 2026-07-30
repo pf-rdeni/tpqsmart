@@ -23,6 +23,12 @@ class UjianMdtaSesiModel extends Model
         'StatusSesi',
         'IsRemedial',
         'IsRemedialAllowed',
+        'TipePengerjaan',
+        'FormatCetak',
+        'FotoJawaban',
+        'CatatanVerifikasi',
+        'WaktuVerifikasi',
+        'DiverifikasiOleh',
     ];
 
     /**
@@ -228,8 +234,40 @@ class UjianMdtaSesiModel extends Model
      * @param string|null $idTpqFilter
      * @return array
      */
+    public function ensureColumnsExist()
+    {
+        try {
+            $fields = $this->db->getFieldNames($this->table);
+            if (!in_array('TipePengerjaan', $fields)) {
+                $this->db->query("ALTER TABLE tbl_ujian_mdta_sesi ADD COLUMN `TipePengerjaan` ENUM('online', 'manual') DEFAULT 'online' AFTER `StatusSesi`");
+            }
+            if (!in_array('FormatCetak', $fields)) {
+                $this->db->query("ALTER TABLE tbl_ujian_mdta_sesi ADD COLUMN `FormatCetak` VARCHAR(50) NULL AFTER `TipePengerjaan`");
+            }
+            if (!in_array('FotoJawaban', $fields)) {
+                $this->db->query("ALTER TABLE tbl_ujian_mdta_sesi ADD COLUMN `FotoJawaban` VARCHAR(255) NULL AFTER `FormatCetak`");
+            }
+            if (!in_array('HasilOmrRaw', $fields)) {
+                $this->db->query("ALTER TABLE tbl_ujian_mdta_sesi ADD COLUMN `HasilOmrRaw` TEXT NULL AFTER `FotoJawaban`");
+            }
+            if (!in_array('CatatanVerifikasi', $fields)) {
+                $this->db->query("ALTER TABLE tbl_ujian_mdta_sesi ADD COLUMN `CatatanVerifikasi` TEXT NULL AFTER `HasilOmrRaw`");
+            }
+            if (!in_array('WaktuVerifikasi', $fields)) {
+                $this->db->query("ALTER TABLE tbl_ujian_mdta_sesi ADD COLUMN `WaktuVerifikasi` DATETIME NULL AFTER `CatatanVerifikasi`");
+            }
+            if (!in_array('DiverifikasiOleh', $fields)) {
+                $this->db->query("ALTER TABLE tbl_ujian_mdta_sesi ADD COLUMN `DiverifikasiOleh` VARCHAR(100) NULL AFTER `WaktuVerifikasi`");
+            }
+        } catch (\Throwable $e) {
+            log_message('error', 'Error ensuring manual columns in model: ' . $e->getMessage());
+        }
+    }
+
     public function getAllSantriMonitorByJadwal(int $idJadwal, ?int $attemptKe = null, ?string $idTpqFilter = null): array
     {
+        $this->ensureColumnsExist();
+
         $jadwalModel = new UjianMdtaJadwalModel();
         $jadwal      = $jadwalModel->find($idJadwal);
         if (!$jadwal) {
@@ -250,7 +288,7 @@ class UjianMdtaSesiModel extends Model
         $builder = $this->db->table('tbl_kelas_santri ks');
         $builder->select('ks.IdSantri, ks.IdTpq, sb.NamaSantri, sb.NISN, k.NamaKelas, t.NamaTpq,
                           sesi.id as idSesi, sesi.AttemptKe, sesi.IsRemedial, sesi.IsRemedialAllowed, sesi.WaktuMulai, sesi.WaktuSelesai,
-                          sesi.NilaiAkhir, sesi.StatusSesi, sesi.TambahanWaktuDetik,
+                          sesi.NilaiAkhir, sesi.StatusSesi, sesi.TambahanWaktuDetik, sesi.TipePengerjaan, sesi.FormatCetak, sesi.FotoJawaban,
                           (SELECT COUNT(*) FROM tbl_ujian_mdta_jawaban j WHERE j.IdSesi = sesi.id AND (j.IdPilihan IS NOT NULL OR j.JawabanEsai IS NOT NULL)) as TotalDijawab');
         $builder->join('tbl_santri_baru sb', 'sb.IdSantri = ks.IdSantri', 'left');
         $builder->join('tbl_kelas k', 'k.IdKelas = ks.IdKelas', 'left');

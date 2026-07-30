@@ -241,6 +241,13 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->post('ujian-mdta/jadwal/archive/(:num)', 'UjianMdta::archiveJadwal/$1');
 
     $routes->post('ujian-mdta/jadwal/delete-remedial/(:num)/(:num)', 'UjianMdta::deleteRemedialSubrow/$1/$2');
+
+    // Manual & Hybrid Exam (Print Soal & Verifikasi Jawaban)
+    $routes->get('ujian-mdta/jadwal/cetak-manual/(:num)', 'UjianMdta::cetakSoalManual/$1');
+    $routes->get('ujian-mdta/jadwal/verifikasi-manual/(:num)', 'UjianMdta::verifikasiJawabanManual/$1');
+    $routes->get('ujian-mdta/jadwal/get-form-jawaban-santri/(:num)/(:num)', 'UjianMdta::getFormJawabanSantriAjax/$1/$2');
+    $routes->post('ujian-mdta/jadwal/simpan-jawaban-manual', 'UjianMdta::simpanJawabanManual');
+    $routes->post('ujian-mdta/jadwal/upload-foto-ljk', 'UjianMdta::uploadFotoLjkAjax');
     $routes->get('ujian-mdta/jadwal/monitor/(:num)', 'UjianMdta::monitorUjian/$1');
     $routes->get('ujian-mdta/jadwal/monitor/(:num)/(:num)', 'UjianMdta::monitorUjian/$1/$2');
     $routes->get('ujian-mdta/jadwal/get-monitor-ajax/(:num)', 'UjianMdta::getMonitorDataAjax/$1');

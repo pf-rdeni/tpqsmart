@@ -2563,5 +2563,364 @@ class UjianMdta extends BaseController
         return view('backend/ujianMdta/laporan/rekap_jawaban', $data);
     }
 
+    // ================================================================
+    // FITUR UJIAN MANUAL & HYBRID (CETAK SOAL/LJK & VERIFIKASI JAWABAN)
+    // ================================================================
+
+    private function ensureManualUjianColumnsExist()
+    {
+        try {
+            $fields = $this->db->getFieldNames('tbl_ujian_mdta_sesi');
+            if (!in_array('TipePengerjaan', $fields)) {
+                $this->db->query("ALTER TABLE tbl_ujian_mdta_sesi ADD COLUMN `TipePengerjaan` ENUM('online', 'manual') DEFAULT 'online' AFTER `StatusSesi`");
+            }
+            if (!in_array('FormatCetak', $fields)) {
+                $this->db->query("ALTER TABLE tbl_ujian_mdta_sesi ADD COLUMN `FormatCetak` VARCHAR(50) NULL AFTER `TipePengerjaan`");
+            }
+            if (!in_array('FotoJawaban', $fields)) {
+                $this->db->query("ALTER TABLE tbl_ujian_mdta_sesi ADD COLUMN `FotoJawaban` VARCHAR(255) NULL AFTER `FormatCetak`");
+            }
+            if (!in_array('HasilOmrRaw', $fields)) {
+                $this->db->query("ALTER TABLE tbl_ujian_mdta_sesi ADD COLUMN `HasilOmrRaw` TEXT NULL AFTER `FotoJawaban`");
+            }
+            if (!in_array('CatatanVerifikasi', $fields)) {
+                $this->db->query("ALTER TABLE tbl_ujian_mdta_sesi ADD COLUMN `CatatanVerifikasi` TEXT NULL AFTER `HasilOmrRaw`");
+            }
+            if (!in_array('WaktuVerifikasi', $fields)) {
+                $this->db->query("ALTER TABLE tbl_ujian_mdta_sesi ADD COLUMN `WaktuVerifikasi` DATETIME NULL AFTER `CatatanVerifikasi`");
+            }
+            if (!in_array('DiverifikasiOleh', $fields)) {
+                $this->db->query("ALTER TABLE tbl_ujian_mdta_sesi ADD COLUMN `DiverifikasiOleh` VARCHAR(100) NULL AFTER `WaktuVerifikasi`");
+            }
+        } catch (\Throwable $e) {
+            log_message('error', 'Error ensuring manual columns: ' . $e->getMessage());
+        }
+    }
+
+    public function cetakSoalManual(int $idJadwal)
+    {
+        $this->ensureManualUjianColumnsExist();
+
+        $jadwal = $this->jadwalModel->find($idJadwal);
+        if (!$jadwal) {
+            return redirect()->to(base_url('backend/ujian-mdta/jadwal'))->with('error', 'Jadwal ujian tidak ditemukan.');
+        }
+
+        $paket = $this->paketModel->getPaketDetail($jadwal['IdPaket']);
+        if (!$paket) {
+            return redirect()->to(base_url('backend/ujian-mdta/jadwal'))->with('error', 'Paket soal tidak ditemukan.');
+        }
+
+        $formatCetak = $this->request->getGet('format') ?? 'langsung_soal'; // 'langsung_soal', 'ljk_menyatu', 'ljk_terpisah'
+        $attemptKe    = (int)($this->request->getGet('attempt') ?? 1);
+
+        // Ambil daftar santri terdaftar di kelas jadwal
+        $sessionTpq = (string)($this->idTpq ?? '0');
+        $santriList = $this->sesiModel->getAllSantriMonitorByJadwal($idJadwal, $attemptKe, ($sessionTpq !== '0' ? $sessionTpq : null));
+
+        $soalSesiModel = new \App\Models\Frontend\UjianMdta\UjianMdtaSoalSesiModel();
+        $santriExamList = [];
+
+        foreach ($santriList as $santri) {
+            $idSantri = $santri['IdSantri'];
+            $idSesi   = $santri['idSesi'] ?? null;
+
+            // Jika sesi belum ada, buat sesi manual untuk santri ini
+            if (!$idSesi) {
+                $buatSesiResult = $this->sesiModel->buatSesi($idJadwal, (string)$idSantri, (string)($santri['IdTpq'] ?? $jadwal['IdTpq']), $attemptKe);
+                if ($buatSesiResult) {
+                    $idSesi = $buatSesiResult['id'];
+                }
+            }
+
+            if ($idSesi) {
+                // Pastikan distribusi soal acak sudah di-generate untuk sesi ini
+                if (!$soalSesiModel->sudahDigenerate($idSesi)) {
+                    $soalSesiModel->generateDistribusi($idSesi, $idJadwal);
+                }
+
+                // Update format cetak pada sesi
+                $this->sesiModel->update($idSesi, ['FormatCetak' => $formatCetak]);
+
+                $distribusi = $soalSesiModel->getDistribusiBySesi($idSesi);
+
+                $santriExamList[] = [
+                    'santri'     => $santri,
+                    'idSesi'     => $idSesi,
+                    'distribusi' => $distribusi,
+                ];
+            }
+        }
+
+        // Detail TPQ/Lembaga
+        $tpqInfo = null;
+        if (!empty($jadwal['IdTpq']) && $jadwal['IdTpq'] !== '0') {
+            $tpqInfo = $this->db->table('tbl_tpq')->where('IdTpq', $jadwal['IdTpq'])->get()->getRowArray();
+        }
+
+        $data = [
+            'page_title'     => 'Cetak Soal & LJK Ujian MDTA Manual',
+            'jadwal'         => $jadwal,
+            'paket'          => $paket,
+            'formatCetak'    => $formatCetak,
+            'santriExamList' => $santriExamList,
+            'tpqInfo'        => $tpqInfo,
+        ];
+
+        return view('backend/ujianMdta/manual/cetak_soal_ljk', $data);
+    }
+
+    public function verifikasiJawabanManual(int $idJadwal)
+    {
+        $this->ensureManualUjianColumnsExist();
+
+        $jadwal = $this->jadwalModel->find($idJadwal);
+        if (!$jadwal) {
+            return redirect()->to(base_url('backend/ujian-mdta/jadwal'))->with('error', 'Jadwal ujian tidak ditemukan.');
+        }
+
+        $paket = $this->paketModel->getPaketDetail($jadwal['IdPaket']);
+        $attemptKe = (int)($this->request->getGet('attempt') ?? 1);
+
+        $sessionTpq = (string)($this->idTpq ?? '0');
+        $santriList = $this->sesiModel->getAllSantriMonitorByJadwal($idJadwal, $attemptKe, ($sessionTpq !== '0' ? $sessionTpq : null));
+
+        $data = [
+            'page_title'  => 'Verifikasi Jawaban Manual — ' . $jadwal['NamaUjian'],
+            'jadwal'      => $jadwal,
+            'paket'       => $paket,
+            'santriList'  => $santriList,
+            'attemptKe'   => $attemptKe,
+            'isUserAdmin' => ($sessionTpq === '0'),
+        ];
+
+        return view('backend/ujianMdta/manual/verifikasi', $data);
+    }
+
+    public function getFormJawabanSantriAjax(int $idJadwal, int $idSantri)
+    {
+        $this->ensureManualUjianColumnsExist();
+
+        $jadwal = $this->jadwalModel->find($idJadwal);
+        if (!$jadwal) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Jadwal tidak ditemukan.']);
+        }
+
+        $santriInfo = $this->db->table('tbl_santri_baru s')
+            ->select('s.IdSantri, s.NamaSantri, s.NISN, k.NamaKelas, ks.IdTpq')
+            ->join('tbl_kelas_santri ks', 'ks.IdSantri = s.IdSantri', 'left')
+            ->join('tbl_kelas k', 'k.IdKelas = ks.IdKelas', 'left')
+            ->where('s.IdSantri', $idSantri)
+            ->get()->getRowArray();
+
+        if (!$santriInfo) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Data santri tidak ditemukan.']);
+        }
+
+        // Cari atau buat sesi santri
+        $sesi = $this->sesiModel->where('IdJadwal', $idJadwal)
+            ->where('IdSantri', $idSantri)
+            ->orderBy('id', 'DESC')
+            ->first();
+
+        $soalSesiModel = new \App\Models\Frontend\UjianMdta\UjianMdtaSoalSesiModel();
+
+        if (!$sesi) {
+            $idTpq = $santriInfo['IdTpq'] ?? $jadwal['IdTpq'];
+            $buatResult = $this->sesiModel->buatSesi($idJadwal, (string)$idSantri, (string)$idTpq, 1);
+            if ($buatResult) {
+                $idSesi = $buatResult['id'];
+                $sesi = $this->sesiModel->find($idSesi);
+            }
+        } else {
+            $idSesi = $sesi['id'];
+        }
+
+        if (!$idSesi) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Gagal menyiapkan sesi santri.']);
+        }
+
+        // Pastikan distribusi soal acak sudah di-generate
+        if (!$soalSesiModel->sudahDigenerate($idSesi)) {
+            $soalSesiModel->generateDistribusi($idSesi, $idJadwal);
+        }
+
+        $distribusi = $soalSesiModel->getDistribusiBySesi($idSesi);
+
+        // Ambil jawaban saat ini jika ada
+        $jawabanRows = $this->db->table('tbl_ujian_mdta_jawaban')
+            ->where('IdSesi', $idSesi)
+            ->get()->getResultArray();
+
+        $jawabanMap = [];
+        foreach ($jawabanRows as $jr) {
+            $jawabanMap[$jr['IdSoal']] = [
+                'idPilihan'   => $jr['IdPilihan'],
+                'jawabanEsai' => $jr['JawabanEsai'],
+                'isBenar'     => $jr['IsBenar'],
+            ];
+        }
+
+        // Format foto URL jika ada
+        $fotoUrl = null;
+        if (!empty($sesi['FotoJawaban'])) {
+            $fotoUrl = base_url($sesi['FotoJawaban']);
+        }
+
+        return $this->response->setJSON([
+            'success'          => true,
+            'idSesi'           => $idSesi,
+            'santriInfo'       => $santriInfo,
+            'sesi'             => $sesi,
+            'fotoUrl'          => $fotoUrl,
+            'distribusi'       => $distribusi,
+            'jawabanMap'       => $jawabanMap,
+            'jumlahPilihan'    => (int)($jadwal['JumlahPilihan'] ?? 4),
+            'modeJawaban'      => $jadwal['ModeJawaban'] ?? 'ABCD',
+            'waktuVerifikasi'  => $sesi['WaktuVerifikasi'] ?? null,
+            'diverifikasiOleh' => $sesi['DiverifikasiOleh'] ?? null,
+            'catatanVerifikasi'=> $sesi['CatatanVerifikasi'] ?? null,
+        ]);
+    }
+
+    public function simpanJawabanManual()
+    {
+        $this->ensureManualUjianColumnsExist();
+
+        $idJadwal    = $this->request->getPost('idJadwal');
+        $idSantri    = $this->request->getPost('idSantri');
+        $idSesi      = $this->request->getPost('idSesi');
+        $jawabanPost = $this->request->getPost('jawaban'); // Array [idSoal => idPilihan]
+        $catatan     = $this->request->getPost('catatan');
+        $formatCetak  = $this->request->getPost('formatCetak');
+
+        if (empty($idJadwal) || empty($idSantri)) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Parameter tidak lengkap.']);
+        }
+
+        if (empty($idSesi)) {
+            $sesi = $this->sesiModel->where('IdJadwal', $idJadwal)->where('IdSantri', $idSantri)->orderBy('id', 'DESC')->first();
+            if ($sesi) {
+                $idSesi = $sesi['id'];
+            } else {
+                $buatResult = $this->sesiModel->buatSesi((int)$idJadwal, (string)$idSantri, $this->idTpq, 1);
+                if ($buatResult) {
+                    $idSesi = $buatResult['id'];
+                }
+            }
+        }
+
+        if (!$idSesi) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Gagal menemukan atau membuat sesi santri.']);
+        }
+
+        // Upload Foto LJK jika ada
+        $fotoPath = null;
+        $fileFoto = $this->request->getFile('foto_ljk');
+        if ($fileFoto && $fileFoto->isValid() && !$fileFoto->hasMoved()) {
+            $uploadDir = FCPATH . 'uploads/ujian_mdta/ljk';
+            if (!is_dir($uploadDir)) {
+                @mkdir($uploadDir, 0777, true);
+            }
+            $newName = 'LJK_' . $idJadwal . '_' . $idSantri . '_' . time() . '.' . $fileFoto->getExtension();
+            $fileFoto->move($uploadDir, $newName);
+            $fotoPath = 'uploads/ujian_mdta/ljk/' . $newName;
+        }
+
+        // Simpan jawaban per soal
+        if (is_array($jawabanPost)) {
+            foreach ($jawabanPost as $idSoal => $idPilihan) {
+                if (empty($idSoal)) continue;
+
+                $idPilihanVal = (!empty($idPilihan) && is_numeric($idPilihan)) ? (int)$idPilihan : null;
+
+                $exist = $this->db->table('tbl_ujian_mdta_jawaban')
+                    ->where('IdSesi', $idSesi)
+                    ->where('IdSoal', $idSoal)
+                    ->get()->getRowArray();
+
+                if ($exist) {
+                    $this->db->table('tbl_ujian_mdta_jawaban')
+                        ->where('id', $exist['id'])
+                        ->update([
+                            'IdPilihan'  => $idPilihanVal,
+                            'updated_at' => date('Y-m-d H:i:s')
+                        ]);
+                } else {
+                    $this->db->table('tbl_ujian_mdta_jawaban')->insert([
+                        'IdSesi'     => $idSesi,
+                        'IdSoal'     => $idSoal,
+                        'IdPilihan'  => $idPilihanVal,
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'updated_at' => date('Y-m-d H:i:s'),
+                    ]);
+                }
+            }
+        }
+
+        // Evaluasi jawaban & hitung nilai otomatis
+        $this->jawabanModel->evaluasiJawaban((int)$idSesi);
+        $nilaiAkhir = $this->sesiModel->hitungNilai((int)$idSesi);
+
+        // Update status sesi
+        $updateSesi = [
+            'StatusSesi'       => 'selesai',
+            'TipePengerjaan'   => 'manual',
+            'WaktuSelesai'     => date('Y-m-d H:i:s'),
+            'WaktuVerifikasi'  => date('Y-m-d H:i:s'),
+            'DiverifikasiOleh' => session()->get('Username') ?? 'Guru/Pengawas',
+        ];
+
+        if (!empty($fotoPath)) {
+            $updateSesi['FotoJawaban'] = $fotoPath;
+        }
+        if (!empty($catatan)) {
+            $updateSesi['CatatanVerifikasi'] = $catatan;
+        }
+        if (!empty($formatCetak)) {
+            $updateSesi['FormatCetak'] = $formatCetak;
+        }
+
+        $this->sesiModel->update($idSesi, $updateSesi);
+
+        return $this->response->setJSON([
+            'success'    => true,
+            'message'    => 'Jawaban manual berhasil disimpan & nilai otomatis terhitung!',
+            'nilaiAkhir' => $nilaiAkhir,
+            'fotoUrl'    => !empty($fotoPath) ? base_url($fotoPath) : null,
+        ]);
+    }
+
+    public function uploadFotoLjkAjax()
+    {
+        $this->ensureManualUjianColumnsExist();
+
+        $idSesi   = $this->request->getPost('idSesi');
+        $fileFoto = $this->request->getFile('foto_ljk');
+
+        if (!$fileFoto || !$fileFoto->isValid() || $fileFoto->hasMoved()) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Berkas foto tidak valid.']);
+        }
+
+        $uploadDir = FCPATH . 'uploads/ujian_mdta/ljk';
+        if (!is_dir($uploadDir)) {
+            @mkdir($uploadDir, 0777, true);
+        }
+
+        $newName  = 'LJK_SCAN_' . time() . '_' . rand(100, 999) . '.' . $fileFoto->getExtension();
+        $fileFoto->move($uploadDir, $newName);
+        $fotoPath = 'uploads/ujian_mdta/ljk/' . $newName;
+
+        if (!empty($idSesi) && is_numeric($idSesi)) {
+            $this->sesiModel->update((int)$idSesi, ['FotoJawaban' => $fotoPath]);
+        }
+
+        return $this->response->setJSON([
+            'success'  => true,
+            'message'  => 'Foto LJK berhasil diunggah.',
+            'filePath' => $fotoPath,
+            'fileUrl'  => base_url($fotoPath),
+        ]);
+    }
 }
 
