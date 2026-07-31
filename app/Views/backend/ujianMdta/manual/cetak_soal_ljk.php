@@ -401,8 +401,6 @@
             <div class="header-kop">
                 <?php if (!empty($tpqInfo['LogoTpq'])): ?>
                     <img src="<?= base_url($tpqInfo['LogoTpq']) ?>" alt="Logo">
-                <?php else: ?>
-                    <div style="font-size: 24pt; font-weight: bold; margin-right: 15px; color: #1b5e20;"><i class="fas fa-quran"></i></div>
                 <?php endif; ?>
                 <div class="kop-text">
                     <h2>NASKAH UJIAN MDTA / MADRASAH</h2>
@@ -441,7 +439,7 @@
 
             <!-- Box Petunjuk Ujian -->
             <div class="instructions-box">
-                <strong><i class="fas fa-info-circle me-1"></i> PETUNJUK PENGERJAAN:</strong>
+                <strong>PETUNJUK PENGERJAAN:</strong>
                 <?php if ($formatCetak === 'langsung_soal'): ?>
                     Isilah jawaban dengan <strong>menyilang (X)</strong> atau <strong>melingkari (O)</strong> bulatan huruf pilihan <strong>[ A ] [ B ] [ C ] [ D ]</strong> langsung pada naskah soal di bawah ini.
                 <?php elseif ($formatCetak === 'ljk_menyatu'): ?>
@@ -585,8 +583,6 @@
             <div class="header-kop">
                 <?php if (!empty($tpqInfo['LogoTpq'])): ?>
                     <img src="<?= base_url($tpqInfo['LogoTpq']) ?>" alt="Logo">
-                <?php else: ?>
-                    <div style="font-size: 20pt; font-weight: bold; margin-right: 15px; color: #1b5e20;"><i class="fas fa-quran"></i></div>
                 <?php endif; ?>
                 <div class="kop-text">
                     <h2>LEMBAR JAWABAN KOMPUTER / MANUAL (LJK)</h2>
