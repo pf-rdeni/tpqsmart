@@ -1,4 +1,4 @@
-﻿<?= $this->extend('backend/template/template'); ?>
+<?= $this->extend('backend/template/template'); ?>
 <?= $this->section('content'); ?>
 
 <style>
@@ -238,8 +238,10 @@
                             <i class="fas fa-camera fa-3x mb-2"></i>
                             <p class="mb-0 small">Pilih santri di sebelah kiri, lalu foto / upload gambar lembar jawaban fisik untuk verifikasi visual.</p>
                         </div>
-                        <img id="ljkPreviewImage" src="" alt="LJK Preview" style="display: none;">
-                        <svg id="omrTargetOverlaySvg" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: none; z-index: 4; transform-origin: center center;"></svg>
+                        <div id="ljkImageWrapper" style="position: relative; display: inline-block; max-width: 100%; max-height: 100%; transform-origin: center center; margin: auto;">
+                            <img id="ljkPreviewImage" src="" alt="LJK Preview" style="display: block; max-width: 100%; max-height: 100%; object-fit: contain;">
+                            <svg id="omrTargetOverlaySvg" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: none; z-index: 4;"></svg>
+                        </div>
 
                         <div class="image-controls" id="imageControls" style="display: none;">
                             <button type="button" onclick="zoomImage(0.15)" title="Zoom In"><i class="fas fa-search-plus"></i></button>
@@ -300,28 +302,27 @@
     </div>
 </div>
 
-<!-- SweetAlert2 & Image Zoom Script -->
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<!-- OpenCV.js Computer Vision Engine -->
+<!-- OpenCV.js Engine -->
 <script>
 var cvReady = false;
 var Module = {
     onRuntimeInitialized: function() {
         cvReady = true;
-        console.log('✅ OpenCV.js siap digunakan');
+        console.log('✅ OpenCV.js engine loaded and ready');
     }
 };
 </script>
 <script async src="https://docs.opencv.org/4.9.0/opencv.js" type="text/javascript"></script>
 
 <script>
-let currentJadwalId = <?= (int)$jadwal['id'] ?>;
-let currentSantriId = null;
-let currentSesiId   = null;
-let currentDistribusi = [];
-let currentJawabanMap = {};
-let currentZoom     = 1;
-let currentRotate   = 0;
+let currentJadwalId     = <?= (int)$jadwal['id'] ?>;
+let currentSantriId     = null;
+let currentSesiId       = null;
+let currentDistribusi   = [];
+let currentJawabanMap   = {};
+let currentJumlahPilihan = <?= (int)($jadwal['JumlahPilihan'] ?? 4) ?>;
+let currentZoom         = 1;
+let currentRotate       = 0;
 
 function filterSantriRoster() {
     let q = $('#searchSantriInput').val().toLowerCase();
@@ -359,11 +360,12 @@ function loadSantriVerification(idJadwal, idSantri, callback, isManualClick = fa
                 return;
             }
 
-            currentSesiId          = res.idSesi;
-            currentDistribusi      = res.distribusi;
-            currentJawabanMap      = res.jawabanMap || {};
-            currentWaktuVerifikasi = res.waktuVerifikasi || null;
-            currentDiverifikasiOleh= res.diverifikasiOleh || null;
+            currentSesiId           = res.idSesi;
+            currentDistribusi       = res.distribusi;
+            currentJawabanMap       = res.jawabanMap || {};
+            currentJumlahPilihan    = res.jumlahPilihan || currentJumlahPilihan;
+            currentWaktuVerifikasi  = res.waktuVerifikasi || null;
+            currentDiverifikasiOleh = res.diverifikasiOleh || null;
 
             // Render Header Santri
             $('#selectedSantriTitle').text(res.santriInfo.NamaSantri);
@@ -373,11 +375,13 @@ function loadSantriVerification(idJadwal, idSantri, callback, isManualClick = fa
             if (!hasTempUpload) {
                 if (res.fotoUrl) {
                     $('#ljkPreviewImage').attr('src', res.fotoUrl).show();
+                    $('#ljkImageWrapper').show();
                     $('#imagePlaceholder').hide();
                     $('#imageControls').show();
                     $('#btnAutoDetectOmr').show();
                 } else {
                     $('#ljkPreviewImage').attr('src', '').hide();
+                    $('#ljkImageWrapper').hide();
                     $('#imagePlaceholder').show();
                     $('#imageControls').hide();
                     $('#btnAutoDetectOmr').hide();
@@ -561,6 +565,7 @@ function handleFotoUploadChange(input) {
             };
 
             img.src = e.target.result;
+            $('#ljkImageWrapper').show();
             $('#ljkPreviewImage').show();
             $('#imagePlaceholder').hide();
             $('#imageControls').show();
@@ -694,7 +699,7 @@ function resetImageViewer() {
 
 function applyImageTransform() {
     let styleVal = 'scale(' + currentZoom + ') rotate(' + currentRotate + 'deg)';
-    $('#ljkPreviewImage, #omrTargetOverlaySvg').css('transform', styleVal);
+    $('#ljkImageWrapper').css('transform', styleVal);
 }
 
 function toggleOmrTargetOverlay() {
@@ -708,6 +713,8 @@ function toggleOmrTargetOverlay() {
     }
 }
 
+
+
 function runAutoDetectOMR() {
     let img = document.getElementById('ljkPreviewImage');
     if (!img || !img.src || img.style.display === 'none') {
@@ -716,46 +723,61 @@ function runAutoDetectOMR() {
     }
 
     if (!currentDistribusi || currentDistribusi.length === 0) {
-        Swal.close();
         let firstBtn = $('.item-santri-btn:first');
         if (firstBtn.length > 0) {
             Swal.fire({
                 icon: 'warning',
                 title: 'Santri Belum Dipilih',
-                text: 'Silakan pilih santri terlebih dahulu di daftar sebelah kiri untuk memuat kisi-kisi jawaban.',
+                text: 'Silakan pilih santri terlebih dahulu di daftar sebelah kiri.',
                 confirmButtonText: 'Pilih Santri Pertama'
-            }).then(() => {
-                firstBtn.click();
-            });
+            }).then(() => { firstBtn.click(); });
         } else {
-            Swal.fire('Peringatan', 'Form kisi-kisi santri belum dimuat. Silakan pilih santri di daftar sebelah kiri.', 'warning');
+            Swal.fire('Peringatan', 'Form kisi-kisi santri belum dimuat. Silakan pilih santri.', 'warning');
         }
         return;
     }
 
+    if (typeof cv === 'undefined' || !cvReady) {
+        Swal.fire({
+            title: 'Memuat Engine OpenCV...',
+            text: 'Harap tunggu beberapa detik hingga engine Computer Vision siap.',
+            timer: 2500,
+            showConfirmButton: false
+        });
+        return;
+    }
+
     Swal.fire({
-        title: 'Memproses Deteksi OMR via OpenCV.js...',
-        text: 'Sistem Computer Vision sedang meratakan foto miring & menghitung sel bulatan LJK...',
+        title: 'Deteksi Bulatan OMR (OpenCV)...',
+        html: '<i class="fas fa-circle-notch fa-spin text-success me-2 fs-4"></i>Mencari geometri bulatan LJK (silangan X & hitam penuh)...',
         allowOutsideClick: false,
         didOpen: () => { Swal.showLoading(); }
     });
 
     setTimeout(() => {
         try {
-            if (typeof cv !== 'undefined' && cvReady) {
-                processOMRWithOpenCV(img);
-            } else {
-                processOMRFallback(img);
-            }
+            processOMRWithDirectCircles(img);
         } catch (e) {
-            console.error('OpenCV OMR Error, using fallback:', e);
-            processOMRFallback(img);
+            Swal.close();
+            console.error('[OpenCV Error]', e);
+            Swal.fire('Error OMR', 'Gagal memproses deteksi lingkaran: ' + e.message, 'error');
         }
-    }, 150);
+    }, 120);
 }
 
-function processOMRWithOpenCV(imgElement) {
-    let src = null, gray = null, blurred = null, thresh = null;
+/**
+ * processOMRWithDirectCircles â€” OpenCV Direct Bubble Detection + Grid Reconstruction
+ *
+ * Mengapa Grid Reconstruction?
+ * Coretan silang (X) atau hitam pada bulatan merusak kontur lingkaran murni, sehingga
+ * OpenCV HoughCircles sering melewatinya. Namun, bulatan KOSONG di sekitarnya tetap terdeteksi 100%.
+ * Algoritma ini merekonstruksi matriks kisi-kisi (Grid Matrix) lengkap dari bulatan kosong yang terdeteksi,
+ * lalu mengukur kepadatan piksel (Silang X / Hitam) pada SETIAP sel kisi-kisi.
+ */
+
+function processOMRWithDirectCircles(imgElement) {
+    let src = null, gray = null, blurred = null, thresh = null, circles = null, contours = null, hierarchy = null;
+
     try {
         src = cv.imread(imgElement);
         let W = src.cols;
@@ -765,793 +787,371 @@ function processOMRWithOpenCV(imgElement) {
         cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
 
         blurred = new cv.Mat();
-        cv.GaussianBlur(gray, blurred, new cv.Size(3, 3), 0);
+        cv.GaussianBlur(gray, blurred, new cv.Size(5, 5), 0);
 
-        thresh = new cv.Mat();
-        // THRESH_BINARY_INV: piksel hitam (tanda/garis) → 255, putih → 0
-        cv.adaptiveThreshold(blurred, thresh, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 25, 12);
+        // --- Step 1: Deteksi Lingkaran Bulatan LJK via HoughCircles ---
+        circles = new cv.Mat();
+        let minRadius = Math.max(5, Math.round(W * 0.007));  // ~8-10px
+        let maxRadius = Math.min(35, Math.round(W * 0.025)); // ~20-25px
+        let minDist   = Math.max(10, Math.round(W * 0.018)); // Jarak minimum antar bulatan
 
-        // Ambil data pixel thresh sebagai array
-        let data = thresh.data;
+        cv.HoughCircles(
+            blurred, circles, cv.HOUGH_GRADIENT,
+            1.2,
+            minDist,
+            50,
+            24,         // Threshold sensitivitas lingkaran
+            minRadius,
+            maxRadius
+        );
 
-        // Helper: hitung jumlah piksel putih (hitam asli) di area (x1,y1,x2,y2)
-        function countDark(x1, y1, x2, y2) {
-            let cnt = 0;
-            let ax1 = Math.max(0, Math.floor(x1)), ay1 = Math.max(0, Math.floor(y1));
-            let ax2 = Math.min(W, Math.floor(x2)), ay2 = Math.min(H, Math.floor(y2));
-            for (let y = ay1; y < ay2; y += 2) {
-                for (let x = ax1; x < ax2; x += 2) {
-                    if (data[y * W + x] > 128) cnt++;
+        let rawCircles = [];
+        if (circles.cols > 0) {
+            for (let i = 0; i < circles.cols; ++i) {
+                let x = circles.data32F[i * 3];
+                let y = circles.data32F[i * 3 + 1];
+                let r = circles.data32F[i * 3 + 2];
+                rawCircles.push({ x: x, y: y, r: r });
+            }
+        }
+
+        // --- Step 2: Fallback Contour Circularity Filter jika HoughCircles sedikit ---
+        if (rawCircles.length < 15) {
+            thresh = new cv.Mat();
+            cv.adaptiveThreshold(blurred, thresh, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 15, 3);
+
+            contours = new cv.MatVector();
+            hierarchy = new cv.Mat();
+            cv.findContours(thresh, contours, hierarchy, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE);
+
+            for (let i = 0; i < contours.size(); ++i) {
+                let cnt = contours.get(i);
+                let area = cv.contourArea(cnt);
+                let perimeter = cv.arcLength(cnt, true);
+
+                if (perimeter > 0) {
+                    let circularity = (4 * Math.PI * area) / (perimeter * perimeter);
+                    if (circularity >= 0.55) {
+                        let circle = cv.minEnclosingCircle(cnt);
+                        let r = circle.radius;
+                        if (r >= minRadius && r <= maxRadius) {
+                            rawCircles.push({ x: circle.center.x, y: circle.center.y, r: r });
+                        }
+                    }
                 }
             }
-            return cnt / Math.max(1, ((ax2 - ax1) / 2) * ((ay2 - ay1) / 2));
         }
 
-        // Helper: column projection (kerapatan piksel per kolom X) pada area Y tertentu
-        function colProjection(x1, x2, y1, y2) {
-            let ax1 = Math.max(0, Math.floor(x1)), ax2 = Math.min(W, Math.floor(x2));
-            let ay1 = Math.max(0, Math.floor(y1)), ay2 = Math.min(H, Math.floor(y2));
-            let proj = new Array(ax2 - ax1).fill(0);
-            let rowH = Math.max(1, ay2 - ay1);
-            for (let y = ay1; y < ay2; y++) {
-                for (let x = ax1; x < ax2; x++) {
-                    if (data[y * W + x] > 128) proj[x - ax1]++;
-                }
-            }
-            return proj.map(v => v / rowH);
-        }
+        // --- Step 3: FILTERING KARTU HEADER IDENTITAS ---
+        // Buang seluruh lingkaran di luar area tabel jawaban (Y < 24% tinggi gambar adalah header identitas)
+        let detectedCircles = rawCircles.filter(c => c.y >= H * 0.24 && c.y <= H * 0.96);
 
-        // Helper: row projection (kerapatan piksel per baris Y) pada area X tertentu
-        function rowProjection(y1, y2, x1, x2) {
-            let ax1 = Math.max(0, Math.floor(x1)), ax2 = Math.min(W, Math.floor(x2));
-            let ay1 = Math.max(0, Math.floor(y1)), ay2 = Math.min(H, Math.floor(y2));
-            let proj = new Array(ay2 - ay1).fill(0);
-            let colW = Math.max(1, ax2 - ax1);
-            for (let y = ay1; y < ay2; y++) {
-                for (let x = ax1; x < ax2; x++) {
-                    if (data[y * W + x] > 128) proj[y - ay1]++;
-                }
-            }
-            return proj.map(v => v / colW);
-        }
+        console.log('[OpenCV] Total lingkaran terdeteksi (raw):', rawCircles.length, '| Setelah filter header:', detectedCircles.length);
 
-        // -------------------------------------------------------
-        // STEP 1: Temukan batas kertas (area putih)
-        // -------------------------------------------------------
-        let paperTop = 0, paperBot = H, paperLeft = 0, paperRight = W;
-
-        // Row projection tengah gambar untuk cari batas atas/bawah kertas
-        let midX1 = W * 0.2, midX2 = W * 0.8;
-        for (let y = 0; y < H; y += 4) {
-            let dark = countDark(midX1, y, midX2, y + 4);
-            if (dark < 0.6) { paperTop = y; break; }
-        }
-        for (let y = H - 1; y > 0; y -= 4) {
-            let dark = countDark(midX1, y - 4, midX2, y);
-            if (dark < 0.6) { paperBot = y; break; }
-        }
-        let pH = paperBot - paperTop;
-
-        // -------------------------------------------------------
-        // STEP 2: Temukan area tabel LJK (bawah kertas ~50-90% dari tinggi kertas)
-        // Tabel LJK ada di bawah header identitas santri
-        // -------------------------------------------------------
-        let tableTop    = paperTop + pH * 0.46;
-        let tableBot    = paperTop + pH * 0.92;
-        let tableHeight = tableBot - tableTop;
-
-        // -------------------------------------------------------
-        // STEP 3: Row Projection → temukan Y center setiap baris soal
-        // Baris soal dipisahkan garis horisontal (kerapatan tinggi)
-        // Cari celah (lembah) di antara puncak-puncak row projection
-        // -------------------------------------------------------
-        let totalSoal = currentDistribusi.length;
-        let halfCount = Math.ceil(totalSoal / 2);
-
-        // Ambil row projection di area tabel (gunakan kolom tengah)
-        let rp = rowProjection(tableTop, tableBot, W * 0.05, W * 0.48);
-
-        // Temukan garis horizontal tebal (puncak tinggi): threshold > 0.15
-        let borderYs = [];
-        let inBorder = false;
-        let borderStart = 0;
-        for (let i = 0; i < rp.length; i++) {
-            if (!inBorder && rp[i] > 0.15) {
-                inBorder = true; borderStart = i;
-            } else if (inBorder && rp[i] <= 0.15) {
-                inBorder = false;
-                borderYs.push(tableTop + (borderStart + i) / 2);
-            }
-        }
-        // Jika tidak cukup border, fallback ke estimasi rata
-        while (borderYs.length < halfCount + 2) {
-            let step = tableHeight / (halfCount + 1);
-            borderYs = [];
-            for (let i = 0; i <= halfCount + 1; i++) {
-                borderYs.push(tableTop + i * step);
-            }
-        }
-
-        // Row center Y = tengah antara dua border
-        let leftRowYs = [];
-        for (let i = 0; i < borderYs.length - 1 && leftRowYs.length < halfCount; i++) {
-            // Skip header row (row pertama = header "PILIHAN JAWABAN SANTRI")
-            if (i === 0 && (borderYs[1] - borderYs[0]) < tableHeight * 0.12) continue;
-            leftRowYs.push((borderYs[i] + borderYs[i + 1]) / 2);
-        }
-
-        // Untuk kolom kanan, gunakan row projection di sisi kanan
-        let rp2 = rowProjection(tableTop, tableBot, W * 0.52, W * 0.95);
-        let borderYs2 = [];
-        let inBorder2 = false, bStart2 = 0;
-        for (let i = 0; i < rp2.length; i++) {
-            if (!inBorder2 && rp2[i] > 0.15) {
-                inBorder2 = true; bStart2 = i;
-            } else if (inBorder2 && rp2[i] <= 0.15) {
-                inBorder2 = false;
-                borderYs2.push(tableTop + (bStart2 + i) / 2);
-            }
-        }
-        let rightCount = totalSoal - halfCount;
-        while (borderYs2.length < rightCount + 2) {
-            let step2 = tableHeight / (rightCount + 1);
-            borderYs2 = [];
-            for (let i = 0; i <= rightCount + 1; i++) {
-                borderYs2.push(tableTop + i * step2);
-            }
-        }
-        let rightRowYs = [];
-        for (let i = 0; i < borderYs2.length - 1 && rightRowYs.length < rightCount; i++) {
-            if (i === 0 && (borderYs2[1] - borderYs2[0]) < tableHeight * 0.12) continue;
-            rightRowYs.push((borderYs2[i] + borderYs2[i + 1]) / 2);
-        }
-
-        console.log('Left row Y centers:', leftRowYs.map(y => (y/H*100).toFixed(1)+'%'));
-        console.log('Right row Y centers:', rightRowYs.map(y => (y/H*100).toFixed(1)+'%'));
-
-        // -------------------------------------------------------
-        // STEP 4: Column Projection → temukan X center per opsi
-        // Untuk setiap baris soal, scan column projection di area jawaban
-        // -------------------------------------------------------
-        function findOptionCenters(rowY, halfHeight, xStart, xEnd, numOptions) {
-            let cp = colProjection(xStart, xEnd, rowY - halfHeight, rowY + halfHeight);
-            let rangeW = Math.floor(xEnd - xStart);
-
-            // Bagi rentang menjadi numOptions segmen, cari puncak di tiap segmen
-            let segW = Math.floor(rangeW / numOptions);
-            let centers = [];
-            for (let seg = 0; seg < numOptions; seg++) {
-                let segStart = seg * segW;
-                let segEnd = Math.min((seg + 1) * segW, cp.length);
-                let maxVal = 0, maxIdx = segStart + Math.floor(segW / 2);
-                for (let i = segStart; i < segEnd; i++) {
-                    if (cp[i] > maxVal) { maxVal = cp[i]; maxIdx = i; }
-                }
-                centers.push({ x: xStart + maxIdx, density: maxVal });
-            }
-            return centers;
-        }
-
-        // -------------------------------------------------------
-        // STEP 5: Deteksi jawaban per soal
-        // -------------------------------------------------------
-        let detectedResults = [];
-        let hurufPos = ['A', 'B', 'C', 'D', 'E', 'F'];
-
-        currentDistribusi.forEach((soal, idx) => {
-            let numPilihan = Math.min(soal.pilihan.length, 4);
-            if (numPilihan <= 0) return;
-
-            let isRightCol = idx >= halfCount;
-            let rowIdx     = isRightCol ? (idx - halfCount) : idx;
-            let activeYs   = isRightCol ? rightRowYs : leftRowYs;
-
-            let rowY = activeYs.length > rowIdx
-                ? activeYs[rowIdx]
-                : (isRightCol
-                    ? tableTop + tableHeight * (0.15 + rowIdx * 0.5)
-                    : tableTop + tableHeight * (0.15 + rowIdx * 0.35));
-
-            // Setengah tinggi baris = estimasi dari jarak antar baris atau 3%
-            let rowHalf = activeYs.length >= 2
-                ? (activeYs[1] - activeYs[0]) * 0.4
-                : tableHeight * 0.12;
-            rowHalf = Math.max(rowHalf, H * 0.012);
-
-            // X area jawaban (setelah NO column)
-            // Left: 18%-47%  Right: 66%-95%
-            let xStart = isRightCol ? W * 0.66 : W * 0.18;
-            let xEnd   = isRightCol ? W * 0.96 : W * 0.48;
-            let xRange = xEnd - xStart;
-            let colW   = xRange / numPilihan;
-
-            // Scan kerapatan per opsi (ukuran sample inner 60% dari lebar & tinggi)
-            let cRatios  = [];
-            let soalBoxes = [];
-            for (let pIdx = 0; pIdx < numPilihan; pIdx++) {
-                let optX1 = xStart + pIdx * colW;
-                let optX2 = optX1 + colW;
-                // inner 30%-70% dari lebar sel, inner 20%-80% dari tinggi
-                let scanX1 = optX1 + colW * 0.20;
-                let scanX2 = optX2 - colW * 0.20;
-                let scanY1 = rowY - rowHalf * 0.75;
-                let scanY2 = rowY + rowHalf * 0.75;
-
-                let ratio = countDark(scanX1, scanY1, scanX2, scanY2);
-                cRatios.push({ pIdx, ratio });
-                soalBoxes.push({ x1: scanX1, y1: scanY1, x2: scanX2, y2: scanY2 });
-
-                console.log(`Soal${idx+1} Opt${hurufPos[pIdx]}: ratio=${ratio.toFixed(3)} @ X[${(scanX1/W*100).toFixed(0)}%-${(scanX2/W*100).toFixed(0)}%] Y[${(scanY1/H*100).toFixed(0)}%-${(scanY2/H*100).toFixed(0)}%]`);
-            }
-
-            cRatios.sort((a, b) => b.ratio - a.ratio);
-            let top    = cRatios[0];
-            let second = cRatios[1] || { ratio: 0 };
-            let gap    = top.ratio - second.ratio;
-            // Deteksi jika ada pilihan yang jelas lebih gelap dari yang lain
-            let isDetected = top.ratio > 0.04 && (gap > 0.015 || top.ratio > second.ratio * 1.3);
-
-            detectedResults.push({
-                idSoal: soal.IdSoal,
-                pilihanIdx: isDetected ? top.pIdx : null,
-                selectedOptionId: isDetected ? (soal.pilihan[top.pIdx]?.id ?? null) : null,
-                ratio: top.ratio,
-                boxes: soalBoxes
+        if (detectedCircles.length === 0) {
+            Swal.close();
+            Swal.fire({
+                icon: 'warning',
+                title: 'Lingkaran Tidak Terdeteksi',
+                text: 'Sistem tidak menemukan bentuk bulatan LJK di tabel jawaban. Pastikan foto cukup terang dan tabel jawaban terlihat.'
             });
-        });
+            return;
+        }
 
-        // -------------------------------------------------------
-        // STEP 6: Terapkan jawaban & render overlay SVG
-        // -------------------------------------------------------
-        let autoSelectedCount = 0;
-        detectedResults.forEach(res => {
-            if (res.selectedOptionId !== null) {
-                selectOptionJawaban(res.idSoal, res.selectedOptionId);
-                autoSelectedCount++;
+        // --- Step 4: Helper Pengukur Kegelapan Piksel (Silang X / Hitam Penuh) ---
+        function measureCircleDarkness(cx, cy, r) {
+            let sampleRadius = Math.max(4, Math.round(r * 0.80));
+            let x1 = Math.max(0, Math.floor(cx - sampleRadius));
+            let x2 = Math.min(W - 1, Math.ceil(cx + sampleRadius));
+            let y1 = Math.max(0, Math.floor(cy - sampleRadius));
+            let y2 = Math.min(H - 1, Math.ceil(cy + sampleRadius));
+
+            let darkCount = 0;
+            let totalCount = 0;
+
+            for (let y = y1; y <= y2; y += 2) {
+                for (let x = x1; x <= x2; x += 2) {
+                    let dx = x - cx;
+                    let dy = y - cy;
+                    if (dx * dx + dy * dy <= sampleRadius * sampleRadius) {
+                        totalCount++;
+                        let val = gray.ucharPtr(y, x)[0];
+                        // Threshold gray < 130 = piksel gelap (pulpen/pensil/silang/hitam)
+                        if (val < 130) darkCount++;
+                    }
+                }
             }
-        });
+            return totalCount > 0 ? (darkCount / totalCount) : 0.0;
+        }
 
-        let svgContent = '';
-        detectedResults.forEach(res => {
-            (res.boxes || []).forEach((box, pIdx) => {
-                let pctX1 = (box.x1 / W) * 100;
-                let pctY1 = (box.y1 / H) * 100;
-                let pctW  = ((box.x2 - box.x1) / W) * 100;
-                let pctH  = ((box.y2 - box.y1) / H) * 100;
-                let label = hurufPos[pIdx] || 'A';
-                if (res.pilihanIdx === pIdx) {
-                    svgContent += `<rect x="${pctX1.toFixed(2)}%" y="${pctY1.toFixed(2)}%" width="${pctW.toFixed(2)}%" height="${pctH.toFixed(2)}%" fill="rgba(40,167,69,0.45)" stroke="#28a745" stroke-width="2.5" rx="4"/>`;
-                    svgContent += `<text x="${(pctX1+pctW/2).toFixed(2)}%" y="${(pctY1+pctH/2).toFixed(2)}%" fill="#fff" font-size="11" font-weight="bold" text-anchor="middle" dominant-baseline="central">✓${label}</text>`;
+        // --- Step 5: Rekonstruksi Matriks Kisi-kisi (Grid Matrix Reconstruction) ---
+        function reconstructSubTableGrid(circlesList, expectedRows, numOptions) {
+            if (circlesList.length === 0) return [];
+
+            // A. Kelompokkan Y menjadi baris-baris
+            circlesList.sort((a, b) => a.y - b.y);
+            let rawRowClusters = [];
+            let curRow = [circlesList[0]];
+            for (let i = 1; i < circlesList.length; i++) {
+                if (Math.abs(circlesList[i].y - curRow[curRow.length - 1].y) <= 18) {
+                    curRow.push(circlesList[i]);
                 } else {
-                    svgContent += `<rect x="${pctX1.toFixed(2)}%" y="${pctY1.toFixed(2)}%" width="${pctW.toFixed(2)}%" height="${pctH.toFixed(2)}%" fill="rgba(220,53,69,0.08)" stroke="#dc3545" stroke-width="1" stroke-dasharray="4,3" rx="4"/>`;
-                    svgContent += `<text x="${(pctX1+pctW/2).toFixed(2)}%" y="${(pctY1+pctH/2).toFixed(2)}%" fill="#dc3545" font-size="9" text-anchor="middle" dominant-baseline="central">${label}</text>`;
+                    rawRowClusters.push(curRow);
+                    curRow = [circlesList[i]];
+                }
+            }
+            if (curRow.length > 0) rawRowClusters.push(curRow);
+
+            let rowYCenters = rawRowClusters.map(cluster => {
+                let sumY = cluster.reduce((acc, c) => acc + c.y, 0);
+                return sumY / cluster.length;
+            });
+
+            // Interpolasi Y jika baris terdeteksi < expectedRows
+            if (rowYCenters.length > 1 && rowYCenters.length < expectedRows) {
+                let deltaYs = [];
+                for (let i = 1; i < rowYCenters.length; i++) {
+                    deltaYs.push(rowYCenters[i] - rowYCenters[i - 1]);
+                }
+                deltaYs.sort((a, b) => a - b);
+                let medianDeltaY = deltaYs[Math.floor(deltaYs.length / 2)];
+
+                while (rowYCenters.length < expectedRows) {
+                    let lastY = rowYCenters[rowYCenters.length - 1];
+                    rowYCenters.push(lastY + medianDeltaY);
+                }
+            }
+            rowYCenters = rowYCenters.slice(0, expectedRows);
+
+            // B. Kelompokkan X menjadi kolom-kolom (A, B, C, D)
+            circlesList.sort((a, b) => a.x - b.x);
+            let colClusters = [];
+            let curCol = [circlesList[0]];
+            for (let i = 1; i < circlesList.length; i++) {
+                if (Math.abs(circlesList[i].x - curCol[curCol.length - 1].x) <= 22) {
+                    curCol.push(circlesList[i]);
+                } else {
+                    colClusters.push(curCol);
+                    curCol = [circlesList[i]];
+                }
+            }
+            if (curCol.length > 0) colClusters.push(curCol);
+
+            let colXCenters = colClusters.map(cluster => {
+                let sumX = cluster.reduce((acc, c) => acc + c.x, 0);
+                return sumX / cluster.length;
+            });
+
+            // Interpolasi X jika kolom terdeteksi < numOptions
+            if (colXCenters.length > 1 && colXCenters.length < numOptions) {
+                let deltaXs = [];
+                for (let i = 1; i < colXCenters.length; i++) {
+                    deltaXs.push(colXCenters[i] - colXCenters[i - 1]);
+                }
+                deltaXs.sort((a, b) => a - b);
+                let medianDeltaX = deltaXs[Math.floor(deltaXs.length / 2)];
+
+                while (colXCenters.length < numOptions) {
+                    let lastX = colXCenters[colXCenters.length - 1];
+                    colXCenters.push(lastX + medianDeltaX);
+                }
+            }
+            colXCenters = colXCenters.slice(0, numOptions);
+
+            // Radius median
+            let radii = circlesList.map(c => c.r);
+            radii.sort((a, b) => a - b);
+            let avgRadius = radii.length > 0 ? radii[Math.floor(radii.length / 2)] : 12;
+
+            // Bentuk Matriks Kisi-kisi Presisi (expectedRows x numOptions)
+            let fullGrid = [];
+            for (let r = 0; r < rowYCenters.length; r++) {
+                let rowGrid = [];
+                let y = rowYCenters[r];
+                for (let c = 0; c < colXCenters.length; c++) {
+                    let x = colXCenters[c];
+                    rowGrid.push({
+                        x: x,
+                        y: y,
+                        r: avgRadius,
+                        darkRatio: measureCircleDarkness(x, y, avgRadius)
+                    });
+                }
+                fullGrid.push(rowGrid);
+            }
+
+            return fullGrid;
+        }
+
+
+        // --- Step 6: Multi-Format Layout & Multi-Page Auto-Detection (Format A, B, C) ---
+        let numOptions  = currentJumlahPilihan || 4;
+        let distribusi  = currentDistribusi || [];
+
+        let midX = W * 0.49;
+        let leftCircles  = detectedCircles.filter(c => c.x < midX);
+        let rightCircles = detectedCircles.filter(c => c.x >= midX);
+
+        let detectedAnswers = [];
+        let detectedCount   = 0;
+        let allGridCircles  = [];
+
+        // Helper untuk mengevaluasi & mengaplikasikan jawaban dari suatu matriks grid
+        function processGridAnswers(soalList, gridMatrix) {
+            soalList.forEach((soal, rowIdx) => {
+                if (rowIdx >= gridMatrix.length) return;
+                let rowCircles = gridMatrix[rowIdx];
+                allGridCircles.push(...rowCircles);
+
+                let maxDark = -1;
+                let bestCircleIdx = -1;
+                rowCircles.forEach((c, cIdx) => {
+                    if (c.darkRatio > maxDark) {
+                        maxDark = c.darkRatio;
+                        bestCircleIdx = cIdx;
+                    }
+                });
+
+                // Threshold: darkRatio >= 0.08 (kegelapan silangan X / hitam penuh)
+                if (maxDark >= 0.08 && bestCircleIdx >= 0 && bestCircleIdx < numOptions) {
+                    let pilihanList = soal.pilihan || [];
+                    let pilObj = pilihanList[bestCircleIdx];
+                    let idPil = pilObj ? (pilObj.id || pilObj.IdPilihan) : null;
+
+                    if (idPil) {
+                        selectOptionJawaban(soal.IdSoal, idPil);
+                        detectedCount++;
+                        detectedAnswers.push({
+                            soalId: soal.IdSoal,
+                            circle: rowCircles[bestCircleIdx],
+                            optionIdx: bestCircleIdx,
+                            darkRatio: maxDark
+                        });
+                    }
                 }
             });
-        });
+        }
 
-        $('#omrTargetOverlaySvg').html(svgContent).show();
-        $('#btnToggleOverlay').removeClass('btn-overlay-off').addClass('btn-overlay-on');
+        // Cek apakah tata letak LJK berupa 2 Sub-tabel (Format C) atau 1 Tabel/Flow Tunggal (Format A & B)
+        let isTwoColumnSubTable = (leftCircles.length >= 6 && rightCircles.length >= 6);
+
+        if (isTwoColumnSubTable) {
+            // FORMAT C: LJK Terpisah (2 sub-tabel terpisah)
+            let halfCount = Math.ceil(distribusi.length / 2);
+            let leftSoal  = distribusi.slice(0, halfCount);
+            let rightSoal = distribusi.slice(halfCount);
+
+            let leftGrid  = reconstructSubTableGrid(leftCircles, leftSoal.length, numOptions);
+            let rightGrid = reconstructSubTableGrid(rightCircles, rightSoal.length, numOptions);
+
+            processGridAnswers(leftSoal, leftGrid);
+            processGridAnswers(rightSoal, rightGrid);
+        } else {
+            // FORMAT A & B: Jawaban Langsung di Soal / Side-by-Side (1 tabel / flow)
+            let gridRowsCount = Math.min(distribusi.length, 15); // Estimasi baris per halaman
+            let fullGrid = reconstructSubTableGrid(detectedCircles, gridRowsCount, numOptions);
+
+            // INTELLIGENT MULTI-PAGE OFFSET DETECTION:
+            // Jika total soal ujian > jumlah baris yang muat dalam 1 lembar foto (misal: 20 soal, 2 lembar):
+            // Deteksi blok soal pertama yang belum terisi di form untuk lembar foto ke-2, 3, dst.
+            let soalOffset = 0;
+            if (distribusi.length > fullGrid.length && fullGrid.length > 0) {
+                let pageSize = fullGrid.length;
+                for (let i = 0; i < distribusi.length; i += pageSize) {
+                    let isBlockComplete = true;
+                    for (let j = i; j < Math.min(distribusi.length, i + pageSize); j++) {
+                        let idS = distribusi[j].IdSoal;
+                        if (!currentJawabanMap[idS] || !currentJawabanMap[idS].idPilihan) {
+                            isBlockComplete = false;
+                            break;
+                        }
+                    }
+                    if (!isBlockComplete) {
+                        soalOffset = i;
+                        break;
+                    }
+                }
+            }
+
+            let pageSoalList = distribusi.slice(soalOffset, soalOffset + fullGrid.length);
+            processGridAnswers(pageSoalList, fullGrid);
+        }
+        renderDirectCirclesSvgOverlay(allGridCircles, detectedAnswers, W, H);
+
+        updateLiveScore();
 
         Swal.close();
         Swal.fire({
-            icon: autoSelectedCount > 0 ? 'success' : 'warning',
-            title: 'Analisis OpenCV.js Selesai!',
-            html: `Terisi otomatis: <strong>${autoSelectedCount} dari ${totalSoal} jawaban</strong>.<br><small>Cek Console (F12) untuk detail kerapatan piksel.</small>`,
-            timer: 2500,
-            showConfirmButton: false
+            icon: 'success',
+            title: 'Deteksi OMR Presisi Selesai!',
+            html: `OpenCV berhasil merekonstruksi kisi-kisi LJK.<br>` +
+                  `<strong class="text-success fs-5">${detectedCount} dari ${distribusi.length} jawaban</strong> terdeteksi otomatis (Silang X / Hitam Penuh).`,
+            confirmButtonText: 'Tinjau & Simpan'
         });
 
-    } catch (err) {
-        console.error('OpenCV processing error:', err);
-        throw err;
     } finally {
         if (src) src.delete();
         if (gray) gray.delete();
         if (blurred) blurred.delete();
         if (thresh) thresh.delete();
+        if (circles) circles.delete();
+        if (contours) contours.delete();
+        if (hierarchy) hierarchy.delete();
     }
 }
-        let W = src.cols;
+function renderDirectCirclesSvgOverlay(allCircles, detectedAnswers, imgW, imgH) {
+    let svgEl = document.getElementById('omrTargetOverlaySvg');
+    if (!svgEl) return;
 
-function processOMRFallback(imgElement) {
-    let img = imgElement;
-    let canvas = document.getElementById('omrProcessCanvas');
-    if (!canvas) {
-        canvas = document.createElement('canvas');
-        canvas.id = 'omrProcessCanvas';
-        canvas.style.display = 'none';
-        document.body.appendChild(canvas);
-    }
+    while (svgEl.firstChild) svgEl.removeChild(svgEl.firstChild);
 
-    try {
-        let ctx = canvas.getContext('2d');
-        canvas.width = img.naturalWidth || img.width || 800;
-        canvas.height = img.naturalHeight || img.height || 1000;
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    let imgEl = document.getElementById('ljkPreviewImage');
+    if (!imgEl) return;
 
-        let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    let dispW = imgEl.offsetWidth;
+    let dispH = imgEl.offsetHeight;
+    let scX = dispW / imgW;
+    let scY = dispH / imgH;
 
-        let totalSoal = currentDistribusi.length;
-        let pixels    = imageData.data;
-        let width     = imageData.width;
-        let height    = imageData.height;
+    svgEl.setAttribute('width', dispW);
+    svgEl.setAttribute('height', dispH);
 
-            // -----------------------------------------------------------------
-            // STEP A: DETEKSI BATAS KERTAS PUTIH (Mengabaikan Padding Hitam Canvas)
-            // -----------------------------------------------------------------
-            let paperTop = 0, paperBot = height, paperLeft = 0, paperRight = width;
+    let selectedCirclesSet = new Set(detectedAnswers.map(a => a.circle));
 
-            for (let y = 0; y < height; y += 4) {
-                let lightCount = 0;
-                for (let x = Math.floor(width * 0.2); x < width * 0.8; x += 4) {
-                    let offset = (y * width + x) * 4;
-                    let b = (pixels[offset] + pixels[offset + 1] + pixels[offset + 2]) / 3;
-                    if (b > 150) lightCount++;
-                }
-                if (lightCount > (width * 0.6 / 4) * 0.35) {
-                    paperTop = y;
-                    break;
-                }
+    allCircles.forEach(c => {
+        let isSelected = selectedCirclesSet.has(c);
+        let cx = c.x * scX;
+        let cy = c.y * scY;
+        let r  = c.r * scX;
+
+        let circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        circle.setAttribute('cx', cx.toFixed(1));
+        circle.setAttribute('cy', cy.toFixed(1));
+        circle.setAttribute('r', Math.max(6, r).toFixed(1));
+        circle.setAttribute('fill', isSelected ? 'rgba(40,167,69,0.35)' : 'rgba(220,220,220,0.15)');
+        circle.setAttribute('stroke', isSelected ? '#28a745' : '#aaaaaa');
+        circle.setAttribute('stroke-width', isSelected ? '2.5' : '1');
+        svgEl.appendChild(circle);
+
+        if (isSelected) {
+            let markAns = detectedAnswers.find(a => a.circle === c);
+            if (markAns) {
+                let text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.setAttribute('x', cx.toFixed(1));
+                text.setAttribute('y', (cy - r - 2).toFixed(1));
+                text.setAttribute('text-anchor', 'middle');
+                text.setAttribute('font-size', '10');
+                text.setAttribute('fill', '#28a745');
+                text.setAttribute('font-weight', 'bold');
+                text.textContent = String.fromCharCode(65 + markAns.optionIdx);
+                svgEl.appendChild(text);
             }
-
-            for (let y = height - 1; y >= 0; y -= 4) {
-                let lightCount = 0;
-                for (let x = Math.floor(width * 0.2); x < width * 0.8; x += 4) {
-                    let offset = (y * width + x) * 4;
-                    let b = (pixels[offset] + pixels[offset + 1] + pixels[offset + 2]) / 3;
-                    if (b > 150) lightCount++;
-                }
-                if (lightCount > (width * 0.6 / 4) * 0.35) {
-                    paperBot = y;
-                    break;
-                }
-            }
-
-            let midPaperY = Math.floor(paperTop + (paperBot - paperTop) * 0.5);
-
-            for (let x = 0; x < width; x += 4) {
-                let lightCount = 0;
-                for (let y = Math.max(0, midPaperY - 60); y < Math.min(height, midPaperY + 60); y += 4) {
-                    let offset = (y * width + x) * 4;
-                    let b = (pixels[offset] + pixels[offset + 1] + pixels[offset + 2]) / 3;
-                    if (b > 150) lightCount++;
-                }
-                if (lightCount > 4) {
-                    paperLeft = x;
-                    break;
-                }
-            }
-
-            for (let x = width - 1; x >= 0; x -= 4) {
-                let lightCount = 0;
-                for (let y = Math.max(0, midPaperY - 60); y < Math.min(height, midPaperY + 60); y += 4) {
-                    let offset = (y * width + x) * 4;
-                    let b = (pixels[offset] + pixels[offset + 1] + pixels[offset + 2]) / 3;
-                    if (b > 150) lightCount++;
-                }
-                if (lightCount > 4) {
-                    paperRight = x;
-                    break;
-                }
-            }
-
-            let rawPW = paperRight - paperLeft;
-            let rawPH = paperBot - paperTop;
-
-            // -----------------------------------------------------------------
-            // STEP A2: CARI 4 KOTAK HITAM (⬛) DI DALAM AREA KERTAS PUTIH
-            // -----------------------------------------------------------------
-            function findInnerCornerCentroid(minX, maxX, minY, maxY) {
-                let sumX = 0, sumY = 0, count = 0;
-                for (let y = Math.floor(minY); y < maxY; y += 2) {
-                    for (let x = Math.floor(minX); x < maxX; x += 2) {
-                        if (x >= 0 && x < width && y >= 0 && y < height) {
-                            let offset = (y * width + x) * 4;
-                            let b = (pixels[offset] + pixels[offset + 1] + pixels[offset + 2]) / 3;
-                            if (b < 90) {
-                                sumX += x;
-                                sumY += y;
-                                count++;
-                            }
-                        }
-                    }
-                }
-                return count >= 6 ? { x: sumX / count, y: sumY / count } : null;
-            }
-
-            let topLeftMark     = findInnerCornerCentroid(paperLeft, paperLeft + (rawPW * 0.20), paperTop, paperTop + (rawPH * 0.20));
-            let topRightMark    = findInnerCornerCentroid(paperRight - (rawPW * 0.20), paperRight, paperTop, paperTop + (rawPH * 0.20));
-            let bottomLeftMark  = findInnerCornerCentroid(paperLeft, paperLeft + (rawPW * 0.20), paperBot - (rawPH * 0.20), paperBot);
-            let bottomRightMark = findInnerCornerCentroid(paperRight - (rawPW * 0.20), paperRight, paperBot - (rawPH * 0.20), paperBot);
-
-            if (topLeftMark && topRightMark && bottomLeftMark && bottomRightMark) {
-                paperLeft  = (topLeftMark.x + bottomLeftMark.x) / 2;
-                paperRight = (topRightMark.x + bottomRightMark.x) / 2;
-                paperTop   = (topLeftMark.y + topRightMark.y) / 2;
-                paperBot   = (bottomLeftMark.y + bottomRightMark.y) / 2;
-            }
-
-            let pW = paperRight - paperLeft;
-            let pH = paperBot - paperTop;
-
-            // -----------------------------------------------------------------
-            // STEP A3: HITUNG AMBANG BATAS DINAMIS ADAPTIF (Adaptive Dynamic Threshold)
-            // -----------------------------------------------------------------
-            let paperBrightnessSum = 0, paperSampleCount = 0;
-            for (let y = Math.floor(paperTop + pH * 0.15); y < paperBot - pH * 0.15; y += 6) {
-                for (let x = Math.floor(paperLeft + pW * 0.15); x < paperRight - pW * 0.15; x += 6) {
-                    let offset = (Math.floor(y) * width + Math.floor(x)) * 4;
-                    let b = (pixels[offset] + pixels[offset + 1] + pixels[offset + 2]) / 3;
-                    if (b > 120) {
-                        paperBrightnessSum += b;
-                        paperSampleCount++;
-                    }
-                }
-            }
-
-            let avgPaperB = paperSampleCount > 0 ? (paperBrightnessSum / paperSampleCount) : 210;
-            let dynamicThreshold = Math.min(165, Math.max(95, avgPaperB * 0.72));
-
-            function sampleDarkRatio(x1, y1, x2, y2) {
-                let dark = 0, sampled = 0;
-                for (let y = Math.floor(y1); y < y2; y += 2) {
-                    for (let x = Math.floor(x1); x < x2; x += 2) {
-                        if (x >= 0 && x < width && y >= 0 && y < height) {
-                            let offset = (Math.floor(y) * width + Math.floor(x)) * 4;
-                            let brightness = (pixels[offset] + pixels[offset + 1] + pixels[offset + 2]) / 3;
-                            sampled++;
-                            if (brightness < dynamicThreshold) dark++;
-                        }
-                    }
-                }
-                return sampled > 0 ? (dark / sampled) : 0;
-            }
-
-            // -----------------------------------------------------------------
-            // STEP B: DETEKSI 4 KOTAK HITAM BLOK TABEL LJK (Solid Square ⬛)
-            // -----------------------------------------------------------------
-            function findSolidSquareCentroid(minX, maxX, minY, maxY) {
-                let sumX = 0, sumY = 0, count = 0;
-                for (let y = Math.floor(minY); y < maxY; y += 2) {
-                    for (let x = Math.floor(minX); x < maxX; x += 2) {
-                        if (x >= 2 && x < width - 2 && y >= 2 && y < height - 2) {
-                            let isSolid = true;
-                            for (let dy = -2; dy <= 2; dy += 2) {
-                                for (let dx = -2; dx <= 2; dx += 2) {
-                                    let offset = ((y + dy) * width + (x + dx)) * 4;
-                                    let b = (pixels[offset] + pixels[offset + 1] + pixels[offset + 2]) / 3;
-                                    if (b > 80) { isSolid = false; break; }
-                                }
-                                if (!isSolid) break;
-                            }
-                            if (isSolid) {
-                                sumX += x;
-                                sumY += y;
-                                count++;
-                            }
-                        }
-                    }
-                }
-                return count >= 6 ? { x: sumX / count, y: sumY / count } : null;
-            }
-
-            // Cari 4 titik sudut tepat di lokasi Kotak Hitam Blok Tabel LJK (⬛)
-            // Y: 37% - 44% (Tepat di bawah QR Code/Kartu Identitas), Y: 52% - 62% (Bawah tabel)
-            let tableTL = findSolidSquareCentroid(paperLeft, paperLeft + (pW * 0.20), paperTop + (pH * 0.37), paperTop + (pH * 0.44));
-            let tableTR = findSolidSquareCentroid(paperRight - (pW * 0.20), paperRight, paperTop + (pH * 0.37), paperTop + (pH * 0.44));
-            let tableBL = findSolidSquareCentroid(paperLeft, paperLeft + (pW * 0.20), paperTop + (pH * 0.52), paperTop + (pH * 0.62));
-            let tableBR = findSolidSquareCentroid(paperRight - (pW * 0.20), paperRight, paperTop + (pH * 0.52), paperTop + (pH * 0.62));
-
-            let hasTableCorners = (tableTL && tableTR && tableBL && tableBR);
-
-            // Rumus Proyeksi Perspektif Bilinear 2D (Mengoreksi Foto Miring/Trapesium 100%)
-            function getBilinearPoint(u, v) {
-                if (hasTableCorners) {
-                    let topX = (1 - v) * tableTL.x + v * tableTR.x;
-                    let topY = (1 - v) * tableTL.y + v * tableTR.y;
-                    let botX = (1 - v) * tableBL.x + v * tableBR.x;
-                    let botY = (1 - v) * tableBL.y + v * tableBR.y;
-                    return {
-                        x: (1 - u) * topX + u * botX,
-                        y: (1 - u) * topY + u * botY
-                    };
-                } else {
-                    let tableAnchorY = paperTop + (pH * 0.37);
-                    let gridTopC  = tableAnchorY + (pH * 0.045);
-                    let rowHC     = (pH * 0.055);
-                    return {
-                        x: paperLeft + (pW * v),
-                        y: gridTopC + (u * rowHC * 2)
-                    };
-                }
-            }
-
-            // -----------------------------------------------------------------
-            // STEP C: DETEKSI DUAL TIMING TRACK ROW MARKS (⬛ Garis Penanda Kiri & Kanan)
-            // -----------------------------------------------------------------
-            function scanTimingTrackColumn(minX, maxX, minY, maxY) {
-                let centers = [];
-                let currentCluster = null;
-                for (let y = Math.floor(minY); y < maxY; y += 2) {
-                    let darkCountInRow = 0;
-                    for (let x = Math.floor(minX); x < maxX; x += 2) {
-                        let offset = (y * width + x) * 4;
-                        let b = (pixels[offset] + pixels[offset + 1] + pixels[offset + 2]) / 3;
-                        if (b < 70) darkCountInRow++;
-                    }
-
-                    if (darkCountInRow >= 3) {
-                        if (!currentCluster) {
-                            currentCluster = { minY: y, maxY: y };
-                        } else {
-                            currentCluster.maxY = y;
-                        }
-                    } else {
-                        if (currentCluster) {
-                            if ((currentCluster.maxY - currentCluster.minY) >= 4) {
-                                centers.push((currentCluster.minY + currentCluster.maxY) / 2);
-                            }
-                            currentCluster = null;
-                        }
-                    }
-                }
-                if (currentCluster && (currentCluster.maxY - currentCluster.minY) >= 4) {
-                    centers.push((currentCluster.minY + currentCluster.maxY) / 2);
-                }
-                return centers;
-            }
-
-            let leftTrackYCenters  = scanTimingTrackColumn(paperLeft + (pW * 0.11), paperLeft + (pW * 0.20), paperTop + (pH * 0.38), paperTop + (pH * 0.65));
-            let rightTrackYCenters = scanTimingTrackColumn(paperLeft + (pW * 0.52), paperLeft + (pW * 0.62), paperTop + (pH * 0.38), paperTop + (pH * 0.65));
-
-            // -----------------------------------------------------------------
-            // STRATEGI 1: FORMAT C (LJK Terpisah - 2 Kolom Dual Timing Track Precision)
-            // -----------------------------------------------------------------
-            let formatCResults = [];
-            let halfCount = Math.ceil(totalSoal / 2);
-
-            currentDistribusi.forEach((soal, idx) => {
-                let numPilihan = Math.min(soal.pilihan.length, 4);
-                if (numPilihan <= 0) return;
-
-                let isRightCol = idx >= halfCount;
-                let rowIdx     = isRightCol ? (idx - halfCount) : idx;
-
-                let activeTrack = isRightCol ? (rightTrackYCenters.length > 0 ? rightTrackYCenters : leftTrackYCenters) : leftTrackYCenters;
-                let qY1, qY2;
-                if (activeTrack.length > rowIdx) {
-                    let centerY = activeTrack[rowIdx];
-                    qY1 = centerY - (pH * 0.024);
-                    qY2 = centerY + (pH * 0.024);
-                } else {
-                    let u1 = (rowIdx + 0.12) / (halfCount || 1);
-                    let u2 = (rowIdx + 0.88) / (halfCount || 1);
-                    let pTL = getBilinearPoint(u1, isRightCol ? 0.58 : 0.16);
-                    let pBR = getBilinearPoint(u2, isRightCol ? 0.86 : 0.44);
-                    qY1 = pTL.y;
-                    qY2 = pBR.y;
-                }
-
-                let startXPercent = isRightCol ? 0.58 : 0.20;
-                let totalXWidth   = 0.28;
-                let colW          = totalXWidth / numPilihan;
-
-                let cRatios = [];
-                let optionBoxes = [];
-
-                for (let pIdx = 0; pIdx < numPilihan; pIdx++) {
-                    let optX1 = paperLeft + (pW * (startXPercent + (pIdx * colW)));
-                    let optX2 = optX1 + (pW * colW);
-
-                    let ratio = sampleDarkRatio(optX1, qY1, optX2, qY2);
-                    cRatios.push({ pIdx: pIdx, ratio: ratio });
-                    optionBoxes.push({ x1: optX1, y1: qY1, x2: optX2, y2: qY2 });
-                }
-
-                cRatios.sort((a, b) => b.ratio - a.ratio);
-                let top = cRatios[0];
-                let second = cRatios[1] || { ratio: 0 };
-                let gap = top.ratio - second.ratio;
-
-                let isDetected = (top.ratio > 0.008 && (gap > 0.002 || top.ratio > (second.ratio * 1.10)));
-
-                formatCResults.push({
-                    idx: idx,
-                    soal: soal,
-                    bestPIdx: isDetected ? top.pIdx : -1,
-                    topPIdx: top.pIdx,
-                    gap: gap,
-                    topRatio: top.ratio,
-                    optionBoxes: optionBoxes
-                });
-            });
-
-            let avgGapC = formatCResults.reduce((acc, r) => acc + r.gap, 0) / (totalSoal || 1);
-
-            // -----------------------------------------------------------------
-            // STRATEGI 2: FORMAT A (Jawaban Langsung di Soal Y: paperTop -> paperBot)
-            // -----------------------------------------------------------------
-            let formatAResults = [];
-            let topY_A    = paperTop + (pH * 0.28);
-            let botY_A    = paperBot - (pH * 0.08);
-            let qHeight_A = (botY_A - topY_A) / (totalSoal || 1);
-
-            currentDistribusi.forEach((soal, idx) => {
-                let numPilihan = Math.min(soal.pilihan.length, 4);
-                if (numPilihan <= 0) return;
-
-                let qTop = topY_A + (idx * qHeight_A);
-                let optH = (qHeight_A * 0.70) / numPilihan;
-                let optTopBase = qTop + (qHeight_A * 0.22);
-                let aRatios = [];
-                let optionBoxesA = [];
-                for (let pIdx = 0; pIdx < numPilihan; pIdx++) {
-                    let optY1 = optTopBase + (pIdx * optH);
-                    let optY2 = optY1 + optH;
-                    let bubbleX1 = paperLeft + (pW * 0.03);
-                    let bubbleX2 = paperLeft + (pW * 0.18);
-
-                    let ratio = sampleDarkRatio(bubbleX1, optY1, bubbleX2, optY2);
-                    aRatios.push({ pIdx: pIdx, ratio: ratio });
-                    optionBoxesA.push({ x1: bubbleX1, y1: optY1, x2: bubbleX2, y2: optY2 });
-                }
-
-                aRatios.sort((a, b) => b.ratio - a.ratio);
-                let top = aRatios[0];
-                let second = aRatios[1] || { ratio: 0 };
-                let gap = top.ratio - second.ratio;
-
-                let isDetected = (top.ratio > 0.008 && (gap > 0.002 || top.ratio > (second.ratio * 1.10)));
-
-                formatAResults.push({
-                    idx: idx,
-                    soal: soal,
-                    bestPIdx: isDetected ? top.pIdx : -1,
-                    topPIdx: top.pIdx,
-                    gap: gap,
-                    topRatio: top.ratio,
-                    optionBoxes: optionBoxesA
-                });
-            });
-
-            let avgGapA = formatAResults.reduce((acc, r) => acc + r.gap, 0) / (totalSoal || 1);
-
-            // -----------------------------------------------------------------
-            // STRATEGI 3: FORMAT B (LJK Side-by-Side Sisi Kanan)
-            // -----------------------------------------------------------------
-            let formatBResults = [];
-            let topY_B    = paperTop + (pH * 0.28);
-            let botY_B    = paperBot - (pH * 0.08);
-            let qHeight_B = (botY_B - topY_B) / (totalSoal || 1);
-
-            currentDistribusi.forEach((soal, idx) => {
-                let numPilihan = Math.min(soal.pilihan.length, 4);
-                if (numPilihan <= 0) return;
-
-                let qTop       = topY_B + (idx * qHeight_B);
-                let rightWidth = pW * 0.48;
-                let rightMargin= paperLeft + (pW * 0.48);
-                let colW       = rightWidth / numPilihan;
-                let bRatios    = [];
-                let optionBoxesB = [];
-
-                for (let pIdx = 0; pIdx < numPilihan; pIdx++) {
-                    let cellX = rightMargin + (pIdx * colW) + (colW * 0.10);
-                    let cellY = qTop + (qHeight_B * 0.10);
-                    let cellW = colW * 0.8;
-                    let cellH = qHeight_B * 0.8;
-
-                    let ratio = sampleDarkRatio(cellX, cellY, cellX + cellW, cellY + cellH);
-                    bRatios.push({ pIdx: pIdx, ratio: ratio });
-                    optionBoxesB.push({ x1: cellX, y1: cellY, x2: cellX + cellW, y2: cellY + cellH });
-                }
-
-                bRatios.sort((a, b) => b.ratio - a.ratio);
-                let top = bRatios[0];
-                let second = bRatios[1] || { ratio: 0 };
-                let gap = top.ratio - second.ratio;
-
-                let isDetected = (top.ratio > 0.008 && (gap > 0.002 || top.ratio > (second.ratio * 1.10)));
-
-                formatBResults.push({
-                    idx: idx,
-                    soal: soal,
-                    bestPIdx: isDetected ? top.pIdx : -1,
-                    topPIdx: top.pIdx,
-                    gap: gap,
-                    topRatio: top.ratio,
-                    optionBoxes: optionBoxesB
-                });
-            });
-
-            let avgGapB = formatBResults.reduce((acc, r) => acc + r.gap, 0) / (totalSoal || 1);
-
-            // -----------------------------------------------------------------
-            // PILIH STRATEGI TERBAIK BERDASARKAN JUMLAH JAWABAN TERDETEKSI PROPOSIONAL
-            // -----------------------------------------------------------------
-            let countC = formatCResults.filter(r => r.bestPIdx >= 0).length;
-            let countA = formatAResults.filter(r => r.bestPIdx >= 0).length;
-            let countB = formatBResults.filter(r => r.bestPIdx >= 0).length;
-
-            let winningStrategy = formatCResults;
-            if (countA > countC && countA >= countB) {
-                winningStrategy = formatAResults;
-            } else if (countB > countC && countB > countA) {
-                winningStrategy = formatBResults;
-            } else if (countC >= countA && countC >= countB && countC > 0) {
-                winningStrategy = formatCResults;
-            } else if (avgGapC >= avgGapA && avgGapC >= avgGapB) {
-                winningStrategy = formatCResults;
-            }
-
-            // Ultimate Fallback: jika batas ketat gagal, ambil opsi dengan rasio kehitaman tertinggi
-            let activeCount = winningStrategy.filter(r => r.bestPIdx >= 0).length;
-            if (activeCount === 0) {
-                winningStrategy = formatCResults;
-                winningStrategy.forEach(r => {
-                    if (r.topRatio > 0.003) {
-                        r.bestPIdx = r.topPIdx;
-                    }
-                });
-            }
-
-            let detectedCount = 0;
-            winningStrategy.forEach((res) => {
-                if (res.bestPIdx >= 0 && res.soal.pilihan[res.bestPIdx]) {
-                    let detectedPilId = res.soal.pilihan[res.bestPIdx].id;
-                    selectOptionJawaban(res.soal.IdSoal, detectedPilId);
-                    detectedCount++;
-                }
-            });
-
-            // -----------------------------------------------------------------
-            // RENDER SVG TARGET GUIDE VISUAL OMR (SOLUSI 2: VISUAL OVERLAY)
-            // -----------------------------------------------------------------
-            let svgContent = '';
-            let hurufPositional = ['A', 'B', 'C', 'D', 'E', 'F'];
-
-            winningStrategy.forEach((res) => {
-                let numPilihan = Math.min(res.soal.pilihan.length, 4);
-                for (let pIdx = 0; pIdx < numPilihan; pIdx++) {
-                    let box = res.optionBoxes ? res.optionBoxes[pIdx] : null;
-                    if (!box) continue;
-
-                    let pctX1 = (box.x1 / width) * 100;
-                    let pctY1 = (box.y1 / height) * 100;
-                    let pctW  = ((box.x2 - box.x1) / width) * 100;
-                    let pctH  = ((box.y2 - box.y1) / height) * 100;
-                    let label = hurufPositional[pIdx] || 'A';
-
-                    if (res.bestPIdx === pIdx) {
-                        svgContent += `<rect x="${pctX1.toFixed(2)}%" y="${pctY1.toFixed(2)}%" width="${pctW.toFixed(2)}%" height="${pctH.toFixed(2)}%" fill="rgba(40, 167, 69, 0.40)" stroke="#28a745" stroke-width="2" rx="4" />`;
-                        svgContent += `<text x="${(pctX1 + pctW/2).toFixed(2)}%" y="${(pctY1 + pctH/2).toFixed(2)}%" fill="#ffffff" font-size="12" font-weight="bold" text-anchor="middle" dominant-baseline="central">✓ ${label}</text>`;
-                    } else {
-                        svgContent += `<rect x="${pctX1.toFixed(2)}%" y="${pctY1.toFixed(2)}%" width="${pctW.toFixed(2)}%" height="${pctH.toFixed(2)}%" fill="rgba(220, 53, 69, 0.10)" stroke="#dc3545" stroke-width="1.5" stroke-dasharray="3,3" rx="4" />`;
-                        svgContent += `<text x="${(pctX1 + pctW/2).toFixed(2)}%" y="${(pctY1 + pctH/2).toFixed(2)}%" fill="#dc3545" font-size="10" text-anchor="middle" dominant-baseline="central">${label}</text>`;
-                    }
-                }
-            });
-
-            $('#omrTargetOverlaySvg').html(svgContent).show();
-            $('#btnToggleOverlay').removeClass('btn-overlay-off').addClass('btn-overlay-on');
-
-            let qrCodeDetected = (typeof lastDetectedSantriId !== 'undefined' && lastDetectedSantriId !== null);
-
-            Swal.close();
-            Swal.fire({
-                icon: 'success',
-                title: 'Auto-Detect (OMR) Selesai!',
-                html: `Sistem berhasil menganalisis foto LJK.<br><strong>${detectedCount} dari ${totalSoal} jawaban</strong> terisi secara otomatis.${qrCodeDetected ? '<br><small class="text-success"><i class="fas fa-qrcode"></i> QR Code Identitas Terverifikasi</small>' : ''}`,
-                confirmButtonText: 'Tinjau & Simpan'
-            });
-
-        } catch (err) {
-            Swal.close();
-            console.error(err);
-            Swal.fire('Error', 'Gagal memproses deteksi foto OMR: ' + err.message, 'error');
         }
-}
+    });
 
+    svgEl.style.display = 'block';
+    $('#btnToggleOverlay').removeClass('btn-overlay-off').addClass('btn-overlay-on');
+}
 function compressImageElement(imgElement, maxDim = 2000, quality = 0.85) {
     let canvas = document.createElement('canvas');
     let w = imgElement.naturalWidth || imgElement.width || 1200;
