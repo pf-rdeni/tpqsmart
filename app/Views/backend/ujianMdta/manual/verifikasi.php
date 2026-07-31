@@ -1136,9 +1136,9 @@ function renderDirectCirclesSvgOverlay(allCircles, detectedAnswers, imgW, imgH) 
         circle.setAttribute('cx', cx.toFixed(1));
         circle.setAttribute('cy', cy.toFixed(1));
         circle.setAttribute('r', Math.max(6, r).toFixed(1));
-        circle.setAttribute('fill', isSelected ? 'rgba(40,167,69,0.35)' : 'rgba(220,220,220,0.15)');
-        circle.setAttribute('stroke', isSelected ? '#28a745' : '#aaaaaa');
-        circle.setAttribute('stroke-width', isSelected ? '2.5' : '1');
+        circle.setAttribute('fill', isSelected ? 'rgba(40,167,69,0.35)' : 'rgba(255,193,7,0.35)');
+        circle.setAttribute('stroke', isSelected ? '#28a745' : '#ffc107');
+        circle.setAttribute('stroke-width', isSelected ? '2.5' : '1.5');
         svgEl.appendChild(circle);
 
         if (isSelected) {
