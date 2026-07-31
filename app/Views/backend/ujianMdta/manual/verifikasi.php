@@ -907,8 +907,12 @@ function processOMRWithDirectCircles(imgElement) {
                 return sumY / cluster.length;
             });
 
-            // Interpolasi Y jika baris terdeteksi < expectedRows
-            if (rowYCenters.length > 1 && rowYCenters.length < expectedRows) {
+            // Filter Baris Header Noise:
+            // Jika baris terdeteksi > expectedRows (misal: terdeteksi lingkaran header "NO"),
+            // ambil expectedRows baris paling bawah (yaitu baris Soal 1..N)
+            if (rowYCenters.length > expectedRows) {
+                rowYCenters = rowYCenters.slice(rowYCenters.length - expectedRows);
+            } else if (rowYCenters.length > 1 && rowYCenters.length < expectedRows) {
                 let deltaYs = [];
                 for (let i = 1; i < rowYCenters.length; i++) {
                     deltaYs.push(rowYCenters[i] - rowYCenters[i - 1]);
@@ -920,8 +924,8 @@ function processOMRWithDirectCircles(imgElement) {
                     let lastY = rowYCenters[rowYCenters.length - 1];
                     rowYCenters.push(lastY + medianDeltaY);
                 }
+                rowYCenters = rowYCenters.slice(0, expectedRows);
             }
-            rowYCenters = rowYCenters.slice(0, expectedRows);
 
             // B. Kelompokkan X menjadi kolom-kolom (A, B, C, D)
             circlesList.sort((a, b) => a.x - b.x);
@@ -942,8 +946,12 @@ function processOMRWithDirectCircles(imgElement) {
                 return sumX / cluster.length;
             });
 
-            // Interpolasi X jika kolom terdeteksi < numOptions
-            if (colXCenters.length > 1 && colXCenters.length < numOptions) {
+            // Filter Kolom NO / Timing Mark Noise:
+            // Jika kolom terdeteksi > numOptions (misal: terdeteksi kolom NO/Timing Mark di sebelah kiri A),
+            // ambil numOptions kolom paling kanan (yaitu kolom pilihan A, B, C, D)
+            if (colXCenters.length > numOptions) {
+                colXCenters = colXCenters.slice(colXCenters.length - numOptions);
+            } else if (colXCenters.length > 1 && colXCenters.length < numOptions) {
                 let deltaXs = [];
                 for (let i = 1; i < colXCenters.length; i++) {
                     deltaXs.push(colXCenters[i] - colXCenters[i - 1]);
@@ -955,8 +963,8 @@ function processOMRWithDirectCircles(imgElement) {
                     let lastX = colXCenters[colXCenters.length - 1];
                     colXCenters.push(lastX + medianDeltaX);
                 }
+                colXCenters = colXCenters.slice(0, numOptions);
             }
-            colXCenters = colXCenters.slice(0, numOptions);
 
             // Radius median
             let radii = circlesList.map(c => c.r);
