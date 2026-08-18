@@ -88,21 +88,21 @@
             position: relative;
         }
 
-        /* Corner Fiducial Markers Tepat di 4 Sudut Tabel LJK */
+        /* Corner Fiducial Markers Tepat di 4 Sudut Setiap Sub-tabel LJK */
         .table-corner-mark {
-            width: 14px;
-            height: 14px;
+            width: 16px;
+            height: 16px;
             background-color: #000000 !important;
             position: absolute;
             z-index: 999;
-            border-radius: 1px;
+            border-radius: 0px;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
         }
-        .mark-tl { top: -10px; left: -10px; }
-        .mark-tr { top: -10px; right: -10px; }
-        .mark-bl { bottom: -10px; left: -10px; }
-        .mark-br { bottom: -10px; right: -10px; }
+        .mark-tl { top: -8px; left: -8px; }
+        .mark-tr { top: -8px; right: -8px; }
+        .mark-bl { bottom: -8px; left: -8px; }
+        .mark-br { bottom: -8px; right: -8px; }
 
         /* Timing Track Row Marks (Garis Penanda Baris Hitam Sejajar Soal) */
         .timing-mark-bar {
@@ -266,7 +266,7 @@
             justify-content: center;
             width: 22px;
             height: 22px;
-            border: 1.5px solid #222;
+            border: 1.8px solid #000;
             border-radius: 50%;
             font-weight: 700;
             font-size: 8.5pt;
@@ -290,7 +290,7 @@
         }
 
         .col-ljk-side {
-            width: 210px;
+            width: 220px;
             border-left: 2px dashed #444;
             padding-left: 12px;
             flex-shrink: 0;
@@ -299,27 +299,39 @@
         .ljk-grid-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 8.5pt;
+            font-size: 9pt;
+            border: 2px solid #000;
         }
 
         .ljk-grid-table th, .ljk-grid-table td {
-            border: 1px solid #aaa;
-            padding: 4px 2px;
+            border: 1.5px solid #000;
+            padding: 5px 3px;
             text-align: center;
+            vertical-align: middle;
         }
 
         .ljk-grid-table th {
-            background-color: #eee;
+            background-color: #f0f0f0;
+            color: #000;
             font-weight: 700;
+            border-bottom: 2px solid #000;
         }
 
         .bubble-grid {
-            width: 17px;
-            height: 17px;
-            border: 1.5px solid #222;
+            width: 22px;
+            height: 22px;
+            border: 1.8px solid #000;
             border-radius: 50%;
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 8.5pt;
+            color: #222;
+            background-color: #fff;
             vertical-align: middle;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
         }
 
         /* Layout Format C: LJK Terpisah (Separate Sheet) */
@@ -338,7 +350,7 @@
         .ljk-full-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 15px;
+            gap: 25px;
         }
 
         /* Media Print Rules */
@@ -515,7 +527,13 @@
                     </div>
 
                     <!-- Kolom LJK Jawaban (Kanan) -->
-                    <div class="col-ljk-side">
+                    <div class="col-ljk-side" style="position: relative;">
+                        <!-- 4 Corner Fiducial Markers -->
+                        <div class="table-corner-mark mark-tl"></div>
+                        <div class="table-corner-mark mark-tr"></div>
+                        <div class="table-corner-mark mark-bl"></div>
+                        <div class="table-corner-mark mark-br"></div>
+
                         <h4 style="margin: 0 0 8px 0; font-size: 9.5pt; text-align: center; text-transform: uppercase;">LEMBAR JAWABAN</h4>
                         <table class="ljk-grid-table">
                             <thead>
@@ -534,9 +552,8 @@
                                                 if ($maxPilihan > 0 && $pIdx >= $maxPilihan) break;
                                                 $labelHuruf = $hurufPositional[$pIdx] ?? chr(65 + $pIdx);
                                             ?>
-                                                <span style="display: inline-block; margin: 0 3px;">
-                                                    <span class="bubble-grid"></span>
-                                                    <small style="font-size: 7.5pt; font-weight: bold;"><?= esc($labelHuruf) ?></small>
+                                                <span style="display: inline-block; margin: 0 4px;">
+                                                    <span class="bubble-grid"><?= esc($labelHuruf) ?></span>
                                                 </span>
                                             <?php endforeach; ?>
                                         </td>
@@ -612,17 +629,18 @@
                 </div>
             </div>
 
-            <div class="ljk-full-grid" style="position: relative;">
-                <!-- 4 Table Corner Fiducial Markers untuk Presisi OMR -->
-                <div class="table-corner-mark mark-tl"></div>
-                <div class="table-corner-mark mark-tr"></div>
-                <div class="table-corner-mark mark-bl"></div>
-                <div class="table-corner-mark mark-br"></div>
+            <div class="ljk-full-grid">
                 <?php 
                 $chunks = array_chunk($distribusi, ceil(count($distribusi) / 2));
                 foreach ($chunks as $chunkIdx => $chunkSoal): 
                 ?>
-                    <div>
+                    <div style="position: relative; padding: 6px;">
+                        <!-- 4 Table Corner Fiducial Markers per Sub-tabel untuk Presisi OMR -->
+                        <div class="table-corner-mark mark-tl"></div>
+                        <div class="table-corner-mark mark-tr"></div>
+                        <div class="table-corner-mark mark-bl"></div>
+                        <div class="table-corner-mark mark-br"></div>
+
                         <table class="ljk-grid-table">
                             <thead>
                                 <tr>
@@ -644,9 +662,8 @@
                                                 if ($maxPilihan > 0 && $pIdx >= $maxPilihan) break;
                                                 $labelHuruf = $hurufPositional[$pIdx] ?? chr(65 + $pIdx);
                                             ?>
-                                                <span style="display: inline-block; margin: 0 6px;">
-                                                    <span class="bubble-grid" style="width: 20px; height: 20px;"></span>
-                                                    <strong style="font-size: 9pt; margin-left: 2px;"><?= esc($labelHuruf) ?></strong>
+                                                <span style="display: inline-block; margin: 0 5px;">
+                                                    <span class="bubble-grid"><?= esc($labelHuruf) ?></span>
                                                 </span>
                                             <?php endforeach; ?>
                                         </td>

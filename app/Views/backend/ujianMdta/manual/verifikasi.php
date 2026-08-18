@@ -927,43 +927,69 @@ function processOMRWithDirectCircles(imgElement) {
                 rowYCenters = rowYCenters.slice(0, expectedRows);
             }
 
-            // B. Kelompokkan X menjadi kolom-kolom (A, B, C, D)
-            circlesList.sort((a, b) => a.x - b.x);
-            let colClusters = [];
-            let curCol = [circlesList[0]];
-            for (let i = 1; i < circlesList.length; i++) {
-                if (Math.abs(circlesList[i].x - curCol[curCol.length - 1].x) <= 22) {
-                    curCol.push(circlesList[i]);
-                } else {
-                    colClusters.push(curCol);
-                    curCol = [circlesList[i]];
-                }
-            }
-            if (curCol.length > 0) colClusters.push(curCol);
+            // B. Kolom pilihan (A, B, C, D) — Kalibrasi dari Baris Terverifikasi
+            //
+            // Masalah fundamental sebelumnya:
+            //   Baris dengan 5 lingkaran [NO, A, B, C, D] → rightmost-4 → [A,B,C,D]  ✓
+            //   Baris dengan 4 lingkaran [NO, A, B, C]    → rightmost-4 → [NO,A,B,C] ✗ (D tertutup coretan)
+            //   Bila keduanya dirata-rata → posisi kolom bergeser ½ step.
+            //
+            // Solusi: Gunakan HANYA baris yang punya > numOptions lingkaran (pasti ada NO terdeteksi)
+            // untuk menentukan posisi kolom. Baris seperti ini dijamin berstruktur [NO, A, B, C, D].
+            // Fallback ke semua baris hanya bila tidak ada baris terverifikasi sama sekali
+            // (mis. tabel kiri angka 1–5 yang tidak punya lingkaran di kolom NO).
 
-            let colXCenters = colClusters.map(cluster => {
-                let sumX = cluster.reduce((acc, c) => acc + c.x, 0);
-                return sumX / cluster.length;
+            let ansXVerified = [];  // baris yang pasti ada NO (> numOptions lingkaran)
+            let ansXAll      = [];  // semua baris (fallback)
+
+            rawRowClusters.forEach(function(rowCircles) {
+                if (rowCircles.length < 1) return;
+                let sorted = [...rowCircles].sort((a, b) => a.x - b.x);
+                // Ambil numOptions lingkaran paling kanan per baris
+                let ansInRow = sorted.slice(Math.max(0, sorted.length - numOptions));
+                if (ansInRow.length > 0) {
+                    ansXAll.push(ansInRow.map(c => c.x));
+                    if (sorted.length > numOptions) {
+                        // Baris ini definitif: punya NO + A,B,C,D → rightmost-4 pasti [A,B,C,D]
+                        ansXVerified.push(ansInRow.map(c => c.x));
+                    }
+                }
             });
 
-            // Filter Kolom NO / Timing Mark Noise:
-            // Jika kolom terdeteksi > numOptions (misal: terdeteksi kolom NO/Timing Mark di sebelah kiri A),
-            // ambil numOptions kolom paling kanan (yaitu kolom pilihan A, B, C, D)
-            if (colXCenters.length > numOptions) {
-                colXCenters = colXCenters.slice(colXCenters.length - numOptions);
-            } else if (colXCenters.length > 1 && colXCenters.length < numOptions) {
-                let deltaXs = [];
-                for (let i = 1; i < colXCenters.length; i++) {
-                    deltaXs.push(colXCenters[i] - colXCenters[i - 1]);
-                }
-                deltaXs.sort((a, b) => a - b);
-                let medianDeltaX = deltaXs[Math.floor(deltaXs.length / 2)];
+            // Gunakan baris terverifikasi; fallback ke semua baris bila tidak ada
+            let ansXForCalib = ansXVerified.length > 0 ? ansXVerified : ansXAll;
 
-                while (colXCenters.length < numOptions) {
-                    let lastX = colXCenters[colXCenters.length - 1];
-                    colXCenters.push(lastX + medianDeltaX);
+            // Hitung posisi kolom A,B,C,D dengan rata-rata dari baris terpilih
+            let maxCols = ansXForCalib.reduce((m, r) => Math.max(m, r.length), 0);
+            let refCols  = Math.min(maxCols, numOptions);
+
+            let colXCenters = [];
+            for (let col = 0; col < refCols; col++) {
+                let vals = ansXForCalib.filter(r => r.length > col).map(r => r[col]);
+                if (vals.length > 0) {
+                    colXCenters.push(vals.reduce((s, v) => s + v, 0) / vals.length);
                 }
-                colXCenters = colXCenters.slice(0, numOptions);
+            }
+
+            // Fallback global bila per-baris gagal total
+            if (colXCenters.length === 0 && ansXAll.length > 0) {
+                let flat = ansXAll.flat().sort((a, b) => a - b);
+                colXCenters = flat.slice(Math.max(0, flat.length - numOptions));
+            }
+
+            // Hitung median gap antar kolom jawaban
+            let optionGaps = [];
+            for (let i = 1; i < colXCenters.length; i++) {
+                optionGaps.push(colXCenters[i] - colXCenters[i - 1]);
+            }
+            optionGaps.sort((a, b) => a - b);
+            let medianOptionGap = optionGaps.length > 0
+                ? optionGaps[Math.floor(optionGaps.length / 2)]
+                : 30;
+
+            // Rekonstruksi kolom yang hilang ke kanan (misal kolom D tidak terdeteksi)
+            while (colXCenters.length < numOptions && colXCenters.length > 0) {
+                colXCenters.push(colXCenters[colXCenters.length - 1] + medianOptionGap);
             }
 
             // Radius median
