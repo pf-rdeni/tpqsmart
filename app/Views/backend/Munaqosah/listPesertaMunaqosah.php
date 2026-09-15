@@ -678,7 +678,7 @@
                                             <?php endif; ?>
                                             <a href="<?= base_url('backend/munaqosah/printInstruksiVerifikasi/' . $row->IdSantri) ?>"
                                                 target="_blank"
-                                                class="btn btn-success btn-sm mr-1 action-btn"
+                                                class="btn btn-info btn-sm mr-1 action-btn"
                                                 title="Cetak Instruksi Verifikasi untuk <?= esc($row->NamaSantri ?? '') ?>">
                                                 <i class="fas fa-print"></i> <span class="btn-text">Print Instruksi</span>
                                             </a>
@@ -778,7 +778,7 @@
                                             <?php endif; ?>
                                             <a href="<?= base_url('backend/munaqosah/printInstruksiVerifikasi/' . $row->IdSantri) ?>"
                                                 target="_blank"
-                                                class="btn btn-success btn-sm mr-1 action-btn"
+                                                class="btn btn-info btn-sm mr-1 action-btn"
                                                 title="Cetak Instruksi Verifikasi untuk <?= esc($row->NamaSantri ?? '') ?>">
                                                 <i class="fas fa-print"></i> <span class="btn-text">Print Instruksi</span>
                                             </a>
