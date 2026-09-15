@@ -927,57 +927,74 @@ function processOMRWithDirectCircles(imgElement) {
                 rowYCenters = rowYCenters.slice(0, expectedRows);
             }
 
-            // B. Kolom pilihan (A, B, C, D) — Kalibrasi dari Baris Terverifikasi
+            // B. Kolom pilihan (A, B, C, D) — 2 Fase
             //
-            // Masalah fundamental sebelumnya:
-            //   Baris dengan 5 lingkaran [NO, A, B, C, D] → rightmost-4 → [A,B,C,D]  ✓
-            //   Baris dengan 4 lingkaran [NO, A, B, C]    → rightmost-4 → [NO,A,B,C] ✗ (D tertutup coretan)
-            //   Bila keduanya dirata-rata → posisi kolom bergeser ½ step.
+            // FASE 1 — Baris Terverifikasi (paling presisi)
+            //   Baris dengan > numOptions lingkaran PASTI berstruktur [NO, A, B, C, D].
+            //   rightmost-numOptions = [A, B, C, D] secara deterministik.
             //
-            // Solusi: Gunakan HANYA baris yang punya > numOptions lingkaran (pasti ada NO terdeteksi)
-            // untuk menentukan posisi kolom. Baris seperti ini dijamin berstruktur [NO, A, B, C, D].
-            // Fallback ke semua baris hanya bila tidak ada baris terverifikasi sama sekali
-            // (mis. tabel kiri angka 1–5 yang tidak punya lingkaran di kolom NO).
+            // FASE 2 — Anchor dari Kolom D (fallback jika Fase 1 kosong)
+            //   Kolom D selalu di posisi PALING KANAN. Tidak ada kolom NO atau lainnya
+            //   di sebelah kanan D. Gunakan persentil-90 posisi circle paling kanan per-baris
+            //   → posisi D yang stabil, lalu hitung mundur ke kiri menggunakan median spacing.
+            //   Pendekatan ini tidak bergantung sama sekali pada terdeteksi/tidaknya kolom NO.
 
-            let ansXVerified = [];  // baris yang pasti ada NO (> numOptions lingkaran)
-            let ansXAll      = [];  // semua baris (fallback)
+            let ansXVerified = [];
+            let gapSamples   = [];
+            let rightmostArr = [];
 
             rawRowClusters.forEach(function(rowCircles) {
                 if (rowCircles.length < 1) return;
                 let sorted = [...rowCircles].sort((a, b) => a.x - b.x);
-                // Ambil numOptions lingkaran paling kanan per baris
-                let ansInRow = sorted.slice(Math.max(0, sorted.length - numOptions));
-                if (ansInRow.length > 0) {
-                    ansXAll.push(ansInRow.map(c => c.x));
-                    if (sorted.length > numOptions) {
-                        // Baris ini definitif: punya NO + A,B,C,D → rightmost-4 pasti [A,B,C,D]
-                        ansXVerified.push(ansInRow.map(c => c.x));
-                    }
+
+                // Kumpulkan posisi rightmost per baris (kandidat posisi kolom D)
+                rightmostArr.push(sorted[sorted.length - 1].x);
+
+                // Gap antara 2 circle paling kanan = spacing antar-kolom jawaban
+                if (sorted.length >= 2) {
+                    let g = sorted[sorted.length - 1].x - sorted[sorted.length - 2].x;
+                    if (g > 5) gapSamples.push(g);
+                }
+
+                // Baris terverifikasi: > numOptions circle → pasti ada NO → [A,B,C,D] di rightmost-4
+                if (sorted.length > numOptions) {
+                    ansXVerified.push(sorted.slice(sorted.length - numOptions).map(c => c.x));
                 }
             });
 
-            // Gunakan baris terverifikasi; fallback ke semua baris bila tidak ada
-            let ansXForCalib = ansXVerified.length > 0 ? ansXVerified : ansXAll;
-
-            // Hitung posisi kolom A,B,C,D dengan rata-rata dari baris terpilih
-            let maxCols = ansXForCalib.reduce((m, r) => Math.max(m, r.length), 0);
-            let refCols  = Math.min(maxCols, numOptions);
-
             let colXCenters = [];
-            for (let col = 0; col < refCols; col++) {
-                let vals = ansXForCalib.filter(r => r.length > col).map(r => r[col]);
-                if (vals.length > 0) {
-                    colXCenters.push(vals.reduce((s, v) => s + v, 0) / vals.length);
+
+            if (ansXVerified.length > 0) {
+                // ── FASE 1: Rata-rata posisi kolom dari baris terverifikasi ──
+                let refCols = Math.min(numOptions, ansXVerified.reduce((m, r) => Math.max(m, r.length), 0));
+                for (let col = 0; col < refCols; col++) {
+                    let vals = ansXVerified.filter(r => r.length > col).map(r => r[col]);
+                    if (vals.length > 0) {
+                        colXCenters.push(vals.reduce((s, v) => s + v, 0) / vals.length);
+                    }
+                }
+            } else {
+                // ── FASE 2: Anchor dari kolom D ──
+                // Median spacing dari gap 2-circle paling kanan per baris
+                gapSamples.sort((a, b) => a - b);
+                let spacing = gapSamples.length > 0
+                    ? gapSamples[Math.floor(gapSamples.length / 2)]
+                    : 30;
+
+                // Persentil-90 rightmostArr ≈ posisi kolom D
+                // (baris di mana D tidak terdeteksi memberikan nilai lebih kecil,
+                //  sehingga nilai ≥ P90 hampir pasti merepresentasikan posisi D yang sesungguhnya)
+                rightmostArr.sort((a, b) => a - b);
+                let idx90 = Math.min(rightmostArr.length - 1, Math.ceil(rightmostArr.length * 0.9) - 1);
+                let colDX  = rightmostArr.length > 0 ? rightmostArr[idx90] : 200;
+
+                // Hitung posisi A, B, C, D dari D ke kiri
+                for (let col = numOptions - 1; col >= 0; col--) {
+                    colXCenters.unshift(colDX - (numOptions - 1 - col) * spacing);
                 }
             }
 
-            // Fallback global bila per-baris gagal total
-            if (colXCenters.length === 0 && ansXAll.length > 0) {
-                let flat = ansXAll.flat().sort((a, b) => a - b);
-                colXCenters = flat.slice(Math.max(0, flat.length - numOptions));
-            }
-
-            // Hitung median gap antar kolom jawaban
+            // Hitung median gap dan rekonstruksi kolom yang hilang ke kanan
             let optionGaps = [];
             for (let i = 1; i < colXCenters.length; i++) {
                 optionGaps.push(colXCenters[i] - colXCenters[i - 1]);
@@ -987,7 +1004,6 @@ function processOMRWithDirectCircles(imgElement) {
                 ? optionGaps[Math.floor(optionGaps.length / 2)]
                 : 30;
 
-            // Rekonstruksi kolom yang hilang ke kanan (misal kolom D tidak terdeteksi)
             while (colXCenters.length < numOptions && colXCenters.length > 0) {
                 colXCenters.push(colXCenters[colXCenters.length - 1] + medianOptionGap);
             }
