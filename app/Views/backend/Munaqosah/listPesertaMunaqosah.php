@@ -664,11 +664,16 @@
                                                 <i class="fas fa-edit"></i> Edit
                                             </button>
                                             <?php if (!empty($row->HasKey)): ?>
-                                                <button type="button" class="btn btn-info btn-sm mr-1 copy-link-btn-peserta action-btn"
+                                                <button type="button" class="btn btn-success btn-sm mr-1 copy-link-btn-peserta action-btn"
                                                     data-nama-santri="<?= esc($row->NamaSantri ?? '') ?>"
                                                     data-haskey="<?= esc($row->HasKey) ?>"
-                                                    title="Copy link WhatsApp untuk <?= esc($row->NamaSantri ?? '') ?>">
-                                                    <i class="fas fa-copy"></i> <span class="btn-text">Copy Link</span>
+                                                    data-no-hp-ayah="<?= esc($row->NoHpAyah ?? '') ?>"
+                                                    data-nama-ayah="<?= esc($row->NamaAyah ?? '') ?>"
+                                                    data-no-hp-ibu="<?= esc($row->NoHpIbu ?? '') ?>"
+                                                    data-nama-ibu="<?= esc($row->NamaIbu ?? '') ?>"
+                                                    data-nama-tpq="<?= esc($row->NamaTpq ?? '') ?>"
+                                                    title="Kirim link WhatsApp untuk <?= esc($row->NamaSantri ?? '') ?>">
+                                                    <i class="fab fa-whatsapp"></i> <span class="btn-text">Kirim Link</span>
                                                 </button>
                                             <?php endif; ?>
                                             <a href="<?= base_url('backend/munaqosah/printInstruksiVerifikasi/' . $row->IdSantri) ?>"
@@ -759,11 +764,16 @@
                                                 <i class="fas fa-trash"></i> <span class="btn-text">Hapus</span>
                                             </button>
                                             <?php if (!empty($row->HasKey)): ?>
-                                                <button type="button" class="btn btn-info btn-sm mr-1 copy-link-btn-peserta action-btn"
+                                                <button type="button" class="btn btn-success btn-sm mr-1 copy-link-btn-peserta action-btn"
                                                     data-nama-santri="<?= esc($row->NamaSantri ?? '') ?>"
                                                     data-haskey="<?= esc($row->HasKey) ?>"
-                                                    title="Copy link WhatsApp untuk <?= esc($row->NamaSantri ?? '') ?>">
-                                                    <i class="fas fa-copy"></i> <span class="btn-text">Copy Link</span>
+                                                    data-no-hp-ayah="<?= esc($row->NoHpAyah ?? '') ?>"
+                                                    data-nama-ayah="<?= esc($row->NamaAyah ?? '') ?>"
+                                                    data-no-hp-ibu="<?= esc($row->NoHpIbu ?? '') ?>"
+                                                    data-nama-ibu="<?= esc($row->NamaIbu ?? '') ?>"
+                                                    data-nama-tpq="<?= esc($row->NamaTpq ?? '') ?>"
+                                                    title="Kirim link WhatsApp untuk <?= esc($row->NamaSantri ?? '') ?>">
+                                                    <i class="fab fa-whatsapp"></i> <span class="btn-text">Kirim Link</span>
                                                 </button>
                                             <?php endif; ?>
                                             <a href="<?= base_url('backend/munaqosah/printInstruksiVerifikasi/' . $row->IdSantri) ?>"
@@ -4697,10 +4707,15 @@
         return false; // Prevent default link behavior
     }
 
-    // Copy link button click handler untuk peserta
+    // Kirim / Copy link button click handler untuk peserta
     $(document).on('click', '.copy-link-btn-peserta:not(:disabled)', function() {
         const namaSantri = $(this).data('nama-santri');
         const hasKey = $(this).data('haskey');
+        const noHpAyah = $(this).data('no-hp-ayah') || '';
+        const namaAyah = $(this).data('nama-ayah') || '';
+        const noHpIbu = $(this).data('no-hp-ibu') || '';
+        const namaIbu = $(this).data('nama-ibu') || '';
+        const namaTpq = $(this).data('nama-tpq') || '';
 
         if (!hasKey) {
             Swal.fire({
@@ -4712,21 +4727,69 @@
             return;
         }
 
-        // Format teks yang akan dicopy
+        // Format teks yang akan dicopy / dikirim via WA
         const baseUrl = '<?= base_url('cek-status/') ?>';
         const statusUrl = baseUrl + hasKey;
-        const copyText = `${namaSantri}\nCheck Status:\n${statusUrl}`;
+        const operatorLabel = namaTpq ? `Operator ${namaTpq}` : 'Operator TPQ';
+        const copyText = `${namaSantri}\nCheck Status:\n${statusUrl}\n\nCatatan:\n- Untuk pertama kalinya Anda akan diminta verifikasi, silakan tekan link tersebut.\n- Simpan link atau pesan ini karena link tersebut digunakan untuk melihat hasil Pra-Munaqosah maupun Munaqosah.\n\nTertanda,\n${operatorLabel}`;
+        const pesanWA = `Assalamu'alaikum\n\nLink Status Ujian Munaqosah untuk *${namaSantri}*:\n${statusUrl}\n\n*Catatan:*\n- Untuk pertama kalinya Anda akan diminta verifikasi, silakan tekan link tersebut.\n- Simpan link atau pesan ini karena link tersebut digunakan untuk melihat hasil Pra-Munaqosah maupun Munaqosah.\n\nTertanda,\n*${operatorLabel}*`;
+        const pesanWAEncoded = encodeURIComponent(pesanWA);
 
-        // Tampilkan popup dengan informasi yang akan dicopy
+        // Format No HP untuk WhatsApp
+        const formatNoHpWa = (noHp) => {
+            if (!noHp) return '';
+            let cleaned = noHp.toString().replace(/\D/g, '');
+            if (cleaned.startsWith('0')) {
+                cleaned = '62' + cleaned.substring(1);
+            } else if (!cleaned.startsWith('62') && cleaned.startsWith('8')) {
+                cleaned = '62' + cleaned;
+            }
+            return cleaned;
+        };
+
+        const hpAyahClean = formatNoHpWa(noHpAyah);
+        const hpIbuClean = formatNoHpWa(noHpIbu);
+
+        let waButtonsHtml = '';
+        if (hpAyahClean || hpIbuClean) {
+            waButtonsHtml += '<div class="mt-3 text-left"><label class="text-secondary font-weight-bold mb-2"><i class="fab fa-whatsapp text-success"></i> Kirim Langsung via WhatsApp:</label><div class="d-flex flex-column" style="gap: 8px;">';
+            if (hpAyahClean) {
+                const labelAyah = namaAyah ? `Ayah (${namaAyah} - ${noHpAyah})` : `Ayah (${noHpAyah})`;
+                waButtonsHtml += `
+                    <a href="https://wa.me/${hpAyahClean}?text=${pesanWAEncoded}" target="_blank" class="btn btn-success btn-sm btn-block text-left" style="background-color: #25D366; border-color: #25D366;">
+                        <i class="fab fa-whatsapp fa-lg mr-2"></i> Kirim ke No Ayah: ${labelAyah}
+                    </a>`;
+            }
+            if (hpIbuClean) {
+                const labelIbu = namaIbu ? `Ibu (${namaIbu} - ${noHpIbu})` : `Ibu (${noHpIbu})`;
+                waButtonsHtml += `
+                    <a href="https://wa.me/${hpIbuClean}?text=${pesanWAEncoded}" target="_blank" class="btn btn-success btn-sm btn-block text-left" style="background-color: #25D366; border-color: #25D366;">
+                        <i class="fab fa-whatsapp fa-lg mr-2"></i> Kirim ke No Ibu: ${labelIbu}
+                    </a>`;
+            }
+            waButtonsHtml += '</div></div>';
+        } else {
+            waButtonsHtml += `
+                <div class="mt-3 text-left">
+                    <label class="text-secondary font-weight-bold mb-2"><i class="fab fa-whatsapp text-success"></i> Kirim via WhatsApp:</label>
+                    <a href="https://wa.me/?text=${pesanWAEncoded}" target="_blank" class="btn btn-success btn-sm btn-block text-left" style="background-color: #25D366; border-color: #25D366;">
+                        <i class="fab fa-whatsapp fa-lg mr-2"></i> Kirim via WhatsApp (Pilih Kontak/Grup)
+                    </a>
+                    <small class="text-muted d-block mt-1">*Nomor HP orang tua belum diisi pada data santri</small>
+                </div>`;
+        }
+
+        // Tampilkan popup dengan informasi yang akan dicopy & pilihan WA
         Swal.fire({
-            title: 'Copy Link Status Ujian',
+            title: 'Kirim Link Status Ujian',
             html: `
                 <div class="text-left">
-                    <p><strong>Nama Santri:</strong> ${namaSantri}</p>
-                    <p><strong>Konten yang akan dicopy:</strong></p>
-                    <div class="border p-3 bg-light rounded mt-2" style="font-family: monospace; font-size: 0.9rem; white-space: pre-wrap; word-break: break-all;">
+                    <p class="mb-1"><strong>Nama Santri:</strong> ${namaSantri}</p>
+                    <p class="mb-1"><strong>Konten yang akan dicopy / dikirim:</strong></p>
+                    <div class="border p-2 bg-light rounded mb-2" style="font-family: monospace; font-size: 0.85rem; white-space: pre-wrap; word-break: break-all;">
 ${copyText}
                     </div>
+                    ${waButtonsHtml}
                 </div>
             `,
             icon: 'info',
@@ -4734,8 +4797,8 @@ ${copyText}
             confirmButtonColor: '#17a2b8',
             cancelButtonColor: '#6c757d',
             confirmButtonText: '<i class="fas fa-copy"></i> Copy ke Clipboard',
-            cancelButtonText: 'Batal',
-            footer: 'Klik "Copy ke Clipboard" untuk menyalin konten'
+            cancelButtonText: 'Tutup',
+            footer: 'Pilih tombol WhatsApp di atas atau klik Copy ke Clipboard'
         }).then((result) => {
             if (result.isConfirmed) {
                 // Copy ke clipboard

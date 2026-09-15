@@ -338,7 +338,7 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
             const noHpIbuFormatted = formatNoHp(noHpIbu);
 
             // Buat pesan untuk WhatsApp
-            const pesanWhatsApp = `Assalamu'alaikum\n\nHasil kelulusan ujian munaqosah untuk ${namaSantri} (No. Peserta: ${noPeserta}) sudah dapat dilihat melalui link berikut:\n\n${statusUrl}\n\nTerima kasih.`;
+            const pesanWhatsApp = `Assalamu'alaikum\n\nHasil kelulusan ujian munaqosah untuk ${namaSantri} (No. Peserta: ${noPeserta}) sudah dapat dilihat melalui link berikut:\n\n${statusUrl}\n\n*Catatan:*\nUntuk pertama kalinya Anda akan diminta verifikasi, silakan tekan link tersebut.\n\nTerima kasih.`;
             const pesanEncoded = encodeURIComponent(pesanWhatsApp);
 
             // Buat HTML untuk opsi WhatsApp
