@@ -44,9 +44,7 @@
                             <strong>Search Data:</strong> Gunakan search box DataTable untuk mencari santri berdasarkan nama, IdSantri, atau kolom lainnya.
                             Data dapat diurutkan dengan mengklik header kolom.
                         </li>
-                        <li class="mb-2">
-                            <strong>Lihat & Ubah Profil:</strong> Klik foto profil untuk melihat dalam ukuran lebih besar (popup). <strong class="text-primary">Double-klik pada foto profil untuk mengubah/upload foto baru.</strong>
-                        </li>
+
                         <li class="mb-2">
                             <strong>Ubah Status Verifikasi:</strong> Gunakan dropdown di kolom "Verifikasi" untuk mengubah status:
                             <ul class="mt-2">
@@ -73,7 +71,6 @@
                             <li>Jika TPQ yang dipilih memiliki lembaga MDA aktif, nama kelas di filter dan tabel akan otomatis menampilkan mapping MDA (contoh: TPQ3 → MDA1, TPQ3/SD3 → MDA1/SD3).</li>
                             <li>Gunakan fitur <strong>Export</strong> di DataTable (Copy, Excel, PDF, dll) untuk menyalin atau mengunduh data santri.</li>
                             <li>Perubahan status verifikasi dan aktif akan <strong>tersimpan otomatis</strong> saat Anda mengubahnya.</li>
-                            <li>Foto profil akan muncul dalam popup saat di-hover atau di-klik pada thumbnail di tabel.</li>
                             <li>Kolom "Active" hanya muncul untuk <strong>Admin</strong> dan <strong>Operator</strong>.</li>
                             <li>Kolom "Kelurahan/Desa" dan "TPQ" hanya muncul untuk <strong>Admin</strong>.</li>
                             <li>Santri dengan status <strong>Alumni</strong> tidak dapat diubah status aktifnya.</li>
@@ -184,7 +181,6 @@
                             <th>Active</th>
                         <?php endif; ?>
                         <th>Verifikasi</th>
-                        <th title="Klik: Lihat foto | Double-klik: Ubah foto">Profil <i class="fas fa-info-circle text-info" style="font-size: 0.8em; cursor: help;" data-toggle="tooltip" data-placement="top" title="Klik untuk melihat foto. Double-klik untuk mengubah foto profil."></i></th>
                         <th>Aksi</th>
                         <th>IdSantri</th>
                         <th>Nama</th>
@@ -258,44 +254,6 @@
                                     <option value="Perlu Perbaikan" class="bg-danger text-white" <?= $santri['Status'] == "Perlu Perbaikan" ? 'selected' : ''; ?>>Perlu Perbaikan</option>
                                 </select>
                             </td>
-                            <td>
-                                <?php
-                                $uploadPath = (ENVIRONMENT === 'production') ? 'https://tpqsmart.simpedis.com/uploads/santri/' : base_url('uploads/santri/');
-                                $thumbnailPath = (ENVIRONMENT === 'production') ? 'https://tpqsmart.simpedis.com/uploads/santri/thumbnails/' : base_url('uploads/santri/thumbnails/');
-                                ?>
-                                <img src="<?= $santri['PhotoProfil'] ? $thumbnailPath . 'thumb_' . $santri['PhotoProfil'] : $thumbnailPath . 'thumb_no-photo.jpg'; ?>"
-                                    alt="PhotoProfil"
-                                    class="img-fluid popup-image"
-                                    data-id-santri="<?= $santri['id']; ?>"
-                                    data-id-santri-baru="<?= $santri['IdSantri']; ?>"
-                                    width="30"
-                                    height="40"
-                                    loading="lazy"
-                                    onmouseover="showPopup(this)"
-                                    onmouseout="hidePopup(this)"
-                                    onclick="showPopup(this)"
-                                    ondblclick="openViewPhotoModal(<?= $santri['id']; ?>, '<?= $santri['IdSantri']; ?>', '<?= $santri['PhotoProfil'] ? $uploadPath . $santri['PhotoProfil'] : ''; ?>', '<?= addslashes($santri['NamaSantri']); ?>')"
-                                    style="cursor: pointer;"
-                                    title="Klik untuk melihat | Double klik untuk view/edit">
-                                <div class="image-popup" style="display: none; position: absolute; z-index: 1000;">
-                                    <img src="<?= $santri['PhotoProfil'] ? $uploadPath . $santri['PhotoProfil'] : base_url('images/no-photo.jpg'); ?>"
-                                        alt="PhotoProfil"
-                                        width="200"
-                                        height="250"
-                                        loading="lazy">
-                                </div>
-                                <script>
-                                    function showPopup(img) {
-                                        const popup = img.nextElementSibling;
-                                        popup.style.display = 'block';
-                                    }
-
-                                    function hidePopup(img) {
-                                        const popup = img.nextElementSibling;
-                                        popup.style.display = 'none';
-                                    }
-                                </script>
-                            </td>
                             <td class="text-center">
                                 <a href="javascript:void(0)" onclick="showEditOptions('<?= $santri['IdSantri']; ?>', '<?= addslashes($santri['NamaSantri']); ?>')" class="btn btn-warning btn-sm">
                                     <i class="fas fa-edit"></i><span class="d-none d-md-inline">&nbsp;Edit</span>
@@ -358,7 +316,6 @@
                             <th>Active</th>
                         <?php endif; ?>
                         <th>Verifikasi</th>
-                        <th title="Klik: Lihat foto | Double-klik: Ubah foto">Profil</th>
                         <th>Aksi</th>
                         <th>IdSantri</th>
                         <th>Nama</th>
