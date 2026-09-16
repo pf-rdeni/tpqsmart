@@ -163,6 +163,19 @@
                         <?php endif; ?>
                     </div>
                 </div>
+                <?php if (isset($isAdmin) && $isAdmin): ?>
+                    <div class="col-12 mt-1">
+                        <div class="custom-control custom-switch custom-switch-off-secondary custom-switch-on-success">
+                            <input type="checkbox" class="custom-control-input" id="filterAlumniAll" name="filterAlumniAll" <?= (isset($filterAlumniAll) && $filterAlumniAll) ? 'checked' : '' ?>>
+                            <label class="custom-control-label font-weight-bold text-dark" for="filterAlumniAll" style="cursor: pointer;">
+                                <i class="fas fa-graduation-cap text-success"></i> Tampilkan Seluruh Alumni (Semua Tahun Ajaran)
+                            </label>
+                            <small class="form-text text-muted d-block mt-1">
+                                <i class="fas fa-info-circle"></i> Centang opsi ini untuk menampilkan data santri Alumni dari seluruh Tahun Ajaran (lintas angkatan).
+                            </small>
+                        </div>
+                    </div>
+                <?php endif; ?>
             </div>
             <table id="tblAturSantri" class="table table-bordered table-striped">
                 <thead>
@@ -288,7 +301,12 @@
                                     <i class="fas fa-edit"></i><span class="d-none d-md-inline">&nbsp;Edit</span>
                                 </a>
                             </td>
-                            <td><?= $santri['IdSantri']; ?></td>
+                            <td>
+                                <div><strong><?= $santri['IdSantri']; ?></strong></div>
+                                <?php if (!empty($santri['NikSantri'])): ?>
+                                    <small class="text-muted"><i class="far fa-id-card"></i> NIK: <?= $santri['NikSantri']; ?></small>
+                                <?php endif; ?>
+                            </td>
                             <td data-column="Nama"><?= ucwords(strtolower($santri['NamaSantri'])); ?></td>
                             <td>
                                 <?php
@@ -1698,6 +1716,7 @@
     /* ===== Region: Filter TPQ dan Kelas dengan localStorage ===== */
     const STORAGE_KEY_TPQ = 'santri_filter_tpq';
     const STORAGE_KEY_KELAS = 'santri_filter_kelas';
+    const STORAGE_KEY_ALUMNI_ALL = 'santri_filter_alumni_all';
     const isGuru = <?= isset($isGuru) && $isGuru ? 'true' : 'false' ?>;
     const guruJumlahKelas = <?= isset($guruJumlahKelas) ? $guruJumlahKelas : 0 ?>;
     const guruBisaFilterKelas = isGuru && guruJumlahKelas > 1;
@@ -1706,9 +1725,11 @@
     function initFilters() {
         const savedTpq = localStorage.getItem(STORAGE_KEY_TPQ);
         const savedKelas = localStorage.getItem(STORAGE_KEY_KELAS);
+        const savedAlumniAll = localStorage.getItem(STORAGE_KEY_ALUMNI_ALL);
 
         const filterTpq = document.getElementById('filterTpq');
         const filterKelas = $('#filterKelas');
+        const filterAlumniAll = document.getElementById('filterAlumniAll');
 
         // Hanya set dari localStorage jika belum ada value dari server
         if (savedTpq && filterTpq && !filterTpq.value) {
@@ -1734,12 +1755,22 @@
                 }
             }
         }
+
+        if (filterAlumniAll && savedAlumniAll !== null) {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (!urlParams.has('filterAlumniAll')) {
+                if (savedAlumniAll === '1' && !filterAlumniAll.checked) {
+                    filterAlumniAll.checked = true;
+                }
+            }
+        }
     }
 
     // Simpan filter ke localStorage
     function saveFilters() {
         const filterTpq = document.getElementById('filterTpq');
         const filterKelas = $('#filterKelas');
+        const filterAlumniAll = document.getElementById('filterAlumniAll');
 
         if (filterTpq) {
             localStorage.setItem(STORAGE_KEY_TPQ, filterTpq.value || '');
@@ -1750,15 +1781,21 @@
             const selectedKelas = filterKelas.val() || [];
             localStorage.setItem(STORAGE_KEY_KELAS, JSON.stringify(selectedKelas));
         }
+
+        if (filterAlumniAll) {
+            localStorage.setItem(STORAGE_KEY_ALUMNI_ALL, filterAlumniAll.checked ? '1' : '0');
+        }
     }
 
     // Reload data berdasarkan filter
     function reloadData() {
         const filterTpq = document.getElementById('filterTpq');
         const filterKelas = $('#filterKelas');
+        const filterAlumniAll = document.getElementById('filterAlumniAll');
 
         const tpqValue = filterTpq ? filterTpq.value : '';
         const kelasValues = filterKelas.length > 0 ? (filterKelas.val() || []) : [];
+        const alumniAllChecked = filterAlumniAll ? filterAlumniAll.checked : false;
 
         // Simpan ke localStorage
         saveFilters();
@@ -1773,6 +1810,10 @@
         // Jika guru hanya memiliki satu kelas, filter di-handle oleh server berdasarkan session
         if ((!isGuru || guruBisaFilterKelas) && kelasValues.length > 0) {
             params.append('filterIdKelas', kelasValues.join(','));
+        }
+
+        if (alumniAllChecked) {
+            params.append('filterAlumniAll', '1');
         }
 
         const url = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
@@ -1811,6 +1852,7 @@
         }
 
         const filterTpq = document.getElementById('filterTpq');
+        const filterAlumniAll = document.getElementById('filterAlumniAll');
 
         // Simpan filter saat halaman dimuat (untuk memastikan sync dengan server)
         setTimeout(function() {
@@ -1821,6 +1863,13 @@
         if (filterTpq && !filterTpq.disabled) {
             filterTpq.addEventListener('change', function() {
                 // Delay reload untuk memberikan waktu user memilih multiple kelas
+                clearTimeout(window.filterTimeout);
+                window.filterTimeout = setTimeout(reloadData, 300);
+            });
+        }
+
+        if (filterAlumniAll) {
+            filterAlumniAll.addEventListener('change', function() {
                 clearTimeout(window.filterTimeout);
                 window.filterTimeout = setTimeout(reloadData, 300);
             });

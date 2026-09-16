@@ -630,15 +630,66 @@ class SantriBaruModel extends Model
      * @param mixed $IdTpq ID TPQ
      * @param mixed $IdKelas ID Kelas atau array ID Kelas
      * @param bool $isGuru Apakah user adalah Guru (filter Active=1)
+     * @param mixed $IdTahunAjaran ID Tahun Ajaran
+     * @param bool $filterAlumniAll Tampilkan seluruh alumni lintas Tahun Ajaran
      * @return array
      */
-    public function getListAturSantriBaru($IdTpq = null, $IdKelas = null, $isGuru = false, $IdTahunAjaran = null)
+    public function getListAturSantriBaru($IdTpq = null, $IdKelas = null, $isGuru = false, $IdTahunAjaran = null, $filterAlumniAll = false)
     {
         if (empty($IdTahunAjaran)) {
             $IdTahunAjaran = session()->get('IdTahunAjaran');
         }
 
         $builder = $this->db->table('tbl_santri_baru');
+
+        if ($filterAlumniAll) {
+            $subQuery = $this->db->table('tbl_kelas_santri')
+                ->select('IdSantri, MAX(IdTahunAjaran) as MaxTA')
+                ->groupBy('IdSantri');
+
+            $builder->select([
+                'tbl_santri_baru.*',
+                'COALESCE(ks.IdKelas, tbl_santri_baru.IdKelas) as IdKelas',
+                'COALESCE(ks.IdTahunAjaran, "") as IdTahunAjaran',
+                'tbl_kelas.NamaKelas',
+                'tbl_tpq.NamaTpq',
+                'tbl_tpq.KelurahanDesa'
+            ])
+                ->join('(' . $subQuery->getCompiledSelect() . ') ks_max', 'ks_max.IdSantri = tbl_santri_baru.IdSantri', 'left')
+                ->join('tbl_kelas_santri ks', 'ks.IdSantri = tbl_santri_baru.IdSantri AND ks.IdTahunAjaran = ks_max.MaxTA', 'left')
+                ->join('tbl_kelas', 'tbl_kelas.IdKelas = COALESCE(ks.IdKelas, tbl_santri_baru.IdKelas)', 'left')
+                ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq', 'left');
+
+            $builder->groupStart()
+                ->where('tbl_santri_baru.Active', 2)
+                ->orWhere('UPPER(tbl_kelas.NamaKelas)', 'ALUMNI')
+                ->groupEnd();
+
+            if ($IdTpq) {
+                $builder->where('tbl_santri_baru.IdTpq', $IdTpq);
+            }
+
+            if ($isGuru) {
+                $builder->where('tbl_santri_baru.Active', 1);
+            }
+
+            if ($IdKelas !== null) {
+                if (is_array($IdKelas)) {
+                    $kelasClean = array_filter(array_map('intval', $IdKelas));
+                    if (!empty($kelasClean)) {
+                        $builder->whereIn('COALESCE(ks.IdKelas, tbl_santri_baru.IdKelas)', $kelasClean);
+                    }
+                } else if (!empty($IdKelas)) {
+                    $builder->where('COALESCE(ks.IdKelas, tbl_santri_baru.IdKelas)', (int)$IdKelas);
+                }
+            }
+
+            $builder->orderBy('ks.IdTahunAjaran', 'DESC')
+                ->orderBy('tbl_santri_baru.NamaSantri', 'ASC')
+                ->orderBy('tbl_santri_baru.Status', 'DESC');
+
+            return $builder->get()->getResultArray();
+        }
 
         if (!empty($IdTahunAjaran)) {
             $builder->select([

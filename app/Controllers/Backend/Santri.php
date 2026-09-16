@@ -1241,6 +1241,7 @@ class Santri extends BaseController
         // Ambil filter dari request (untuk AJAX) atau session (untuk initial load)
         $filterIdTpq = $this->request->getGet('filterIdTpq');
         $filterIdKelas = $this->request->getGet('filterIdKelas');
+        $filterAlumniAll = $this->request->getGet('filterAlumniAll');
 
         // Ambil IdTpq dari session untuk role-based filtering
         $sessionIdTpq = session()->get('IdTpq');
@@ -1377,8 +1378,34 @@ class Santri extends BaseController
             }
         }
 
+        // Cek apakah filter seluruh alumni diaktifkan (khusus admin)
+        $useFilterAlumniAll = false;
+        if ($isAdmin) {
+            $isExplicitAlumniFilter = ($filterAlumniAll === '1' || $filterAlumniAll === 'true' || $filterAlumniAll === 1);
+            
+            // Cek apakah opsi kelas yang dipilih mengandung kelas ALUMNI
+            $isAlumniSelected = false;
+            if ($IdKelas !== null && !empty($dataKelas)) {
+                $alumniKelasIds = [];
+                foreach ($dataKelas as $k) {
+                    $origName = strtoupper(trim($k['NamaKelasOriginal'] ?? $k['NamaKelas'] ?? ''));
+                    if ($origName === 'ALUMNI') {
+                        $alumniKelasIds[] = (string)$k['IdKelas'];
+                    }
+                }
+                $selectedKelasArray = is_array($IdKelas) ? $IdKelas : [$IdKelas];
+                foreach ($selectedKelasArray as $sk) {
+                    if (in_array((string)$sk, $alumniKelasIds, true)) {
+                        $isAlumniSelected = true;
+                        break;
+                    }
+                }
+            }
+            $useFilterAlumniAll = $isExplicitAlumniFilter || $isAlumniSelected;
+        }
+
         // Ambil data santri menggunakan method dari model
-        $santri = $this->DataSantriBaru->getListAturSantriBaru($IdTpq, $IdKelas, $isGuru, $IdTahunAjaran);
+        $santri = $this->DataSantriBaru->getListAturSantriBaru($IdTpq, $IdKelas, $isGuru, $IdTahunAjaran, $useFilterAlumniAll);
 
         // Konversi nama kelas menjadi MDA jika sesuai dengan mapping
         if (!empty($santri) && !empty($IdTpq)) {
@@ -1411,6 +1438,7 @@ class Santri extends BaseController
             'dataKelas' => $dataKelas,
             'currentIdTpq' => $IdTpq,
             'currentIdKelas' => $IdKelas,
+            'filterAlumniAll' => $useFilterAlumniAll,
             'isAdmin' => $isAdmin,
             'isGuru' => $isGuru,
             'isOperator' => $isOperator,
