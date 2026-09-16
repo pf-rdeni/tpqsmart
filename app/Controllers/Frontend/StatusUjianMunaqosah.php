@@ -319,7 +319,7 @@ class StatusUjianMunaqosah extends BaseController
             }
         }
         $data = [
-            'page_title' => 'Konfirmasi Data Santri',
+            'page_title' => ($isVerified || $statusVerifikasi === 'perlu_perbaikan') ? 'Data Santri' : 'Konfirmasi Data Santri',
             'isPublic' => true,
             'peserta' => $peserta,
             'aktiveTombolKelulusan' => $aktiveTombolKelulusan, // Untuk backward compatibility

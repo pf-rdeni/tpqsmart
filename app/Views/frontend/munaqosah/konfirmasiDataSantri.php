@@ -309,7 +309,7 @@ $aktiveTombolKelulusanDefault = $aktiveTombolKelulusanPerType[$defaultTypeUjian]
     <div class="title-container">
         <div class="title-wrapper">
             <div class="green-line-vertical"></div>
-            <h2 class="card-title">Konfirmasi Data Santri</h2>
+            <h2 class="card-title"><?= ($isVerified || $isPerluPerbaikan) ? 'Data Santri' : 'Konfirmasi Data Santri' ?></h2>
         </div>
     </div>
 
