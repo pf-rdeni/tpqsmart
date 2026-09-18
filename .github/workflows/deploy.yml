@@ -8,15 +8,11 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
       # Debug: Print local directory structure
       - name: Print local directory tree
         run: ls -R ./app/
-
-      # Debug: Print environment variables
-      - name: Print environment variables
-        run: env
 
       # Debug: Print full path info
       - name: Print local and server directory path
@@ -45,19 +41,14 @@ jobs:
       - name: Print first 10 lines of createEmisStep.php
         run: |
           head -n 10 ./app/Views/backend/santri/createEmisStep.php || echo "File not found!"
-      # Cek file di server via SSH
-      # Deploy ke cPanel menggunakan FTP
+
+      # Deploy ke cPanel menggunakan SFTP
       - name: 📂 Deploy ke cPanel
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        uses: appleboy/scp-action@v0.1.7
         with:
-          server: ${{ secrets.FTP_SERVER }}
+          host: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           port: ${{ secrets.FTP_PORT }}
-          protocol: ${{ secrets.FTP_PROTOCOL }}
-          server-dir: /home/u1525344/daftarsantribaru/app/
-          local-dir: ./app/
-          include: |
-            Models/SantriBaruModel.php
-            Controllers/Backend/Santri.php
-            Views/backend/santri/createEmisStep.php
+          source: "app/Models/SantriBaruModel.php,app/Controllers/Backend/Santri.php,app/Views/backend/santri/createEmisStep.php"
+          target: /home/u1525344/daftarsantribaru/
