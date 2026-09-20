@@ -138,8 +138,10 @@
                             </div>
                             <div class="mr-2">
                                 <label class="mb-0 small">TPQ</label>
-                                <select id="filterTpq" class="form-control form-control-sm" <?= (isset($is_panitia_tpq) && $is_panitia_tpq) ? 'disabled' : '' ?>>
-                                    <option value="0">Semua TPQ</option>
+                                <select id="filterTpq" class="form-control form-control-sm" <?= ((isset($is_panitia_tpq) && $is_panitia_tpq) || (isset($is_juri_tpq) && $is_juri_tpq) || (!in_groups('Admin') && !empty($selected_tpq))) ? 'disabled' : '' ?>>
+                                    <?php if (empty($is_panitia_tpq) && empty($is_juri_tpq) && (in_groups('Admin') || empty($selected_tpq))): ?>
+                                        <option value="0">Semua TPQ</option>
+                                    <?php endif; ?>
                                     <?php if (!empty($tpqDropdown)) : foreach ($tpqDropdown as $tpq): ?>
                                             <option value="<?= esc($tpq['IdTpq']) ?>" <?= (isset($selected_tpq) && $selected_tpq == $tpq['IdTpq']) ? 'selected' : '' ?>><?= esc($tpq['NamaTpq']) ?></option>
                                     <?php endforeach;
@@ -175,12 +177,18 @@
                     </div>
                     <div class="card-body">
                         <!-- Hidden input untuk role user -->
-                        <input type="hidden" id="userRole" value="<?= (in_groups('Operator') || (!in_groups('Admin') && session()->get('IdTpq'))) ? 'operator' : 'admin' ?>">
-                        <!-- Hidden input untuk panitia TPQ -->
+                        <input type="hidden" id="userRole" value="<?= (in_groups('Operator') || in_groups('Juri') || (!in_groups('Admin') && session()->get('IdTpq'))) ? 'operator' : 'admin' ?>">
+                        <!-- Hidden input untuk panitia TPQ / Juri TPQ -->
                         <?php if (isset($is_panitia_tpq) && $is_panitia_tpq && isset($selected_tpq)): ?>
                             <input type="hidden" id="panitiaIdTpq" value="<?= esc($selected_tpq) ?>">
                             <input type="hidden" id="isPanitiaTpq" value="1">
                         <?php endif; ?>
+                        <?php if (isset($is_juri_tpq) && $is_juri_tpq && isset($selected_tpq)): ?>
+                            <input type="hidden" id="juriIdTpq" value="<?= esc($selected_tpq) ?>">
+                            <input type="hidden" id="isJuriTpq" value="1">
+                        <?php endif; ?>
+                        <input type="hidden" id="lockedTpq" value="<?= esc($selected_tpq ?? '') ?>">
+                        <input type="hidden" id="isTpqLocked" value="<?= ((isset($is_panitia_tpq) && $is_panitia_tpq) || (isset($is_juri_tpq) && $is_juri_tpq) || (!in_groups('Admin') && !empty($selected_tpq))) ? '1' : '0' ?>">
 
                         <!-- Statistik ringkas (re-use style dari inputNilaiJuri step 1) -->
                         <div class="row">
@@ -406,9 +414,12 @@
 
     function loadMonitoring() {
         const th = $('#filterTahunAjaran').val().trim();
-        // Jika panitia TPQ, gunakan nilai dari hidden input, jika tidak gunakan dari select
+        // Jika TPQ dikunci (Panitia TPQ, Juri TPQ, atau Operator), gunakan nilai lockedTpq/panitiaIdTpq/juriIdTpq
         const panitiaIdTpq = $('#panitiaIdTpq').val();
-        const tpq = panitiaIdTpq ? panitiaIdTpq : $('#filterTpq').val();
+        const juriIdTpq = $('#juriIdTpq').val();
+        const lockedTpq = $('#lockedTpq').val();
+        const isTpqLocked = $('#isTpqLocked').val() === '1';
+        const tpq = (isTpqLocked && lockedTpq) ? lockedTpq : (panitiaIdTpq ? panitiaIdTpq : (juriIdTpq ? juriIdTpq : $('#filterTpq').val()));
         const ty = $('#filterTypeUjian').val();
         const url = '<?= base_url("backend/munaqosah/monitoring-data") ?>' + `?IdTahunAjaran=${encodeURIComponent(th)}&IdTpq=${encodeURIComponent(tpq)}&TypeUjian=${encodeURIComponent(ty)}`;
 
@@ -640,7 +651,8 @@
                 if (filters.tahunAjaran) {
                     $('#filterTahunAjaran').val(filters.tahunAjaran);
                 }
-                if (filters.tpq && $('#filterTpq option[value="' + filters.tpq + '"]').length > 0) {
+                const isTpqLocked = $('#isTpqLocked').val() === '1';
+                if (!isTpqLocked && filters.tpq && $('#filterTpq option[value="' + filters.tpq + '"]').length > 0) {
                     $('#filterTpq').val(filters.tpq);
                 }
                 if (filters.typeUjian && $('#filterTypeUjian option[value="' + filters.typeUjian + '"]').length > 0) {
@@ -659,26 +671,35 @@
         const userRole = $('#userRole').val() || 'admin';
         const isOperator = userRole === 'operator';
         const isPanitiaTpq = $('#isPanitiaTpq').val() === '1';
+        const isJuriTpq = $('#isJuriTpq').val() === '1';
+        const isTpqLocked = $('#isTpqLocked').val() === '1';
 
         // Load filter dari localStorage terlebih dahulu
         loadFiltersFromLocalStorage();
 
-        // Jika TPQ hanya satu, set otomatis
         const $tpqSel = $('#filterTpq');
-        const realTpqOptions = $tpqSel.find('option').filter(function() {
-            return $(this).val() !== '0';
-        });
-        if (realTpqOptions.length === 1) {
-            const onlyId = $(realTpqOptions[0]).val();
-            $tpqSel.val(onlyId).prop('disabled', true);
+        if (isTpqLocked) {
+            const lockedId = $('#lockedTpq').val();
+            if (lockedId && lockedId !== '0') {
+                $tpqSel.val(lockedId).prop('disabled', true);
+            }
+        } else {
+            // Jika TPQ hanya satu, set otomatis
+            const realTpqOptions = $tpqSel.find('option').filter(function() {
+                return $(this).val() !== '0';
+            });
+            if (realTpqOptions.length === 1) {
+                const onlyId = $(realTpqOptions[0]).val();
+                $tpqSel.val(onlyId).prop('disabled', true);
 
-            // Untuk Operator/TPQ dan Panitia TPQ, Type Ujian bisa diubah (tidak disabled)
-            // Hanya Admin yang Type Ujian-nya dikunci jika TPQ hanya satu
-            if (!isOperator && !isPanitiaTpq) {
-                $('#filterTypeUjian').val('pra-munaqosah').prop('disabled', true);
-            } else {
-                // Untuk Operator dan Panitia, set default tapi tetap bisa diubah
-                $('#filterTypeUjian').val('pra-munaqosah');
+                // Untuk Operator/TPQ, Panitia TPQ, dan Juri TPQ, Type Ujian bisa diubah (tidak disabled)
+                // Hanya Admin yang Type Ujian-nya dikunci jika TPQ hanya satu
+                if (!isOperator && !isPanitiaTpq && !isJuriTpq) {
+                    $('#filterTypeUjian').val('pra-munaqosah').prop('disabled', true);
+                } else {
+                    // Untuk Operator dan Panitia, set default tapi tetap bisa diubah
+                    $('#filterTypeUjian').val('pra-munaqosah');
+                }
             }
         }
 

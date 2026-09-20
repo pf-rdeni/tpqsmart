@@ -10164,9 +10164,11 @@ class Munaqosah extends BaseController
         $currentTahunAjaran = $helpFunctionModel->getTahunAjaranSaatIni();
 
         $idTpq = session()->get('IdTpq');
-        $selectedTpq = $idTpq;
-        $selectedType = 'pra-munaqosah'; // Default untuk monitoring
+        $selectedTpq = $this->request->getGet('tpq') ?? $idTpq;
+        $selectedType = $this->request->getGet('type') ?? 'pra-munaqosah'; // Default untuk monitoring
         $isPanitiaTpq = false;
+        $isJuri = in_groups('Juri');
+        $isJuriTpq = false;
 
         // Cek apakah user adalah Panitia
         $isPanitia = in_groups('Panitia');
@@ -10187,6 +10189,16 @@ class Munaqosah extends BaseController
                 $selectedTpq = 0;
             }
         }
+        // Jika user login sebagai Juri, ambil IdTpq dari data juri
+        elseif ($isJuri) {
+            $usernameJuri = user()->username;
+            $juriData = $this->munaqosahJuriModel->getJuriByUsernameJuri($usernameJuri);
+            if ($juriData && !empty($juriData->IdTpq) && $juriData->IdTpq != 0) {
+                $selectedType = 'pra-munaqosah';
+                $selectedTpq = $juriData->IdTpq;
+                $isJuriTpq = true;
+            }
+        }
         // Jika user login sebagai admin TPQ/Operator dengan IdTpq
         elseif (!empty($idTpq) && $idTpq != 0) {
             $selectedTpq = $idTpq;
@@ -10204,6 +10216,8 @@ class Munaqosah extends BaseController
             'selected_tpq' => $selectedTpq,
             'selected_type' => $selectedType,
             'is_panitia_tpq' => $isPanitiaTpq,
+            'is_juri' => $isJuri,
+            'is_juri_tpq' => $isJuriTpq,
         ];
 
         return view('backend/Munaqosah/monitoringMunaqosah', $data);
@@ -11596,6 +11610,17 @@ class Munaqosah extends BaseController
                 if ($idTpqPanitia && $idTpqPanitia != 0) {
                     $idTpq = $idTpqPanitia;
                     // Jika typeParam tidak diset atau kosong, default ke pra-munaqosah
+                    if (empty($typeParam)) {
+                        $typeParam = 'pra-munaqosah';
+                    }
+                }
+            }
+            // Jika user login sebagai Juri dengan IdTpq
+            elseif (in_groups('Juri')) {
+                $usernameJuri = user()->username;
+                $juriData = $this->munaqosahJuriModel->getJuriByUsernameJuri($usernameJuri);
+                if ($juriData && !empty($juriData->IdTpq) && $juriData->IdTpq != 0) {
+                    $idTpq = (int)$juriData->IdTpq;
                     if (empty($typeParam)) {
                         $typeParam = 'pra-munaqosah';
                     }
