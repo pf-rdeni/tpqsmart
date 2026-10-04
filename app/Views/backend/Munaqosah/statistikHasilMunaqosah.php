@@ -55,7 +55,7 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
                         <select id="filterTypeUjian" class="form-control form-control-sm select2" multiple="multiple" data-placeholder="Pilih Type Ujian..." style="width: 100%;">
                             <option value="pra-munaqosah" selected>Pra-Munaqosah</option>
                             <?php if ($isAdmin || ($aktiveTombolKelulusan && ($isOperator || $isKepalaTpq))): ?>
-                                <option value="munaqosah" selected>Munaqosah</option>
+                                <option value="munaqosah" <?= $isAdmin ? 'selected' : '' ?>>Munaqosah</option>
                             <?php endif; ?>
                         </select>
                     </div>
@@ -175,6 +175,72 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
                     <div class="modal-footer">
                         <button type="button" class="btn btn-primary btn-sm" id="dmNewTab"><i class="fas fa-external-link-alt"></i> Buka di Tab Baru</button>
                         <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Tutup</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL PENGATURAN EXPORT PDF -->
+        <div class="modal fade" id="pdfModal" tabindex="-1" role="dialog" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered" role="document" style="max-width: 490px;">
+                <div class="modal-content" style="border-radius:12px; overflow:hidden; box-shadow:0 10px 30px rgba(0,0,0,.2);">
+                    <div class="modal-header bg-danger text-white py-2 px-3">
+                        <h6 class="modal-title font-weight-bold mb-0"><i class="fas fa-file-pdf mr-1"></i> Opsi Export PDF Statistik</h6>
+                        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Tutup"><span>&times;</span></button>
+                    </div>
+                    <div class="modal-body p-3">
+                        <div class="form-group mb-3">
+                            <label class="small font-weight-bold text-dark mb-1 d-block"><i class="fas fa-list-ol text-primary mr-1"></i> Cetak Daftar Santri ke Dokumen PDF?</label>
+                            <div class="custom-control custom-radio mb-1">
+                                <input type="radio" id="optSantriAll" name="pdfSantriMode" class="custom-control-input" value="all" checked>
+                                <label class="custom-control-label small" for="optSantriAll"><strong>Ya, sertakan untuk semua materi</strong></label>
+                            </div>
+                            <div class="custom-control custom-radio mb-1">
+                                <input type="radio" id="optSantriActive" name="pdfSantriMode" class="custom-control-input" value="active">
+                                <label class="custom-control-label small" for="optSantriActive">Hanya materi yang tombol "Daftar Santri"-nya sedang dibuka di layar</label>
+                            </div>
+                            <div class="custom-control custom-radio">
+                                <input type="radio" id="optSantriNone" name="pdfSantriMode" class="custom-control-input" value="none">
+                                <label class="custom-control-label small" for="optSantriNone">Tidak (Hanya grafik dan ringkasan nilai)</label>
+                            </div>
+                        </div>
+
+                        <div id="wrapPdfRentang" class="p-2 mb-3 rounded" style="background:#f1f5f9; border:1px solid #cbd5e1;">
+                            <label class="small font-weight-bold text-dark mb-1 d-block"><i class="fas fa-filter text-info mr-1"></i> Rentang Nilai Santri yang Dicetak:</label>
+                            <select id="selPdfBinFilter" class="form-control form-control-sm font-weight-bold">
+                            </select>
+                            <small class="text-muted d-block mt-1" style="font-size:0.75rem;">Daftar nama santri yang dicetak pada materi akan disaring sesuai pilihan ini.</small>
+                        </div>
+
+                        <div id="wrapPdfScorePrivacy" class="p-2 mb-3 rounded" style="background:#f8fafc; border:1px solid #cbd5e1;">
+                            <div class="custom-control custom-switch">
+                                <input type="checkbox" class="custom-control-input" id="chkPdfShowScore" checked>
+                                <label class="custom-control-label small font-weight-bold text-dark" for="chkPdfShowScore">
+                                    <i class="fas fa-eye text-primary mr-1"></i> Tampilkan Angka Nilai di Tabel Daftar
+                                </label>
+                            </div>
+                            <small class="text-muted d-block mt-1" style="font-size:0.75rem;">
+                                <i class="fas fa-user-shield text-success mr-1"></i> Nonaktifkan (uncheck) jika dokumen akan dibagikan ke umum guna menjaga kerahasiaan / privasi nilai santri.
+                            </small>
+                        </div>
+
+                        <div class="form-group mb-0">
+                            <label class="small font-weight-bold text-dark mb-1 d-block"><i class="fas fa-file-alt text-secondary mr-1"></i> Orientasi Halaman:</label>
+                            <div class="d-flex" style="gap:15px;">
+                                <div class="custom-control custom-radio">
+                                    <input type="radio" id="optOriPortrait" name="pdfOrientation" class="custom-control-input" value="portrait" checked>
+                                    <label class="custom-control-label small" for="optOriPortrait">Potret (Portrait A4)</label>
+                                </div>
+                                <div class="custom-control custom-radio">
+                                    <input type="radio" id="optOriLandscape" name="pdfOrientation" class="custom-control-input" value="landscape">
+                                    <label class="custom-control-label small" for="optOriLandscape">Lanskap (Landscape A4)</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer py-2 px-3 bg-light">
+                        <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Batal</button>
+                        <button type="button" class="btn btn-danger btn-sm font-weight-bold" id="btnProsesExportPdf"><i class="fas fa-download mr-1"></i> Unduh PDF</button>
                     </div>
                 </div>
             </div>
@@ -611,7 +677,30 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
                     },
                     plugins: {
                         legend: {
-                            position: 'bottom'
+                            position: 'bottom',
+                            labels: {
+                                filter: (item, chartData) => {
+                                    const ds = chartData.datasets[item.datasetIndex];
+                                    return !ds || !ds.isComboLine;
+                                }
+                            },
+                            onClick: (evt, item, legend) => {
+                                const chart = legend.chart;
+                                const idx = item.datasetIndex;
+                                const meta = chart.getDatasetMeta(idx);
+                                meta.hidden = meta.hidden === null ? !chart.data.datasets[idx].hidden : null;
+
+                                // Jika mode combo, sinkronkan juga garis tren pasangannya saat legenda diklik
+                                if (combo) {
+                                    const numBins = datasets.length;
+                                    const pairedIdx = idx + numBins;
+                                    if (chart.data.datasets[pairedIdx]) {
+                                        const pairedMeta = chart.getDatasetMeta(pairedIdx);
+                                        pairedMeta.hidden = meta.hidden;
+                                    }
+                                }
+                                chart.update();
+                            }
                         },
                         title: {
                             display: true,
@@ -621,6 +710,9 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
                             }
                         },
                         tooltip: {
+                            filter: (tooltipItem) => {
+                                return !tooltipItem.dataset.isComboLine;
+                            },
                             callbacks: {
                                 label: c => `${c.dataset.label}: ${c.parsed.y}${pct ? '%' : ''}`,
                                 footer: () => onPick ? 'Klik untuk melihat daftar peserta' : ''
@@ -657,13 +749,22 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
             return h + '</tbody></table></div>';
         }
 
-        function addChartCard(container, id, title, labels, datasets, ctxFn) {
+        function addChartCard(container, id, title, labels, datasets, ctxFn, extra) {
             const card = document.createElement('div');
             card.className = 'card chart-card';
+            card.id = 'card_' + id;
+            const isMateri = extra && extra.catId;
+
+            let pesertaBtnHtml = '';
+            if (isMateri) {
+                pesertaBtnHtml = `<button class="btn btn-xs btn-outline-info btn-peserta mr-1" type="button" title="Tampilkan/sembunyikan daftar nama santri"><i class="fas fa-users"></i> Daftar Santri</button>`;
+            }
+
             card.innerHTML = `
-            <div class="card-header d-flex justify-content-between align-items-center py-2">
+            <div class="card-header d-flex justify-content-between align-items-center py-2 flex-wrap" style="gap: 4px;">
                 <strong class="small">${esc(title)}</strong>
                 <div>
+                    ${pesertaBtnHtml}
                     <button class="btn btn-xs btn-outline-secondary btn-tbl" type="button"><i class="fas fa-table"></i> Tabel</button>
                     <button class="btn btn-xs btn-outline-success btn-csv" type="button"><i class="fas fa-file-csv"></i> CSV</button>
                     <button class="btn btn-xs btn-outline-primary btn-png" type="button"><i class="fas fa-image"></i> PNG</button>
@@ -672,6 +773,42 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
             <div class="card-body">
                 <div class="chart-box"><canvas id="${id}"></canvas></div>
                 <div class="tbl-wrap mt-3" style="display:none;">${tableHtml(labels, datasets)}</div>
+                ${isMateri ? `
+                <div class="peserta-wrap mt-3" style="display:none; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px;">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap mb-2" style="gap:8px;">
+                        <div class="d-flex align-items-center flex-wrap" style="gap:6px;">
+                            <span class="small font-weight-bold text-dark"><i class="fas fa-filter text-primary"></i> Rentang Nilai:</span>
+                            <div class="bin-filter-pills d-inline-flex flex-wrap" style="gap:4px;"></div>
+                        </div>
+                        <div class="d-flex align-items-center" style="gap:6px;">
+                            <div class="custom-control custom-switch d-inline-flex align-items-center mr-1" title="Sembunyikan/Tampilkan kolom nilai santri untuk privasi">
+                                <input type="checkbox" class="custom-control-input chk-show-santri-val" id="swVal_${id}" checked>
+                                <label class="custom-control-label small text-muted mb-0 font-weight-bold" for="swVal_${id}" style="font-size:0.75rem; cursor:pointer;">Nilai</label>
+                            </div>
+                            <input type="search" class="form-control form-control-sm inp-search-santri" placeholder="Cari santri / no peserta…" style="width:170px;">
+                            <button class="btn btn-xs btn-outline-success btn-csv-santri" type="button" title="Unduh CSV daftar santri"><i class="fas fa-file-csv"></i> CSV</button>
+                        </div>
+                    </div>
+                    <div class="small text-muted mb-2 info-count-santri"></div>
+                    <div class="table-responsive bg-white rounded border" style="max-height: 280px; overflow-y: auto;">
+                        <table class="table table-sm table-striped table-hover mb-0 tbl-santri">
+                            <thead class="thead-light" style="position: sticky; top: 0; z-index: 1;">
+                                <tr>
+                                    <th style="width: 40px;">No</th>
+                                    <th>No Peserta</th>
+                                    <th>Nama Santri</th>
+                                    <th>TPQ</th>
+                                    <th>Tahun</th>
+                                    <th>Type</th>
+                                    <th class="text-center col-santri-val">Nilai</th>
+                                    <th class="text-center" style="width: 50px;">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+                ` : ''}
             </div>`;
             container.appendChild(card);
             const canvas = card.querySelector('canvas');
@@ -717,6 +854,192 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
                 a.click();
                 setTimeout(() => URL.revokeObjectURL(a.href), 500);
             };
+
+            // Inisialisasi daftar santri jika card materi
+            if (isMateri) {
+                const catId = extra.catId;
+                const catName = extra.catName;
+                const bins = buildBins();
+                const santriItems = [];
+
+                DATA.rows.forEach(r => {
+                    if (r.avg && r.avg[catId] !== undefined) {
+                        const v = Number(r.avg[catId]) || 0;
+                        santriItems.push({
+                            np: r.np,
+                            nm: r.nm || '-',
+                            tpq: r.tpq,
+                            tpqName: DATA.tpqs[r.tpq] || r.tpq,
+                            y: r.y,
+                            type: r.type || (DATA.meta ? (Array.isArray(DATA.meta.TypeUjian) ? DATA.meta.TypeUjian[0] : DATA.meta.TypeUjian) : ''),
+                            v: v,
+                            binIdx: binIndex(v, bins),
+                            catName: catName
+                        });
+                    }
+                });
+
+                const binCounts = new Array(bins.length).fill(0);
+                santriItems.forEach(s => binCounts[s.binIdx]++);
+
+                // Default filter: bin 0 (< 65) jika ada, jika tidak default 'all'
+                let activeBin = binCounts[0] > 0 ? '0' : 'all';
+                let searchTerm = '';
+
+                const pillsWrap = card.querySelector('.bin-filter-pills');
+                const inpSearch = card.querySelector('.inp-search-santri');
+                const btnCsvSantri = card.querySelector('.btn-csv-santri');
+                const countInfo = card.querySelector('.info-count-santri');
+                const tbody = card.querySelector('.tbl-santri tbody');
+                const thVal = card.querySelector('.tbl-santri .col-santri-val');
+                const chkShowVal = card.querySelector('.chk-show-santri-val');
+                const pesertaWrap = card.querySelector('.peserta-wrap');
+
+                function getFilteredSantri() {
+                    return santriItems.filter(s => {
+                        if (activeBin !== 'all' && s.binIdx !== Number(activeBin)) return false;
+                        if (searchTerm) {
+                            const term = searchTerm.toLowerCase();
+                            if (!s.nm.toLowerCase().includes(term) && !s.np.toLowerCase().includes(term) && !s.tpqName.toLowerCase().includes(term)) {
+                                return false;
+                            }
+                        }
+                        return true;
+                    }).sort((a, b) => a.v - b.v); // Urutkan dari nilai terendah dulu
+                }
+
+                function getActiveBinLabel() {
+                    if (activeBin === 'all') return 'Semua Nilai';
+                    return bins[Number(activeBin)] ? bins[Number(activeBin)].label : 'Semua Nilai';
+                }
+
+                function renderPills() {
+                    let html = `<button type="button" class="btn btn-xs pill-bin ${activeBin === 'all' ? 'btn-dark' : 'btn-outline-secondary'}" data-bin="all" style="border-radius:14px; font-weight:600; padding:1px 8px;">Semua (${santriItems.length})</button>`;
+                    bins.forEach((b, bi) => {
+                        const isActive = activeBin === String(bi);
+                        const bg = isActive ? b.color : '#ffffff';
+                        const color = isActive ? '#ffffff' : '#2d3748';
+                        const border = b.color;
+                        html += `<button type="button" class="btn btn-xs pill-bin" data-bin="${bi}" style="background:${bg}; color:${color}; border:1.5px solid ${border}; border-radius:14px; font-weight:600; padding:1px 8px; margin-right:3px; box-shadow:${isActive ? '0 2px 5px rgba(0,0,0,.15)' : 'none'};">${esc(b.label)} (${binCounts[bi]})</button>`;
+                    });
+                    pillsWrap.innerHTML = html;
+                    pillsWrap.querySelectorAll('.pill-bin').forEach(btn => {
+                        btn.onclick = () => {
+                            activeBin = btn.dataset.bin;
+                            renderPills();
+                            renderSantriRows();
+                        };
+                    });
+                }
+
+                function renderSantriRows() {
+                    const filtered = getFilteredSantri();
+                    const label = getActiveBinLabel();
+                    const showVal = chkShowVal ? chkShowVal.checked : true;
+                    if (thVal) thVal.style.display = showVal ? '' : 'none';
+
+                    countInfo.innerHTML = `Menampilkan <strong>${filtered.length}</strong> santri pada rentang <strong>${esc(label)}</strong> (dari total ${santriItems.length} santri)`;
+
+                    const colSpan = showVal ? 8 : 7;
+                    if (!filtered.length) {
+                        tbody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center text-muted py-3">Tidak ada santri pada rentang nilai ini</td></tr>`;
+                        return;
+                    }
+
+                    tbody.innerHTML = filtered.map((s, idx) => {
+                        const binColor = bins[s.binIdx] ? bins[s.binIdx].color : '#6c757d';
+                        const href = CFG.pesertaUrl + '?' + new URLSearchParams({
+                            NoPeserta: s.np,
+                            IdTahunAjaran: s.y,
+                            TypeUjian: s.type || '',
+                            IdTpq: s.tpq
+                        }).toString();
+                        const valTd = showVal ? `<td class="text-center"><span class="badge" style="background:${binColor}; color:#fff; font-size:0.82rem; font-weight:700;">${s.v > 0 ? s.v.toFixed(2) : '0'}</span></td>` : '';
+                        return `<tr>
+                            <td class="text-muted">${idx + 1}</td>
+                            <td>${esc(s.np)}</td>
+                            <td><strong>${esc(s.nm)}</strong></td>
+                            <td>${esc(s.tpqName)}</td>
+                            <td>${esc(fmtTA(s.y))}</td>
+                            <td>${badgeType(s.type)}</td>
+                            ${valTd}
+                            <td class="text-center"><a class="btn btn-xs btn-outline-primary" target="_blank" href="${href}" title="Buka Detail Peserta"><i class="fas fa-eye"></i></a></td>
+                        </tr>`;
+                    }).join('');
+                }
+
+                renderPills();
+                renderSantriRows();
+
+                if (chkShowVal) {
+                    chkShowVal.onchange = () => renderSantriRows();
+                }
+
+                inpSearch.oninput = () => {
+                    searchTerm = inpSearch.value.trim();
+                    renderSantriRows();
+                };
+
+                btnCsvSantri.onclick = () => {
+                    const filtered = getFilteredSantri();
+                    const label = getActiveBinLabel();
+                    const q = v => '"' + String(v).replace(/"/g, '""') + '"';
+                    const lines = [
+                        ['No', 'No Peserta', 'Nama Santri', 'TPQ', 'Tahun Ajaran', 'Type Ujian', 'Materi', 'Nilai', 'Rentang Nilai'].map(q).join(',')
+                    ];
+                    filtered.forEach((s, idx) => {
+                        lines.push([
+                            idx + 1,
+                            q(s.np),
+                            q(s.nm),
+                            q(s.tpqName),
+                            q(fmtTA(s.y)),
+                            q(fmtType(s.type)),
+                            q(catName),
+                            s.v,
+                            q(cleanPdfText(bins[s.binIdx] ? bins[s.binIdx].label : '-'))
+                        ].join(','));
+                    });
+                    const blob = new Blob(['\ufeff' + lines.join('\n')], {
+                        type: 'text/csv;charset=utf-8;'
+                    });
+                    const a = document.createElement('a');
+                    a.href = URL.createObjectURL(blob);
+                    a.download = `Daftar_Santri_${catName.replace(/[^\w\-]+/g, '_')}_${label.replace(/[^\w\-]+/g, '_')}.csv`;
+                    a.click();
+                    setTimeout(() => URL.revokeObjectURL(a.href), 500);
+                };
+
+                card.querySelector('.btn-peserta').onclick = () => {
+                    pesertaWrap.style.display = (pesertaWrap.style.display === 'none') ? 'block' : 'none';
+                    card.querySelector('.btn-peserta').classList.toggle('active');
+                };
+
+                // Expose getter data untuk keperluan Export PDF
+                card.getSantriExportData = () => {
+                    return {
+                        isOpen: pesertaWrap.style.display !== 'none',
+                        catName: catName,
+                        binLabel: getActiveBinLabel(),
+                        items: getFilteredSantri()
+                    };
+                };
+
+                card.getSantriDataByBin = (binVal) => {
+                    let filtered = santriItems;
+                    let label = 'Semua Nilai';
+                    if (binVal !== 'all' && binVal !== null && binVal !== undefined) {
+                        const bIdx = Number(binVal);
+                        filtered = santriItems.filter(s => s.binIdx === bIdx);
+                        label = bins[bIdx] ? bins[bIdx].label : 'Nilai';
+                    }
+                    return {
+                        catName: catName,
+                        binLabel: label,
+                        items: filtered.slice().sort((a, b) => a.v - b.v)
+                    };
+                };
+            }
         }
 
         // ---------- Render ----------
@@ -846,7 +1169,9 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
                         cat: c.id,
                         tpq: '',
                         desc: c.name + ' • ' + seriesCols[k].desc
-                    }));
+                    }),
+                    { catId: c.id, catName: c.name }
+                );
             });
         }
 
@@ -1018,13 +1343,23 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
 
         // ---------- Export PDF ----------
         function loadJsPdf() {
-            if (window.jspdf && window.jspdf.jsPDF) return Promise.resolve(window.jspdf.jsPDF);
+            if (window.jspdf && window.jspdf.jsPDF) {
+                if (typeof window.jspdf.jsPDF.API.autoTable === 'function' || typeof window.jspdf.autoTable === 'function') {
+                    return Promise.resolve(window.jspdf.jsPDF);
+                }
+            }
             return new Promise((resolve, reject) => {
-                const s = document.createElement('script');
-                s.src = 'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js';
-                s.onload = () => resolve(window.jspdf.jsPDF);
-                s.onerror = () => reject(new Error('Gagal memuat library PDF (cek koneksi internet).'));
-                document.head.appendChild(s);
+                const s1 = document.createElement('script');
+                s1.src = 'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js';
+                s1.onload = () => {
+                    const s2 = document.createElement('script');
+                    s2.src = 'https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js';
+                    s2.onload = () => resolve(window.jspdf.jsPDF);
+                    s2.onerror = () => resolve(window.jspdf.jsPDF);
+                    document.head.appendChild(s2);
+                };
+                s1.onerror = () => reject(new Error('Gagal memuat library PDF (cek koneksi internet).'));
+                document.head.appendChild(s1);
             });
         }
 
@@ -1049,7 +1384,68 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
                 .replace(/…/g, '...');
         }
 
-        async function exportPdf() {
+        // ---------- Export PDF Interaktif & Modal Dialog ----------
+        function openPdfModal() {
+            if (!DATA || !charts.length) return;
+            const bins = buildBins();
+            const sel = $('selPdfBinFilter');
+            sel.innerHTML = '<option value="all">Semua Rentang Nilai</option>' +
+                bins.map((b, i) => `<option value="${i}">${esc(b.label)}</option>`).join('');
+
+            // Reset pilihan default
+            const radioAll = $('optSantriAll');
+            if (radioAll) radioAll.checked = true;
+            if ($('wrapPdfRentang')) $('wrapPdfRentang').style.display = '';
+            if ($('wrapPdfScorePrivacy')) $('wrapPdfScorePrivacy').style.display = '';
+
+            if (window.jQuery) {
+                window.jQuery('#pdfModal').modal('show');
+            }
+        }
+
+        function loadJsPdf() {
+            if (window.jspdf && window.jspdf.jsPDF) {
+                if (typeof window.jspdf.jsPDF.API.autoTable === 'function' || typeof window.jspdf.autoTable === 'function') {
+                    return Promise.resolve(window.jspdf.jsPDF);
+                }
+            }
+            return new Promise((resolve, reject) => {
+                const s1 = document.createElement('script');
+                s1.src = 'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js';
+                s1.onload = () => {
+                    const s2 = document.createElement('script');
+                    s2.src = 'https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js';
+                    s2.onload = () => resolve(window.jspdf.jsPDF);
+                    s2.onerror = () => resolve(window.jspdf.jsPDF);
+                    document.head.appendChild(s2);
+                };
+                s1.onerror = () => reject(new Error('Gagal memuat library PDF (cek koneksi internet).'));
+                document.head.appendChild(s1);
+            });
+        }
+
+        function whiteDataUrl(canvas) {
+            const tmp = document.createElement('canvas');
+            tmp.width = canvas.width;
+            tmp.height = canvas.height;
+            const t = tmp.getContext('2d');
+            t.fillStyle = '#ffffff';
+            t.fillRect(0, 0, tmp.width, tmp.height);
+            t.drawImage(canvas, 0, 0);
+            return tmp.toDataURL('image/png');
+        }
+
+        function cleanPdfText(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/≥/g, '>=')
+                .replace(/≤/g, '<=')
+                .replace(/[–—]/g, '-')
+                .replace(/•/g, '-')
+                .replace(/…/g, '...');
+        }
+
+        async function exportPdf(opts = {}) {
             if (!DATA || !charts.length) return;
             const btn = $('btnPdf');
             const old = btn.innerHTML;
@@ -1057,15 +1453,21 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
             btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Membuat PDF…';
             try {
                 const JsPDF = await loadJsPdf();
+                const orientation = opts.orientation || 'portrait';
+                const santriMode = opts.mode || 'all';
+                const binVal = opts.bin !== undefined ? opts.bin : 'all';
+
                 const doc = new JsPDF({
                     unit: 'mm',
                     format: 'a4',
-                    orientation: 'portrait'
+                    orientation: orientation
                 });
-                const W = 210,
-                    H = 297,
-                    M = 12,
-                    CW = W - M * 2;
+
+                const W = orientation === 'landscape' ? 297 : 210;
+                const H = orientation === 'landscape' ? 210 : 297;
+                const M = 12;
+                const CW = W - M * 2;
+
                 const tpqSel = $('filterTpq');
                 const tpqText = tpqSel.options[tpqSel.selectedIndex] ? tpqSel.options[tpqSel.selectedIndex].text : '-';
                 const typeText = (DATA.types || []).map(fmtType).join(', ') || '-';
@@ -1074,7 +1476,7 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
                     DATA.categories.filter(c => selectedCats.includes(c.id)).map(c => c.name).join(', ') :
                     'Semua materi';
 
-                // Header
+                // Header Dokumen
                 doc.setFillColor(59, 111, 224);
                 doc.rect(0, 0, W, 22, 'F');
                 doc.setTextColor(255, 255, 255);
@@ -1108,7 +1510,7 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
                 y += 2;
                 const boxes = [...document.querySelectorAll('#summaryCards .sum-box')];
                 if (boxes.length) {
-                    const bw = (CW - 3 * 3) / boxes.length;
+                    const bw = (CW - 3 * (boxes.length - 1)) / boxes.length;
                     boxes.forEach((b, i) => {
                         const x = M + i * (bw + 3);
                         doc.setFillColor(238, 241, 246);
@@ -1125,9 +1527,10 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
                     y += 21;
                 }
 
-                // Chart
+                // Render Chart & Tabel Santri
                 charts.forEach(ch => {
                     const cv = ch.canvas;
+                    const card = cv.closest('.chart-card');
                     const h = CW * cv.height / cv.width;
                     if (y + h > H - 14) {
                         doc.addPage();
@@ -1135,6 +1538,69 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
                     }
                     doc.addImage(whiteDataUrl(cv), 'PNG', M, y, CW, h, undefined, 'FAST');
                     y += h + 4;
+
+                    // Logika Pencetakan Daftar Santri
+                    if (santriMode !== 'none' && card) {
+                        let sData = null;
+                        if (santriMode === 'active' && typeof card.getSantriExportData === 'function') {
+                            const act = card.getSantriExportData();
+                            if (act && act.isOpen && act.items.length) {
+                                sData = act;
+                            }
+                        } else if (santriMode === 'all' && typeof card.getSantriDataByBin === 'function') {
+                            const binData = card.getSantriDataByBin(binVal);
+                            if (binData && binData.items.length) {
+                                sData = binData;
+                            }
+                        }
+
+                        if (sData && sData.items.length) {
+                            if (y > H - 35) {
+                                doc.addPage();
+                                y = M;
+                            }
+                            doc.setFont('helvetica', 'bold');
+                            doc.setFontSize(9.5);
+                            doc.setTextColor(40, 40, 40);
+                            const privInfo = (!opts.showScore && opts.showScore !== undefined) ? ' [Nilai Disembunyikan]' : '';
+                            doc.text(cleanPdfText(`Daftar Santri — ${sData.catName} (${sData.binLabel}): ${sData.items.length} santri${privInfo}`), M, y);
+                            y += 3.5;
+
+                            if (typeof doc.autoTable === 'function') {
+                                const showScore = opts.showScore !== false;
+                                const headCols = showScore ?
+                                    [['No', 'No Peserta', 'Nama Santri', 'TPQ', 'T.A', 'Type', 'Nilai']] :
+                                    [['No', 'No Peserta', 'Nama Santri', 'TPQ', 'T.A', 'Type']];
+
+                                const bodyRows = sData.items.map((s, idx) => {
+                                    const row = [
+                                        idx + 1,
+                                        cleanPdfText(s.np),
+                                        cleanPdfText(s.nm),
+                                        cleanPdfText(s.tpqName),
+                                        cleanPdfText(fmtTA(s.y)),
+                                        cleanPdfText(fmtTypeShort(s.type))
+                                    ];
+                                    if (showScore) {
+                                        row.push(s.v > 0 ? s.v.toFixed(2) : '0');
+                                    }
+                                    return row;
+                                });
+
+                                doc.autoTable({
+                                    startY: y,
+                                    head: headCols,
+                                    body: bodyRows,
+                                    margin: { left: M, right: M },
+                                    styles: { fontSize: 7.5, cellPadding: 1.5, font: 'helvetica' },
+                                    headStyles: { fillColor: [59, 111, 224], textColor: 255, fontStyle: 'bold' },
+                                    alternateRowStyles: { fillColor: [248, 250, 252] },
+                                    theme: 'grid'
+                                });
+                                y = doc.lastAutoTable.finalY + 6;
+                            }
+                        }
+                    }
                 });
 
                 // Footer nomor halaman
@@ -1160,7 +1626,41 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
         }
 
         // ---------- Events ----------
-        $('btnPdf').addEventListener('click', exportPdf);
+        $('btnPdf').addEventListener('click', openPdfModal);
+
+        // Listener tombol proses di dalam modal PDF
+        if ($('btnProsesExportPdf')) {
+            $('btnProsesExportPdf').addEventListener('click', () => {
+                const sMode = document.querySelector('input[name="pdfSantriMode"]:checked')?.value || 'all';
+                const bFilter = $('selPdfBinFilter') ? $('selPdfBinFilter').value : 'all';
+                const orient = document.querySelector('input[name="pdfOrientation"]:checked')?.value || 'portrait';
+                const showScore = $('chkPdfShowScore') ? $('chkPdfShowScore').checked : true;
+
+                if (window.jQuery) {
+                    window.jQuery('#pdfModal').modal('hide');
+                }
+                exportPdf({
+                    mode: sMode,
+                    bin: bFilter,
+                    orientation: orient,
+                    showScore: showScore
+                });
+            });
+        }
+
+        // Toggle tampilan pilihan rentang & privasi jika opsi "Tidak" dipilih di modal
+        document.querySelectorAll('input[name="pdfSantriMode"]').forEach(r => {
+            r.addEventListener('change', e => {
+                const isNone = (e.target.value === 'none');
+                if ($('wrapPdfRentang')) {
+                    $('wrapPdfRentang').style.display = isNone ? 'none' : '';
+                }
+                if ($('wrapPdfScorePrivacy')) {
+                    $('wrapPdfScorePrivacy').style.display = isNone ? 'none' : '';
+                }
+            });
+        });
+
         $('dmSearch').addEventListener('input', renderModalRows);
         $('dmNewTab').addEventListener('click', () => {
             if (modalNewTabUrl) window.open(modalNewTabUrl, '_blank');
