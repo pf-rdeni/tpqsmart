@@ -15,15 +15,24 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
             <div class="card-body">
                 <div class="row">
                     <div class="col-lg-5 col-md-12 mb-2">
-                        <label class="small mb-1 font-weight-bold">Tahun Ajaran <span class="text-muted font-weight-normal">(maks. 12)</span></label>
-                        <div class="chip-wrap" id="tahunChips">
-                            <?php foreach ($tahunList as $t): ?>
-                                <label class="chip">
-                                    <input type="checkbox" class="chk-tahun" value="<?= esc($t) ?>" <?= $t === $defaultTahun ? 'checked' : '' ?>>
-                                    <span><?= esc(preg_match('/^\d{8}$/', (string)$t) ? 'T.A ' . substr($t, 2, 2) . '/' . substr($t, 6, 2) : $t) ?></span>
-                                </label>
-                            <?php endforeach; ?>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="small mb-0 font-weight-bold" for="filterTahunAjaran">Tahun Ajaran <span class="text-muted font-weight-normal">(Multiple Choice)</span></label>
+                            <div>
+                                <a href="#" id="taSemua" class="small font-weight-bold mr-1">Semua</a> |
+                                <a href="#" id="taCurrent" class="small mx-1">T.A Aktif</a> |
+                                <a href="#" id="taReset" class="small ml-1 text-muted">Kosongkan</a>
+                            </div>
                         </div>
+                        <select id="filterTahunAjaran" class="form-control form-control-sm select2" multiple="multiple" data-placeholder="Pilih satu atau lebih Tahun Ajaran..." style="width: 100%;">
+                            <?php foreach ($tahunList as $t): ?>
+                                <?php
+                                $label = preg_match('/^\d{8}$/', (string)$t) ? 'T.A ' . substr($t, 2, 2) . '/' . substr($t, 6, 2) : $t;
+                                ?>
+                                <option value="<?= esc($t) ?>" <?= $t === $defaultTahun ? 'selected' : '' ?>>
+                                    <?= esc($label) ?> (<?= esc($t) ?>)
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
                     <div class="col-lg-3 col-md-6 mb-2">
                         <label class="small mb-1 font-weight-bold" for="filterTpq">TPQ</label>
@@ -185,6 +194,33 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
     .stat-card {
         border-radius: 12px;
         box-shadow: 0 4px 18px rgba(30, 60, 120, .08);
+    }
+
+    .select2-container--bootstrap4 .select2-selection--multiple {
+        min-height: calc(1.8125rem + 2px);
+        padding: 2px 4px;
+        font-size: 0.85rem;
+        border-radius: 4px;
+    }
+
+    .select2-container--bootstrap4 .select2-selection--multiple .select2-selection__choice {
+        background: #3b6fe0;
+        color: #fff;
+        border: none;
+        border-radius: 14px;
+        padding: 2px 8px;
+        font-size: 0.8rem;
+        margin-top: 2px;
+        margin-bottom: 2px;
+    }
+
+    .select2-container--bootstrap4 .select2-selection--multiple .select2-selection__choice__remove {
+        color: #fff;
+        margin-right: 4px;
+    }
+
+    .select2-container--bootstrap4 .select2-selection--multiple .select2-selection__choice__remove:hover {
+        color: #fecaca;
     }
 
     .chip-wrap {
@@ -827,7 +863,13 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
                 alert('Library Chart.js belum termuat.');
                 return;
             }
-            const years = [...document.querySelectorAll('.chk-tahun:checked')].map(e => e.value);
+            let years = [];
+            if (window.jQuery) {
+                const val = window.jQuery('#filterTahunAjaran').val();
+                years = Array.isArray(val) ? val : (val ? [val] : []);
+            } else {
+                years = Array.from(document.querySelectorAll('#filterTahunAjaran option:checked')).map(o => o.value);
+            }
             if (!years.length) {
                 $('statEmpty').style.display = '';
                 $('statEmpty').textContent = 'Pilih minimal satu Tahun Ajaran.';
@@ -1077,6 +1119,45 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
             document.querySelectorAll('.chk-materi').forEach(c => c.checked = false);
             syncMateri();
         });
+
+        // Tombol cepat filter tahun ajaran
+        if ($('taSemua')) {
+            $('taSemua').addEventListener('click', e => {
+                e.preventDefault();
+                const all = Array.from(document.querySelectorAll('#filterTahunAjaran option')).map(o => o.value);
+                if (window.jQuery) {
+                    window.jQuery('#filterTahunAjaran').val(all).trigger('change');
+                }
+            });
+        }
+        if ($('taCurrent')) {
+            $('taCurrent').addEventListener('click', e => {
+                e.preventDefault();
+                const cur = '<?= esc($defaultTahun) ?>';
+                if (window.jQuery) {
+                    window.jQuery('#filterTahunAjaran').val([cur]).trigger('change');
+                }
+            });
+        }
+        if ($('taReset')) {
+            $('taReset').addEventListener('click', e => {
+                e.preventDefault();
+                if (window.jQuery) {
+                    window.jQuery('#filterTahunAjaran').val([]).trigger('change');
+                }
+            });
+        }
+
+        // Inisialisasi Select2 untuk Filter Tahun Ajaran
+        if (window.jQuery && window.jQuery.fn.select2) {
+            window.jQuery('#filterTahunAjaran').select2({
+                theme: 'bootstrap4',
+                placeholder: 'Pilih satu atau lebih Tahun Ajaran...',
+                allowClear: true,
+                closeOnSelect: false,
+                width: '100%'
+            });
+        }
 
         // Inisialisasi kontrol dari settings
         if (!settings.thresholds || !settings.thresholds.length) settings.thresholds = defaults.thresholds.slice();
