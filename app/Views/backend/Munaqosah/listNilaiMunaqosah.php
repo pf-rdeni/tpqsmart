@@ -264,6 +264,22 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
     .dt-left {
         text-align: left;
     }
+
+    .row-below-threshold {
+        background-color: rgba(220, 53, 69, 0.06) !important;
+    }
+
+    .row-below-threshold td {
+        color: #dc3545 !important;
+    }
+
+    .text-danger {
+        color: #dc3545 !important;
+    }
+
+    .text-success {
+        color: #28a745 !important;
+    }
 </style>
 <script>
     const isAdmin = <?= ($isAdmin ?? false) ? 'true' : 'false' ?>;
@@ -354,6 +370,8 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
             const passed = !!row.kelulusan_met;
             const badgeClass = passed ? 'badge badge-success' : 'badge badge-danger';
             const badgeText = `${status} (${totalWeighted} / ${threshold})`;
+            const rowClass = passed ? '' : 'row-below-threshold';
+            const totalColorClass = passed ? 'text-success font-weight-bold' : 'text-danger font-weight-bold';
 
             let tds = `<td class="dt-left">${row.NoPeserta || '-'}</td>` +
                 `<td class="dt-left">${row.NamaSantri || '-'}</td>` +
@@ -385,14 +403,17 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
                     }
                 }
 
-                tds += `<td class="dt-center">${fmtDecimal(avg)}</td>` +
+                const isAvgBelowThreshold = parseFloat(avg) < parseFloat(threshold);
+                const avgColorClass = isAvgBelowThreshold ? 'text-danger font-weight-bold' : '';
+
+                tds += `<td class="dt-center ${avgColorClass}">${fmtDecimal(avg)}</td>` +
                     `<td class="dt-center">${fmtDecimal(weighted)}</td>`;
             });
 
-            tds += `<td class="dt-center dt-right" data-order="${totalWeighted}">${fmtDecimal(totalWeighted)}</td>` +
+            tds += `<td class="dt-center dt-right ${totalColorClass}" data-order="${totalWeighted}">${fmtDecimal(totalWeighted)}</td>` +
                 `<td class="dt-center" data-order="${passed ? 1 : 0}"><span class="badge badge-status ${badgeClass}" title="Selisih ${diff}">${badgeText}</span></td>`;
 
-            body.push(`<tr>${tds}</tr>`);
+            body.push(`<tr class="${rowClass}">${tds}</tr>`);
         });
 
         $('#tbodyKelulusan').html(body.join(''));
@@ -482,6 +503,13 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
             const totalIndex = totalCols - 2; // Kolom Total Bobot
             const statusIndex = totalCols - 1; // Kolom Status Kelulusan
 
+            const jmlColIndices = [];
+            flatHeaders.forEach((h, idx) => {
+                if (h && (h.endsWith(' - Jml') || h.indexOf(' - Jml') !== -1)) {
+                    jmlColIndices.push(idx);
+                }
+            });
+
             // Info filter untuk Export (Title, Subtitle/Filter, Filename)
             function getExportInfo() {
                 const tahun = $('#filterTahunAjaran').val().trim() || '-';
@@ -563,6 +591,124 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
                                 header: getExportHeader,
                                 body: getExportBody
                             }
+                        },
+                        customize: function(xlsx) {
+                            try {
+                                var sheet = xlsx.xl.worksheets['sheet1.xml'];
+                                var styles = xlsx.xl['styles.xml'];
+
+                                // 1. Tambahkan font warna merah di styles.xml
+                                var fonts = styles.getElementsByTagName('fonts')[0];
+                                var fontCount = parseInt(fonts.getAttribute('count') || '0');
+                                var redFont = styles.createElement('font');
+                                var redColor = styles.createElement('color');
+                                redColor.setAttribute('rgb', 'FFDC3545'); // Bootstrap danger red
+                                var bold = styles.createElement('b');
+                                redFont.appendChild(bold);
+                                redFont.appendChild(redColor);
+                                fonts.appendChild(redFont);
+                                fonts.setAttribute('count', fontCount + 1);
+
+                                // 2. Tambahkan background lembut merah muda
+                                var fills = styles.getElementsByTagName('fills')[0];
+                                var fillCount = parseInt(fills.getAttribute('count') || '0');
+                                var redFill = styles.createElement('fill');
+                                var patternFill = styles.createElement('patternFill');
+                                patternFill.setAttribute('patternType', 'solid');
+                                var fgColor = styles.createElement('fgColor');
+                                fgColor.setAttribute('rgb', 'FFFCE8E6'); // Soft red fill
+                                var bgColor = styles.createElement('bgColor');
+                                bgColor.setAttribute('indexed', '64');
+                                patternFill.appendChild(fgColor);
+                                patternFill.appendChild(bgColor);
+                                redFill.appendChild(patternFill);
+                                fills.appendChild(redFill);
+                                fills.setAttribute('count', fillCount + 1);
+
+                                // 3. Tambahkan cellXfs untuk style merah
+                                var cellXfs = styles.getElementsByTagName('cellXfs')[0];
+                                var xfCount = parseInt(cellXfs.getAttribute('count') || '0');
+
+                                // Style teks merah rata tengah
+                                var newXfCenter = styles.createElement('xf');
+                                newXfCenter.setAttribute('fontId', fontCount);
+                                newXfCenter.setAttribute('fillId', fillCount);
+                                newXfCenter.setAttribute('borderId', '0');
+                                newXfCenter.setAttribute('numFmtId', '0');
+                                newXfCenter.setAttribute('applyFont', '1');
+                                newXfCenter.setAttribute('applyFill', '1');
+                                newXfCenter.setAttribute('applyAlignment', '1');
+                                var alignCenter = styles.createElement('alignment');
+                                alignCenter.setAttribute('horizontal', 'center');
+                                newXfCenter.appendChild(alignCenter);
+                                cellXfs.appendChild(newXfCenter);
+
+                                // Style teks merah rata kiri
+                                var newXfLeft = styles.createElement('xf');
+                                newXfLeft.setAttribute('fontId', fontCount);
+                                newXfLeft.setAttribute('fillId', fillCount);
+                                newXfLeft.setAttribute('borderId', '0');
+                                newXfLeft.setAttribute('numFmtId', '0');
+                                newXfLeft.setAttribute('applyFont', '1');
+                                newXfLeft.setAttribute('applyFill', '1');
+                                newXfLeft.setAttribute('applyAlignment', '1');
+                                var alignLeft = styles.createElement('alignment');
+                                alignLeft.setAttribute('horizontal', 'left');
+                                newXfLeft.appendChild(alignLeft);
+                                cellXfs.appendChild(newXfLeft);
+
+                                cellXfs.setAttribute('count', xfCount + 2);
+
+                                var styleRedCenter = xfCount;
+                                var styleRedLeft = xfCount + 1;
+
+                                // 4. Iterasi setiap baris di sheet1.xml untuk menandai kolom Jml, Total Bobot, dan baris di bawah threshold
+                                $('row', sheet).each(function() {
+                                    var $row = $(this);
+                                    var rVal = parseInt($row.attr('r') || '0');
+                                    if (rVal <= 2) return; // Lewati judul & header
+
+                                    var cells = $row.find('c');
+                                    var isFailed = false;
+                                    var rowThreshold = 0;
+
+                                    // Cari nilai threshold dari teks status (misal: "Belum Lulus (50.00 / 65.00)")
+                                    cells.each(function() {
+                                        var text = $(this).text();
+                                        if (text) {
+                                            var match = text.match(/\/\s*(\d+(\.\d+)?)/);
+                                            if (match && match[1]) {
+                                                rowThreshold = parseFloat(match[1]);
+                                            }
+                                            if (text.indexOf('Belum Lulus') !== -1 || text.indexOf('Tidak Lulus') !== -1) {
+                                                isFailed = true;
+                                            }
+                                        }
+                                    });
+
+                                    cells.each(function(cellIdx) {
+                                        var cellText = $(this).text().trim();
+                                        var cellVal = parseFloat(cellText);
+                                        var isJmlCol = jmlColIndices.indexOf(cellIdx) !== -1;
+                                        var isTotalCol = (cellIdx === totalIndex);
+                                        var isStatusCol = (cellIdx === statusIndex);
+
+                                        if ((isJmlCol || isTotalCol) && !isNaN(cellVal) && rowThreshold > 0 && cellVal < rowThreshold) {
+                                            $(this).attr('s', styleRedCenter);
+                                        } else if (isStatusCol && isFailed) {
+                                            $(this).attr('s', styleRedCenter);
+                                        } else if (isFailed) {
+                                            if (cellIdx < 3) {
+                                                $(this).attr('s', styleRedLeft);
+                                            } else {
+                                                $(this).attr('s', styleRedCenter);
+                                            }
+                                        }
+                                    });
+                                });
+                            } catch (e) {
+                                console.error('Error customizing Excel export:', e);
+                            }
                         }
                     },
                     {
@@ -611,6 +757,55 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
 
                             if (doc.content[1] && doc.content[1].table) {
                                 doc.content[1].table.widths = Array(doc.content[1].table.body[0].length).fill('*');
+
+                                // Warnai kolom Jml, Total Bobot, dan baris yang di bawah threshold dengan warna merah di PDF
+                                var tableBody = doc.content[1].table.body;
+                                for (var i = 1; i < tableBody.length; i++) {
+                                    var rowData = tableBody[i];
+                                    var isFailed = false;
+                                    var rowThreshold = 0;
+
+                                    for (var j = 0; j < rowData.length; j++) {
+                                        var cellText = typeof rowData[j] === 'object' ? (rowData[j].text || '') : String(rowData[j]);
+                                        if (cellText) {
+                                            var match = cellText.match(/\/\s*(\d+(\.\d+)?)/);
+                                            if (match && match[1]) {
+                                                rowThreshold = parseFloat(match[1]);
+                                            }
+                                            if (cellText.indexOf('Belum Lulus') !== -1 || cellText.indexOf('Tidak Lulus') !== -1) {
+                                                isFailed = true;
+                                            }
+                                        }
+                                    }
+
+                                    for (var j = 0; j < rowData.length; j++) {
+                                        var cellText = typeof rowData[j] === 'object' ? (rowData[j].text || '') : String(rowData[j]);
+                                        var cellVal = parseFloat(cellText);
+                                        var isJmlCol = jmlColIndices.indexOf(j) !== -1;
+                                        var isTotalCol = (j === totalIndex);
+                                        var isStatusCol = (j === statusIndex);
+
+                                        var shouldColorRed = false;
+                                        if ((isJmlCol || isTotalCol) && !isNaN(cellVal) && rowThreshold > 0 && cellVal < rowThreshold) {
+                                            shouldColorRed = true;
+                                        } else if (isFailed) {
+                                            shouldColorRed = true;
+                                        }
+
+                                        if (shouldColorRed) {
+                                            if (typeof rowData[j] === 'object') {
+                                                rowData[j].color = '#dc3545';
+                                                rowData[j].fillColor = '#fce8e6';
+                                            } else {
+                                                rowData[j] = {
+                                                    text: String(rowData[j]),
+                                                    color: '#dc3545',
+                                                    fillColor: '#fce8e6'
+                                                };
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                     },
@@ -640,6 +835,21 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
                             $(win.document.body).find('table')
                                 .addClass('compact')
                                 .css('font-size', 'inherit');
+
+                            // Warnai baris yang di bawah threshold saat Print
+                            $(win.document.body).find('tr.row-below-threshold td').css({
+                                'color': '#dc3545 !important',
+                                'background-color': '#fce8e6 !important',
+                                '-webkit-print-color-adjust': 'exact',
+                                'print-color-adjust': 'exact'
+                            });
+                            $(win.document.body).find('.text-danger').css('color', '#dc3545 !important');
+                            $(win.document.body).find('.badge-danger').css({
+                                'background-color': '#dc3545 !important',
+                                'color': '#ffffff !important',
+                                '-webkit-print-color-adjust': 'exact',
+                                'print-color-adjust': 'exact'
+                            });
                         }
                     }
                 ]
