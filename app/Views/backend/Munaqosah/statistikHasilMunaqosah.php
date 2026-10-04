@@ -88,6 +88,7 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
                         <label class="small mb-1 font-weight-bold" for="selChartType">Jenis Chart</label>
                         <select id="selChartType" class="form-control form-control-sm">
                             <option value="grouped">Batang berkelompok</option>
+                            <option value="combo">Batang &amp; Garis (Kombinasi)</option>
                             <option value="stacked">Batang bertumpuk</option>
                             <option value="line">Garis</option>
                         </select>
@@ -433,6 +434,20 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
             }));
         }
 
+        // Helper transparansi warna untuk combo chart
+        function colorWithAlpha(color, alpha) {
+            if (!color) return color;
+            if (color.startsWith('#')) {
+                let c = color.substring(1);
+                if (c.length === 3) c = c.split('').map(x => x + x).join('');
+                const num = parseInt(c, 16);
+                return `rgba(${(num >> 16) & 255}, ${(num >> 8) & 255}, ${num & 255}, ${alpha})`;
+            } else if (color.startsWith('hsl')) {
+                return color.replace('hsl', 'hsla').replace(')', `, ${alpha})`);
+            }
+            return color;
+        }
+
         // ---------- Chart ----------
         const labelPlugin = {
             id: 'valueLabels',
@@ -444,6 +459,7 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
                 ctx.font = 'bold 11px sans-serif';
                 ctx.textAlign = 'center';
                 chart.data.datasets.forEach((ds, i) => {
+                    if (ds.isComboLine) return; // hindari label dobel pada garis tren mode combo
                     const meta = chart.getDatasetMeta(i);
                     if (meta.hidden) return;
                     meta.data.forEach((el, idx) => {
@@ -469,22 +485,66 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
         function chartConfig(labels, datasets, title, onPick) {
             const stacked = settings.chartType === 'stacked';
             const line = settings.chartType === 'line';
+            const combo = settings.chartType === 'combo';
             const pct = settings.valueMode === 'percent';
+
+            let chartDatasets = [];
+            if (combo) {
+                // Tambahkan dataset batang (bar)
+                datasets.forEach(d => {
+                    chartDatasets.push({
+                        type: 'bar',
+                        label: d.label,
+                        data: d.data,
+                        backgroundColor: colorWithAlpha(d.color, 0.78),
+                        borderColor: d.color,
+                        borderWidth: 1.5,
+                        borderRadius: 3,
+                        bin: d.bin,
+                        order: 2
+                    });
+                });
+                // Tambahkan dataset garis (line tren)
+                datasets.forEach(d => {
+                    chartDatasets.push({
+                        type: 'line',
+                        label: d.label + ' (Tren)',
+                        data: d.data,
+                        borderColor: d.color,
+                        backgroundColor: d.color,
+                        borderWidth: 2.5,
+                        tension: 0.3,
+                        fill: false,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        pointBackgroundColor: '#ffffff',
+                        pointBorderColor: d.color,
+                        pointBorderWidth: 2,
+                        bin: d.bin,
+                        order: 1,
+                        isComboLine: true
+                    });
+                });
+            } else {
+                chartDatasets = datasets.map(d => ({
+                    label: d.label,
+                    data: d.data,
+                    backgroundColor: d.color,
+                    borderColor: d.color,
+                    borderWidth: line ? 2.5 : 0,
+                    tension: .3,
+                    fill: false,
+                    pointRadius: line ? 4 : 0,
+                    borderRadius: line ? 0 : 3,
+                    bin: d.bin
+                }));
+            }
+
             return {
                 type: line ? 'line' : 'bar',
                 data: {
                     labels,
-                    datasets: datasets.map(d => ({
-                        label: d.label,
-                        data: d.data,
-                        backgroundColor: d.color,
-                        borderColor: d.color,
-                        borderWidth: line ? 2.5 : 0,
-                        tension: .3,
-                        fill: false,
-                        pointRadius: line ? 4 : 0,
-                        borderRadius: line ? 0 : 3
-                    }))
+                    datasets: chartDatasets
                 },
                 options: {
                     responsive: true,
@@ -525,7 +585,7 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
                             stacked,
                             beginAtZero: true,
                             max: pct && stacked ? 100 : undefined,
-                            grace: line || !stacked ? '12%' : 0,
+                            grace: line || combo || !stacked ? '12%' : 0,
                             ticks: {
                                 precision: pct ? 1 : 0
                             }
@@ -565,12 +625,13 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
             </div>`;
             container.appendChild(card);
             const canvas = card.querySelector('canvas');
+            let inst = null;
             const onPick = ctxFn ? (idx, dsIdx) => {
-                const ds = datasets[dsIdx];
+                const ds = (inst && inst.data.datasets) ? inst.data.datasets[dsIdx] : datasets[dsIdx];
                 if (!ds || !ds.data[idx]) return; // batang 0 tidak dibuka
                 openDetail(ctxFn(idx), ds.bin, title);
             } : null;
-            const inst = new Chart(canvas, chartConfig(labels, datasets, title, onPick));
+            inst = new Chart(canvas, chartConfig(labels, datasets, title, onPick));
             charts.push(inst);
 
             card.querySelector('.btn-tbl').onclick = () => {
