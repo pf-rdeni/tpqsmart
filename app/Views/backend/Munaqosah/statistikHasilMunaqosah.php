@@ -224,6 +224,22 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
                             </small>
                         </div>
 
+                        <div class="p-2 mb-3 rounded" style="background:#fff5f5; border:1px solid #fed7d7;">
+                            <label class="small font-weight-bold text-danger mb-1 d-block"><i class="fas fa-clipboard-check mr-1"></i> Lembar Matriks Evaluasi Kekurangan Santri:</label>
+                            <div class="custom-control custom-radio mb-1">
+                                <input type="radio" id="optPdfMatriksKurang" name="pdfMatriksMode" class="custom-control-input" value="kurang_only" checked>
+                                <label class="custom-control-label small" for="optPdfMatriksKurang"><strong>Ya, khusus santri yang nilainya sesuai rentang pilihan</strong> (Rekomendasi)</label>
+                            </div>
+                            <div class="custom-control custom-radio mb-1">
+                                <input type="radio" id="optPdfMatriksAll" name="pdfMatriksMode" class="custom-control-input" value="all">
+                                <label class="custom-control-label small" for="optPdfMatriksAll">Ya, sertakan semua santri</label>
+                            </div>
+                            <div class="custom-control custom-radio">
+                                <input type="radio" id="optPdfMatriksNone" name="pdfMatriksMode" class="custom-control-input" value="none">
+                                <label class="custom-control-label small" for="optPdfMatriksNone">Tidak (Jangan sertakan lembar matriks)</label>
+                            </div>
+                        </div>
+
                         <div class="form-group mb-0">
                             <label class="small font-weight-bold text-dark mb-1 d-block"><i class="fas fa-file-alt text-secondary mr-1"></i> Orientasi Halaman:</label>
                             <div class="d-flex" style="gap:15px;">
@@ -257,6 +273,56 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
             <!-- CHART DETAIL PER MATERI -->
             <h5 class="stat-section"><i class="fas fa-book-open mr-1"></i> Detail per Jenis Materi</h5>
             <div id="detailCharts"></div>
+
+            <!-- MATRIKS EVALUASI & PEMETAAN KEKURANGAN MATERI SANTRI -->
+            <h5 class="stat-section mt-4"><i class="fas fa-clipboard-check mr-1"></i> Matriks Evaluasi & Pemetaan Kekurangan Materi</h5>
+            <div class="card card-outline card-danger stat-card mb-4" id="cardMatriksEvaluasi">
+                <div class="card-header d-flex justify-content-between align-items-center py-2 flex-wrap" style="gap:8px;">
+                    <div>
+                        <strong class="small text-danger"><i class="fas fa-user-times mr-1"></i> Daftar Rekapitulasi Kekurangan Materi per Santri</strong>
+                    </div>
+                    <div class="d-flex align-items-center flex-wrap" style="gap:6px;">
+                        <button class="btn btn-xs btn-outline-success font-weight-bold" id="btnCsvMatriks" type="button"><i class="fas fa-file-csv mr-1"></i> Unduh CSV Matriks</button>
+                    </div>
+                </div>
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap mb-3 p-2 rounded" style="background:#f8fafc; border:1px solid #e2e8f0; gap:8px;">
+                        <div class="d-flex align-items-center flex-wrap" style="gap:10px;">
+                            <div class="d-flex align-items-center">
+                                <label class="small font-weight-bold mb-0 mr-1 text-dark" for="selMatriksThreshold">Batas Standar:</label>
+                                <select id="selMatriksThreshold" class="form-control form-control-sm font-weight-bold" style="width:130px;"></select>
+                            </div>
+                            <div class="d-flex align-items-center">
+                                <label class="small font-weight-bold mb-0 mr-1 text-dark" for="selMatriksFilterMode">Tampilkan:</label>
+                                <select id="selMatriksFilterMode" class="form-control form-control-sm" style="width:190px;">
+                                    <option value="kurang_only" selected>Hanya yang Kurang (≥ 1 Materi)</option>
+                                    <option value="all">Semua Santri</option>
+                                    <option value="kritis">Kurang Kritis (≥ 2 Materi)</option>
+                                    <option value="tuntas">Hanya yang Tuntas Semua (0 Kurang)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center flex-wrap" style="gap:10px;">
+                            <div class="custom-control custom-switch" title="Tampilkan atau sembunyikan angka nilai santri di tabel">
+                                <input type="checkbox" class="custom-control-input" id="chkMatriksShowScore" checked>
+                                <label class="custom-control-label small font-weight-bold text-muted mb-0" for="chkMatriksShowScore" style="cursor:pointer;">Tampilkan Angka Nilai</label>
+                            </div>
+                            <input type="search" id="inpSearchMatriks" class="form-control form-control-sm" placeholder="Cari santri / no peserta…" style="width:180px;">
+                        </div>
+                    </div>
+
+                    <div class="small text-muted mb-2 font-weight-bold" id="infoMatriksCount"></div>
+
+                    <div class="table-responsive bg-white rounded border" style="max-height: 480px; overflow-y: auto;">
+                        <table class="table table-sm table-bordered table-hover mb-0 text-nowrap" id="tblMatriksEvaluasi">
+                            <thead class="thead-light" style="position: sticky; top: 0; z-index: 2;">
+                                <tr id="trMatriksHead"></tr>
+                            </thead>
+                            <tbody id="tbMatriksBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </section>
@@ -1173,6 +1239,216 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
                     { catId: c.id, catName: c.name }
                 );
             });
+
+            // Render Matriks Evaluasi Kekurangan Materi Santri
+            initMatriksThresholdSelect();
+            renderMatriksEvaluasi();
+        }
+
+        // ---------- Matriks Evaluasi & Pemetaan Kekurangan Santri ----------
+        function initMatriksThresholdSelect() {
+            const sel = $('selMatriksThreshold');
+            if (!sel) return;
+            const curVal = sel.value;
+            const thList = (settings.thresholds && settings.thresholds.length) ? settings.thresholds : defaults.thresholds;
+            sel.innerHTML = thList.map(t => `<option value="${t}">Nilai &lt; ${t}</option>`).join('');
+            if (curVal && thList.map(String).includes(String(curVal))) {
+                sel.value = curVal;
+            } else {
+                sel.value = thList[0];
+            }
+        }
+
+        function getMatriksData(thresholdVal) {
+            if (!DATA || !DATA.rows) return { cats: [], items: [] };
+            const cats = DATA.categories.filter(c => !selectedCats || selectedCats.includes(c.id));
+            const th = Number(thresholdVal);
+
+            const items = DATA.rows.map(r => {
+                const scores = {};
+                const kurangCats = [];
+                let totalKurang = 0;
+
+                cats.forEach(c => {
+                    const v = (r.avg && r.avg[c.id] !== undefined) ? Number(r.avg[c.id]) : 0;
+                    scores[c.id] = v;
+                    if (v > 0 && v < th) {
+                        kurangCats.push(c.name);
+                        totalKurang++;
+                    }
+                });
+
+                return {
+                    np: r.np,
+                    nm: r.nm || '-',
+                    tpq: r.tpq,
+                    tpqName: DATA.tpqs[r.tpq] || r.tpq,
+                    y: r.y,
+                    type: r.type || (DATA.meta ? (Array.isArray(DATA.meta.TypeUjian) ? DATA.meta.TypeUjian[0] : DATA.meta.TypeUjian) : ''),
+                    scores: scores,
+                    kurangCats: kurangCats,
+                    totalKurang: totalKurang
+                };
+            });
+
+            return { cats, items };
+        }
+
+        function renderMatriksEvaluasi() {
+            const cardEl = $('cardMatriksEvaluasi');
+            if (!cardEl) return;
+            if (!DATA || !DATA.rows.length) {
+                cardEl.style.display = 'none';
+                return;
+            }
+            cardEl.style.display = '';
+
+            const selTh = $('selMatriksThreshold');
+            const thVal = selTh ? Number(selTh.value || settings.thresholds[0]) : settings.thresholds[0];
+            const filterMode = $('selMatriksFilterMode') ? $('selMatriksFilterMode').value : 'kurang_only';
+            const showScore = $('chkMatriksShowScore') ? $('chkMatriksShowScore').checked : true;
+            const search = ($('inpSearchMatriks')?.value || '').trim().toLowerCase();
+
+            const { cats, items } = getMatriksData(thVal);
+
+            // Filter
+            let filtered = items.filter(s => {
+                if (filterMode === 'kurang_only' && s.totalKurang < 1) return false;
+                if (filterMode === 'kritis' && s.totalKurang < 2) return false;
+                if (filterMode === 'tuntas' && s.totalKurang !== 0) return false;
+                if (search) {
+                    const q = search;
+                    if (!s.nm.toLowerCase().includes(q) && !s.np.toLowerCase().includes(q) && !s.tpqName.toLowerCase().includes(q)) {
+                        return false;
+                    }
+                }
+                return true;
+            });
+
+            // Urutkan: Santri dengan kekurangan terbanyak di atas
+            filtered.sort((a, b) => {
+                if (b.totalKurang !== a.totalKurang) return b.totalKurang - a.totalKurang;
+                return a.nm.localeCompare(b.nm);
+            });
+
+            // Info Count
+            const totalKurangSantri = items.filter(s => s.totalKurang > 0).length;
+            $('infoMatriksCount').innerHTML = `Menampilkan <strong>${filtered.length}</strong> santri | Total santri yang memiliki nilai &lt; ${thVal}: <span class="text-danger font-weight-bold">${totalKurangSantri} santri</span> (dari total ${items.length} peserta)`;
+
+            // Render Header
+            const trHead = $('trMatriksHead');
+            trHead.innerHTML = `
+                <th style="width:40px;" class="text-center">No</th>
+                <th style="width:90px;">No Peserta</th>
+                <th>Nama Santri</th>
+                <th>TPQ</th>
+                <th style="width:65px;">T.A</th>
+                <th style="width:75px;">Type</th>
+                ${cats.map(c => `<th class="text-center" style="min-width:90px;">${esc(c.name)}</th>`).join('')}
+                <th class="text-center font-weight-bold" style="width:110px;">Total Kurang</th>
+            `;
+
+            // Render Body
+            const tbBody = $('tbMatriksBody');
+            if (!filtered.length) {
+                tbBody.innerHTML = `<tr><td colspan="${7 + cats.length}" class="text-center text-muted py-4"><i class="fas fa-check-circle text-success mr-1"></i> Tidak ada data santri yang memenuhi kriteria filter ini.</td></tr>`;
+                return;
+            }
+
+            tbBody.innerHTML = filtered.map((s, idx) => {
+                const matTds = cats.map(c => {
+                    const v = s.scores[c.id];
+                    if (v > 0 && v < thVal) {
+                        return `<td class="text-center table-danger" style="background:#ffebee;">
+                            <span class="badge badge-danger" style="font-size:0.8rem;">❌ ${showScore ? v.toFixed(2) : ''}</span>
+                        </td>`;
+                    } else if (v >= thVal) {
+                        return `<td class="text-center">
+                            ${showScore ? `<span class="text-success font-weight-bold" style="font-size:0.82rem;">✅ ${v.toFixed(2)}</span>` : `<span class="text-muted">—</span>`}
+                        </td>`;
+                    } else {
+                        return `<td class="text-center text-muted">—</td>`;
+                    }
+                }).join('');
+
+                const badgeTotal = s.totalKurang > 0 ?
+                    `<span class="badge badge-danger p-1 font-weight-bold" style="font-size:0.8rem;">${s.totalKurang} Materi</span>` :
+                    `<span class="badge badge-success p-1" style="font-size:0.8rem;">0 (Tuntas)</span>`;
+
+                return `<tr>
+                    <td class="text-center text-muted">${idx + 1}</td>
+                    <td>${esc(s.np)}</td>
+                    <td><strong>${esc(s.nm)}</strong></td>
+                    <td>${esc(s.tpqName)}</td>
+                    <td>${esc(fmtTA(s.y))}</td>
+                    <td>${badgeType(s.type)}</td>
+                    ${matTds}
+                    <td class="text-center">${badgeTotal}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        // Listener Event Matriks Evaluasi
+        if ($('selMatriksThreshold')) $('selMatriksThreshold').addEventListener('change', renderMatriksEvaluasi);
+        if ($('selMatriksFilterMode')) $('selMatriksFilterMode').addEventListener('change', renderMatriksEvaluasi);
+        if ($('chkMatriksShowScore')) $('chkMatriksShowScore').addEventListener('change', renderMatriksEvaluasi);
+        if ($('inpSearchMatriks')) $('inpSearchMatriks').addEventListener('input', renderMatriksEvaluasi);
+
+        if ($('btnCsvMatriks')) {
+            $('btnCsvMatriks').addEventListener('click', () => {
+                const selTh = $('selMatriksThreshold');
+                const thVal = selTh ? Number(selTh.value || settings.thresholds[0]) : settings.thresholds[0];
+                const showScore = $('chkMatriksShowScore') ? $('chkMatriksShowScore').checked : true;
+                const { cats, items } = getMatriksData(thVal);
+                if (!items.length) {
+                    alert('Tidak ada data untuk diunduh');
+                    return;
+                }
+
+                // Urutkan
+                const sorted = items.slice().sort((a, b) => b.totalKurang - a.totalKurang || a.nm.localeCompare(b.nm));
+
+                const q = v => '"' + String(v).replace(/"/g, '""') + '"';
+                const head = ['No', 'No Peserta', 'Nama Santri', 'TPQ', 'Tahun Ajaran', 'Type Ujian']
+                    .concat(cats.map(c => c.name))
+                    .concat(['Total Materi Kurang', 'Keterangan Materi Kurang (< ' + thVal + ')']);
+
+                const lines = [head.map(q).join(',')];
+
+                sorted.forEach((s, idx) => {
+                    const row = [
+                        idx + 1,
+                        s.np,
+                        s.nm,
+                        s.tpqName,
+                        fmtTA(s.y),
+                        fmtType(s.type)
+                    ];
+
+                    cats.forEach(c => {
+                        const v = s.scores[c.id];
+                        if (v > 0 && v < thVal) {
+                            row.push(showScore ? 'KURANG (' + v.toFixed(2) + ')' : 'KURANG');
+                        } else if (v >= thVal) {
+                            row.push(showScore ? 'TUNTAS (' + v.toFixed(2) + ')' : 'TUNTAS');
+                        } else {
+                            row.push('-');
+                        }
+                    });
+
+                    row.push(s.totalKurang);
+                    row.push(s.kurangCats.join(', ') || 'Semua Tuntas');
+
+                    lines.push(row.map(q).join(','));
+                });
+
+                const blob = new Blob(['\ufeff' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = `Matriks_Evaluasi_Kekurangan_Santri_Batas_${thVal}.csv`;
+                a.click();
+                setTimeout(() => URL.revokeObjectURL(a.href), 500);
+            });
         }
 
         // ---------- Drill-down modal ----------
@@ -1395,6 +1671,9 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
             // Reset pilihan default
             const radioAll = $('optSantriAll');
             if (radioAll) radioAll.checked = true;
+            const radioMatriksKurang = $('optPdfMatriksKurang');
+            if (radioMatriksKurang) radioMatriksKurang.checked = true;
+
             if ($('wrapPdfRentang')) $('wrapPdfRentang').style.display = '';
             if ($('wrapPdfScorePrivacy')) $('wrapPdfScorePrivacy').style.display = '';
 
@@ -1602,6 +1881,108 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
                     }
                 });
 
+                // Lembar Matriks Evaluasi Kekurangan Santri jika dipilih
+                const matriksMode = opts.matriksMode || 'kurang_only';
+                if (matriksMode !== 'none') {
+                    const bins = buildBins();
+                    let thVal = Number(settings.thresholds[0]);
+                    let thLabel = '< ' + thVal;
+
+                    if (opts.bin !== 'all' && opts.bin !== null && opts.bin !== undefined) {
+                        const bIdx = Number(opts.bin);
+                        if (bins[bIdx]) {
+                            thLabel = cleanPdfText(bins[bIdx].label);
+                            if (bins[bIdx].max !== null && bins[bIdx].max !== undefined) {
+                                thVal = bins[bIdx].max;
+                            } else if (bins[bIdx].min !== null && bins[bIdx].min !== undefined) {
+                                thVal = bins[bIdx].min;
+                            }
+                        }
+                    } else {
+                        thVal = Number($('selMatriksThreshold')?.value || settings.thresholds[0]);
+                        thLabel = '< ' + thVal;
+                    }
+
+                    const showScore = opts.showScore !== false;
+                    const { cats, items } = getMatriksData(thVal);
+
+                    // Filter santri sesuai mode yang dipilih di modal PDF (khusus yang kurang / semua)
+                    const printItems = (matriksMode === 'kurang_only') ? items.filter(s => s.totalKurang > 0) : items;
+
+                    if (printItems.length) {
+                        doc.addPage();
+                        y = M;
+
+                        doc.setFont('helvetica', 'bold');
+                        doc.setFontSize(11);
+                        doc.setTextColor(59, 111, 224);
+                        doc.text(cleanPdfText(`Matriks Evaluasi Kekurangan Materi Santri (${thLabel})`), M, y);
+                        y += 4.5;
+                        doc.setFont('helvetica', 'normal');
+                        doc.setFontSize(8);
+                        doc.setTextColor(80, 80, 80);
+                        const subInfo = (matriksMode === 'kurang_only') ?
+                            `Tercetak: ${printItems.length} santri yang memiliki nilai ${thLabel} (dari total ${items.length} peserta)` :
+                            `Tercetak: Semua peserta (${printItems.length} santri) | Perlu Bimbingan / Nilai ${thLabel}: ${items.filter(s => s.totalKurang > 0).length} santri`;
+                        doc.text(cleanPdfText(subInfo), M, y);
+                        y += 4;
+
+                        // Urutkan kekurangan terbanyak
+                        const sortedItems = printItems.slice().sort((a, b) => b.totalKurang - a.totalKurang || a.nm.localeCompare(b.nm));
+
+                        const headColsMatriks = [
+                            ['No', 'No Peserta', 'Nama Santri', 'TPQ', 'T.A', ...cats.map(c => cleanPdfText(c.name)), 'Jml Kurang']
+                        ];
+
+                        const bodyRowsMatriks = sortedItems.map((s, idx) => {
+                            const row = [
+                                idx + 1,
+                                cleanPdfText(s.np),
+                                cleanPdfText(s.nm),
+                                cleanPdfText(s.tpqName),
+                                cleanPdfText(fmtTA(s.y))
+                            ];
+
+                            cats.forEach(c => {
+                                const v = s.scores[c.id];
+                                if (v > 0 && v < thVal) {
+                                    row.push(showScore ? `X (${v.toFixed(1)})` : 'X');
+                                } else if (v >= thVal) {
+                                    row.push(showScore ? `${v.toFixed(1)}` : '-');
+                                } else {
+                                    row.push('-');
+                                }
+                            });
+
+                            row.push(s.totalKurang > 0 ? `${s.totalKurang}` : '0');
+                            return row;
+                        });
+
+                        if (typeof doc.autoTable === 'function') {
+                            doc.autoTable({
+                                startY: y,
+                                head: headColsMatriks,
+                                body: bodyRowsMatriks,
+                                margin: { left: M, right: M },
+                                styles: { fontSize: 6.8, cellPadding: 1.2, font: 'helvetica' },
+                                headStyles: { fillColor: [220, 53, 69], textColor: 255, fontStyle: 'bold' },
+                                alternateRowStyles: { fillColor: [253, 242, 242] },
+                                theme: 'grid',
+                                didParseCell: function(data) {
+                                    if (data.section === 'body') {
+                                        const cellText = String(data.cell.raw || '');
+                                        if (cellText.startsWith('X')) {
+                                            data.cell.styles.textColor = [220, 53, 69];
+                                            data.cell.styles.fontStyle = 'bold';
+                                        }
+                                    }
+                                }
+                            });
+                            y = doc.lastAutoTable.finalY + 6;
+                        }
+                    }
+                }
+
                 // Footer nomor halaman
                 const total = doc.getNumberOfPages();
                 for (let p = 1; p <= total; p++) {
@@ -1634,6 +2015,7 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
                 const bFilter = $('selPdfBinFilter') ? $('selPdfBinFilter').value : 'all';
                 const orient = document.querySelector('input[name="pdfOrientation"]:checked')?.value || 'portrait';
                 const showScore = $('chkPdfShowScore') ? $('chkPdfShowScore').checked : true;
+                const mMode = document.querySelector('input[name="pdfMatriksMode"]:checked')?.value || 'kurang_only';
 
                 if (window.jQuery) {
                     window.jQuery('#pdfModal').modal('hide');
@@ -1642,7 +2024,8 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
                     mode: sMode,
                     bin: bFilter,
                     orientation: orient,
-                    showScore: showScore
+                    showScore: showScore,
+                    matriksMode: mMode
                 });
             });
         }
