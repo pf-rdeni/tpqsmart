@@ -10825,51 +10825,35 @@ class Munaqosah extends BaseController
     {
         try {
             $akses = $this->resolveStatistikAkses();
-            $sessionTpq = session()->get('IdTpq');
-
-            if (!$akses['isAdmin'] && empty($sessionTpq)) {
-                return $this->response->setJSON(['success' => false, 'message' => 'Akses ditolak']);
-            }
-
-            $tahunRaw = (string)$this->request->getGet('IdTahunAjaran');
-            $tahunList = array_values(array_unique(array_filter(array_map('trim', explode(',', $tahunRaw)))));
-            if (empty($tahunList)) {
-                return $this->response->setJSON(['success' => false, 'message' => 'Pilih minimal satu Tahun Ajaran']);
-            }
-            if (count($tahunList) > 12) {
-                return $this->response->setJSON(['success' => false, 'message' => 'Maksimal 12 Tahun Ajaran dalam satu waktu']);
-            }
-
-            // Scoping: operator/non-admin hanya TPQ sendiri
-            $idTpq = $akses['isAdmin'] ? (int)($this->request->getGet('IdTpq') ?? 0) : (int)$sessionTpq;
-
-            $type = strtolower((string)$this->request->getGet('TypeUjian'));
-            if (!in_array($type, ['munaqosah', 'pra-munaqosah'], true)) {
-                $type = ($idTpq !== 0) ? 'pra-munaqosah' : 'munaqosah';
-            }
-            if (!$akses['isAdmin'] && $type === 'munaqosah' && !$akses['aktive']) {
-                $type = 'pra-munaqosah';
+            $filter = $this->resolveStatistikFilter($akses);
+            if (isset($filter['error'])) {
+                return $this->response->setJSON(['success' => false, 'message' => $filter['error']]);
             }
 
             $categories = [];
             $tpqs = [];
             $rows = [];
             $years = [];
+            $types = [];
 
-            foreach ($tahunList as $tahun) {
-                $hasil = $this->computeStatistikTahun($tahun, $idTpq, $type);
-                if ($hasil === null) {
-                    continue;
-                }
-                $years[] = $tahun;
-                foreach ($hasil['categories'] as $id => $name) {
-                    $categories[$id] = $name;
-                }
-                foreach ($hasil['tpqs'] as $id => $name) {
-                    $tpqs[$id] = $name;
-                }
-                foreach ($hasil['rows'] as $r) {
-                    $rows[] = $r;
+            foreach ($filter['tahunList'] as $tahun) {
+                foreach ($filter['typeList'] as $type) {
+                    $hasil = $this->computeStatistikTahun($tahun, $filter['idTpq'], $type);
+                    if ($hasil === null) {
+                        continue;
+                    }
+                    $years[] = $tahun;
+                    $types[] = $type;
+                    foreach ($hasil['categories'] as $id => $name) {
+                        $categories[$id] = $name;
+                    }
+                    foreach ($hasil['tpqs'] as $id => $name) {
+                        $tpqs[$id] = $name;
+                    }
+                    foreach ($hasil['rows'] as $r) {
+                        $r['type'] = $type;
+                        $rows[] = $r;
+                    }
                 }
             }
 
@@ -10878,16 +10862,21 @@ class Munaqosah extends BaseController
                 $catList[] = ['id' => $id, 'name' => $name];
             }
             usort($catList, fn($a, $b) => strcmp((string)$a['id'], (string)$b['id']));
+            $years = array_values(array_unique($years));
             sort($years);
+            $typeOrder = ['pra-munaqosah' => 0, 'munaqosah' => 1];
+            $types = array_values(array_unique($types));
+            usort($types, fn($a, $b) => ($typeOrder[$a] ?? 99) <=> ($typeOrder[$b] ?? 99));
 
             return $this->response->setJSON([
                 'success' => true,
                 'data' => [
                     'categories' => $catList,
                     'years' => $years,
+                    'types' => $types,
                     'tpqs' => $tpqs,
                     'rows' => $rows,
-                    'meta' => ['TypeUjian' => $type, 'IdTpq' => $idTpq],
+                    'meta' => ['TypeUjian' => $types, 'IdTpq' => $filter['idTpq']],
                 ]
             ]);
         } catch (\Throwable $e) {
@@ -10907,7 +10896,7 @@ class Munaqosah extends BaseController
      */
     private function computeStatistikTahun(string $tahun, int $idTpq, string $type): ?array
     {
-        $cacheKey = 'stat_hasil_v2_' . md5($tahun . '|' . $idTpq . '|' . $type);
+        $cacheKey = 'stat_hasil_v3_' . md5($tahun . '|' . $idTpq . '|' . $type);
         try {
             $cached = cache($cacheKey);
             if (is_array($cached)) {
@@ -10956,7 +10945,7 @@ class Munaqosah extends BaseController
             }
             $tpqId = (string)($row['IdTpq'] ?? '');
             $tpqs[$tpqId] = $row['NamaTpq'] ?? $tpqId;
-            $rows[] = ['y' => $tahun, 'tpq' => $tpqId, 'np' => $row['NoPeserta'], 'nm' => $row['NamaSantri'] ?? '-', 'avg' => $avg];
+            $rows[] = ['y' => $tahun, 'type' => $type, 'tpq' => $tpqId, 'np' => $row['NoPeserta'], 'nm' => $row['NamaSantri'] ?? '-', 'avg' => $avg];
         }
 
         $result = ['categories' => $categories, 'tpqs' => $tpqs, 'rows' => $rows];
@@ -11029,15 +11018,23 @@ class Munaqosah extends BaseController
 
         $idTpq = $akses['isAdmin'] ? (int)($this->request->getGet('IdTpq') ?? 0) : (int)$sessionTpq;
 
-        $type = strtolower((string)$this->request->getGet('TypeUjian'));
-        if (!in_array($type, ['munaqosah', 'pra-munaqosah'], true)) {
-            $type = ($idTpq !== 0) ? 'pra-munaqosah' : 'munaqosah';
+        $typeRaw = (string)$this->request->getGet('TypeUjian');
+        $typeCandidates = array_values(array_unique(array_filter(array_map('trim', explode(',', $typeRaw)))));
+        $validTypes = [];
+        foreach ($typeCandidates as $t) {
+            $t = strtolower($t);
+            if (in_array($t, ['munaqosah', 'pra-munaqosah'], true)) {
+                if ($t === 'munaqosah' && !$akses['isAdmin'] && !$akses['aktive']) {
+                    continue;
+                }
+                $validTypes[] = $t;
+            }
         }
-        if (!$akses['isAdmin'] && $type === 'munaqosah' && !$akses['aktive']) {
-            $type = 'pra-munaqosah';
+        if (empty($validTypes)) {
+            $validTypes = ($akses['isAdmin'] || $akses['aktive']) ? ['munaqosah'] : ['pra-munaqosah'];
         }
 
-        return ['tahunList' => $tahunList, 'idTpq' => $idTpq, 'type' => $type];
+        return ['tahunList' => $tahunList, 'idTpq' => $idTpq, 'typeList' => $validTypes];
     }
 
     /**
@@ -11053,7 +11050,7 @@ class Munaqosah extends BaseController
 
     /**
      * Daftar peserta-materi sesuai batang chart yang diklik.
-     * Param: IdTahunAjaran(csv), IdTpq, TypeUjian, Cat(csv, kosong=semua), Tpq(filter TPQ, admin),
+     * Param: IdTahunAjaran(csv), IdTpq, TypeUjian(csv), Cat(csv, kosong=semua), Tpq(filter TPQ, admin),
      * Min, Max (nilai >= Min dan < Max; kosong = tanpa batas), Zero=1 (hanya nilai 0), NZ=1 (kecualikan nilai 0).
      */
     public function getStatistikHasilDetailData()
@@ -11076,44 +11073,47 @@ class Munaqosah extends BaseController
 
             $items = [];
             foreach ($filter['tahunList'] as $tahun) {
-                $hasil = $this->computeStatistikTahun($tahun, $filter['idTpq'], $filter['type']);
-                if ($hasil === null) {
-                    continue;
-                }
-                foreach ($hasil['rows'] as $r) {
-                    if ($tpqFilter !== '' && (string)$r['tpq'] !== $tpqFilter) {
+                foreach ($filter['typeList'] as $type) {
+                    $hasil = $this->computeStatistikTahun($tahun, $filter['idTpq'], $type);
+                    if ($hasil === null) {
                         continue;
                     }
-                    foreach ($r['avg'] as $catId => $v) {
-                        if (!empty($cats) && !in_array((string)$catId, $cats, true)) {
+                    foreach ($hasil['rows'] as $r) {
+                        if ($tpqFilter !== '' && (string)$r['tpq'] !== $tpqFilter) {
                             continue;
                         }
-                        $v = (float)$v;
-                        if ($zeroOnly) {
-                            if ($v > 0) {
+                        foreach ($r['avg'] as $catId => $v) {
+                            if (!empty($cats) && !in_array((string)$catId, $cats, true)) {
                                 continue;
                             }
-                        } else {
-                            if ($excludeZero && $v <= 0) {
-                                continue;
+                            $v = (float)$v;
+                            if ($zeroOnly) {
+                                if ($v > 0) {
+                                    continue;
+                                }
+                            } else {
+                                if ($excludeZero && $v <= 0) {
+                                    continue;
+                                }
+                                if ($min !== null && $v < $min) {
+                                    continue;
+                                }
+                                if ($max !== null && $v >= $max) {
+                                    continue;
+                                }
                             }
-                            if ($min !== null && $v < $min) {
-                                continue;
-                            }
-                            if ($max !== null && $v >= $max) {
-                                continue;
-                            }
+                            $items[] = [
+                                'np' => $r['np'],
+                                'nm' => $r['nm'] ?? '-',
+                                'tpq' => $r['tpq'],
+                                'tpqName' => $hasil['tpqs'][$r['tpq']] ?? $r['tpq'],
+                                'y' => $tahun,
+                                'type' => $type,
+                                'cat' => $catId,
+                                'catName' => $hasil['categories'][$catId] ?? $catId,
+                                'v' => $v,
+                            ];
                         }
-                        $items[] = [
-                            'np' => $r['np'],
-                            'nm' => $r['nm'] ?? '-',
-                            'tpq' => $r['tpq'],
-                            'tpqName' => $hasil['tpqs'][$r['tpq']] ?? $r['tpq'],
-                            'y' => $tahun,
-                            'cat' => $catId,
-                            'catName' => $hasil['categories'][$catId] ?? $catId,
-                            'v' => $v,
-                        ];
                     }
                 }
             }
@@ -11124,7 +11124,7 @@ class Munaqosah extends BaseController
                 'success' => true,
                 'data' => [
                     'items' => $items,
-                    'meta' => ['TypeUjian' => $filter['type'], 'IdTpq' => $filter['idTpq']],
+                    'meta' => ['TypeUjian' => implode(',', $filter['typeList']), 'IdTpq' => $filter['idTpq']],
                 ]
             ]);
         } catch (\Throwable $e) {

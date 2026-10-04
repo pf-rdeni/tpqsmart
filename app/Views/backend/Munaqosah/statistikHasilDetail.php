@@ -26,6 +26,7 @@
                                 <th data-k="nm" class="sortable">Nama Santri</th>
                                 <th data-k="tpqName" class="sortable">TPQ</th>
                                 <th data-k="y" class="sortable">Tahun Ajaran</th>
+                                <th data-k="type" class="sortable">Type Ujian</th>
                                 <th data-k="catName" class="sortable">Materi</th>
                                 <th data-k="v" class="sortable text-center">Nilai Rata-rata</th>
                                 <th style="width:60px" class="text-center">Detail</th>
@@ -50,6 +51,10 @@
         const q = new URLSearchParams(window.location.search);
         const $ = id => document.getElementById(id);
         const fmtTA = t => /^\d{8}$/.test(String(t)) ? 'T.A ' + String(t).slice(2, 4) + '/' + String(t).slice(6, 8) : String(t);
+        const fmtType = t => t === 'pra-munaqosah' ? 'Pra-Munaqosah' : (t === 'munaqosah' ? 'Munaqosah' : (t || '-'));
+        const badgeType = t => t === 'munaqosah'
+            ? '<span class="badge badge-success">Munaqosah</span>'
+            : '<span class="badge badge-info">Pra-Munaqosah</span>';
         const esc = s => String(s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
         let items = [], meta = {}, sortK = 'v', sortDir = -1, term = '';
 
@@ -66,12 +71,12 @@
             $('dtSub').textContent = rows.length + ' data' + (term ? ' (dari ' + items.length + ')' : '');
             $('dtBody').innerHTML = rows.map((i, n) => {
                 const href = '<?= base_url('backend/munaqosah/kelulusan-peserta') ?>?' + new URLSearchParams({
-                    NoPeserta: i.np, IdTahunAjaran: i.y, TypeUjian: meta.TypeUjian || '', IdTpq: i.tpq
+                    NoPeserta: i.np, IdTahunAjaran: i.y, TypeUjian: i.type || meta.TypeUjian || '', IdTpq: i.tpq
                 }).toString();
-                return `<tr><td>${n + 1}</td><td>${esc(i.np)}</td><td>${esc(i.nm)}</td><td>${esc(i.tpqName)}</td><td>${esc(fmtTA(i.y))}</td><td>${esc(i.catName)}</td>` +
+                return `<tr><td>${n + 1}</td><td>${esc(i.np)}</td><td>${esc(i.nm)}</td><td>${esc(i.tpqName)}</td><td>${esc(fmtTA(i.y))}</td><td>${badgeType(i.type)}</td><td>${esc(i.catName)}</td>` +
                     `<td class="text-center">${i.v > 0 ? i.v.toFixed(2) : '<span class="badge badge-secondary">0</span>'}</td>` +
                     `<td class="text-center"><a class="btn btn-xs btn-outline-primary" target="_blank" href="${href}"><i class="fas fa-eye"></i></a></td></tr>`;
-            }).join('') || '<tr><td colspan="8" class="text-center text-muted">Tidak ada data</td></tr>';
+            }).join('') || '<tr><td colspan="9" class="text-center text-muted">Tidak ada data</td></tr>';
             return rows;
         }
 
@@ -85,8 +90,8 @@
         $('dtCsv').addEventListener('click', () => {
             const rows = view();
             const c = v => '"' + String(v).replace(/"/g, '""') + '"';
-            const lines = [['No', 'No Peserta', 'Nama Santri', 'TPQ', 'Tahun Ajaran', 'Materi', 'Nilai'].map(c).join(',')];
-            rows.forEach((i, n) => lines.push([n + 1, c(i.np), c(i.nm), c(i.tpqName), c(fmtTA(i.y)), c(i.catName), i.v].join(',')));
+            const lines = [['No', 'No Peserta', 'Nama Santri', 'TPQ', 'Tahun Ajaran', 'Type Ujian', 'Materi', 'Nilai'].map(c).join(',')];
+            rows.forEach((i, n) => lines.push([n + 1, c(i.np), c(i.nm), c(i.tpqName), c(fmtTA(i.y)), c(fmtType(i.type)), c(i.catName), i.v].join(',')));
             const a = document.createElement('a');
             a.href = URL.createObjectURL(new Blob(['\ufeff' + lines.join('\n')], {type: 'text/csv;charset=utf-8;'}));
             a.download = judul.replace(/[^\w\-]+/g, '_') + '.csv';

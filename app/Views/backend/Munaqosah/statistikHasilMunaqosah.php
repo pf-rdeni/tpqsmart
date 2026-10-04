@@ -14,9 +14,9 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
             </div>
             <div class="card-body">
                 <div class="row">
-                    <div class="col-lg-5 col-md-12 mb-2">
+                    <div class="col-lg-4 col-md-12 mb-2">
                         <div class="d-flex justify-content-between align-items-center mb-1">
-                            <label class="small mb-0 font-weight-bold" for="filterTahunAjaran">Tahun Ajaran <span class="text-muted font-weight-normal">(Multiple Choice)</span></label>
+                            <label class="small mb-0 font-weight-bold" for="filterTahunAjaran">Tahun Ajaran <span class="text-muted font-weight-normal">(Multiple)</span></label>
                             <div>
                                 <a href="#" id="taSemua" class="small font-weight-bold mr-1">Semua</a> |
                                 <a href="#" id="taCurrent" class="small mx-1">T.A Aktif</a> |
@@ -44,13 +44,19 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
                             endif; ?>
                         </select>
                     </div>
-                    <div class="col-lg-2 col-md-6 mb-2">
-                        <label class="small mb-1 font-weight-bold" for="filterTypeUjian">Type Ujian</label>
-                        <select id="filterTypeUjian" class="form-control form-control-sm">
+                    <div class="col-lg-3 col-md-6 mb-2">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="small mb-0 font-weight-bold" for="filterTypeUjian">Type Ujian <span class="text-muted font-weight-normal">(Multiple)</span></label>
+                            <div>
+                                <a href="#" id="typeSemua" class="small font-weight-bold mr-1">Semua</a> |
+                                <a href="#" id="typeReset" class="small ml-1 text-muted">Kosongkan</a>
+                            </div>
+                        </div>
+                        <select id="filterTypeUjian" class="form-control form-control-sm select2" multiple="multiple" data-placeholder="Pilih Type Ujian..." style="width: 100%;">
+                            <option value="pra-munaqosah" selected>Pra-Munaqosah</option>
                             <?php if ($isAdmin || ($aktiveTombolKelulusan && ($isOperator || $isKepalaTpq))): ?>
-                                <option value="munaqosah">Munaqosah</option>
+                                <option value="munaqosah" selected>Munaqosah</option>
                             <?php endif; ?>
-                            <option value="pra-munaqosah">Pra-Munaqosah</option>
                         </select>
                     </div>
                     <div class="col-lg-2 col-md-12 mb-2 d-flex align-items-end">
@@ -156,6 +162,7 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
                                         <th>Nama Santri</th>
                                         <th>TPQ</th>
                                         <th>Tahun</th>
+                                        <th>Type</th>
                                         <th>Materi</th>
                                         <th class="text-center">Nilai</th>
                                         <th class="text-center" style="width:55px">Detail</th>
@@ -352,6 +359,11 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
         const $ = id => document.getElementById(id);
         // Tampilan tahun ajaran: 20252026 -> T.A 25/26 (nilai asli tetap untuk parameter)
         const fmtTA = t => /^\d{8}$/.test(String(t)) ? 'T.A ' + String(t).slice(2, 4) + '/' + String(t).slice(6, 8) : String(t);
+        const fmtType = t => t === 'pra-munaqosah' ? 'Pra-Munaqosah' : (t === 'munaqosah' ? 'Munaqosah' : t);
+        const fmtTypeShort = t => t === 'pra-munaqosah' ? 'Pra' : (t === 'munaqosah' ? 'Mun' : t);
+        const badgeType = t => t === 'munaqosah'
+            ? '<span class="badge badge-success">Munaqosah</span>'
+            : '<span class="badge badge-info">Pra-Munaqosah</span>';
         const esc = s => String(s).replace(/[&<>"']/g, c => ({
             '&': '&amp;',
             '<': '&lt;',
@@ -438,6 +450,7 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
                     if (sel && !sel.has(cat)) return;
                     pairs.push({
                         y: r.y,
+                        type: r.type || (DATA.meta ? DATA.meta.TypeUjian : ''),
                         tpq: r.tpq,
                         np: r.np,
                         cat,
@@ -585,6 +598,7 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    devicePixelRatio: Math.max(window.devicePixelRatio || 1, 2.5),
                     animation: {
                         duration: 500
                     },
@@ -716,11 +730,13 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
 
             const bins = buildBins();
             const pairs = getPairs();
-            const years = DATA.years;
+            const years = DATA.years || [];
             const yl = years.map(fmtTA);
-            const catName = id => (DATA.categories.find(c => c.id === id) || {
-                name: id
-            }).name;
+            const typeOrder = ['pra-munaqosah', 'munaqosah'];
+            const rawTypes = DATA.types || (Array.isArray(DATA.meta.TypeUjian) ? DATA.meta.TypeUjian : [DATA.meta.TypeUjian]);
+            const types = rawTypes.slice().sort((a, b) => typeOrder.indexOf(a) - typeOrder.indexOf(b));
+            const isMultiType = types.length > 1;
+            const isMultiYear = years.length > 1;
             const cats = DATA.categories.filter(c => !selectedCats || selectedCats.includes(c.id));
 
             if (!pairs.length) {
@@ -729,8 +745,28 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
                 return;
             }
 
+            // Membangun daftar series / kolom pembanding
+            const seriesCols = [];
+            years.forEach(y => {
+                types.forEach(t => {
+                    let label = '';
+                    let desc = '';
+                    if (isMultiType && !isMultiYear) {
+                        label = fmtType(t);
+                        desc = fmtType(t) + ' (' + fmtTA(y) + ')';
+                    } else if (isMultiType && isMultiYear) {
+                        label = `${fmtTA(y)} (${fmtTypeShort(t)})`;
+                        desc = `${fmtTA(y)} • ${fmtType(t)}`;
+                    } else {
+                        label = fmtTA(y);
+                        desc = fmtTA(y) + (isMultiType ? ' • ' + fmtType(t) : '');
+                    }
+                    seriesCols.push({ y, type: t, label, desc });
+                });
+            });
+
             // Ringkasan
-            const peserta = new Set(DATA.rows.map(r => r.y + '|' + r.np)).size;
+            const peserta = new Set(DATA.rows.map(r => r.y + '|' + (r.type || '') + '|' + r.np)).size;
             const zero = pairs.filter(p => p.v <= 0).length;
             const graded = pairs.filter(p => p.v > 0);
             const avg = graded.length ? (graded.reduce((a, p) => a + p.v, 0) / graded.length) : 0;
@@ -748,28 +784,69 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
             const gen = $('generalCharts');
             const catsCsv = selectedCats ? selectedCats.join(',') : '';
             if (settings.generalMode === 'tahun') {
-                addChartCard(gen, 'cg_tahun', 'Sebaran Nilai per Tahun Ajaran (semua materi terpilih)',
-                    yl, buildDatasets(years.map(y => pairs.filter(p => p.y === y)), bins),
-                    i => ({ y: years[i], cat: catsCsv, tpq: '', desc: yl[i] + ' • ' + (selectedCats ? 'Materi terpilih' : 'Semua materi') }));
+                let genTitle = 'Sebaran Nilai ';
+                if (isMultiType && !isMultiYear) {
+                    genTitle += 'Pra-Munaqosah vs Munaqosah — ' + yl[0];
+                } else {
+                    genTitle += 'per Tahun Ajaran' + (isMultiType ? ' & Type' : '') + ' (Semua materi terpilih)';
+                }
+
+                const labels = seriesCols.map(s => s.label);
+                const groups = seriesCols.map(s => pairs.filter(p => p.y === s.y && p.type === s.type));
+
+                addChartCard(gen, 'cg_tahun', genTitle,
+                    labels, buildDatasets(groups, bins),
+                    i => ({
+                        y: seriesCols[i].y,
+                        type: seriesCols[i].type,
+                        cat: catsCsv,
+                        tpq: '',
+                        desc: seriesCols[i].desc + ' • ' + (selectedCats ? 'Materi terpilih' : 'Semua materi')
+                    }));
             } else {
-                const ylbl = yl.join(', ');
+                const typeSubtitle = isMultiType ? ' (' + types.map(fmtTypeShort).join(' vs ') + ')' : ' (' + fmtType(types[0]) + ')';
+                const ylbl = yl.join(', ') + typeSubtitle;
                 addChartCard(gen, 'cg_materi', 'Sebaran Nilai per Materi — ' + ylbl,
                     cats.map(c => c.name), buildDatasets(cats.map(c => pairs.filter(p => p.cat === c.id)), bins),
-                    i => ({ y: '', cat: cats[i].id, tpq: '', desc: cats[i].name + ' • ' + ylbl }));
+                    i => ({
+                        y: '',
+                        type: '',
+                        cat: cats[i].id,
+                        tpq: '',
+                        desc: cats[i].name + ' • ' + ylbl
+                    }));
             }
             if (CFG.isAdmin && Object.keys(DATA.tpqs).length > 1) {
                 const tpqIds = Object.keys(DATA.tpqs);
                 addChartCard(gen, 'cg_tpq', 'Sebaran Nilai per TPQ',
                     tpqIds.map(i => DATA.tpqs[i]), buildDatasets(tpqIds.map(i => pairs.filter(p => p.tpq === i)), bins),
-                    i => ({ y: '', cat: catsCsv, tpq: tpqIds[i], desc: DATA.tpqs[tpqIds[i]] }));
+                    i => ({ y: '', type: '', cat: catsCsv, tpq: tpqIds[i], desc: DATA.tpqs[tpqIds[i]] }));
             }
 
             // Detail per materi
             const det = $('detailCharts');
             cats.forEach((c, i) => {
-                addChartCard(det, 'cd_' + i, c.name + ' — per Tahun Ajaran',
-                    yl, buildDatasets(years.map(y => pairs.filter(p => p.y === y && p.cat === c.id)), bins),
-                    k => ({ y: years[k], cat: c.id, tpq: '', desc: c.name + ' • ' + yl[k] }));
+                let title = c.name + ' — ';
+                if (isMultiType && !isMultiYear) {
+                    title += yl[0] + ' (Pra-Munaqosah vs Munaqosah)';
+                } else if (isMultiYear) {
+                    title += 'per Tahun Ajaran' + (isMultiType ? ' & Type' : '');
+                } else {
+                    title += yl[0] + ' (' + fmtType(types[0]) + ')';
+                }
+
+                const labels = seriesCols.map(s => s.label);
+                const groups = seriesCols.map(s => pairs.filter(p => p.y === s.y && p.type === s.type && p.cat === c.id));
+
+                addChartCard(det, 'cd_' + i, title,
+                    labels, buildDatasets(groups, bins),
+                    k => ({
+                        y: seriesCols[k].y,
+                        type: seriesCols[k].type,
+                        cat: c.id,
+                        tpq: '',
+                        desc: c.name + ' • ' + seriesCols[k].desc
+                    }));
             });
         }
 
@@ -784,7 +861,7 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
             const p = new URLSearchParams({
                 IdTahunAjaran: ctx.y ? ctx.y : lastQuery.years.join(','),
                 IdTpq: lastQuery.tpq,
-                TypeUjian: lastQuery.type,
+                TypeUjian: ctx.type ? ctx.type : lastQuery.types.join(','),
                 Cat: ctx.cat || '',
                 Tpq: ctx.tpq || '',
                 Min: bin.min === null || bin.min === undefined ? '' : bin.min,
@@ -831,13 +908,13 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
                 const href = CFG.pesertaUrl + '?' + new URLSearchParams({
                     NoPeserta: i.np,
                     IdTahunAjaran: i.y,
-                    TypeUjian: modalMeta.TypeUjian || '',
+                    TypeUjian: i.type || modalMeta.TypeUjian || '',
                     IdTpq: i.tpq
                 }).toString();
-                return `<tr><td>${n + 1}</td><td>${esc(i.np)}</td><td>${esc(i.nm)}</td><td>${esc(i.tpqName)}</td><td>${esc(fmtTA(i.y))}</td><td>${esc(i.catName)}</td>` +
+                return `<tr><td>${n + 1}</td><td>${esc(i.np)}</td><td>${esc(i.nm)}</td><td>${esc(i.tpqName)}</td><td>${esc(fmtTA(i.y))}</td><td>${badgeType(i.type)}</td><td>${esc(i.catName)}</td>` +
                     `<td class="text-center">${i.v > 0 ? i.v.toFixed(2) : '<span class="badge badge-secondary">0</span>'}</td>` +
                     `<td class="text-center"><a class="btn btn-xs btn-outline-primary" target="_blank" href="${href}"><i class="fas fa-eye"></i></a></td></tr>`;
-            }).join('') || '<tr><td colspan="8" class="text-center text-muted">Tidak ada data</td></tr>';
+            }).join('') || '<tr><td colspan="9" class="text-center text-muted">Tidak ada data</td></tr>';
         }
 
         // ---------- Load ----------
@@ -876,16 +953,31 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
                 $('statContent').style.display = 'none';
                 return;
             }
+
+            let types = [];
+            if (window.jQuery) {
+                const val = window.jQuery('#filterTypeUjian').val();
+                types = Array.isArray(val) ? val : (val ? [val] : []);
+            } else {
+                types = Array.from(document.querySelectorAll('#filterTypeUjian option:checked')).map(o => o.value);
+            }
+            if (!types.length) {
+                $('statEmpty').style.display = '';
+                $('statEmpty').textContent = 'Pilih minimal satu Type Ujian.';
+                $('statContent').style.display = 'none';
+                return;
+            }
+
             const params = new URLSearchParams({
                 IdTahunAjaran: years.join(','),
                 IdTpq: $('filterTpq').value || '0',
-                TypeUjian: $('filterTypeUjian').value
+                TypeUjian: types.join(',')
             });
             $('statLoading').style.display = '';
             lastQuery = {
                 years,
                 tpq: params.get('IdTpq'),
-                type: params.get('TypeUjian')
+                types
             };
             $('statEmpty').style.display = 'none';
             $('statContent').style.display = 'none';
@@ -941,10 +1033,20 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
             tmp.width = canvas.width;
             tmp.height = canvas.height;
             const t = tmp.getContext('2d');
-            t.fillStyle = '#fff';
+            t.fillStyle = '#ffffff';
             t.fillRect(0, 0, tmp.width, tmp.height);
             t.drawImage(canvas, 0, 0);
-            return tmp.toDataURL('image/jpeg', 0.92);
+            return tmp.toDataURL('image/png');
+        }
+
+        function cleanPdfText(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/≥/g, '>=')
+                .replace(/≤/g, '<=')
+                .replace(/[–—]/g, '-')
+                .replace(/•/g, '-')
+                .replace(/…/g, '...');
         }
 
         async function exportPdf() {
@@ -966,9 +1068,8 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
                     CW = W - M * 2;
                 const tpqSel = $('filterTpq');
                 const tpqText = tpqSel.options[tpqSel.selectedIndex] ? tpqSel.options[tpqSel.selectedIndex].text : '-';
-                const typeSel = $('filterTypeUjian');
-                const typeText = typeSel.options[typeSel.selectedIndex].text;
-                const bins = buildBins().map(b => b.label).join('  |  ');
+                const typeText = (DATA.types || []).map(fmtType).join(', ') || '-';
+                const bins = buildBins().map(b => cleanPdfText(b.label)).join('  |  ');
                 const matText = selectedCats ?
                     DATA.categories.filter(c => selectedCats.includes(c.id)).map(c => c.name).join(', ') :
                     'Semua materi';
@@ -988,10 +1089,10 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
                 doc.setTextColor(40, 40, 40);
                 doc.setFontSize(9.5);
                 const info = [
-                    ['Tahun Ajaran', DATA.years.map(fmtTA).join(', ')],
-                    ['TPQ', tpqText],
-                    ['Type Ujian', typeText],
-                    ['Materi', matText],
+                    ['Tahun Ajaran', cleanPdfText(DATA.years.map(fmtTA).join(', '))],
+                    ['TPQ', cleanPdfText(tpqText)],
+                    ['Type Ujian', cleanPdfText(typeText)],
+                    ['Materi', cleanPdfText(matText)],
                     ['Rentang Nilai', bins]
                 ];
                 info.forEach(([k, v]) => {
@@ -1015,11 +1116,11 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
                         doc.setFont('helvetica', 'bold');
                         doc.setFontSize(13);
                         doc.setTextColor(59, 111, 224);
-                        doc.text(b.querySelector('.val').textContent, x + 3, y + 7);
+                        doc.text(cleanPdfText(b.querySelector('.val').textContent), x + 3, y + 7);
                         doc.setFont('helvetica', 'normal');
                         doc.setFontSize(7);
                         doc.setTextColor(80, 80, 80);
-                        doc.text(doc.splitTextToSize(b.querySelector('.lbl').textContent, bw - 5), x + 3, y + 11.5);
+                        doc.text(doc.splitTextToSize(cleanPdfText(b.querySelector('.lbl').textContent), bw - 5), x + 3, y + 11.5);
                     });
                     y += 21;
                 }
@@ -1032,7 +1133,7 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
                         doc.addPage();
                         y = M;
                     }
-                    doc.addImage(whiteDataUrl(cv), 'JPEG', M, y, CW, h);
+                    doc.addImage(whiteDataUrl(cv), 'PNG', M, y, CW, h, undefined, 'FAST');
                     y += h + 4;
                 });
 
@@ -1148,11 +1249,37 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
             });
         }
 
-        // Inisialisasi Select2 untuk Filter Tahun Ajaran
+        // Tombol cepat filter Type Ujian
+        if ($('typeSemua')) {
+            $('typeSemua').addEventListener('click', e => {
+                e.preventDefault();
+                const all = Array.from(document.querySelectorAll('#filterTypeUjian option')).map(o => o.value);
+                if (window.jQuery) {
+                    window.jQuery('#filterTypeUjian').val(all).trigger('change');
+                }
+            });
+        }
+        if ($('typeReset')) {
+            $('typeReset').addEventListener('click', e => {
+                e.preventDefault();
+                if (window.jQuery) {
+                    window.jQuery('#filterTypeUjian').val([]).trigger('change');
+                }
+            });
+        }
+
+        // Inisialisasi Select2 untuk Filter Tahun Ajaran & Type Ujian
         if (window.jQuery && window.jQuery.fn.select2) {
             window.jQuery('#filterTahunAjaran').select2({
                 theme: 'bootstrap4',
                 placeholder: 'Pilih satu atau lebih Tahun Ajaran...',
+                allowClear: true,
+                closeOnSelect: false,
+                width: '100%'
+            });
+            window.jQuery('#filterTypeUjian').select2({
+                theme: 'bootstrap4',
+                placeholder: 'Pilih Type Ujian...',
                 allowClear: true,
                 closeOnSelect: false,
                 width: '100%'
