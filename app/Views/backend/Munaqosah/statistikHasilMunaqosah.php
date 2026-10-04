@@ -1562,8 +1562,7 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
                             doc.setFont('helvetica', 'bold');
                             doc.setFontSize(9.5);
                             doc.setTextColor(40, 40, 40);
-                            const privInfo = (!opts.showScore && opts.showScore !== undefined) ? ' [Nilai Disembunyikan]' : '';
-                            doc.text(cleanPdfText(`Daftar Santri — ${sData.catName} (${sData.binLabel}): ${sData.items.length} santri${privInfo}`), M, y);
+                            doc.text(cleanPdfText(`Daftar Santri — ${sData.catName} (${sData.binLabel}): ${sData.items.length} santri`), M, y);
                             y += 3.5;
 
                             if (typeof doc.autoTable === 'function') {
