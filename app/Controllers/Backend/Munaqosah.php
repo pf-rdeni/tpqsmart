@@ -10907,7 +10907,7 @@ class Munaqosah extends BaseController
      */
     private function computeStatistikTahun(string $tahun, int $idTpq, string $type): ?array
     {
-        $cacheKey = 'stat_hasil_' . md5($tahun . '|' . $idTpq . '|' . $type);
+        $cacheKey = 'stat_hasil_v2_' . md5($tahun . '|' . $idTpq . '|' . $type);
         try {
             $cached = cache($cacheKey);
             if (is_array($cached)) {
@@ -10956,7 +10956,7 @@ class Munaqosah extends BaseController
             }
             $tpqId = (string)($row['IdTpq'] ?? '');
             $tpqs[$tpqId] = $row['NamaTpq'] ?? $tpqId;
-            $rows[] = ['y' => $tahun, 'tpq' => $tpqId, 'np' => $row['NoPeserta'], 'avg' => $avg];
+            $rows[] = ['y' => $tahun, 'tpq' => $tpqId, 'np' => $row['NoPeserta'], 'nm' => $row['NamaSantri'] ?? '-', 'avg' => $avg];
         }
 
         $result = ['categories' => $categories, 'tpqs' => $tpqs, 'rows' => $rows];
@@ -11006,6 +11006,135 @@ class Munaqosah extends BaseController
             'isKepalaTpq' => $isKepalaTpq,
             'aktive' => $aktive,
         ];
+    }
+
+    /**
+     * Validasi & normalisasi filter dasar statistik (tahun, TPQ, type) dengan scoping akses.
+     */
+    private function resolveStatistikFilter(array $akses): array
+    {
+        $sessionTpq = session()->get('IdTpq');
+        if (!$akses['isAdmin'] && empty($sessionTpq)) {
+            return ['error' => 'Akses ditolak'];
+        }
+
+        $tahunRaw = (string)$this->request->getGet('IdTahunAjaran');
+        $tahunList = array_values(array_unique(array_filter(array_map('trim', explode(',', $tahunRaw)))));
+        if (empty($tahunList)) {
+            return ['error' => 'Pilih minimal satu Tahun Ajaran'];
+        }
+        if (count($tahunList) > 12) {
+            return ['error' => 'Maksimal 12 Tahun Ajaran dalam satu waktu'];
+        }
+
+        $idTpq = $akses['isAdmin'] ? (int)($this->request->getGet('IdTpq') ?? 0) : (int)$sessionTpq;
+
+        $type = strtolower((string)$this->request->getGet('TypeUjian'));
+        if (!in_array($type, ['munaqosah', 'pra-munaqosah'], true)) {
+            $type = ($idTpq !== 0) ? 'pra-munaqosah' : 'munaqosah';
+        }
+        if (!$akses['isAdmin'] && $type === 'munaqosah' && !$akses['aktive']) {
+            $type = 'pra-munaqosah';
+        }
+
+        return ['tahunList' => $tahunList, 'idTpq' => $idTpq, 'type' => $type];
+    }
+
+    /**
+     * Halaman detail (tab baru) hasil klik batang chart statistik.
+     * Data dimuat via getStatistikHasilDetailData dengan query string yang sama.
+     */
+    public function statistikHasilDetail()
+    {
+        return view('backend/Munaqosah/statistikHasilDetail', [
+            'page_title' => 'Detail Statistik Hasil Munaqosah',
+        ]);
+    }
+
+    /**
+     * Daftar peserta-materi sesuai batang chart yang diklik.
+     * Param: IdTahunAjaran(csv), IdTpq, TypeUjian, Cat(csv, kosong=semua), Tpq(filter TPQ, admin),
+     * Min, Max (nilai >= Min dan < Max; kosong = tanpa batas), Zero=1 (hanya nilai 0), NZ=1 (kecualikan nilai 0).
+     */
+    public function getStatistikHasilDetailData()
+    {
+        try {
+            $akses = $this->resolveStatistikAkses();
+            $filter = $this->resolveStatistikFilter($akses);
+            if (isset($filter['error'])) {
+                return $this->response->setJSON(['success' => false, 'message' => $filter['error']]);
+            }
+
+            $cats = array_values(array_filter(array_map('trim', explode(',', (string)$this->request->getGet('Cat')))));
+            $tpqFilter = $akses['isAdmin'] ? trim((string)$this->request->getGet('Tpq')) : '';
+            $minRaw = $this->request->getGet('Min');
+            $maxRaw = $this->request->getGet('Max');
+            $min = ($minRaw === null || $minRaw === '' || !is_numeric($minRaw)) ? null : (float)$minRaw;
+            $max = ($maxRaw === null || $maxRaw === '' || !is_numeric($maxRaw)) ? null : (float)$maxRaw;
+            $zeroOnly = $this->request->getGet('Zero') === '1';
+            $excludeZero = $this->request->getGet('NZ') === '1';
+
+            $items = [];
+            foreach ($filter['tahunList'] as $tahun) {
+                $hasil = $this->computeStatistikTahun($tahun, $filter['idTpq'], $filter['type']);
+                if ($hasil === null) {
+                    continue;
+                }
+                foreach ($hasil['rows'] as $r) {
+                    if ($tpqFilter !== '' && (string)$r['tpq'] !== $tpqFilter) {
+                        continue;
+                    }
+                    foreach ($r['avg'] as $catId => $v) {
+                        if (!empty($cats) && !in_array((string)$catId, $cats, true)) {
+                            continue;
+                        }
+                        $v = (float)$v;
+                        if ($zeroOnly) {
+                            if ($v > 0) {
+                                continue;
+                            }
+                        } else {
+                            if ($excludeZero && $v <= 0) {
+                                continue;
+                            }
+                            if ($min !== null && $v < $min) {
+                                continue;
+                            }
+                            if ($max !== null && $v >= $max) {
+                                continue;
+                            }
+                        }
+                        $items[] = [
+                            'np' => $r['np'],
+                            'nm' => $r['nm'] ?? '-',
+                            'tpq' => $r['tpq'],
+                            'tpqName' => $hasil['tpqs'][$r['tpq']] ?? $r['tpq'],
+                            'y' => $tahun,
+                            'cat' => $catId,
+                            'catName' => $hasil['categories'][$catId] ?? $catId,
+                            'v' => $v,
+                        ];
+                    }
+                }
+            }
+
+            usort($items, fn($a, $b) => $b['v'] <=> $a['v']);
+
+            return $this->response->setJSON([
+                'success' => true,
+                'data' => [
+                    'items' => $items,
+                    'meta' => ['TypeUjian' => $filter['type'], 'IdTpq' => $filter['idTpq']],
+                ]
+            ]);
+        } catch (\Throwable $e) {
+            log_message('error', 'Error in getStatistikHasilDetailData: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Terjadi kesalahan sistem',
+                'details' => $e->getMessage()
+            ]);
+        }
     }
 
     /**
@@ -12269,16 +12398,23 @@ class Munaqosah extends BaseController
         $materiRows = $materiBuilder->get()->getResultArray();
 
         $materiMap = [];
+        $seenMateri = [];
         foreach ($materiRows as $materi) {
             $catId = $materi['IdKategoriMateri'];
             if (empty($catId)) {
                 continue;
             }
+            $materiNama = $materi['MateriPelajaran'] ?? $materi['MateriMunaqosah'] ?? $materi['NamaSurah'] ?? '-';
+            $materiLink = $materi['AlquranLink'] ?? null;
+            $uniqueKey = $catId . '|' . trim((string)$materiNama) . '|' . trim((string)$materiLink);
+            if (isset($seenMateri[$uniqueKey])) {
+                continue;
+            }
+            $seenMateri[$uniqueKey] = true;
+
             if (!isset($materiMap[$catId])) {
                 $materiMap[$catId] = [];
             }
-            $materiNama = $materi['MateriPelajaran'] ?? $materi['MateriMunaqosah'] ?? $materi['NamaSurah'] ?? '-';
-            $materiLink = $materi['AlquranLink'] ?? null;
             $materiMap[$catId][] = [
                 'IdMateri' => $materi['IdMateri'],
                 'IdMa' => $materi['IdMa'] ?? null,
@@ -12314,15 +12450,30 @@ class Munaqosah extends BaseController
             ->orderBy('tbl_munaqosah_nilai.created_at', 'ASC')
             ->findAll();
 
-        // Helper function untuk ekstrak nomor juri dari username
-        // Format: juri.baca.al-quran.218.1 -> return 1
+        // Helper function untuk ekstrak dan normalisasi nomor juri
         $extractJuriNumber = function ($username) {
             if (empty($username)) return 0;
-            // Ambil angka terakhir setelah titik terakhir
             $parts = explode('.', $username);
             $lastPart = end($parts);
             return is_numeric($lastPart) ? (int)$lastPart : 0;
         };
+
+        $normalizeJuriNumber = function ($juriNumber, $maxJuri) {
+            if ($juriNumber < 1 || $maxJuri < 1) {
+                return 0;
+            }
+            return (($juriNumber - 1) % $maxJuri) + 1;
+        };
+
+        // Ambil daftar kategori kesalahan untuk formatting catatan
+        $kategoriKesalahanRows = $this->db->table('tbl_munaqosah_kategori_kesalahan')
+            ->select('IdKategoriKesalahan, NamaKategoriKesalahan, IdKategoriMateri')
+            ->get()
+            ->getResultArray();
+        $kesalahanMap = [];
+        foreach ($kategoriKesalahanRows as $kk) {
+            $kesalahanMap[$kk['IdKategoriKesalahan']] = $kk['NamaKategoriKesalahan'];
+        }
 
         $nilaiMap = [];
         foreach ($nilaiDetails as $detail) {
@@ -12332,23 +12483,20 @@ class Munaqosah extends BaseController
             }
 
             // Cek maxJuri untuk kategori ini
-            $maxJuri = null;
+            $maxJuri = 2;
             foreach ($categories as $cat) {
                 if ($cat['id'] === $catId) {
-                    $maxJuri = $cat['maxJuri'] ?? null;
+                    $maxJuri = isset($cat['maxJuri']) ? (int)$cat['maxJuri'] : 2;
                     break;
                 }
             }
-            if ($maxJuri === null) {
-                $maxJuri = 2; // Default
-            } else {
-                $maxJuri = (int)$maxJuri;
+
+            // Ekstrak nomor juri dari username dan normalisasi
+            $juriNumberAbsolute = $extractJuriNumber($detail['UsernameJuri'] ?? '');
+            if ($juriNumberAbsolute < 1) {
+                continue;
             }
-
-            // Ekstrak nomor juri dari username
-            $juriNumber = $extractJuriNumber($detail['UsernameJuri'] ?? '');
-
-            // Hanya ambil nilai dari juri yang sesuai dengan maxJuri (juri 1 sampai maxJuri)
+            $juriNumber = $normalizeJuriNumber($juriNumberAbsolute, $maxJuri);
             if ($juriNumber < 1 || $juriNumber > $maxJuri) {
                 continue;
             }
@@ -12356,7 +12504,9 @@ class Munaqosah extends BaseController
             if (!isset($nilaiMap[$catId])) {
                 $nilaiMap[$catId] = [];
             }
-            $nilaiMap[$catId][] = [
+
+            // Gunakan nomor juri sebagai key agar tidak duplikat per juri
+            $nilaiMap[$catId][$juriNumber] = [
                 'IdJuri' => $detail['IdJuri'],
                 'UsernameJuri' => $detail['UsernameJuri'] ?? '-',
                 'RoomId' => $detail['RoomId'] ?? null,
@@ -12366,26 +12516,21 @@ class Munaqosah extends BaseController
                 'MateriNama' => $detail['MateriPelajaran'] ?? $detail['MateriMunaqosah'] ?? $detail['NamaSurah'] ?? null,
                 'MateriLink' => $detail['AlquranLink'] ?? null,
                 'UpdatedAt' => $detail['updated_at'] ?? $detail['created_at'] ?? null,
-                'JuriNumber' => $juriNumber, // Simpan nomor juri untuk sorting
+                'JuriNumber' => $juriNumber,
             ];
-        }
-
-        // Sort nilai berdasarkan nomor juri untuk setiap kategori
-        foreach ($nilaiMap as $catId => $scores) {
-            usort($nilaiMap[$catId], function ($a, $b) {
-                return ($a['JuriNumber'] ?? 0) <=> ($b['JuriNumber'] ?? 0);
-            });
         }
 
         $categoryDetails = [];
         foreach ($categories as $cat) {
             $catId = $cat['id'];
-            $scores = $nilaiMap[$catId] ?? [];
+            $scoresMap = $nilaiMap[$catId] ?? [];
+            
+            // Susun terurut berdasarkan nomor juri
+            ksort($scoresMap);
+            
             $juriScores = [];
-            foreach ($scores as $score) {
-                // Gunakan nomor juri dari username, bukan index array
-                $juriNumber = $score['JuriNumber'] ?? 1;
-                $score['label'] = 'Juri ' . $juriNumber;
+            foreach ($scoresMap as $juriNum => $score) {
+                $score['label'] = 'Juri ' . $juriNum;
                 $juriScores[] = $score;
             }
 
@@ -12430,6 +12575,7 @@ class Munaqosah extends BaseController
                 'registrasi' => $registrasiRows,
                 'nilai_details' => $nilaiDetails,
                 'materi_details' => $materiRows,
+                'kesalahanMap' => $kesalahanMap,
             ]
         ];
     }

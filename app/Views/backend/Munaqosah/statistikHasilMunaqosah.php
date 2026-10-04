@@ -20,7 +20,7 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
                             <?php foreach ($tahunList as $t): ?>
                                 <label class="chip">
                                     <input type="checkbox" class="chk-tahun" value="<?= esc($t) ?>" <?= $t === $defaultTahun ? 'checked' : '' ?>>
-                                    <span><?= esc($t) ?></span>
+                                    <span><?= esc(preg_match('/^\d{8}$/', (string)$t) ? 'T.A ' . substr($t, 2, 2) . '/' . substr($t, 6, 2) : $t) ?></span>
                                 </label>
                             <?php endforeach; ?>
                         </div>
@@ -121,6 +121,47 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
             <div class="small text-muted mt-2">Memuat data statistik…</div>
         </div>
         <div id="statEmpty" class="alert alert-info" style="display:none;"></div>
+
+        <!-- MODAL DETAIL -->
+        <div class="modal fade" id="detailModal" tabindex="-1" role="dialog" aria-hidden="true">
+            <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
+                <div class="modal-content" style="border-radius:12px;">
+                    <div class="modal-header">
+                        <div>
+                            <h5 class="modal-title" id="dmTitle">Detail</h5>
+                            <div class="small text-muted" id="dmSub"></div>
+                        </div>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Tutup"><span>&times;</span></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="search" id="dmSearch" class="form-control form-control-sm mb-2" style="max-width:260px" placeholder="Cari nama / no peserta…">
+                        <div id="dmLoading" class="text-center py-4"><div class="spinner-border text-primary"></div></div>
+                        <div id="dmError" class="alert alert-danger" style="display:none;"></div>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered table-striped mb-0" id="dmTable" style="display:none;">
+                                <thead>
+                                    <tr>
+                                        <th style="width:45px">No</th>
+                                        <th>No Peserta</th>
+                                        <th>Nama Santri</th>
+                                        <th>TPQ</th>
+                                        <th>Tahun</th>
+                                        <th>Materi</th>
+                                        <th class="text-center">Nilai</th>
+                                        <th class="text-center" style="width:55px">Detail</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dmBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-primary btn-sm" id="dmNewTab"><i class="fas fa-external-link-alt"></i> Buka di Tab Baru</button>
+                        <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Tutup</button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <div id="statContent" style="display:none;">
             <!-- RINGKASAN -->
@@ -251,6 +292,9 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
 
         const CFG = {
             dataUrl: '<?= base_url('backend/munaqosah/statistik-hasil-data') ?>',
+            detailDataUrl: '<?= base_url('backend/munaqosah/statistik-hasil-detail-data') ?>',
+            detailPageUrl: '<?= base_url('backend/munaqosah/statistik-hasil-detail') ?>',
+            pesertaUrl: '<?= base_url('backend/munaqosah/kelulusan-peserta') ?>',
             isAdmin: <?= $isAdmin ? 'true' : 'false' ?>
         };
         const LS_KEY = 'statHasilMunaqosahV1';
@@ -269,6 +313,8 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
         let charts = [];
 
         const $ = id => document.getElementById(id);
+        // Tampilan tahun ajaran: 20252026 -> T.A 25/26 (nilai asli tetap untuk parameter)
+        const fmtTA = t => /^\d{8}$/.test(String(t)) ? 'T.A ' + String(t).slice(2, 4) + '/' + String(t).slice(6, 8) : String(t);
         const esc = s => String(s).replace(/[&<>"']/g, c => ({
             '&': '&amp;',
             '<': '&lt;',
@@ -322,7 +368,10 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
                 bins.push({
                     label,
                     color: colors[i],
-                    zero: false
+                    zero: false,
+                    min: i === 0 ? null : th[i - 1],
+                    max: i === n - 1 ? null : th[i],
+                    nz: !!settings.separateZero
                 });
             }
             return bins;
@@ -373,6 +422,7 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
             return bins.map((b, bi) => ({
                 label: b.label,
                 color: b.color,
+                bin: b,
                 data: counts.map(c => {
                     if (settings.valueMode === 'percent') {
                         const tot = c.reduce((a, x) => a + x, 0);
@@ -416,7 +466,7 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
             }
         };
 
-        function chartConfig(labels, datasets, title) {
+        function chartConfig(labels, datasets, title, onPick) {
             const stacked = settings.chartType === 'stacked';
             const line = settings.chartType === 'line';
             const pct = settings.valueMode === 'percent';
@@ -442,6 +492,13 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
                     animation: {
                         duration: 500
                     },
+                    onClick: (evt, els) => {
+                        if (!onPick || !els.length) return;
+                        onPick(els[0].index, els[0].datasetIndex);
+                    },
+                    onHover: (evt, els) => {
+                        if (evt.native && evt.native.target) evt.native.target.style.cursor = (onPick && els.length) ? 'pointer' : 'default';
+                    },
                     plugins: {
                         legend: {
                             position: 'bottom'
@@ -455,7 +512,8 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
                         },
                         tooltip: {
                             callbacks: {
-                                label: c => `${c.dataset.label}: ${c.parsed.y}${pct ? '%' : ''}`
+                                label: c => `${c.dataset.label}: ${c.parsed.y}${pct ? '%' : ''}`,
+                                footer: () => onPick ? 'Klik untuk melihat daftar peserta' : ''
                             }
                         }
                     },
@@ -489,7 +547,7 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
             return h + '</tbody></table></div>';
         }
 
-        function addChartCard(container, id, title, labels, datasets) {
+        function addChartCard(container, id, title, labels, datasets, ctxFn) {
             const card = document.createElement('div');
             card.className = 'card chart-card';
             card.innerHTML = `
@@ -507,7 +565,12 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
             </div>`;
             container.appendChild(card);
             const canvas = card.querySelector('canvas');
-            const inst = new Chart(canvas, chartConfig(labels, datasets, title));
+            const onPick = ctxFn ? (idx, dsIdx) => {
+                const ds = datasets[dsIdx];
+                if (!ds || !ds.data[idx]) return; // batang 0 tidak dibuka
+                openDetail(ctxFn(idx), ds.bin, title);
+            } : null;
+            const inst = new Chart(canvas, chartConfig(labels, datasets, title, onPick));
             charts.push(inst);
 
             card.querySelector('.btn-tbl').onclick = () => {
@@ -557,6 +620,7 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
             const bins = buildBins();
             const pairs = getPairs();
             const years = DATA.years;
+            const yl = years.map(fmtTA);
             const catName = id => (DATA.categories.find(c => c.id === id) || {
                 name: id
             }).name;
@@ -585,26 +649,98 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
 
             // Chart umum
             const gen = $('generalCharts');
+            const catsCsv = selectedCats ? selectedCats.join(',') : '';
             if (settings.generalMode === 'tahun') {
                 addChartCard(gen, 'cg_tahun', 'Sebaran Nilai per Tahun Ajaran (semua materi terpilih)',
-                    years, buildDatasets(years.map(y => pairs.filter(p => p.y === y)), bins));
+                    yl, buildDatasets(years.map(y => pairs.filter(p => p.y === y)), bins),
+                    i => ({ y: years[i], cat: catsCsv, tpq: '', desc: yl[i] + ' • ' + (selectedCats ? 'Materi terpilih' : 'Semua materi') }));
             } else {
-                const ylbl = years.length === 1 ? years[0] : years.join(', ');
+                const ylbl = yl.join(', ');
                 addChartCard(gen, 'cg_materi', 'Sebaran Nilai per Materi — ' + ylbl,
-                    cats.map(c => c.name), buildDatasets(cats.map(c => pairs.filter(p => p.cat === c.id)), bins));
+                    cats.map(c => c.name), buildDatasets(cats.map(c => pairs.filter(p => p.cat === c.id)), bins),
+                    i => ({ y: '', cat: cats[i].id, tpq: '', desc: cats[i].name + ' • ' + ylbl }));
             }
             if (CFG.isAdmin && Object.keys(DATA.tpqs).length > 1) {
                 const tpqIds = Object.keys(DATA.tpqs);
                 addChartCard(gen, 'cg_tpq', 'Sebaran Nilai per TPQ',
-                    tpqIds.map(i => DATA.tpqs[i]), buildDatasets(tpqIds.map(i => pairs.filter(p => p.tpq === i)), bins));
+                    tpqIds.map(i => DATA.tpqs[i]), buildDatasets(tpqIds.map(i => pairs.filter(p => p.tpq === i)), bins),
+                    i => ({ y: '', cat: catsCsv, tpq: tpqIds[i], desc: DATA.tpqs[tpqIds[i]] }));
             }
 
             // Detail per materi
             const det = $('detailCharts');
             cats.forEach((c, i) => {
                 addChartCard(det, 'cd_' + i, c.name + ' — per Tahun Ajaran',
-                    years, buildDatasets(years.map(y => pairs.filter(p => p.y === y && p.cat === c.id)), bins));
+                    yl, buildDatasets(years.map(y => pairs.filter(p => p.y === y && p.cat === c.id)), bins),
+                    k => ({ y: years[k], cat: c.id, tpq: '', desc: c.name + ' • ' + yl[k] }));
             });
+        }
+
+        // ---------- Drill-down modal ----------
+        let lastQuery = null; // filter saat data dimuat
+        let modalItems = [];
+        let modalMeta = {};
+        let modalNewTabUrl = '';
+
+        function openDetail(ctx, bin, chartTitle) {
+            if (!lastQuery) return;
+            const p = new URLSearchParams({
+                IdTahunAjaran: ctx.y ? ctx.y : lastQuery.years.join(','),
+                IdTpq: lastQuery.tpq,
+                TypeUjian: lastQuery.type,
+                Cat: ctx.cat || '',
+                Tpq: ctx.tpq || '',
+                Min: bin.min === null || bin.min === undefined ? '' : bin.min,
+                Max: bin.max === null || bin.max === undefined ? '' : bin.max,
+                Zero: bin.zero ? '1' : '0',
+                NZ: bin.nz ? '1' : '0'
+            });
+            const judul = ctx.desc + ' • Nilai ' + bin.label;
+            p.set('Judul', judul);
+            const qs = p.toString();
+            modalNewTabUrl = CFG.detailPageUrl + '?' + qs;
+
+            $('dmTitle').textContent = judul;
+            $('dmSub').textContent = '';
+            $('dmSearch').value = '';
+            $('dmTable').style.display = 'none';
+            $('dmError').style.display = 'none';
+            $('dmLoading').style.display = '';
+            const modalEl = $('detailModal');
+            if (modalEl.parentNode !== document.body) document.body.appendChild(modalEl);
+            window.jQuery(modalEl).modal('show');
+
+            fetch(CFG.detailDataUrl + '?' + qs, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(r => r.json())
+                .then(j => {
+                    if (!j.success) throw new Error(j.message || 'Gagal memuat data');
+                    modalItems = j.data.items;
+                    modalMeta = j.data.meta || {};
+                    $('dmTable').style.display = '';
+                    renderModalRows();
+                })
+                .catch(e => {
+                    $('dmError').style.display = '';
+                    $('dmError').textContent = e.message;
+                })
+                .finally(() => $('dmLoading').style.display = 'none');
+        }
+
+        function renderModalRows() {
+            const term = $('dmSearch').value.toLowerCase();
+            const rows = modalItems.filter(i => !term || (i.nm + ' ' + i.np).toLowerCase().includes(term));
+            $('dmSub').textContent = rows.length + ' data' + (term ? ' (dari ' + modalItems.length + ')' : '');
+            $('dmBody').innerHTML = rows.map((i, n) => {
+                const href = CFG.pesertaUrl + '?' + new URLSearchParams({
+                    NoPeserta: i.np,
+                    IdTahunAjaran: i.y,
+                    TypeUjian: modalMeta.TypeUjian || '',
+                    IdTpq: i.tpq
+                }).toString();
+                return `<tr><td>${n + 1}</td><td>${esc(i.np)}</td><td>${esc(i.nm)}</td><td>${esc(i.tpqName)}</td><td>${esc(fmtTA(i.y))}</td><td>${esc(i.catName)}</td>` +
+                    `<td class="text-center">${i.v > 0 ? i.v.toFixed(2) : '<span class="badge badge-secondary">0</span>'}</td>` +
+                    `<td class="text-center"><a class="btn btn-xs btn-outline-primary" target="_blank" href="${href}"><i class="fas fa-eye"></i></a></td></tr>`;
+            }).join('') || '<tr><td colspan="8" class="text-center text-muted">Tidak ada data</td></tr>';
         }
 
         // ---------- Load ----------
@@ -643,6 +779,11 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
                 TypeUjian: $('filterTypeUjian').value
             });
             $('statLoading').style.display = '';
+            lastQuery = {
+                years,
+                tpq: params.get('IdTpq'),
+                type: params.get('TypeUjian')
+            };
             $('statEmpty').style.display = 'none';
             $('statContent').style.display = 'none';
             $('btnMuat').disabled = true;
@@ -744,7 +885,7 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
                 doc.setTextColor(40, 40, 40);
                 doc.setFontSize(9.5);
                 const info = [
-                    ['Tahun Ajaran', DATA.years.join(', ')],
+                    ['Tahun Ajaran', DATA.years.map(fmtTA).join(', ')],
                     ['TPQ', tpqText],
                     ['Type Ujian', typeText],
                     ['Materi', matText],
@@ -816,6 +957,11 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
 
         // ---------- Events ----------
         $('btnPdf').addEventListener('click', exportPdf);
+        $('dmSearch').addEventListener('input', renderModalRows);
+        $('dmNewTab').addEventListener('click', () => {
+            if (modalNewTabUrl) window.open(modalNewTabUrl, '_blank');
+            window.jQuery($('detailModal')).modal('hide');
+        });
         function applyThreshold(arr) {
             if (!arr.length) {
                 alert('Masukkan minimal satu batas nilai (angka 1-100), contoh: 65, 70');
