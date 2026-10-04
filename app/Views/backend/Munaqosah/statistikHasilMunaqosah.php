@@ -1272,7 +1272,8 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
                 cats.forEach(c => {
                     const v = (r.avg && r.avg[c.id] !== undefined) ? Number(r.avg[c.id]) : 0;
                     scores[c.id] = v;
-                    if (v > 0 && v < th) {
+                    // Nilai < threshold (termasuk nilai 0 / tidak ikut) masuk dalam kategori kekurangan
+                    if (v < th) {
                         kurangCats.push(c.name);
                         totalKurang++;
                     }
@@ -1333,7 +1334,7 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
 
             // Info Count
             const totalKurangSantri = items.filter(s => s.totalKurang > 0).length;
-            $('infoMatriksCount').innerHTML = `Menampilkan <strong>${filtered.length}</strong> santri | Total santri yang memiliki nilai &lt; ${thVal}: <span class="text-danger font-weight-bold">${totalKurangSantri} santri</span> (dari total ${items.length} peserta)`;
+            $('infoMatriksCount').innerHTML = `Menampilkan <strong>${filtered.length}</strong> santri | Total santri yang memiliki nilai &lt; ${thVal} (termasuk 0): <span class="text-danger font-weight-bold">${totalKurangSantri} santri</span> (dari total ${items.length} peserta)`;
 
             // Render Header
             const trHead = $('trMatriksHead');
@@ -1358,16 +1359,15 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
             tbBody.innerHTML = filtered.map((s, idx) => {
                 const matTds = cats.map(c => {
                     const v = s.scores[c.id];
-                    if (v > 0 && v < thVal) {
+                    if (v < thVal) {
+                        const scoreDisplay = (v === 0) ? '0' : v.toFixed(2);
                         return `<td class="text-center table-danger" style="background:#ffebee;">
-                            <span class="badge badge-danger" style="font-size:0.8rem;">❌ ${showScore ? v.toFixed(2) : ''}</span>
+                            <span class="badge badge-danger" style="font-size:0.8rem;">❌ ${showScore ? scoreDisplay : ''}</span>
                         </td>`;
-                    } else if (v >= thVal) {
+                    } else {
                         return `<td class="text-center">
                             ${showScore ? `<span class="text-success font-weight-bold" style="font-size:0.82rem;">✅ ${v.toFixed(2)}</span>` : `<span class="text-muted">—</span>`}
                         </td>`;
-                    } else {
-                        return `<td class="text-center text-muted">—</td>`;
                     }
                 }).join('');
 
@@ -1427,12 +1427,11 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
 
                     cats.forEach(c => {
                         const v = s.scores[c.id];
-                        if (v > 0 && v < thVal) {
-                            row.push(showScore ? 'KURANG (' + v.toFixed(2) + ')' : 'KURANG');
-                        } else if (v >= thVal) {
-                            row.push(showScore ? 'TUNTAS (' + v.toFixed(2) + ')' : 'TUNTAS');
+                        if (v < thVal) {
+                            const scoreText = (v === 0) ? '0' : v.toFixed(2);
+                            row.push(showScore ? 'KURANG (' + scoreText + ')' : 'KURANG');
                         } else {
-                            row.push('-');
+                            row.push(showScore ? 'TUNTAS (' + v.toFixed(2) + ')' : 'TUNTAS');
                         }
                     });
 
@@ -1945,12 +1944,11 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
 
                             cats.forEach(c => {
                                 const v = s.scores[c.id];
-                                if (v > 0 && v < thVal) {
-                                    row.push(showScore ? `X (${v.toFixed(1)})` : 'X');
-                                } else if (v >= thVal) {
-                                    row.push(showScore ? `${v.toFixed(1)}` : '-');
+                                if (v < thVal) {
+                                    const vText = (v === 0) ? '0' : v.toFixed(1);
+                                    row.push(showScore ? `X (${vText})` : 'X');
                                 } else {
-                                    row.push('-');
+                                    row.push(showScore ? `${v.toFixed(1)}` : '-');
                                 }
                             });
 
