@@ -477,6 +477,12 @@
                                     </a>
                                 </li>
                                 <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/munaqosah/statistik-hasil') ?> class="nav-link">
+                                        <i class="fas fa-chart-line nav-icon text-warning"></i>
+                                        <p>Statistik Hasil</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/list-konfigurasi-munaqosah') ?> class="nav-link">
                                         <i class="fas fa-cog nav-icon text-warning"></i>
                                         <p>Konfigurasi</p>

@@ -10789,6 +10789,226 @@ class Munaqosah extends BaseController
     }
 
     /**
+     * Halaman Statistik Hasil Munaqosah (grafik sebaran nilai rata-rata juri per materi)
+     */
+    public function statistikHasil()
+    {
+        helper('munaqosah');
+
+        $helpFunctionModel = new \App\Models\HelpFunctionModel();
+        $currentTahunAjaran = $helpFunctionModel->getTahunAjaranSaatIni();
+
+        $idTpq = session()->get('IdTpq');
+        $dataTpq = $this->helpFunction->getDataTpq($idTpq);
+        $akses = $this->resolveStatistikAkses();
+
+        $tahunAjaranList = $this->getTahunAjaranFromNilaiMunaqosah();
+
+        return view('backend/Munaqosah/statistikHasilMunaqosah', [
+            'page_title' => 'Statistik Hasil Munaqosah',
+            'current_tahun_ajaran' => $currentTahunAjaran,
+            'tahunAjaranList' => $tahunAjaranList,
+            'tpqDropdown' => $dataTpq,
+            'aktiveTombolKelulusan' => $akses['aktive'],
+            'isAdmin' => $akses['isAdmin'],
+            'isOperator' => $akses['isOperator'],
+            'isKepalaTpq' => $akses['isKepalaTpq'],
+        ]);
+    }
+
+    /**
+     * Data JSON statistik: nilai rata-rata juri per peserta per materi, per tahun ajaran.
+     * Memakai buildMonitoringDataset (sama dengan halaman Nilai Munaqosah); bobot diabaikan.
+     * Non-admin dipaksa ke IdTpq sesi.
+     */
+    public function getStatistikHasilData()
+    {
+        try {
+            $akses = $this->resolveStatistikAkses();
+            $sessionTpq = session()->get('IdTpq');
+
+            if (!$akses['isAdmin'] && empty($sessionTpq)) {
+                return $this->response->setJSON(['success' => false, 'message' => 'Akses ditolak']);
+            }
+
+            $tahunRaw = (string)$this->request->getGet('IdTahunAjaran');
+            $tahunList = array_values(array_unique(array_filter(array_map('trim', explode(',', $tahunRaw)))));
+            if (empty($tahunList)) {
+                return $this->response->setJSON(['success' => false, 'message' => 'Pilih minimal satu Tahun Ajaran']);
+            }
+            if (count($tahunList) > 12) {
+                return $this->response->setJSON(['success' => false, 'message' => 'Maksimal 12 Tahun Ajaran dalam satu waktu']);
+            }
+
+            // Scoping: operator/non-admin hanya TPQ sendiri
+            $idTpq = $akses['isAdmin'] ? (int)($this->request->getGet('IdTpq') ?? 0) : (int)$sessionTpq;
+
+            $type = strtolower((string)$this->request->getGet('TypeUjian'));
+            if (!in_array($type, ['munaqosah', 'pra-munaqosah'], true)) {
+                $type = ($idTpq !== 0) ? 'pra-munaqosah' : 'munaqosah';
+            }
+            if (!$akses['isAdmin'] && $type === 'munaqosah' && !$akses['aktive']) {
+                $type = 'pra-munaqosah';
+            }
+
+            $categories = [];
+            $tpqs = [];
+            $rows = [];
+            $years = [];
+
+            foreach ($tahunList as $tahun) {
+                $hasil = $this->computeStatistikTahun($tahun, $idTpq, $type);
+                if ($hasil === null) {
+                    continue;
+                }
+                $years[] = $tahun;
+                foreach ($hasil['categories'] as $id => $name) {
+                    $categories[$id] = $name;
+                }
+                foreach ($hasil['tpqs'] as $id => $name) {
+                    $tpqs[$id] = $name;
+                }
+                foreach ($hasil['rows'] as $r) {
+                    $rows[] = $r;
+                }
+            }
+
+            $catList = [];
+            foreach ($categories as $id => $name) {
+                $catList[] = ['id' => $id, 'name' => $name];
+            }
+            usort($catList, fn($a, $b) => strcmp((string)$a['id'], (string)$b['id']));
+            sort($years);
+
+            return $this->response->setJSON([
+                'success' => true,
+                'data' => [
+                    'categories' => $catList,
+                    'years' => $years,
+                    'tpqs' => $tpqs,
+                    'rows' => $rows,
+                    'meta' => ['TypeUjian' => $type, 'IdTpq' => $idTpq],
+                ]
+            ]);
+        } catch (\Throwable $e) {
+            log_message('error', 'Error in getStatistikHasilData: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Terjadi kesalahan sistem',
+                'details' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Hitung data statistik satu tahun ajaran (di-cache singkat).
+     * Hanya pasangan peserta-materi yang benar-benar terdaftar (registrasi) yang disertakan,
+     * nilai 0 berarti terdaftar tetapi belum/tidak dinilai.
+     */
+    private function computeStatistikTahun(string $tahun, int $idTpq, string $type): ?array
+    {
+        $cacheKey = 'stat_hasil_' . md5($tahun . '|' . $idTpq . '|' . $type);
+        try {
+            $cached = cache($cacheKey);
+            if (is_array($cached)) {
+                return $cached;
+            }
+        } catch (\Throwable $e) {
+            // abaikan error cache
+        }
+
+        $dataset = $this->buildMonitoringDataset($tahun, $idTpq, $type, true);
+        if (empty($dataset['success']) || empty($dataset['data'])) {
+            return null;
+        }
+
+        // Pasangan peserta-materi yang terdaftar
+        $regBuilder = $this->db->table('tbl_munaqosah_registrasi_uji');
+        $regBuilder->select('NoPeserta, IdKategoriMateri');
+        $regBuilder->where('IdTahunAjaran', $tahun);
+        $regBuilder->where('TypeUjian', $type);
+        if (!empty($idTpq)) {
+            $regBuilder->where('IdTpq', $idTpq);
+        }
+        $registered = [];
+        foreach ($regBuilder->get()->getResultArray() as $reg) {
+            if (!empty($reg['IdKategoriMateri'])) {
+                $registered[$reg['NoPeserta'] . '|' . $reg['IdKategoriMateri']] = true;
+            }
+        }
+
+        $categories = [];
+        foreach ($dataset['data']['categories'] as $cat) {
+            $categories[$cat['id']] = $cat['name'];
+        }
+
+        $tpqs = [];
+        $rows = [];
+        foreach ($dataset['data']['rows'] as $row) {
+            $avg = [];
+            foreach (($row['averages'] ?? []) as $catId => $value) {
+                if (isset($registered[$row['NoPeserta'] . '|' . $catId])) {
+                    $avg[$catId] = round((float)$value, 2);
+                }
+            }
+            if (empty($avg)) {
+                continue;
+            }
+            $tpqId = (string)($row['IdTpq'] ?? '');
+            $tpqs[$tpqId] = $row['NamaTpq'] ?? $tpqId;
+            $rows[] = ['y' => $tahun, 'tpq' => $tpqId, 'np' => $row['NoPeserta'], 'avg' => $avg];
+        }
+
+        $result = ['categories' => $categories, 'tpqs' => $tpqs, 'rows' => $rows];
+        try {
+            cache()->save($cacheKey, $result, 300);
+        } catch (\Throwable $e) {
+            // abaikan error cache
+        }
+        return $result;
+    }
+
+    /**
+     * Hak akses statistik: sama dengan logika halaman Nilai Munaqosah.
+     */
+    private function resolveStatistikAkses(): array
+    {
+        $helpFunctionModel = new \App\Models\HelpFunctionModel();
+        $idTpq = session()->get('IdTpq');
+        $isAdmin = empty($idTpq) || $idTpq == 0;
+        $isOperator = in_groups('Operator');
+
+        $isKepalaTpq = false;
+        $idGuru = session()->get('IdGuru');
+        if (!empty($idGuru) && !empty($idTpq)) {
+            try {
+                foreach ($helpFunctionModel->getStrukturLembagaJabatan($idGuru, $idTpq) as $jabatan) {
+                    if (isset($jabatan['NamaJabatan']) && $jabatan['NamaJabatan'] === 'Kepala TPQ') {
+                        $isKepalaTpq = true;
+                        break;
+                    }
+                }
+            } catch (\Throwable $e) {
+                // Ignore error
+            }
+        }
+
+        $aktive = false;
+        if ($isAdmin) {
+            $aktive = true;
+        } elseif ($isOperator || $isKepalaTpq) {
+            $aktive = $this->munaqosahKonfigurasiModel->getSettingAsBool('0', 'AktiveTombolKelulusan', false);
+        }
+
+        return [
+            'isAdmin' => $isAdmin,
+            'isOperator' => $isOperator,
+            'isKepalaTpq' => $isKepalaTpq,
+            'aktive' => $aktive,
+        ];
+    }
+
+    /**
      * Ambil daftar tahun ajaran dari tabel nilai munaqosah (grouping IdTahunAjaran)
      */
     private function getTahunAjaranFromNilaiMunaqosah()

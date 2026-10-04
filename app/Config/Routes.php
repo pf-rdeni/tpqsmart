@@ -456,6 +456,8 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->get('munaqosah/kelulusan', 'Munaqosah::kelulusanUjian');
     $routes->get('munaqosah/kelulusan-simple', 'Munaqosah::kelulusanSimple');
     $routes->get('munaqosah/kelulusan-data', 'Munaqosah::getKelulusanData');
+    $routes->get('munaqosah/statistik-hasil', 'Munaqosah::statistikHasil');
+    $routes->get('munaqosah/statistik-hasil-data', 'Munaqosah::getStatistikHasilData');
     $routes->get('munaqosah/kelulusan-peserta', 'Munaqosah::kelulusanPesertaUjian');
     $routes->get('munaqosah/export-hasil-munaqosah', 'Munaqosah::exportHasilMunaqosah');
     $routes->get('munaqosah/export-hasil-munaqosah-data', 'Munaqosah::getExportHasilMunaqosahData');
