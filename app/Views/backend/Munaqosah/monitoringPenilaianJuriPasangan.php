@@ -20,11 +20,21 @@
                         <div class="row mb-3">
                             <div class="col-md-3">
                                 <label class="mb-0 small">Tahun Ajaran</label>
-                                <input type="text" id="filterTahunAjaran" class="form-control form-control-sm" value="<?= esc($current_tahun_ajaran) ?>" readonly>
+                                <select id="filterTahunAjaran" class="form-control form-control-sm">
+                                    <?php if (!empty($tahunAjaranList)) : ?>
+                                        <?php foreach ($tahunAjaranList as $tahunAjaran): ?>
+                                            <option value="<?= esc($tahunAjaran) ?>" <?= ($tahunAjaran === $current_tahun_ajaran) ? 'selected' : '' ?>>
+                                                <?= esc($tahunAjaran) ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <option value="<?= esc($current_tahun_ajaran) ?>" selected><?= esc($current_tahun_ajaran) ?></option>
+                                    <?php endif; ?>
+                                </select>
                             </div>
                             <div class="col-md-3">
                                 <label class="mb-0 small">Type Ujian</label>
-                                <select id="filterType" class="form-control form-control-sm">
+                                <select id="filterType" class="form-control form-control-sm" <?= !empty($is_locked_type) ? 'disabled' : '' ?>>
                                     <?php foreach ($types as $key => $label): ?>
                                         <option value="<?= esc($key) ?>" <?= ($selected_type == $key) ? 'selected' : '' ?>><?= esc($label) ?></option>
                                     <?php endforeach; ?>
@@ -41,10 +51,12 @@
                             </div>
                             <div class="col-md-3">
                                 <label class="mb-0 small">TPQ</label>
-                                <select id="filterTpq" class="form-control form-control-sm">
-                                    <option value="0">Semua TPQ</option>
+                                <select id="filterTpq" class="form-control form-control-sm" <?= !empty($is_locked_tpq) ? 'disabled' : '' ?>>
+                                    <?php if (empty($is_locked_tpq)): ?>
+                                        <option value="0">Semua TPQ</option>
+                                    <?php endif; ?>
                                     <?php foreach ($tpqDropdown as $tpq): ?>
-                                        <option value="<?= esc($tpq['IdTpq']) ?>" <?= ($selected_tpq == $tpq['IdTpq']) ? 'selected' : '' ?>><?= esc($tpq['NamaTpq']) ?></option>
+                                        <option value="<?= esc($tpq['IdTpq']) ?>" <?= (!empty($is_locked_tpq) || $selected_tpq == $tpq['IdTpq']) ? 'selected' : '' ?>><?= esc($tpq['NamaTpq']) ?></option>
                                     <?php endforeach; ?>
                                 </select>
                             </div>
@@ -181,6 +193,10 @@
 
 <?= $this->section('scripts'); ?>
 <script>
+    const isLockedTpq = <?= !empty($is_locked_tpq) ? 'true' : 'false' ?>;
+    const isLockedType = <?= !empty($is_locked_type) ? 'true' : 'false' ?>;
+    const lockedIdTpq = '<?= !empty($session_id_tpq) ? esc($session_id_tpq) : '' ?>';
+
     let allData = [];
     let completeData = [];
     let incompleteData = [];
@@ -267,9 +283,10 @@
     // Fungsi untuk menyimpan filter ke localStorage
     function saveFiltersToLocalStorage() {
         const filters = {
-            type: $('#filterType').val() || 'munaqosah',
+            tahunAjaran: $('#filterTahunAjaran').val() || '',
+            type: isLockedType ? 'pra-munaqosah' : ($('#filterType').val() || 'munaqosah'),
             grupMateri: $('#filterGrupMateri').val() || '',
-            tpq: $('#filterTpq').val() || '0',
+            tpq: isLockedTpq ? lockedIdTpq : ($('#filterTpq').val() || '0'),
             refreshInterval: $('#filterRefreshInterval').val() || '30',
             autoRefreshEnabled: autoRefreshEnabled
         };
@@ -300,8 +317,16 @@
             if (savedFilters) {
                 const filters = JSON.parse(savedFilters);
 
-                // Load filter Type
-                if (filters.type) {
+                // Load filter Tahun Ajaran
+                if (filters.tahunAjaran) {
+                    const $thSel = $('#filterTahunAjaran');
+                    if ($thSel.length && $thSel.find('option[value="' + filters.tahunAjaran + '"]').length > 0) {
+                        $thSel.val(filters.tahunAjaran);
+                    }
+                }
+
+                // Load filter Type (hanya jika Type tidak dikunci)
+                if (!isLockedType && filters.type) {
                     const $typeSel = $('#filterType');
                     if ($typeSel.length && $typeSel.find('option[value="' + filters.type + '"]').length > 0) {
                         $typeSel.val(filters.type);
@@ -316,8 +341,8 @@
                     }
                 }
 
-                // Load filter TPQ
-                if (filters.tpq) {
+                // Load filter TPQ (hanya jika TPQ tidak dikunci)
+                if (!isLockedTpq && filters.tpq) {
                     const $tpqSel = $('#filterTpq');
                     if ($tpqSel.length && $tpqSel.find('option[value="' + filters.tpq + '"]').length > 0) {
                         $tpqSel.val(filters.tpq);
@@ -444,14 +469,14 @@
 
     function loadData() {
         const th = $('#filterTahunAjaran').val().trim();
-        const ty = $('#filterType').val() || 'munaqosah';
+        const ty = isLockedType ? 'pra-munaqosah' : ($('#filterType').val() || 'munaqosah');
         const grup = $('#filterGrupMateri').val() || '';
-        const tpq = $('#filterTpq').val() || '0';
+        const tpq = isLockedTpq ? lockedIdTpq : ($('#filterTpq').val() || '0');
 
         const url = '<?= base_url("backend/munaqosah/monitoring-penilaian-juri-pasangan-data") ?>' + 
                     `?IdTahunAjaran=${encodeURIComponent(th)}&TypeUjian=${encodeURIComponent(ty)}` +
                     (grup ? `&IdGrupMateriUjian=${encodeURIComponent(grup)}` : '') +
-                    (tpq !== '0' ? `&IdTpq=${encodeURIComponent(tpq)}` : '');
+                    (tpq !== '0' && tpq !== '' ? `&IdTpq=${encodeURIComponent(tpq)}` : '');
 
         // Destroy DataTables sebelum load data baru
         if ($.fn.DataTable) {
@@ -593,11 +618,13 @@
             }
             detailJuri += '</div>';
 
-            // Gabungkan No Peserta dengan Nama Santri dan Status (status di bawah nama)
+            // Gabungkan No Peserta dengan Nama Santri, TPQ, dan Status
+            const tpqDisplay = item.NamaTpq && item.NamaTpq !== '-' ? `<small class="text-muted"><i class="fas fa-mosque mr-1"></i>${item.NamaTpq}</small>` : '';
             const pesertaDisplay = `<div class="d-flex flex-column" style="gap: 0.25rem;">
                 <div>
                     <strong>${item.NoPeserta}</strong> - ${item.NamaSantri}
                 </div>
+                ${tpqDisplay ? `<div>${tpqDisplay}</div>` : ''}
                 <div>
                     ${statusBadge}
                 </div>
@@ -732,7 +759,7 @@
         });
 
         // Simpan filter ke localStorage saat berubah
-        $('#filterType, #filterGrupMateri, #filterTpq').on('change', function() {
+        $('#filterTahunAjaran, #filterType, #filterGrupMateri, #filterTpq').on('change', function() {
             saveFiltersToLocalStorage();
             loadData();
         });

@@ -122,7 +122,17 @@
                         <div class="d-flex">
                             <div class="mr-2">
                                 <label class="mb-0 small">Tahun Ajaran</label>
-                                <input type="text" id="filterTahunAjaran" class="form-control form-control-sm" value="<?= esc($current_tahun_ajaran) ?>">
+                                <select id="filterTahunAjaran" class="form-control form-control-sm">
+                                    <?php if (!empty($tahunAjaranList)) : ?>
+                                        <?php foreach ($tahunAjaranList as $tahunAjaran): ?>
+                                            <option value="<?= esc($tahunAjaran) ?>" <?= ($tahunAjaran === $current_tahun_ajaran) ? 'selected' : '' ?>>
+                                                <?= esc($tahunAjaran) ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <option value="<?= esc($current_tahun_ajaran) ?>" selected><?= esc($current_tahun_ajaran) ?></option>
+                                    <?php endif; ?>
+                                </select>
                             </div>
                             <div class="mr-2">
                                 <label class="mb-0 small">TPQ</label>
@@ -256,6 +266,7 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
     }
 </style>
 <script>
+    const isAdmin = <?= ($isAdmin ?? false) ? 'true' : 'false' ?>;
     let kelulusanTable = null;
 
     function fmtScore(val) {
@@ -274,7 +285,6 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
 
     function buildKelulusanHeader(categories) {
         const headerCategories = categories || [];
-        const isAdmin = <?= $isAdmin ? 'true' : 'false' ?>;
         const userRole = $('#userRole').val() || 'admin';
         const isOperator = userRole === 'operator';
         const typeUjian = $('#filterTypeUjian').val() || 'munaqosah';
@@ -450,28 +460,189 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
             const typeUjian = $('#filterTypeUjian').val() || 'munaqosah';
             const hideJuriColumns = isOperator && typeUjian === 'munaqosah';
 
-            let totalCols = 5; // No Peserta, Nama Santri, TPQ, Type, Thn
+            // Flat headers array untuk export Excel, PDF, Print (menyesuaikan kolom di view tabel)
+            const flatHeaders = ['No Peserta', 'Nama Santri', 'TPQ', 'Type', 'Thn'];
             categories.forEach(cat => {
+                const weight = cat.weight ? parseFloat(cat.weight) : 0;
+                const weightLabel = (isAdmin && weight > 0) ? ` (${weight}%)` : '';
+                const catTitle = `${cat.name}${weightLabel}`;
                 const maxJuri = (cat && cat.maxJuri) ? parseInt(cat.maxJuri) : 2;
-                if (hideJuriColumns) {
-                    totalCols += 2; // Hanya Jml + Bobot
-                } else {
-                    totalCols += maxJuri + 2; // Juri + Jml + Bobot
+                if (!hideJuriColumns) {
+                    for (let i = 1; i <= maxJuri; i++) {
+                        flatHeaders.push(`${catTitle} - Juri ${i}`);
+                    }
                 }
+                flatHeaders.push(`${catTitle} - Jml`);
+                flatHeaders.push(`${catTitle} - Bobot`);
             });
-            totalCols += 2; // Total Bobot + Status Kelulusan
+            flatHeaders.push('Total Bobot');
+            flatHeaders.push('Status Kelulusan');
 
+            let totalCols = flatHeaders.length;
             const totalIndex = totalCols - 2; // Kolom Total Bobot
             const statusIndex = totalCols - 1; // Kolom Status Kelulusan
 
+            // Info filter untuk Export (Title, Subtitle/Filter, Filename)
+            function getExportInfo() {
+                const tahun = $('#filterTahunAjaran').val().trim() || '-';
+                const tpqText = $('#filterTpq option:selected').text().trim() || 'Semua TPQ';
+                const typeText = $('#filterTypeUjian option:selected').text().trim() || 'Munaqosah';
+
+                const title = `Hasil Nilai & Kelulusan Ujian ${typeText}`;
+                const subtitle = `Tahun Ajaran: ${tahun} | TPQ: ${tpqText} | Tipe Ujian: ${typeText}`;
+                const dateStr = new Date().toISOString().split('T')[0];
+                const safeTpq = tpqText.replace(/[^a-zA-Z0-9_-]/g, '_');
+                const safeType = typeText.replace(/[^a-zA-Z0-9_-]/g, '_');
+                const safeTahun = tahun.replace(/[^a-zA-Z0-9_-]/g, '_');
+                const filename = `Nilai_Kelulusan_${safeType}_${safeTpq}_${safeTahun}_${dateStr}`;
+
+                return {
+                    title: title,
+                    subtitle: subtitle,
+                    filename: filename,
+                    tahun: tahun,
+                    tpq: tpqText,
+                    type: typeText
+                };
+            }
+
+            function getExportHeader(data, columnIdx, node) {
+                if (flatHeaders && flatHeaders[columnIdx] !== undefined) {
+                    return flatHeaders[columnIdx];
+                }
+                return data;
+            }
+
+            function getExportBody(data, row, column, node) {
+                if (node) {
+                    var text = $(node).text().trim();
+                    return text || (data ? $('<div>').html(data).text().trim() : '');
+                }
+                if (typeof data === 'string') {
+                    return $('<div>').html(data).text().trim();
+                }
+                return data;
+            }
+
             kelulusanTable = $('#tblKelulusan').DataTable({
                 scrollX: true,
+                autoWidth: false,
                 order: [
                     [totalIndex, 'desc']
                 ],
                 pageLength: 25,
-                dom: 'Bfrtip',
-                buttons: ['colvis', 'excel', 'print']
+                dom: "<'row mb-2'<'col-sm-12 col-md-6'B><'col-sm-12 col-md-6'f>>" +
+                    "<'row'<'col-sm-12'tr>>" +
+                    "<'row mt-2'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>",
+                buttons: [
+                    {
+                        extend: 'colvis',
+                        text: '<i class="fas fa-columns mr-1"></i> Kolom',
+                        className: 'btn btn-secondary btn-sm'
+                    },
+                    {
+                        extend: 'excelHtml5',
+                        text: '<i class="fas fa-file-excel mr-1"></i> Excel',
+                        className: 'btn btn-success btn-sm',
+                        title: function() {
+                            return getExportInfo().title;
+                        },
+                        messageTop: function() {
+                            return getExportInfo().subtitle;
+                        },
+                        filename: function() {
+                            return getExportInfo().filename;
+                        },
+                        exportOptions: {
+                            columns: ':visible',
+                            modifier: {
+                                search: 'applied',
+                                order: 'applied'
+                            },
+                            format: {
+                                header: getExportHeader,
+                                body: getExportBody
+                            }
+                        }
+                    },
+                    {
+                        extend: 'pdfHtml5',
+                        text: '<i class="fas fa-file-pdf mr-1"></i> PDF',
+                        className: 'btn btn-danger btn-sm',
+                        orientation: 'landscape',
+                        pageSize: 'A4',
+                        title: function() {
+                            return getExportInfo().title;
+                        },
+                        messageTop: function() {
+                            return getExportInfo().subtitle;
+                        },
+                        filename: function() {
+                            return getExportInfo().filename;
+                        },
+                        exportOptions: {
+                            columns: ':visible',
+                            modifier: {
+                                search: 'applied',
+                                order: 'applied'
+                            },
+                            format: {
+                                header: getExportHeader,
+                                body: getExportBody
+                            }
+                        },
+                        customize: function(doc) {
+                            doc.defaultStyle.fontSize = totalCols > 14 ? 6 : (totalCols > 9 ? 7 : 8);
+                            doc.styles.tableHeader.fontSize = totalCols > 14 ? 6.5 : (totalCols > 9 ? 7.5 : 8.5);
+                            doc.styles.tableHeader.alignment = 'center';
+                            doc.styles.title = {
+                                fontSize: 11,
+                                bold: true,
+                                alignment: 'center',
+                                margin: [0, 0, 0, 4]
+                            };
+                            doc.styles.messageTop = {
+                                fontSize: 8.5,
+                                italic: true,
+                                alignment: 'center',
+                                margin: [0, 0, 0, 8]
+                            };
+                            doc.pageMargins = [10, 15, 10, 15];
+
+                            if (doc.content[1] && doc.content[1].table) {
+                                doc.content[1].table.widths = Array(doc.content[1].table.body[0].length).fill('*');
+                            }
+                        }
+                    },
+                    {
+                        extend: 'print',
+                        text: '<i class="fas fa-print mr-1"></i> Print',
+                        className: 'btn btn-info btn-sm',
+                        title: function() {
+                            return getExportInfo().title;
+                        },
+                        messageTop: function() {
+                            return `<div style="text-align:center; font-size:13px; margin-bottom:12px; font-weight:bold;">${getExportInfo().subtitle}</div>`;
+                        },
+                        exportOptions: {
+                            columns: ':visible',
+                            modifier: {
+                                search: 'applied',
+                                order: 'applied'
+                            },
+                            format: {
+                                header: getExportHeader,
+                                body: getExportBody
+                            }
+                        },
+                        customize: function(win) {
+                            $(win.document.body).css('font-size', '10pt');
+                            $(win.document.body).find('table')
+                                .addClass('compact')
+                                .css('font-size', 'inherit');
+                        }
+                    }
+                ]
             });
 
             const totalPeserta = rows.length;
@@ -511,7 +682,6 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
         const userRole = $('#userRole').val() || 'admin';
         const isOperator = userRole === 'operator';
         const aktiveTombolKelulusan = <?= ($aktiveTombolKelulusan ?? false) ? 'true' : 'false' ?>;
-        const isAdmin = <?= ($isAdmin ?? false) ? 'true' : 'false' ?>;
 
         const $tpqSelect = $('#filterTpq');
         const $typeUjianSelect = $('#filterTypeUjian');
@@ -547,6 +717,7 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
         }
 
         $('#btnReloadKelulusan').on('click', loadKelulusan);
+        $('#filterTahunAjaran').on('change', loadKelulusan);
         $('#filterTpq').on('change', loadKelulusan);
         $('#filterTypeUjian').on('change', loadKelulusan);
 

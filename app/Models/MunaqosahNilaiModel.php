@@ -699,7 +699,7 @@ class MunaqosahNilaiModel extends Model
             // Ambil semua peserta yang sudah dinilai minimal 1 juri
             // Gunakan groupBy untuk mendapatkan unique kombinasi NoPeserta, RoomId, dan IdGrupMateriUjian
             $builder = $this->db->table($this->table . ' mn');
-            $builder->select('mn.NoPeserta, mn.IdGrupMateriUjian, mn.RoomId, mn.IdTahunAjaran, mn.TypeUjian');
+            $builder->select('mn.NoPeserta, mn.IdGrupMateriUjian, mn.RoomId, mn.IdTahunAjaran, mn.TypeUjian, mn.IdTpq');
             $builder->where('mn.IdTahunAjaran', $idTahunAjaran);
             $builder->where('mn.TypeUjian', $typeUjian);
             $builder->where('mn.RoomId IS NOT NULL');
@@ -720,7 +720,7 @@ class MunaqosahNilaiModel extends Model
             // Ini berlaku untuk Admin yang ingin melihat semua TPQ
 
             // GroupBy harus mencakup semua kolom di SELECT (kecuali aggregate)
-            $builder->groupBy('mn.NoPeserta, mn.IdGrupMateriUjian, mn.RoomId, mn.IdTahunAjaran, mn.TypeUjian');
+            $builder->groupBy('mn.NoPeserta, mn.IdGrupMateriUjian, mn.RoomId, mn.IdTahunAjaran, mn.TypeUjian, mn.IdTpq');
             $builder->orderBy('mn.NoPeserta', 'ASC');
             $pesertaList = $builder->get()->getResultArray();
 
@@ -732,17 +732,22 @@ class MunaqosahNilaiModel extends Model
             $noPesertaList = array_column($pesertaList, 'NoPeserta');
             $idGrupMateriList = array_unique(array_column($pesertaList, 'IdGrupMateriUjian'));
 
-            // Ambil semua nama santri sekaligus
+            // Ambil semua nama santri dan TPQ sekaligus
             $santriMap = [];
             if (!empty($noPesertaList)) {
                 $santriBuilder = $this->db->table('tbl_munaqosah_registrasi_uji r');
-                $santriBuilder->select('r.NoPeserta, s.NamaSantri');
+                $santriBuilder->select('r.NoPeserta, r.IdTpq, s.NamaSantri, t.NamaTpq');
                 $santriBuilder->join('tbl_santri_baru s', 's.IdSantri = r.IdSantri', 'left');
+                $santriBuilder->join('tbl_tpq t', 't.IdTpq = r.IdTpq', 'left');
                 $santriBuilder->whereIn('r.NoPeserta', $noPesertaList);
                 $santriBuilder->where('r.IdTahunAjaran', $idTahunAjaran);
                 $santriDataList = $santriBuilder->get()->getResultArray();
                 foreach ($santriDataList as $santri) {
-                    $santriMap[$santri['NoPeserta']] = $santri['NamaSantri'] ?? '-';
+                    $santriMap[$santri['NoPeserta']] = [
+                        'NamaSantri' => $santri['NamaSantri'] ?? '-',
+                        'IdTpq' => $santri['IdTpq'] ?? null,
+                        'NamaTpq' => $santri['NamaTpq'] ?? '-'
+                    ];
                 }
             }
 
@@ -764,25 +769,33 @@ class MunaqosahNilaiModel extends Model
                 $noPeserta = $peserta['NoPeserta'];
                 $roomId = $peserta['RoomId'];
                 $idGrupMateri = $peserta['IdGrupMateriUjian'];
+                $pesertaIdTpq = !empty($peserta['IdTpq']) ? (int)$peserta['IdTpq'] : (isset($santriMap[$noPeserta]['IdTpq']) ? (int)$santriMap[$noPeserta]['IdTpq'] : $idTpq);
 
-                // Ambil pasangan juri untuk RoomId ini
-                // PERBAIKAN: Ambil pasangan juri berdasarkan RoomId dan IdGrupMateriUjian
-                // Gunakan method getPasanganJuriByRoom untuk mendapatkan pasangan juri yang tepat
-                $pasanganJuri = $juriModel->getPasanganJuriByRoom($roomId, $typeUjian, $idGrupMateri);
+                $namaSantri = is_array($santriMap[$noPeserta] ?? null) ? ($santriMap[$noPeserta]['NamaSantri'] ?? '-') : ($santriMap[$noPeserta] ?? '-');
+                $namaTpq = is_array($santriMap[$noPeserta] ?? null) ? ($santriMap[$noPeserta]['NamaTpq'] ?? '-') : '-';
+                $namaMateriGrup = $grupMateriMap[$idGrupMateri] ?? $idGrupMateri;
 
-                // Jika tidak ada pasangan juri dengan filter IdGrupMateriUjian, 
-                // coba ambil semua pasangan juri di RoomId ini (tanpa filter IdGrupMateriUjian)
+                // Untuk pra-munaqosah: juri selalu per TPQ yang bersangkutan
+                // Untuk munaqosah: juri bersifat global jika $idTpq kosong
+                $juriTpq = ($typeUjian === 'pra-munaqosah') ? ($pesertaIdTpq ?: $idTpq) : $idTpq;
+
+                // Ambil pasangan juri untuk RoomId, TypeUjian, IdGrupMateriUjian, dan TPQ
+                $pasanganJuri = $juriModel->getPasanganJuriByRoom($roomId, $typeUjian, $idGrupMateri, $juriTpq);
+
+                // Jika tidak ada pasangan juri dengan filter IdGrupMateriUjian spesifik, 
+                // coba ambil dari cache allPasanganJuri dengan key yang sesuai
                 if (empty($pasanganJuri)) {
-                    $pasanganJuriRaw = $allPasanganJuri[$roomId] ?? [];
+                    $lookupKey = ($typeUjian === 'pra-munaqosah' && !empty($juriTpq)) ? ($roomId . '_' . $juriTpq) : $roomId;
+                    $pasanganJuriRaw = $allPasanganJuri[$lookupKey] ?? ($allPasanganJuri[$roomId] ?? []);
                     // Jika filter IdGrupMateriUjian diberikan, filter manual
-                    if (!empty($idGrupMateriUjian) && !empty($pasanganJuriRaw)) {
+                    if (!empty($idGrupMateri) && !empty($pasanganJuriRaw)) {
                         foreach ($pasanganJuriRaw as $juri) {
                             if ($juri['IdGrupMateriUjian'] == $idGrupMateri) {
                                 $pasanganJuri[] = $juri;
                             }
                         }
-                    } else {
-                        // Jika tidak ada filter, ambil semua juri di RoomId ini
+                    }
+                    if (empty($pasanganJuri)) {
                         $pasanganJuri = $pasanganJuriRaw;
                     }
                 }
@@ -794,6 +807,8 @@ class MunaqosahNilaiModel extends Model
                     $result[] = [
                         'NoPeserta' => $noPeserta,
                         'NamaSantri' => $namaSantri,
+                        'NamaTpq' => $namaTpq,
+                        'IdTpq' => $pesertaIdTpq,
                         'IdGrupMateriUjian' => $idGrupMateri,
                         'NamaMateriGrup' => $namaMateriGrup,
                         'RoomId' => $roomId,
@@ -804,10 +819,6 @@ class MunaqosahNilaiModel extends Model
                     ];
                     continue;
                 }
-
-                // Ambil data dari map yang sudah di-load
-                $namaSantri = $santriMap[$noPeserta] ?? '-';
-                $namaMateriGrup = $grupMateriMap[$idGrupMateri] ?? $idGrupMateri;
 
                 // Cek status penilaian per pasangan juri
                 $pasanganJuriStatus = [];
@@ -861,6 +872,8 @@ class MunaqosahNilaiModel extends Model
                 $result[] = [
                     'NoPeserta' => $noPeserta,
                     'NamaSantri' => $namaSantri,
+                    'NamaTpq' => $namaTpq,
+                    'IdTpq' => $pesertaIdTpq,
                     'IdGrupMateriUjian' => $idGrupMateri,
                     'NamaMateriGrup' => $namaMateriGrup,
                     'RoomId' => $roomId,

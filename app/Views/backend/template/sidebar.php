@@ -458,14 +458,12 @@
                                         <p>Monitoring Munaqosah</p>
                                     </a>
                                 </li>
-                                <?php if (in_groups('Admin')): ?>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/monitoring-penilaian-juri-pasangan') ?> class="nav-link">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-users-cog nav-icon text-warning"></i>
                                         <p>Cek Nilai Pasangan Juri</p>
                                     </a>
                                 </li>
-                                <?php endif; ?>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/kelulusan') ?> class="nav-link">
                                         <i class="fas fa-graduation-cap nav-icon text-warning"></i>

@@ -10446,9 +10446,9 @@ class Munaqosah extends BaseController
 
     public function monitoringPenilaianJuriPasangan()
     {
-        // Cek apakah user adalah Admin
-        if (!in_groups('Admin')) {
-            return redirect()->to('/auth/index')->with('error', 'Akses ditolak. Halaman ini khusus untuk Admin.');
+        // Cek apakah user adalah Admin atau Operator
+        if (!in_groups('Admin') && !in_groups('Operator')) {
+            return redirect()->to('/auth/index')->with('error', 'Akses ditolak. Halaman ini khusus untuk Admin dan Operator.');
         }
 
         helper('munaqosah');
@@ -10456,39 +10456,52 @@ class Munaqosah extends BaseController
         $helpFunctionModel = new \App\Models\HelpFunctionModel();
         $currentTahunAjaran = $helpFunctionModel->getTahunAjaranSaatIni();
 
+        $sessionIdTpq = session()->get('IdTpq');
+        $isAdmin = in_groups('Admin');
+        $isLockedTpq = !$isAdmin && !empty($sessionIdTpq);
+
         // Ambil filter dari URL
-        $selectedType = $this->request->getGet('type') ?? 'munaqosah';
+        $selectedType = $isLockedTpq ? 'pra-munaqosah' : ($this->request->getGet('type') ?? 'munaqosah');
         $selectedGrupMateri = $this->request->getGet('grup') ?? '';
-        $selectedTpq = $this->request->getGet('tpq') ?? '';
+        $selectedTpq = $isLockedTpq ? $sessionIdTpq : ($this->request->getGet('tpq') ?? '');
 
         // Ambil semua grup materi aktif
         $grupList = $this->grupMateriUjiMunaqosahModel->getGrupMateriAktif();
 
-        // Ambil data TPQ dari query grouped tabel tbl_munaqosah_registrasi_uji
-        $builder = $this->db->table('tbl_munaqosah_registrasi_uji r');
-        $builder->select('r.IdTpq, t.NamaTpq');
-        $builder->join('tbl_tpq t', 't.IdTpq = r.IdTpq', 'left');
-        $builder->where('r.IdTahunAjaran', $currentTahunAjaran);
-        $builder->where('r.TypeUjian', $selectedType);
+        // Ambil data TPQ untuk dropdown filter (jika operator, hanya TPQ miliknya)
+        if ($isLockedTpq) {
+            $dataTpq = $this->helpFunction->getDataTpq($sessionIdTpq);
+            $typeOptions = [
+                'pra-munaqosah' => 'Pra Munaqosah'
+            ];
+        } else {
+            $builder = $this->db->table('tbl_tpq');
+            $builder->select('IdTpq, NamaTpq');
+            $builder->orderBy('NamaTpq', 'ASC');
+            $dataTpq = $builder->get()->getResultArray();
+            $typeOptions = [
+                'pra-munaqosah' => 'Pra Munaqosah',
+                'munaqosah' => 'Munaqosah'
+            ];
+        }
 
-        $builder->groupBy('r.IdTpq');
-        $builder->orderBy('t.NamaTpq', 'ASC');
-        $dataTpq = $builder->get()->getResultArray();
-
-        $typeOptions = [
-            'pra-munaqosah' => 'Pra Munaqosah',
-            'munaqosah' => 'Munaqosah'
-        ];
+        // Ambil daftar tahun ajaran dari tabel nilai munaqosah
+        $tahunAjaranList = $this->getTahunAjaranFromNilaiMunaqosah();
 
         $data = [
             'page_title' => 'Monitoring Penilaian Juri Pasangan',
             'current_tahun_ajaran' => $currentTahunAjaran,
+            'tahunAjaranList' => $tahunAjaranList,
             'grupList' => $grupList,
             'tpqDropdown' => $dataTpq,
             'types' => $typeOptions,
             'selected_type' => $selectedType,
             'selected_grup_materi' => $selectedGrupMateri,
             'selected_tpq' => $selectedTpq,
+            'isAdmin' => $isAdmin,
+            'is_locked_tpq' => $isLockedTpq,
+            'is_locked_type' => $isLockedTpq,
+            'session_id_tpq' => $sessionIdTpq,
         ];
 
         return view('backend/Munaqosah/monitoringPenilaianJuriPasangan', $data);
@@ -10503,8 +10516,8 @@ class Munaqosah extends BaseController
             ]);
         }
 
-        // Cek apakah user adalah Admin
-        if (!in_groups('Admin')) {
+        // Cek apakah user adalah Admin atau Operator
+        if (!in_groups('Admin') && !in_groups('Operator')) {
             return $this->response->setJSON([
                 'success' => false,
                 'message' => 'Akses ditolak'
@@ -10515,11 +10528,20 @@ class Munaqosah extends BaseController
             $helpFunctionModel = new \App\Models\HelpFunctionModel();
             $currentTahunAjaran = $helpFunctionModel->getTahunAjaranSaatIni();
 
+            $sessionIdTpq = session()->get('IdTpq');
+            $isAdmin = in_groups('Admin');
+            $isLockedTpq = !$isAdmin && !empty($sessionIdTpq);
+
             $idTahunAjaran = $this->request->getGet('IdTahunAjaran') ?? $currentTahunAjaran;
-            $typeUjian = $this->request->getGet('TypeUjian') ?? 'munaqosah';
+            $typeUjian = $isLockedTpq ? 'pra-munaqosah' : ($this->request->getGet('TypeUjian') ?? 'munaqosah');
             $idGrupMateriUjian = $this->request->getGet('IdGrupMateriUjian');
-            $idTpqParam = $this->request->getGet('IdTpq');
-            $idTpq = ($idTpqParam === null || $idTpqParam === '' || $idTpqParam === '0') ? null : (int)$idTpqParam;
+
+            if ($isLockedTpq) {
+                $idTpq = (int)$sessionIdTpq;
+            } else {
+                $idTpqParam = $this->request->getGet('IdTpq');
+                $idTpq = ($idTpqParam === null || $idTpqParam === '' || $idTpqParam === '0') ? null : (int)$idTpqParam;
+            }
 
             // Ambil data peserta dengan status juri pasangan
             $data = $this->nilaiMunaqosahModel->getPesertaDenganStatusJuriPasangan(
@@ -10565,19 +10587,22 @@ class Munaqosah extends BaseController
             ]);
         }
 
-        // Cek apakah user adalah Admin
-        if (!in_groups('Admin')) {
+        // Cek apakah user adalah Admin atau Operator
+        if (!in_groups('Admin') && !in_groups('Operator')) {
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'Akses ditolak. Hanya Admin yang dapat menghapus nilai.'
+                'message' => 'Akses ditolak. Anda tidak memiliki izin untuk menghapus nilai.'
             ]);
         }
 
         try {
+            $sessionIdTpq = session()->get('IdTpq');
+            $isAdmin = in_groups('Admin');
+
             $noPeserta = $this->request->getPost('NoPeserta');
             $idGrupMateriUjian = $this->request->getPost('IdGrupMateriUjian');
             $idTahunAjaran = $this->request->getPost('IdTahunAjaran');
-            $typeUjian = $this->request->getPost('TypeUjian');
+            $typeUjian = (!$isAdmin && !empty($sessionIdTpq)) ? 'pra-munaqosah' : $this->request->getPost('TypeUjian');
 
             // Validasi input
             if (empty($noPeserta) || empty($idGrupMateriUjian) || empty($idTahunAjaran) || empty($typeUjian)) {
@@ -10587,6 +10612,9 @@ class Munaqosah extends BaseController
                 ]);
             }
 
+            $sessionIdTpq = session()->get('IdTpq');
+            $isAdmin = in_groups('Admin');
+
             // Hapus nilai berdasarkan NoPeserta, IdGrupMateriUjian, IdTahunAjaran, dan TypeUjian
             // Hanya menghapus nilai untuk grup materi tertentu, bukan semua nilai peserta
             $builder = $this->db->table('tbl_munaqosah_nilai');
@@ -10594,6 +10622,11 @@ class Munaqosah extends BaseController
             $builder->where('IdGrupMateriUjian', $idGrupMateriUjian);
             $builder->where('IdTahunAjaran', $idTahunAjaran);
             $builder->where('TypeUjian', $typeUjian);
+
+            // Jika bukan admin (misal Operator), pastikan hanya menghapus peserta di TPQ miliknya
+            if (!$isAdmin && !empty($sessionIdTpq)) {
+                $builder->where('IdTpq', $sessionIdTpq);
+            }
 
             $affectedRows = $builder->delete();
 
@@ -10603,7 +10636,7 @@ class Munaqosah extends BaseController
                     cache()->clean();
                 }
 
-                log_message('info', "Admin menghapus nilai untuk NoPeserta: {$noPeserta}, IdGrupMateriUjian: {$idGrupMateriUjian}, IdTahunAjaran: {$idTahunAjaran}, TypeUjian: {$typeUjian}");
+                log_message('info', "User menghapus nilai untuk NoPeserta: {$noPeserta}, IdGrupMateriUjian: {$idGrupMateriUjian}, IdTahunAjaran: {$idTahunAjaran}, TypeUjian: {$typeUjian}");
 
                 return $this->response->setJSON([
                     'success' => true,
@@ -10674,9 +10707,13 @@ class Munaqosah extends BaseController
             $aktiveTombolKelulusan = true;
         }
 
+        // Ambil tahun ajaran dari tabel nilai munaqosah (grouping IdTahunAjaran)
+        $tahunAjaranList = $this->getTahunAjaranFromNilaiMunaqosah();
+
         $data = [
             'page_title' => 'Nilai Munaqosah',
             'current_tahun_ajaran' => $currentTahunAjaran,
+            'tahunAjaranList' => $tahunAjaranList,
             'tpqDropdown' => $dataTpq,
             'statistik' => $statistik,
             'aktiveTombolKelulusan' => $aktiveTombolKelulusan,
