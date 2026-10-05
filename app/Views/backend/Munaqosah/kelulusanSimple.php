@@ -35,9 +35,7 @@
                             <div class="mr-2">
                                 <label class="mb-0 small">Type Ujian</label>
                                 <select id="filterTypeUjian" class="form-control form-control-sm">
-                                    <?php if ($isAdmin || ($aktiveTombolKelulusan && ($isOperator || $isKepalaTpq))): ?>
-                                        <option value="munaqosah">Munaqosah</option>
-                                    <?php endif; ?>
+                                    <option value="munaqosah">Munaqosah</option>
                                     <option value="pra-munaqosah">Pra-Munaqosah</option>
                                 </select>
                             </div>
@@ -271,12 +269,29 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
         const isOperator = userRole === 'operator';
         const aktiveTombolKelulusan = <?= ($aktiveTombolKelulusan ?? false) ? 'true' : 'false' ?>;
         const isAdmin = <?= ($isAdmin ?? false) ? 'true' : 'false' ?>;
+        const currentTahunAjaran = <?= json_encode($current_tahun_ajaran ?? '') ?>;
 
         const $tpqSelect = $('#filterTpq');
         const $typeUjianSelect = $('#filterTypeUjian');
+        const $tahunAjaranSelect = $('#filterTahunAjaran');
 
-        // Cek apakah opsi munaqosah ada di dropdown
-        const hasMunaqosahOption = $typeUjianSelect.find('option[value="munaqosah"]').length > 0;
+        function updateTypeUjianOptions() {
+            const selectedTahun = $tahunAjaranSelect.val();
+            const isOldYear = selectedTahun && currentTahunAjaran && (selectedTahun !== currentTahunAjaran);
+            const canAccessMunaqosah = isAdmin || isOldYear || aktiveTombolKelulusan;
+
+            const hasMunaqosah = $typeUjianSelect.find('option[value="munaqosah"]').length > 0;
+            if (canAccessMunaqosah) {
+                if (!hasMunaqosah) {
+                    $typeUjianSelect.prepend('<option value="munaqosah">Munaqosah</option>');
+                }
+            } else {
+                if ($typeUjianSelect.val() === 'munaqosah') {
+                    $typeUjianSelect.val('pra-munaqosah');
+                }
+                $typeUjianSelect.find('option[value="munaqosah"]').remove();
+            }
+        }
 
         const nonZeroOptions = $tpqSelect.find('option').filter(function() {
             return $(this).val() !== '0';
@@ -288,20 +303,18 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
 
             if (!isOperator && isAdmin) {
                 $typeUjianSelect.val('pra-munaqosah').prop('disabled', true);
-            } else if (isOperator) {
-                if (!hasMunaqosahOption || !aktiveTombolKelulusan) {
-                    $typeUjianSelect.val('pra-munaqosah');
-                }
-            }
-        } else {
-            if (isOperator && (!hasMunaqosahOption || !aktiveTombolKelulusan)) {
-                $typeUjianSelect.val('pra-munaqosah');
             }
         }
 
+        updateTypeUjianOptions();
+
         $('#btnReloadKelulusan').on('click', loadKelulusan);
-        $('#filterTpq').on('change', loadKelulusan);
-        $('#filterTypeUjian').on('change', loadKelulusan);
+        $tahunAjaranSelect.on('change', function() {
+            updateTypeUjianOptions();
+            loadKelulusan();
+        });
+        $tpqSelect.on('change', loadKelulusan);
+        $typeUjianSelect.on('change', loadKelulusan);
 
         // Copy link button click handler untuk kelulusan
         $(document).on('click', '.copy-link-btn-kelulusan:not(:disabled)', function() {

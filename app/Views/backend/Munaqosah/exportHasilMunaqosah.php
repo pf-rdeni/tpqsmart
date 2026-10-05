@@ -32,9 +32,7 @@
                             <div class="mr-2">
                                 <label class="mb-0 small">Type Ujian</label>
                                 <select id="filterTypeUjian" class="form-control form-control-sm">
-                                    <?php if ($isAdmin || ($aktiveTombolKelulusan && ($isOperator || $isKepalaTpq))): ?>
-                                        <option value="munaqosah">Munaqosah</option>
-                                    <?php endif; ?>
+                                    <option value="munaqosah">Munaqosah</option>
                                     <option value="pra-munaqosah">Pra-Munaqosah</option>
                                 </select>
                             </div>
@@ -770,8 +768,27 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
             }
         }
 
+        const currentTahunAjaran = <?= json_encode($current_tahun_ajaran ?? '') ?>;
+
+        function updateTypeUjianOptionsExport() {
+            const selectedTahun = $tahunAjaranInput.val();
+            const isOldYear = selectedTahun && currentTahunAjaran && (selectedTahun !== currentTahunAjaran);
+            const canAccessMunaqosah = isAdmin || isOldYear || aktiveTombolKelulusan;
+
+            const hasMunaqosah = $typeUjianSelect.find('option[value="munaqosah"]').length > 0;
+            if (canAccessMunaqosah) {
+                if (!hasMunaqosah) {
+                    $typeUjianSelect.prepend('<option value="munaqosah">Munaqosah</option>');
+                }
+            } else {
+                if ($typeUjianSelect.val() === 'munaqosah') {
+                    $typeUjianSelect.val('pra-munaqosah');
+                }
+                $typeUjianSelect.find('option[value="munaqosah"]').remove();
+            }
+        }
+
         // Terapkan filter Tahun Ajaran dari localStorage jika ada, atau gunakan tahun ajaran saat ini sebagai fallback
-        const currentTahunAjaran = '<?= esc($current_tahun_ajaran) ?>';
         if (savedFilters && savedFilters.tahunAjaran) {
             // Cek apakah tahun ajaran dari localStorage masih valid (ada di dropdown)
             const optionExists = $tahunAjaranInput.find(`option[value="${savedFilters.tahunAjaran}"]`).length > 0;
@@ -786,6 +803,8 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
             $tahunAjaranInput.val(currentTahunAjaran);
         }
 
+        updateTypeUjianOptionsExport();
+
         // Load filter status dari localStorage jika ada
         if (savedFilters && savedFilters.status) {
             $('#filterStatus').val(savedFilters.status);
@@ -793,6 +812,7 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
 
         // Event listener untuk menyimpan filter saat berubah dan memuat data
         $tahunAjaranInput.on('change', function() {
+            updateTypeUjianOptionsExport();
             saveFiltersToLocalStorage();
             loadExport();
         });

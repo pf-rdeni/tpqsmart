@@ -11038,18 +11038,30 @@ class Munaqosah extends BaseController
 
         $typeRaw = (string)$this->request->getGet('TypeUjian');
         $typeCandidates = array_values(array_unique(array_filter(array_map('trim', explode(',', $typeRaw)))));
+
+        $helpFunctionModel = new \App\Models\HelpFunctionModel();
+        $currentTahun = $helpFunctionModel->getTahunAjaranSaatIni();
+        $hasOldTahun = false;
+        foreach ($tahunList as $th) {
+            if (!empty($th) && !empty($currentTahun) && $th !== $currentTahun) {
+                $hasOldTahun = true;
+                break;
+            }
+        }
+        $canAccessMunaqosah = $akses['isAdmin'] || $akses['aktive'] || $hasOldTahun;
+
         $validTypes = [];
         foreach ($typeCandidates as $t) {
             $t = strtolower($t);
             if (in_array($t, ['munaqosah', 'pra-munaqosah'], true)) {
-                if ($t === 'munaqosah' && !$akses['isAdmin'] && !$akses['aktive']) {
+                if ($t === 'munaqosah' && !$canAccessMunaqosah) {
                     continue;
                 }
                 $validTypes[] = $t;
             }
         }
         if (empty($validTypes)) {
-            $validTypes = ($akses['isAdmin'] || $akses['aktive']) ? ['munaqosah'] : ['pra-munaqosah'];
+            $validTypes = $canAccessMunaqosah ? ['munaqosah'] : ['pra-munaqosah'];
         }
 
         return ['tahunList' => $tahunList, 'idTpq' => $idTpq, 'typeList' => $validTypes];

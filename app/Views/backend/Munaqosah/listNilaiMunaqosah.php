@@ -147,9 +147,7 @@
                             <div class="mr-2">
                                 <label class="mb-0 small">Type Ujian</label>
                                 <select id="filterTypeUjian" class="form-control form-control-sm">
-                                    <?php if ($isAdmin || ($aktiveTombolKelulusan && ($isOperator || $isKepalaTpq))): ?>
-                                        <option value="munaqosah">Munaqosah</option>
-                                    <?php endif; ?>
+                                    <option value="munaqosah">Munaqosah</option>
                                     <option value="pra-munaqosah">Pra-Munaqosah</option>
                                 </select>
                             </div>
@@ -892,12 +890,30 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
         const userRole = $('#userRole').val() || 'admin';
         const isOperator = userRole === 'operator';
         const aktiveTombolKelulusan = <?= ($aktiveTombolKelulusan ?? false) ? 'true' : 'false' ?>;
+        const isAdmin = <?= ($isAdmin ?? false) ? 'true' : 'false' ?>;
+        const currentTahunAjaran = <?= json_encode($current_tahun_ajaran ?? '') ?>;
 
         const $tpqSelect = $('#filterTpq');
         const $typeUjianSelect = $('#filterTypeUjian');
+        const $tahunAjaranSelect = $('#filterTahunAjaran');
 
-        // Cek apakah opsi munaqosah ada di dropdown
-        const hasMunaqosahOption = $typeUjianSelect.find('option[value="munaqosah"]').length > 0;
+        function updateTypeUjianOptions() {
+            const selectedTahun = $tahunAjaranSelect.val();
+            const isOldYear = selectedTahun && currentTahunAjaran && (selectedTahun !== currentTahunAjaran);
+            const canAccessMunaqosah = isAdmin || isOldYear || aktiveTombolKelulusan;
+
+            const hasMunaqosah = $typeUjianSelect.find('option[value="munaqosah"]').length > 0;
+            if (canAccessMunaqosah) {
+                if (!hasMunaqosah) {
+                    $typeUjianSelect.prepend('<option value="munaqosah">Munaqosah</option>');
+                }
+            } else {
+                if ($typeUjianSelect.val() === 'munaqosah') {
+                    $typeUjianSelect.val('pra-munaqosah');
+                }
+                $typeUjianSelect.find('option[value="munaqosah"]').remove();
+            }
+        }
 
         const nonZeroOptions = $tpqSelect.find('option').filter(function() {
             return $(this).val() !== '0';
@@ -907,29 +923,20 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
             const onlyId = $(nonZeroOptions[0]).val();
             $tpqSelect.val(onlyId).prop('disabled', true);
 
-            // Untuk Operator/TPQ, Type Ujian bisa diubah (tidak disabled)
-            // Hanya Admin yang Type Ujian-nya dikunci jika TPQ hanya satu
             if (!isOperator && isAdmin) {
-                // Admin: set default dan lock jika TPQ hanya satu
                 $typeUjianSelect.val('pra-munaqosah').prop('disabled', true);
-            } else if (isOperator) {
-                // Operator/TPQ: set default berdasarkan ketersediaan opsi
-                // Jika setting tidak aktif, pastikan menggunakan pra-munaqosah
-                if (!hasMunaqosahOption || !aktiveTombolKelulusan) {
-                    $typeUjianSelect.val('pra-munaqosah');
-                }
-            }
-        } else {
-            // Jika ada multiple TPQ, pastikan default sesuai dengan setting
-            if (isOperator && (!hasMunaqosahOption || !aktiveTombolKelulusan)) {
-                $typeUjianSelect.val('pra-munaqosah');
             }
         }
 
+        updateTypeUjianOptions();
+
         $('#btnReloadKelulusan').on('click', loadKelulusan);
-        $('#filterTahunAjaran').on('change', loadKelulusan);
-        $('#filterTpq').on('change', loadKelulusan);
-        $('#filterTypeUjian').on('change', loadKelulusan);
+        $tahunAjaranSelect.on('change', function() {
+            updateTypeUjianOptions();
+            loadKelulusan();
+        });
+        $tpqSelect.on('change', loadKelulusan);
+        $typeUjianSelect.on('change', loadKelulusan);
 
         loadKelulusan();
     });

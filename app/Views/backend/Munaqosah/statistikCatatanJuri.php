@@ -64,9 +64,7 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
                         </div>
                         <select id="filterTypeUjian" class="form-control form-control-sm select2" multiple="multiple" data-placeholder="Pilih Type Ujian..." style="width: 100%;">
                             <option value="pra-munaqosah" selected>Pra-Munaqosah</option>
-                            <?php if ($isAdmin || ($aktiveTombolKelulusan && $isOperator)): ?>
-                                <option value="munaqosah" <?= $isAdmin ? 'selected' : '' ?>>Munaqosah</option>
-                            <?php endif; ?>
+                            <option value="munaqosah" <?= $isAdmin ? 'selected' : '' ?>>Munaqosah</option>
                         </select>
                     </div>
                     <div class="col-lg-2 col-md-12 mb-2 d-flex align-items-end">
@@ -2222,6 +2220,40 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
                 closeOnSelect: false,
                 width: '100%'
             });
+
+            const currentTahunAjaran = <?= json_encode($current_tahun_ajaran ?? '') ?>;
+            const isAdmin = <?= ($isAdmin ?? false) ? 'true' : 'false' ?>;
+            const aktiveTombolKelulusan = <?= ($aktiveTombolKelulusan ?? false) ? 'true' : 'false' ?>;
+
+            function updateTypeUjianOptionsStatistik() {
+                const $ta = window.jQuery('#filterTahunAjaran');
+                const $type = window.jQuery('#filterTypeUjian');
+                const selectedYears = $ta.val() || [];
+                const hasOldYear = selectedYears.some(y => y && currentTahunAjaran && y !== currentTahunAjaran);
+                const canAccessMunaqosah = isAdmin || hasOldYear || aktiveTombolKelulusan;
+
+                const hasMunaqosahOpt = $type.find('option[value="munaqosah"]').length > 0;
+                if (canAccessMunaqosah) {
+                    if (!hasMunaqosahOpt) {
+                        $type.append(new Option('Munaqosah', 'munaqosah', false, false));
+                        $type.trigger('change.select2');
+                    }
+                } else {
+                    if (hasMunaqosahOpt) {
+                        let curVals = $type.val() || [];
+                        if (curVals.includes('munaqosah')) {
+                            curVals = curVals.filter(v => v !== 'munaqosah');
+                            if (curVals.length === 0) curVals = ['pra-munaqosah'];
+                            $type.val(curVals);
+                        }
+                        $type.find('option[value="munaqosah"]').remove();
+                        $type.trigger('change.select2');
+                    }
+                }
+            }
+
+            updateTypeUjianOptionsStatistik();
+            window.jQuery('#filterTahunAjaran').on('change', updateTypeUjianOptionsStatistik);
         }
 
         // Auto load initial data
