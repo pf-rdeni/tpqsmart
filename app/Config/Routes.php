@@ -524,6 +524,7 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->match(['GET', 'POST'], 'munaqosah/print-klasifikasi-nilai', 'Munaqosah::printKlasifikasiNilai');
     $routes->match(['GET', 'POST'], 'munaqosah/print-rekap-ruangan-juri', 'Munaqosah::printRekapRuanganJuri');
     $routes->match(['GET', 'POST'], 'munaqosah/print-absensi-peserta', 'Munaqosah::printAbsensiPeserta');
+    $routes->match(['GET', 'POST'], 'munaqosah/print-label-antrian', 'Munaqosah::printLabelAntrian');
 
     // Panitia Munaqosah Routes
     $routes->post('munaqosah/generate-username-panitia', 'Munaqosah::generateUsernamePanitia');

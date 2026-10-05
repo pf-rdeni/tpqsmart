@@ -9400,6 +9400,12 @@ class Munaqosah extends BaseController
             ->orderBy('kk.NilaiMin', 'ASC')
             ->get()->getResultArray();
 
+        // Grup Materi untuk Plang Antrian
+        $grupMateriList = $this->db->table('tbl_munaqosah_grup_materi_uji')
+            ->where('Status', 'Aktif')
+            ->orderBy('IdGrupMateriUjian', 'ASC')
+            ->get()->getResultArray();
+
         $data = [
             'page_title' => 'Administrasi Pelaksanaan Ujian Munaqosah',
             'title' => 'Administrasi Pelaksanaan Ujian Munaqosah',
@@ -9413,6 +9419,7 @@ class Munaqosah extends BaseController
             'tpqList' => $tpqList,
             'ruanganList' => $ruanganList,
             'materiList' => $materiList,
+            'grupMateriList' => $grupMateriList,
             'kategoriKesalahan' => $kategoriKesalahan,
         ];
 
@@ -10041,6 +10048,109 @@ class Munaqosah extends BaseController
         } catch (\Exception $e) {
             log_message('error', 'Munaqosah: printAbsensiPeserta - Error: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Gagal membuat PDF Absensi: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Cetak Plang / Label Meja Registrasi & Antrian Peserta Berdasarkan Grup Materi
+     */
+    public function printLabelAntrian()
+    {
+        try {
+            helper('nilai');
+            $typeUjian = $this->request->getVar('type') ?? 'munaqosah';
+            $idTpqRaw = $this->request->getVar('tpq');
+            $idTpq = ($idTpqRaw !== null && $idTpqRaw !== '') ? trim((string)$idTpqRaw) : '0';
+            $grupTarget = $this->request->getVar('grup_materi') ?? 'all';
+            $labelMeja = $this->request->getVar('label_meja') ?: 'MEJA PENDAFTARAN & ANTRIAN PESERTA';
+            $tahunAjaran = $this->request->getVar('tahun_ajaran') ?: $this->helpFunction->getTahunAjaranSaatIni();
+
+            $sessionIdTpq = session()->get('IdTpq');
+            $isAdmin = in_groups('Admin') || (empty($sessionIdTpq) || $sessionIdTpq == 0);
+            if (!$isAdmin && !empty($sessionIdTpq)) {
+                $idTpq = (string)$sessionIdTpq;
+                $typeUjian = 'pra-munaqosah';
+            }
+
+            $tpqInfo = null;
+            if (!empty($idTpq) && $idTpq !== '0') {
+                $tpqInfo = $this->db->table('tbl_tpq')->where('IdTpq', $idTpq)->get()->getRowArray();
+            }
+
+            // Cari logo jika ada
+            $logoBase64 = '';
+            if (!empty($tpqInfo['LogoLembaga'])) {
+                $logoPath = FCPATH . 'uploads/logo/' . $tpqInfo['LogoLembaga'];
+                if (file_exists($logoPath)) {
+                    $type = pathinfo($logoPath, PATHINFO_EXTENSION);
+                    $dataImg = file_get_contents($logoPath);
+                    $logoBase64 = 'data:image/' . $type . ';base64,' . base64_encode($dataImg);
+                }
+            }
+
+            // Query grup materi
+            $grupBuilder = $this->db->table('tbl_munaqosah_grup_materi_uji')
+                ->where('Status', 'Aktif');
+
+            if (!empty($grupTarget) && $grupTarget !== 'all') {
+                $grupBuilder->where('IdGrupMateriUjian', $grupTarget);
+            }
+
+            $grupRaw = $grupBuilder->orderBy('IdGrupMateriUjian', 'ASC')->get()->getResultArray();
+
+            if (empty($grupRaw)) {
+                // Fallback default grup jika tabel kosong
+                $grupRaw = [
+                    ['IdGrupMateriUjian' => 'QURAN', 'NamaMateriGrup' => 'BACA AL-QUR\'AN'],
+                    ['IdGrupMateriUjian' => 'IMLA', 'NamaMateriGrup' => 'TULIS AL-QUR\'AN / IMLA'],
+                    ['IdGrupMateriUjian' => 'SHOLAT', 'NamaMateriGrup' => 'PRAKTEK SHOLAT & IBADAH'],
+                    ['IdGrupMateriUjian' => 'HAFALAN', 'NamaMateriGrup' => 'HAFALAN SURAT & DOA'],
+                    ['IdGrupMateriUjian' => 'TEORI', 'NamaMateriGrup' => 'DINUL ISLAM & TAJWID'],
+                ];
+            }
+
+            $grupList = $grupRaw;
+
+            $data = [
+                'title' => 'Plang Meja Antrian ' . ($grupTarget !== 'all' ? $grupTarget : 'Semua Grup Materi'),
+                'idTahunAjaran' => $tahunAjaran,
+                'typeUjian' => $typeUjian,
+                'idTpq' => $idTpq,
+                'tpqInfo' => $tpqInfo,
+                'logoBase64' => $logoBase64,
+                'labelMeja' => $labelMeja,
+                'grupList' => $grupList,
+            ];
+
+            $html = view('backend/Munaqosah/printLabelAntrian', $data);
+
+            $options = new \Dompdf\Options();
+            $options->set('isHtml5ParserEnabled', true);
+            $options->set('isPhpEnabled', true);
+            $options->set('defaultFont', 'Helvetica');
+            $options->set('defaultMediaType', 'print');
+
+            $dompdf = new \Dompdf\Dompdf($options);
+            $dompdf->loadHtml($html);
+            $dompdf->setPaper('A4', 'landscape');
+            $dompdf->render();
+
+            $filename = 'plang_antrian_' . $typeUjian . '_' . date('Ymd') . '.pdf';
+
+            if (ob_get_level()) {
+                ob_end_clean();
+            }
+
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: inline; filename="' . $filename . '"');
+            header('Cache-Control: private, max-age=0, must-revalidate');
+            header('Pragma: public');
+
+            echo $dompdf->output();
+            exit();
+        } catch (\Exception $e) {
+            log_message('error', 'Munaqosah: printLabelAntrian - Error: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal membuat PDF Plang Antrian: ' . $e->getMessage());
         }
     }
 

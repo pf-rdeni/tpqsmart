@@ -190,13 +190,13 @@
         }
 
         /* Footer */
-        .footer-note {
+        .footer-table {
             width: 100%;
-            margin-top: 4px;
-            padding-top: 2px;
-            border-top: 1px dotted #cbd5e1;
-            font-size: 7.5pt;
-            color: #9ca3af;
+            margin-top: 6px;
+            padding-top: 3px;
+            border-top: 1px dotted #94a3b8;
+            font-size: 8pt;
+            color: #64748b;
             table-layout: fixed;
         }
     </style>
@@ -274,11 +274,11 @@
                 </div>
             <?php endif; ?>
 
-            <!-- FOOTER INFO -->
-            <table class="footer-note">
+            <!-- FOOTER INFO STANDAR -->
+            <table class="footer-table">
                 <tr>
-                    <td style="text-align: left; width: 50%;">TPQSmart System - Label Ruangan Munaqosah</td>
-                    <td style="text-align: right; width: 50%;">Tahun Ajaran: <?= esc($idTahunAjaran); ?> | Dokumen Resmi Panitia</td>
+                    <td style="text-align: left;">Dokumen Resmi Panitia Pelaksana | TPQSmart System</td>
+                    <td style="text-align: right;">Dicetak pada: <?= date('d/m/Y H:i'); ?> WIB</td>
                 </tr>
             </table>
         </div>

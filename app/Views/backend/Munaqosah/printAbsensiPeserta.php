@@ -180,6 +180,17 @@
             color: #000000;
             display: block;
         }
+
+        /* Footer */
+        .footer-table {
+            width: 100%;
+            margin-top: 8px;
+            padding-top: 3px;
+            border-top: 1px dotted #94a3b8;
+            font-size: 7.5pt;
+            color: #64748b;
+            table-layout: fixed;
+        }
     </style>
 </head>
 <body>
@@ -299,6 +310,14 @@
                 endforeach; 
                 ?>
             </tbody>
+        </table>
+
+        <!-- FOOTER INFO STANDAR -->
+        <table class="footer-table">
+            <tr>
+                <td style="text-align: left;">Dokumen Resmi Panitia Pelaksana | TPQSmart System</td>
+                <td style="text-align: right;">Dicetak pada: <?= date('d/m/Y H:i'); ?> WIB</td>
+            </tr>
         </table>
     </div>
 </body>

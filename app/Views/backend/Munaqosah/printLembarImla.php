@@ -190,6 +190,17 @@
             min-width: 180px;
             padding-top: 10px;
         }
+
+        /* Footer */
+        .footer-table {
+            width: 100%;
+            margin-top: 8px;
+            padding-top: 3px;
+            border-top: 1px dotted #94a3b8;
+            font-size: 7.5pt;
+            color: #64748b;
+            table-layout: fixed;
+        }
     </style>
 </head>
 <body>
@@ -258,7 +269,7 @@
             </tr>
         </table>
 
-        <!-- AREA MENULIS AYAT (17 GARIS LINE POLOS TANPA NOMOR) -->
+        <!-- AREA MENULIS AYAT (15 GARIS LINE POLOS TANPA NOMOR) -->
         <div class="write-lines-container">
             <?php for ($i = 1; $i <= 15; $i++): ?>
                 <div class="write-line-row"></div>
@@ -285,6 +296,14 @@
                     $juriIdx++;
                 endforeach; 
                 ?>
+            </tr>
+        </table>
+
+        <!-- FOOTER INFO STANDAR -->
+        <table class="footer-table">
+            <tr>
+                <td style="text-align: left;">Dokumen Resmi Panitia Pelaksana | TPQSmart System</td>
+                <td style="text-align: right;">Dicetak pada: <?= date('d/m/Y H:i'); ?> WIB</td>
             </tr>
         </table>
     </div>

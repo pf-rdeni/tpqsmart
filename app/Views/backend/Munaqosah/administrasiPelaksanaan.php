@@ -9,7 +9,7 @@
                     <h4 class="card-title font-weight-bold text-primary mb-1">
                         <i class="fas fa-print mr-2"></i> Administrasi & Kelengkapan Cetak Ujian
                     </h4>
-                    <p class="text-muted small mb-0">Cetak label ruangan juri, lembar ujian tulis imla, pedoman klasifikasi range nilai, dan rekapitulasi penempatan.</p>
+                    <p class="text-muted small mb-0">Cetak label ruangan juri, lembar imla, pedoman klasifikasi range nilai, rekapitulasi penempatan, form absensi santri/ortu, dan plang meja antrian materi.</p>
                 </div>
                 <div class="mt-2 mt-md-0">
                     <span class="badge badge-info p-2 font-weight-normal">
@@ -359,6 +359,62 @@
 
                         <button type="submit" class="btn btn-dark btn-block shadow-sm font-weight-bold">
                             <i class="fas fa-print mr-1"></i> Cetak Form Absensi Santri & Wali Santri (PDF)
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- CARD 6: PLANG MEJA REGISTRASI & ANTRIAN GRUP MATERI (TANPA RUANGAN) -->
+        <div class="col-lg-6 mb-4">
+            <div class="card h-100 border shadow-sm">
+                <div class="card-header text-white d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, #0f766e 0%, #0d9488 100%);">
+                    <h5 class="card-title mb-0 font-weight-bold">
+                        <i class="fas fa-clipboard-list mr-2"></i> 6. Plang Meja Registrasi & Antrian Materi
+                    </h5>
+                    <span class="badge badge-light text-success font-weight-bold">A4 Landscape</span>
+                </div>
+                <div class="card-body d-flex flex-column">
+                    <p class="text-muted small mb-3">
+                        Mencetak <strong>Plang / Label Meja Registrasi & Pos Antrian Peserta (A4 Landscape)</strong> berdasarkan Grup Materi (<em>Baca Al-Qur'an, Tulis Al-Qur'an / Imla, Praktek Sholat</em>, dll.) murni tanpa nomor ruangan untuk penataan antrian di meja depan.
+                    </p>
+
+                    <form action="<?= base_url('backend/munaqosah/print-label-antrian'); ?>" method="POST" target="_blank" class="mt-auto">
+                        <?= csrf_field(); ?>
+                        <input type="hidden" name="tahun_ajaran" value="<?= esc($idTahunAjaran); ?>">
+                        <input type="hidden" name="type" value="<?= esc($typeUjian); ?>">
+                        <input type="hidden" name="tpq" value="<?= esc($idTpq); ?>">
+
+                        <div class="form-group mb-2 bg-light p-2 rounded border">
+                            <label class="font-weight-bold text-dark small mb-1">
+                                <i class="fas fa-layer-group mr-1 text-teal"></i> Pilih Target Grup Materi:
+                            </label>
+                            <select name="grup_materi" class="form-control form-control-sm">
+                                <option value="all">🗂️ Cetak Semua Grup Materi Sekaligus (1 Lembar/Grup)</option>
+                                <?php if (!empty($grupMateriList)): ?>
+                                    <?php foreach ($grupMateriList as $gm): ?>
+                                        <option value="<?= esc($gm['IdGrupMateriUjian']); ?>">
+                                            📄 <?= esc($gm['NamaMateriGrup']); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </select>
+                        </div>
+
+                        <div class="form-group mb-3 bg-light p-2 rounded border">
+                            <label class="font-weight-bold text-dark small mb-1">
+                                <i class="fas fa-heading mr-1 text-teal"></i> Judul / Label Pos Meja:
+                            </label>
+                            <select name="label_meja" class="form-control form-control-sm">
+                                <option value="MEJA PENDAFTARAN & ANTRIAN PESERTA">MEJA PENDAFTARAN & ANTRIAN PESERTA</option>
+                                <option value="POS REGISTRASI & ANTRIAN UJIAN">POS REGISTRASI & ANTRIAN UJIAN</option>
+                                <option value="MEJA PENYERAHAN NOMOR TES PESERTA">MEJA PENYERAHAN NOMOR TES PESERTA</option>
+                                <option value="POS PENGECEKAN KARTU PESERTA">POS PENGECEKAN KARTU PESERTA</option>
+                            </select>
+                        </div>
+
+                        <button type="submit" class="btn text-white btn-block shadow-sm font-weight-bold" style="background-color: #0f766e;">
+                            <i class="fas fa-print mr-1"></i> Cetak Plang Meja Antrian (PDF)
                         </button>
                     </form>
                 </div>
