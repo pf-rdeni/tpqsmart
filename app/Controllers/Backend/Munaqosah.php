@@ -11038,6 +11038,192 @@ class Munaqosah extends BaseController
     }
 
     /**
+     * Halaman Analisis Catatan Juri (child "Statistik Hasil").
+     * Akses: Admin (semua TPQ) dan Operator (hanya TPQ sendiri).
+     */
+    public function statistikCatatanJuri()
+    {
+        helper('munaqosah');
+
+        $akses = $this->resolveStatistikAkses();
+        if (!$akses['isAdmin'] && !$akses['isOperator']) {
+            return redirect()->to(base_url('/'))->with('error', 'Akses ditolak');
+        }
+
+        $helpFunctionModel = new \App\Models\HelpFunctionModel();
+        $idTpq = session()->get('IdTpq');
+
+        return view('backend/Munaqosah/statistikCatatanJuri', [
+            'page_title' => 'Analisis Catatan Juri',
+            'current_tahun_ajaran' => $helpFunctionModel->getTahunAjaranSaatIni(),
+            'tahunAjaranList' => $this->getTahunAjaranFromNilaiMunaqosah(),
+            'tpqDropdown' => $this->helpFunction->getDataTpq($idTpq),
+            'aktiveTombolKelulusan' => $akses['aktive'],
+            'isAdmin' => $akses['isAdmin'],
+            'isOperator' => $akses['isOperator'],
+        ]);
+    }
+
+    /**
+     * Data JSON Analisis Catatan Juri.
+     * Catatan di tbl_munaqosah_nilai.Catatan berupa JSON {"Kategori":"KS001,KS002","Catatan":"teks"}.
+     * Juri 1/Juri 2 ditentukan dari urutan IdJuri terkecil dalam satu room (per peserta + kategori materi).
+     */
+    public function getStatistikCatatanJuriData()
+    {
+        try {
+            $akses = $this->resolveStatistikAkses();
+            if (!$akses['isAdmin'] && !$akses['isOperator']) {
+                return $this->response->setJSON(['success' => false, 'message' => 'Akses ditolak']);
+            }
+            $filter = $this->resolveStatistikFilter($akses);
+            if (isset($filter['error'])) {
+                return $this->response->setJSON(['success' => false, 'message' => $filter['error']]);
+            }
+
+            // Master kesalahan generik
+            $errBuilder = $this->db->table('tbl_munaqosah_kategori_kesalahan k');
+            $errBuilder->select('k.IdKategoriKesalahan, k.NamaKategoriKesalahan, k.IdKategoriMateri, km.NamaKategoriMateri');
+            $errBuilder->join('tbl_kategori_materi km', 'km.IdKategoriMateri = k.IdKategoriMateri', 'left');
+            $errors = [];
+            $categories = [];
+            foreach ($errBuilder->get()->getResultArray() as $e) {
+                $errors[$e['IdKategoriKesalahan']] = [
+                    'name' => $e['NamaKategoriKesalahan'],
+                    'cat' => (string)$e['IdKategoriMateri'],
+                ];
+                $categories[(string)$e['IdKategoriMateri']] = $e['NamaKategoriMateri'] ?? (string)$e['IdKategoriMateri'];
+            }
+
+            // Seluruh nilai pada filter (untuk menentukan peserta teruji & urutan juri)
+            $builder = $this->db->table('tbl_munaqosah_nilai nm');
+            $builder->select('nm.NoPeserta, nm.IdTahunAjaran, nm.TypeUjian, nm.IdTpq, nm.IdJuri, nm.RoomId, nm.IdKategoriMateri, nm.Nilai, nm.Catatan, s.NamaSantri, t.NamaTpq');
+            $builder->join('tbl_santri_baru s', 's.IdSantri = nm.IdSantri', 'left');
+            $builder->join('tbl_tpq t', 't.IdTpq = nm.IdTpq', 'left');
+            $builder->whereIn('nm.IdTahunAjaran', $filter['tahunList']);
+            $builder->whereIn('nm.TypeUjian', $filter['typeList']);
+            if (!empty($filter['idTpq'])) {
+                $builder->where('nm.IdTpq', $filter['idTpq']);
+            }
+            $builder->where('nm.IdKategoriMateri IS NOT NULL', null, false);
+            $result = $builder->get()->getResultArray();
+
+            // Kelompokkan per peserta + kategori materi
+            $groups = [];
+            foreach ($result as $r) {
+                $key = $r['IdTahunAjaran'] . '|' . $r['TypeUjian'] . '|' . $r['NoPeserta'] . '|' . $r['IdKategoriMateri'];
+                if (!isset($groups[$key])) {
+                    $groups[$key] = [
+                        'y' => $r['IdTahunAjaran'],
+                        'type' => $r['TypeUjian'],
+                        'tpq' => (string)$r['IdTpq'],
+                        'tpqName' => $r['NamaTpq'] ?? (string)$r['IdTpq'],
+                        'np' => $r['NoPeserta'],
+                        'nm' => $r['NamaSantri'] ?? '-',
+                        'cat' => (string)$r['IdKategoriMateri'],
+                        'juri' => [],
+                    ];
+                }
+                $jid = trim((string)($r['IdJuri'] ?? ''));
+                if ($jid === '') {
+                    $jid = 'J001';
+                }
+                if (!isset($groups[$key]['juri'][$jid])) {
+                    $groups[$key]['juri'][$jid] = ['k' => [], 't' => [], 'scores' => []];
+                }
+
+                if (isset($r['Nilai']) && $r['Nilai'] !== null && is_numeric($r['Nilai'])) {
+                    $groups[$key]['juri'][$jid]['scores'][] = (float)$r['Nilai'];
+                }
+
+                $catatan = trim((string)($r['Catatan'] ?? ''));
+                if ($catatan === '') {
+                    continue;
+                }
+                $decoded = json_decode($catatan, true);
+                $kategoriCsv = '';
+                $teks = '';
+                if (is_array($decoded)) {
+                    $kategoriCsv = (string)($decoded['Kategori'] ?? '');
+                    $teks = trim((string)($decoded['Catatan'] ?? ''));
+                } else {
+                    $teks = $catatan; // data lama non-JSON dianggap teks bebas
+                }
+                foreach (array_filter(array_map('trim', explode(',', $kategoriCsv))) as $kode) {
+                    $groups[$key]['juri'][$jid]['k'][$kode] = true;
+                }
+                if ($teks !== '') {
+                    $groups[$key]['juri'][$jid]['t'][$teks] = true;
+                }
+            }
+
+            $rows = [];
+            $tpqs = [];
+            foreach ($groups as $g) {
+                $jids = array_keys($g['juri']);
+                sort($jids, SORT_STRING);
+                $j = [];
+                $t = [];
+                $s = [];
+                $allScores = [];
+                foreach ($jids as $idx => $jid) {
+                    $slot = (string)($idx + 1);
+                    $j[$slot] = array_values(array_map('strval', array_keys($g['juri'][$jid]['k'])));
+                    $t[$slot] = array_values(array_map('strval', array_keys($g['juri'][$jid]['t'])));
+                    $scList = $g['juri'][$jid]['scores'] ?? [];
+                    if (!empty($scList)) {
+                        $s[$slot] = round(array_sum($scList) / count($scList), 2);
+                        $allScores = array_merge($allScores, $scList);
+                    } else {
+                        $s[$slot] = null;
+                    }
+                }
+                if (!isset($categories[$g['cat']])) {
+                    continue; // kategori materi tanpa master kesalahan generik
+                }
+                $tpqs[$g['tpq']] = $g['tpqName'];
+                $avgFinal = !empty($allScores) ? round(array_sum($allScores) / count($allScores), 2) : null;
+                $rows[] = [
+                    'y' => $g['y'],
+                    'type' => $g['type'],
+                    'tpq' => $g['tpq'],
+                    'np' => $g['np'],
+                    'nm' => $g['nm'],
+                    'cat' => $g['cat'],
+                    'j' => (object)$j,
+                    't' => (object)$t,
+                    's' => (object)$s,
+                    'avg' => $avgFinal,
+                ];
+            }
+
+            $catList = [];
+            foreach ($categories as $id => $name) {
+                $catList[] = ['id' => (string)$id, 'name' => $name];
+            }
+            usort($catList, fn($a, $b) => strcmp($a['id'], $b['id']));
+
+            return $this->response->setJSON([
+                'success' => true,
+                'data' => [
+                    'categories' => $catList,
+                    'errors' => $errors,
+                    'tpqs' => $tpqs,
+                    'rows' => $rows,
+                    'meta' => ['TypeUjian' => $filter['typeList'], 'IdTpq' => $filter['idTpq']],
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            log_message('error', 'Error in getStatistikCatatanJuriData: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Terjadi kesalahan sistem',
+                'details' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
      * Halaman detail (tab baru) hasil klik batang chart statistik.
      * Data dimuat via getStatistikHasilDetailData dengan query string yang sama.
      */

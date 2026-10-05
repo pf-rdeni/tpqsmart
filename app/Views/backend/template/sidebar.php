@@ -477,10 +477,27 @@
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a href=<?php echo base_url('backend/munaqosah/statistik-hasil') ?> class="nav-link">
+                                    <a href="#" class="nav-link">
                                         <i class="fas fa-chart-line nav-icon text-warning"></i>
-                                        <p>Statistik Hasil</p>
+                                        <p>
+                                            Statistik Hasil
+                                            <i class="right fas fa-angle-left"></i>
+                                        </p>
                                     </a>
+                                    <ul class="nav nav-treeview" style="display: none;">
+                                        <li class="nav-item">
+                                            <a href=<?php echo base_url('backend/munaqosah/statistik-hasil') ?> class="nav-link">
+                                                <i class="fas fa-chart-bar nav-icon text-info"></i>
+                                                <p>Statistik Nilai</p>
+                                            </a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a href=<?php echo base_url('backend/munaqosah/statistik-catatan-juri') ?> class="nav-link">
+                                                <i class="fas fa-clipboard-list nav-icon text-info"></i>
+                                                <p>Analisis Catatan Juri</p>
+                                            </a>
+                                        </li>
+                                    </ul>
                                 </li>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/list-konfigurasi-munaqosah') ?> class="nav-link">
