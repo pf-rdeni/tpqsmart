@@ -378,11 +378,19 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
                             <label class="small font-weight-bold text-dark mb-1 d-block"><i class="fas fa-table text-primary mr-1"></i> Sertakan Tabel Detail Santri:</label>
                             <div class="custom-control custom-radio mb-1">
                                 <input type="radio" id="optPdfSantriYes" name="pdfIncludeSantri" class="custom-control-input" value="yes" checked>
-                                <label class="custom-control-label small" for="optPdfSantriYes">Ya, sertakan daftar catatan per santri</label>
+                                <label class="custom-control-label small" for="optPdfSantriYes">Ya, sertakan daftar catatan kesalahan per santri</label>
                             </div>
                             <div class="custom-control custom-radio">
                                 <input type="radio" id="optPdfSantriNo" name="pdfIncludeSantri" class="custom-control-input" value="no">
                                 <label class="custom-control-label small" for="optPdfSantriNo">Hanya ringkasan statistik &amp; grafik</label>
+                            </div>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label class="small font-weight-bold text-dark mb-1 d-block"><i class="fas fa-comment-dots text-primary mr-1"></i> Catatan Bebas / Khusus Juri:</label>
+                            <div class="custom-control custom-checkbox">
+                                <input type="checkbox" class="custom-control-input" id="chkPdfIncludeTeks" checked>
+                                <label class="custom-control-label small font-weight-bold" for="chkPdfIncludeTeks">Sertakan Catatan Teks Bebas / Tambahan Juri</label>
                             </div>
                         </div>
 
@@ -1779,6 +1787,8 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
                 });
                 y += boxH + 6;
 
+                let secIndex = 1;
+
                 // Render Mode Gabungan Section (Chart + Table) in PDF
                 if (modeChoice === 'current' ? currentMode === 'gabungan' : true) {
                     const errStats = {};
@@ -1798,7 +1808,7 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
                     doc.setFont(undefined, 'bold');
                     doc.setFontSize(10.5);
                     doc.setTextColor(30, 60, 120);
-                    doc.text('1. Grafik & Frekuensi Kesalahan Generik (Gabungan 2 Juri)', M, y + 2);
+                    doc.text(`${secIndex++}. Grafik & Frekuensi Kesalahan Generik (Gabungan 2 Juri)`, M, y + 2);
                     y += 5;
 
                     // Render chart gabungan off-screen secara sinkron
@@ -1909,7 +1919,7 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
                     doc.setFont(undefined, 'bold');
                     doc.setFontSize(10.5);
                     doc.setTextColor(30, 60, 120);
-                    doc.text('2. Grafik & Perbandingan Penilaian (Juri 1 vs Juri 2)', M, y + 2);
+                    doc.text(`${secIndex++}. Grafik & Perbandingan Penilaian (Juri 1 vs Juri 2)`, M, y + 2);
                     y += 5;
 
                     // Render chart VS off-screen secara sinkron
@@ -2008,7 +2018,6 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
                     y = doc.lastAutoTable.finalY + 8;
                 }
 
-
                 // Render Detail Santri if requested
                 if (incSantri) {
                     if (y > H - 60) {
@@ -2018,7 +2027,7 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
                     doc.setFont(undefined, 'bold');
                     doc.setFontSize(11);
                     doc.setTextColor(30, 60, 120);
-                    doc.text('3. Daftar Catatan Kesalahan per Santri', M, y + 2);
+                    doc.text(`${secIndex++}. Daftar Catatan Kesalahan per Santri`, M, y + 2);
                     y += 5;
 
                     const showScore = $('chkShowScoreSantri') && $('chkShowScoreSantri').checked;
@@ -2094,6 +2103,87 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
                         },
                         columnStyles: colStyles
                     });
+
+                    y = doc.lastAutoTable.finalY + 8;
+                }
+
+                // Render Catatan Teks Bebas Juri if requested
+                const incTeks = $('chkPdfIncludeTeks') && $('chkPdfIncludeTeks').checked;
+                if (incTeks) {
+                    const listTeks = [];
+                    rows.forEach(r => {
+                        const t1 = (r.t && r.t['1']) ? r.t['1'].join('; ') : '';
+                        const t2 = (r.t && r.t['2']) ? r.t['2'].join('; ') : '';
+                        if (!t1 && !t2) return;
+
+                        listTeks.push({
+                            np: r.np,
+                            nm: r.nm,
+                            tpq: DATA.tpqs[r.tpq] || r.tpq,
+                            t1: t1,
+                            t2: t2
+                        });
+                    });
+
+                    if (listTeks.length > 0) {
+                        if (y > H - 55) {
+                            doc.addPage();
+                            y = M;
+                        }
+                        doc.setFont(undefined, 'bold');
+                        doc.setFontSize(11);
+                        doc.setTextColor(30, 60, 120);
+                        doc.text(`${secIndex++}. Catatan Teks Bebas / Khusus Juri`, M, y + 2);
+                        y += 5;
+
+                        const bodyTeks = listTeks.map((item, idx) => [
+                            idx + 1,
+                            cleanPdfText(item.np),
+                            hideName ? '[Nama Disembunyikan]' : cleanPdfText(item.nm),
+                            cleanPdfText(item.tpq),
+                            cleanPdfText(item.t1 || '-'),
+                            cleanPdfText(item.t2 || '-')
+                        ]);
+
+                        doc.autoTable({
+                            startY: y,
+                            margin: {
+                                left: M,
+                                right: M
+                            },
+                            head: [
+                                ['No', 'No Peserta', 'Nama Santri', 'TPQ', 'Teks Catatan Juri 1', 'Teks Catatan Juri 2']
+                            ],
+                            body: bodyTeks,
+                            theme: 'striped',
+                            headStyles: {
+                                fillColor: [100, 110, 125],
+                                fontSize: 7.5,
+                                fontStyle: 'bold'
+                            },
+                            bodyStyles: {
+                                fontSize: 7
+                            },
+                            columnStyles: {
+                                0: {
+                                    halign: 'center',
+                                    cellWidth: 8
+                                },
+                                1: {
+                                    halign: 'center',
+                                    cellWidth: 20
+                                },
+                                2: {
+                                    cellWidth: orientation === 'landscape' ? 45 : 35
+                                },
+                                3: {
+                                    cellWidth: orientation === 'landscape' ? 40 : 30
+                                }
+                            }
+                        });
+
+                        y = doc.lastAutoTable.finalY + 8;
+                    }
                 }
 
                 // Nomor Halaman Footer
