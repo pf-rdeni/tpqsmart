@@ -318,9 +318,9 @@ $pageTitle = 'Hasil Kelulusan ' . $typeUjianLabel;
         </div>
         <p class="motivation-text">
             <?php if ($lulus): ?>
-                Alhamdulillah, selamat atas kelulusan Anda dalam ujian munaqosah! Pencapaian ini adalah hasil dari kerja keras, ketekunan, dan kesungguhan Anda dalam belajar. Teruslah semangat belajar dan jangan pernah berhenti untuk meningkatkan kemampuan membaca Al-Qur'an Anda. Keberhasilan ini adalah awal yang baik untuk langkah selanjutnya dalam perjalanan keilmuan Islam Anda. Semoga Allah SWT selalu memberkati setiap langkah Anda. Barakallahu fiik!
+                Alhamdulillah, selamat atas kelulusan Ananda dalam ujian <?= strtolower($typeUjianLabel) ?>! Teruslah bersemangat belajar dan mengamalkan ilmu yang telah dipelajari. Barakallahu fiik!
             <?php else: ?>
-                Terima kasih atas usaha yang telah Anda lakukan dalam ujian munaqosah ini. Meskipun hasil belum sesuai harapan, janganlah berkecil hati. Kegagalan adalah bagian dari proses pembelajaran. Gunakan pengalaman ini sebagai motivasi untuk terus belajar dan meningkatkan kemampuan membaca Al-Qur'an Anda. Ketekunan dan kesabaran adalah kunci kesuksesan. Teruslah semangat dan jangan pernah menyerah! InsyaAllah dengan usaha yang lebih keras lagi, kesuksesan akan menghampiri Anda. Semangat!
+                Tetap semangat dan jangan berkecil hati! Teruslah giat belajar dan berlatih. InsyaAllah kesuksesan akan menyertai Ananda di <?= ($typeUjian === 'pra-munaqosah') ? 'ujian munaqosah selanjutnya' : 'kesempatan berikutnya' ?>.
             <?php endif; ?>
         </p>
     </div>
