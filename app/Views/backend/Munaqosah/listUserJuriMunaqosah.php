@@ -347,14 +347,15 @@ $roomIdMaxLabel = sprintf('ROOM-%02d', $roomIdMax);
                     <table id="tableJuri" class="table table-bordered table-striped">
                         <thead>
                             <tr>
-                                <th width="5%">No</th>
-                                <th width="10%">ID Juri</th>
-                                <th width="18%">Username</th>
+                                <th width="4%">No</th>
+                                <th width="8%">ID Juri</th>
+                                <th width="16%">Nama Juri</th>
+                                <th width="14%">Username</th>
                                 <th width="12%">Grup Materi</th>
-                                <th width="10%">Room ID</th>
+                                <th width="8%">Room ID</th>
                                 <th width="10%">Type Ujian</th>
-                                <th width="12%">TPQ</th>
-                                <th width="8%">Status</th>
+                                <th width="11%">TPQ</th>
+                                <th width="7%">Status</th>
                                 <th width="10%">Aksi</th>
                             </tr>
                         </thead>
@@ -372,32 +373,39 @@ $roomIdMaxLabel = sprintf('ROOM-%02d', $roomIdMax);
                                     } elseif ($typeUjian === 'munaqosah') {
                                         $typeUjian = 'munaqosah';
                                     }
-                                    // Log untuk debugging (hanya di development)
-                                    // echo "<!-- Debug: IdJuri={$j['IdJuri']}, TypeUjian Raw={$typeUjianRaw}, TypeUjian Normalized={$typeUjian}, IdTpq={$j['IdTpq']} -->";
                                     ?>
                                     <tr data-tpq="<?= esc($j['IdTpq'] ?? '') ?>" data-type-ujian="<?= esc($typeUjian) ?>" data-type-ujian-raw="<?= esc($typeUjianRaw) ?>">
                                         <td><?= $no++ ?></td>
                                         <td><?= $j['IdJuri'] ?></td>
-                                        <td><?= $j['UsernameJuri'] ?></td>
-                                        <td><?= $j['NamaMateriGrup'] ?></td>
+                                        <td>
+                                            <strong><?= esc(!empty($j['NamaJuri']) ? $j['NamaJuri'] : '-') ?></strong>
+                                            <?php if (!empty($j['IdGuru'])): ?>
+                                                <br><small class="text-muted"><i class="fas fa-id-badge"></i> <?= esc($j['IdGuru']) ?></small>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td><code><?= esc($j['UsernameJuri']) ?></code></td>
+                                        <td><?= esc($j['NamaMateriGrup']) ?></td>
                                         <td>
                                             <?php if (!empty($j['RoomId'])): ?>
-                                                <span class="badge badge-info"><?= $j['RoomId'] ?></span>
+                                                <span class="badge badge-info"><?= esc($j['RoomId']) ?></span>
                                             <?php else: ?>
                                                 <span class="text-muted">-</span>
                                             <?php endif; ?>
                                         </td>
-                                        <td><?= $j['TypeUjian'] ?></td>
-                                        <td><?= $j['NamaTpq'] ?? '-' ?></td>
+                                        <td><?= esc($j['TypeUjian']) ?></td>
+                                        <td><?= esc($j['NamaTpq'] ?? '-') ?></td>
                                         <td>
                                             <?php
                                             $statusBadgeClass = $j['Status'] === 'Aktif' ? 'badge-success' : 'badge-danger';
                                             ?>
-                                            <span class="badge <?= $statusBadgeClass ?>"><?= $j['Status'] ?></span>
+                                            <span class="badge <?= $statusBadgeClass ?>"><?= esc($j['Status']) ?></span>
                                         </td>
                                         <td>
                                             <button class="btn btn-sm btn-success btn-print-juri" data-id="<?= $j['id'] ?>" data-username="<?= htmlspecialchars($j['UsernameJuri'], ENT_QUOTES, 'UTF-8') ?>" title="Print Informasi Login">
                                                 <i class="fas fa-print"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-secondary btn-edit-nama" data-id="<?= $j['id'] ?>" data-username="<?= htmlspecialchars($j['UsernameJuri'], ENT_QUOTES, 'UTF-8') ?>" data-nama="<?= htmlspecialchars($j['NamaJuri'] ?? '', ENT_QUOTES, 'UTF-8') ?>" data-idguru="<?= htmlspecialchars($j['IdGuru'] ?? '', ENT_QUOTES, 'UTF-8') ?>" data-tpq="<?= htmlspecialchars($j['IdTpq'] ?? '', ENT_QUOTES, 'UTF-8') ?>" title="Ubah Nama Juri">
+                                                <i class="fas fa-user-edit"></i>
                                             </button>
                                             <button class="btn btn-sm btn-info btn-edit-password" data-id="<?= $j['id'] ?>" data-username="<?= htmlspecialchars($j['UsernameJuri'], ENT_QUOTES, 'UTF-8') ?>" title="Ubah Password">
                                                 <i class="fas fa-key"></i>
@@ -413,7 +421,7 @@ $roomIdMaxLabel = sprintf('ROOM-%02d', $roomIdMax);
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr class="no-data-row">
-                                    <td colspan="9" class="text-center" data-order="0">Tidak ada data juri</td>
+                                    <td colspan="10" class="text-center" data-order="0">Tidak ada data juri</td>
                                 </tr>
                             <?php endif; ?>
                         </tbody>
@@ -468,6 +476,36 @@ $roomIdMaxLabel = sprintf('ROOM-%02d', $roomIdMax);
                             </div>
                         </div>
                     </div>
+
+                    <!-- Input Nama Juri (Cari dari Guru atau Ketik Manual) -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="pilihGuruJuri"><i class="fas fa-search"></i> Pilih dari Guru (<?= $isAdmin ? 'Semua Lembaga' : 'Lembaga Sendiri' ?>)</label>
+                                <select class="form-control" id="pilihGuruJuri" style="width: 100%;">
+                                    <option value="" data-nama="" data-tpq="">-- Pilih Guru / Manual di samping --</option>
+                                    <?php if (!empty($guruList)): ?>
+                                        <?php foreach ($guruList as $g): ?>
+                                            <option value="<?= esc($g['IdGuru']) ?>" data-nama="<?= esc($g['Nama']) ?>" data-tpq="<?= esc($g['IdTpq'] ?? '') ?>">
+                                                <?= esc($g['Nama']) ?><?= (!empty($g['NamaTpq']) && $isAdmin) ? ' (' . esc($g['NamaTpq']) . ')' : '' ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </select>
+                                <small class="form-text text-muted">Pilih guru untuk mengisi nama otomatis, atau ketik nama langsung di samping.</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="NamaJuri">Nama Lengkap Juri <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="NamaJuri" name="NamaJuri" placeholder="Contoh: Ust. Ahmad Fulan, S.Pd.I" required>
+                                <input type="hidden" id="IdGuru" name="IdGuru" value="">
+                                <div class="invalid-feedback"></div>
+                                <small class="form-text text-muted">Nama tampilan juri (terisi otomatis jika memilih guru atau bisa diketik manual).</small>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">
@@ -567,6 +605,54 @@ $roomIdMaxLabel = sprintf('ROOM-%02d', $roomIdMax);
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
                     <button type="submit" class="btn btn-primary" id="btnSaveJuri">
                         <i class="fas fa-save"></i> Simpan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Edit Nama Juri -->
+<div class="modal fade" id="modalEditNamaJuri" tabindex="-1" role="dialog" aria-labelledby="modalEditNamaJuriLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalEditNamaJuriLabel"><i class="fas fa-user-edit"></i> Ubah Nama Juri</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="formEditNamaJuri">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Username Juri</label>
+                        <input type="text" class="form-control" id="editNamaUsernameJuri" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="editPilihGuruJuri"><i class="fas fa-search"></i> Pilih dari Guru (<?= $isAdmin ? 'Semua Lembaga' : 'Lembaga Sendiri' ?>)</label>
+                        <select class="form-control" id="editPilihGuruJuri" style="width: 100%;">
+                            <option value="" data-nama="" data-tpq="">-- Pilih Guru / Manual di bawah --</option>
+                            <?php if (!empty($guruList)): ?>
+                                <?php foreach ($guruList as $g): ?>
+                                    <option value="<?= esc($g['IdGuru']) ?>" data-nama="<?= esc($g['Nama']) ?>" data-tpq="<?= esc($g['IdTpq'] ?? '') ?>">
+                                        <?= esc($g['Nama']) ?><?= (!empty($g['NamaTpq']) && $isAdmin) ? ' (' . esc($g['NamaTpq']) . ')' : '' ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </select>
+                        <small class="form-text text-muted">Pilih guru untuk autofill atau ketik manual di bawah.</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="editNamaJuri">Nama Lengkap Juri <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="editNamaJuri" name="NamaJuri" placeholder="Contoh: Ust. Ahmad Fulan, S.Pd.I" required>
+                        <input type="hidden" id="editIdGuru" name="IdGuru" value="">
+                        <div class="invalid-feedback"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary" id="btnUpdateNamaJuri">
+                        <i class="fas fa-save"></i> Update Nama
                     </button>
                 </div>
             </form>
@@ -1314,6 +1400,10 @@ $roomIdMaxLabel = sprintf('ROOM-%02d', $roomIdMax);
             $('#btnSaveJuri').html('<i class="fas fa-save"></i> Simpan');
             currentJuriId = null;
             $('#emailPreview').text('username@smartpq.simpedis.com');
+            // Reset Guru & Nama
+            $('#pilihGuruJuri').val('');
+            $('#NamaJuri').val('');
+            $('#IdGuru').val('');
             // Set default status to Aktif
             $('#Status').val('Aktif');
             // Reset RoomId selection
@@ -1333,6 +1423,30 @@ $roomIdMaxLabel = sprintf('ROOM-%02d', $roomIdMax);
             const hasTpq = $('#IdTpq').val() && $('#IdTpq').val() !== '' && $('#IdTpq').val() !== '0';
             $('#TypeUjian').val(hasTpq ? 'pra-munaqosah' : 'munaqosah');
         }
+
+        // Pilih Guru di Form Tambah Juri -> autofill nama & ID guru
+        $(document).on('change', '#pilihGuruJuri', function() {
+            const selectedOption = $(this).find('option:selected');
+            const namaGuru = selectedOption.data('nama') || '';
+            const idGuru = $(this).val() || '';
+            if (namaGuru) {
+                $('#NamaJuri').val(namaGuru);
+                $('#IdGuru').val(idGuru);
+            }
+        });
+
+        // Filter dropdown guru saat TPQ di modal tambah juri berubah
+        $(document).on('change', '#IdTpq', function() {
+            const selectedTpq = $(this).val();
+            $('#pilihGuruJuri option').each(function() {
+                const optionTpq = $(this).data('tpq');
+                if (!selectedTpq || selectedTpq === '0' || !optionTpq || String(optionTpq) === String(selectedTpq) || $(this).val() === '') {
+                    $(this).show();
+                } else {
+                    $(this).hide();
+                }
+            });
+        });
 
 
         // Fungsi untuk setup event handlers (dipanggil setelah modal dibuka)
@@ -1528,6 +1642,96 @@ $roomIdMaxLabel = sprintf('ROOM-%02d', $roomIdMax);
                 error: function() {
                     Swal.close();
                     showAlert('Terjadi kesalahan saat menyimpan data', 'error');
+                }
+            });
+        });
+
+        // Edit Nama Juri Button
+        $(document).on('click', '.btn-edit-nama', function() {
+            currentJuriId = $(this).data('id');
+            const username = $(this).data('username') || '';
+            const nama = $(this).data('nama') || '';
+            const idGuru = $(this).data('idguru') || '';
+            const tpq = $(this).data('tpq') || '';
+
+            $('#editNamaUsernameJuri').val(username);
+            $('#editNamaJuri').val(nama);
+            $('#editIdGuru').val(idGuru);
+
+            // Filter opsi guru di modal edit sesuai TPQ juri jika ada
+            $('#editPilihGuruJuri option').each(function() {
+                const optionTpq = $(this).data('tpq');
+                if (!tpq || tpq === '0' || !optionTpq || String(optionTpq) === String(tpq) || $(this).val() === '') {
+                    $(this).show();
+                } else {
+                    $(this).hide();
+                }
+            });
+
+            $('#editPilihGuruJuri').val(idGuru);
+            $('#modalEditNamaJuri').modal('show');
+        });
+
+        // Pilih Guru di Form Edit Nama Juri
+        $(document).on('change', '#editPilihGuruJuri', function() {
+            const selectedOption = $(this).find('option:selected');
+            const namaGuru = selectedOption.data('nama') || '';
+            const idGuru = $(this).val() || '';
+            if (namaGuru) {
+                $('#editNamaJuri').val(namaGuru);
+                $('#editIdGuru').val(idGuru);
+            }
+        });
+
+        // Form Edit Nama Juri Submit
+        $('#formEditNamaJuri').submit(function(e) {
+            e.preventDefault();
+
+            const namaJuri = $('#editNamaJuri').val();
+            const idGuru = $('#editIdGuru').val();
+
+            if (!namaJuri) {
+                showAlert('Nama juri harus diisi', 'warning');
+                return;
+            }
+
+            Swal.fire({
+                title: 'Memproses...',
+                text: 'Mohon tunggu sebentar',
+                icon: 'info',
+                allowOutsideClick: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            $.ajax({
+                url: '<?= base_url('backend/munaqosah/update-nama-juri') ?>/' + currentJuriId,
+                type: 'POST',
+                data: {
+                    NamaJuri: namaJuri,
+                    IdGuru: idGuru
+                },
+                success: function(response) {
+                    Swal.close();
+                    if (response.success) {
+                        Swal.fire({
+                            title: 'Berhasil!',
+                            text: response.message,
+                            icon: 'success',
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                        $('#modalEditNamaJuri').modal('hide');
+                        location.reload();
+                    } else {
+                        showAlert(response.message || 'Gagal mengupdate nama juri', 'error');
+                    }
+                },
+                error: function() {
+                    Swal.close();
+                    showAlert('Terjadi kesalahan saat mengupdate nama juri', 'error');
                 }
             });
         });

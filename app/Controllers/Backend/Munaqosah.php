@@ -7735,12 +7735,24 @@ class Munaqosah extends BaseController
 
         $roomConfig = $this->getRoomIdRange($idTpq);
 
+        // Ambil data guru aktif untuk pilihan nama juri
+        $guruBuilder = $this->db->table('tbl_guru g');
+        $guruBuilder->select('g.IdGuru, g.Nama, g.IdTpq, t.NamaTpq');
+        $guruBuilder->join('tbl_tpq t', 't.IdTpq = g.IdTpq', 'left');
+        $guruBuilder->where('g.Status', '1');
+        $guruBuilder->orderBy('g.Nama', 'ASC');
+        if (!$isAdmin && !empty($idTpq)) {
+            $guruBuilder->where('g.IdTpq', $idTpq);
+        }
+        $DataGuru = $guruBuilder->get()->getResultArray();
+
         $data = [
             'page_title' => 'Data Juri dan Panitia Munaqosah',
             'juri' => $DataJuri,
             'panitia' => $DataPanitia,
             'grupMateriUjian' => $DataGrupMateriUjian,
             'tpqDropdown' => $DataTpqDropdown,
+            'guruList' => $DataGuru,
             'roomOptions' => $roomConfig['rooms'],
             'roomIdMin' => $roomConfig['min'],
             'roomIdMax' => $roomConfig['max'],
@@ -8737,6 +8749,13 @@ class Munaqosah extends BaseController
                 'Status' => $this->request->getPost('Status')
             ];
 
+            // Nama Juri / Fullname dan IdGuru (opsional jika dari guru)
+            $namaJuri = trim($this->request->getPost('NamaJuri') ?? '');
+            $idGuru = $this->request->getPost('IdGuru') ?: null;
+            if (empty($namaJuri)) {
+                $namaJuri = $data['UsernameJuri'];
+            }
+
             // Start database transaction
             $this->db->transStart();
 
@@ -8761,8 +8780,10 @@ class Munaqosah extends BaseController
                     throw new \Exception('Gagal membuat hash password');
                 }
 
-                // Insert to users table
+                // Insert to users table with fullname & nik
                 $userData = [
+                    'fullname' => $namaJuri,
+                    'nik' => $idGuru,
                     'username' => $data['UsernameJuri'],
                     'email' => $email,
                     'password_hash' => $passwordHash,
@@ -8943,6 +8964,52 @@ class Munaqosah extends BaseController
     }
 
     /**
+     * Update nama/fullname juri
+     */
+    public function updateNamaJuri($id)
+    {
+        try {
+            $namaJuri = trim($this->request->getPost('NamaJuri') ?? '');
+            $idGuru = $this->request->getPost('IdGuru') ?: null;
+
+            if (empty($namaJuri)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Nama juri harus diisi'
+                ]);
+            }
+
+            // Get existing juri data
+            $existingJuri = $this->munaqosahJuriModel->find($id);
+            if (!$existingJuri) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Data juri tidak ditemukan'
+                ]);
+            }
+
+            // Update fullname & nik in users table
+            $this->db->table('users')
+                ->where('username', $existingJuri['UsernameJuri'])
+                ->update([
+                    'fullname' => $namaJuri,
+                    'nik' => $idGuru,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]);
+
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Nama juri berhasil diperbarui'
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal mengupdate nama juri: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
      * Delete juri
      */
     public function deleteJuri($id)
@@ -9012,9 +9079,10 @@ class Munaqosah extends BaseController
 
             // Get juri data with relations by ID
             $builder = $this->db->table('tbl_munaqosah_juri j');
-            $builder->select('j.*, t.NamaTpq, g.NamaMateriGrup');
+            $builder->select('j.*, t.NamaTpq, g.NamaMateriGrup, u.fullname as NamaJuri');
             $builder->join('tbl_tpq t', 't.IdTpq = j.IdTpq', 'left');
             $builder->join('tbl_munaqosah_grup_materi_uji g', 'g.IdGrupMateriUjian = j.IdGrupMateriUjian', 'left');
+            $builder->join('users u', 'u.username = j.UsernameJuri', 'left');
             $builder->where('j.id', $juriId);
             $juri = $builder->get()->getRowArray();
 
@@ -9112,9 +9180,10 @@ class Munaqosah extends BaseController
 
             // Get all juri data with relations
             $builder = $this->db->table('tbl_munaqosah_juri j');
-            $builder->select('j.*, t.NamaTpq, g.NamaMateriGrup');
+            $builder->select('j.*, t.NamaTpq, g.NamaMateriGrup, u.fullname as NamaJuri');
             $builder->join('tbl_tpq t', 't.IdTpq = j.IdTpq', 'left');
             $builder->join('tbl_munaqosah_grup_materi_uji g', 'g.IdGrupMateriUjian = j.IdGrupMateriUjian', 'left');
+            $builder->join('users u', 'u.username = j.UsernameJuri', 'left');
             $builder->whereIn('j.id', $juriIds);
             $builder->orderBy('j.RoomId', 'ASC');
             $builder->orderBy('j.UsernameJuri', 'ASC');

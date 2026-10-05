@@ -515,6 +515,7 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->post('munaqosah/updateRoomJuri/(:num)', 'Munaqosah::updateRoomJuri/$1');
     $routes->post('munaqosah/delete-juri/(:num)', 'Munaqosah::deleteJuri/$1');
     $routes->post('munaqosah/update-password-juri/(:num)', 'Munaqosah::updatePasswordJuri/$1');
+    $routes->post('munaqosah/update-nama-juri/(:num)', 'Munaqosah::updateNamaJuri/$1');
 
     // Panitia Munaqosah Routes
     $routes->post('munaqosah/generate-username-panitia', 'Munaqosah::generateUsernamePanitia');

@@ -191,6 +191,12 @@
                     <span class="info-label">ID Juri:</span>
                     <span class="info-value"><?= esc($juri['IdJuri']) ?></span>
                 </div>
+                <?php if (!empty($juri['NamaJuri'])): ?>
+                <div class="info-row">
+                    <span class="info-label">Nama Juri:</span>
+                    <span class="info-value" style="color: #0066cc;"><?= esc($juri['NamaJuri']) ?></span>
+                </div>
+                <?php endif; ?>
                 <div class="info-row">
                     <span class="info-label">Username:</span>
                     <span class="info-value"><?= esc($juri['UsernameJuri']) ?></span>
