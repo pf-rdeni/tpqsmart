@@ -9281,21 +9281,27 @@ class Munaqosah extends BaseController
      */
     public function administrasiPelaksanaan()
     {
-        helper('nilai');
-
         $sessionTpq = session()->get('IdTpq');
-        $isAdmin = in_groups('Admin') || (empty($sessionTpq) || $sessionTpq == 0);
-        $activeRole = session()->get('activeRole') ?? ($isAdmin ? 'admin' : (in_groups('Operator') ? 'operator' : 'user'));
+        $isAdmin = in_groups('Admin') && (empty($sessionTpq) || $sessionTpq == 0);
+        $isOperator = in_groups('Operator') || in_groups('User') || (!empty($sessionTpq) && $sessionTpq != 0);
+        $activeRole = session()->get('activeRole') ?? ($isAdmin ? 'admin' : 'operator');
 
         $tahunSaatIni = $this->helpFunction->getTahunAjaranSaatIni();
         $tahunSebelumnya = $this->helpFunction->getTahunAjaranSebelumnya();
 
-        $idTahunAjaran = $this->request->getGet('tahun_ajaran') ?: (session()->get('IdTahunAjaran') ?: $tahunSaatIni);
-        $typeUjian = $this->request->getGet('type') ?: ($isAdmin ? 'munaqosah' : 'pra-munaqosah');
-        $idTpq = $this->request->getGet('tpq') !== null ? (int)$this->request->getGet('tpq') : ($isAdmin ? 0 : (int)$sessionTpq);
+        // Cari tahun ajaran terakhir yang terdata di tbl_munaqosah_peserta
+        $latestPesertaTa = $this->db->table('tbl_munaqosah_peserta')->select('IdTahunAjaran')->orderBy('IdTahunAjaran', 'DESC')->limit(1)->get()->getRowArray();
+        $fallbackTahun = !empty($latestPesertaTa['IdTahunAjaran']) ? $latestPesertaTa['IdTahunAjaran'] : (session()->get('IdTahunAjaran') ?: $tahunSaatIni);
 
-        if (!$isAdmin && !empty($sessionTpq)) {
+        $idTahunAjaran = $this->request->getGet('tahun_ajaran') ?: $fallbackTahun;
+
+        // Jika login operator lembaga, default Agenda Pelaksanaan diset ke 'pra-munaqosah' dan TPQ ke TPQ miliknya
+        if ($isOperator && !$isAdmin) {
+            $typeUjian = $this->request->getGet('type') ?: 'pra-munaqosah';
             $idTpq = (int)$sessionTpq;
+        } else {
+            $typeUjian = $this->request->getGet('type') ?: 'munaqosah';
+            $idTpq = $this->request->getGet('tpq') !== null ? (int)$this->request->getGet('tpq') : 0;
         }
 
         // Daftar Tahun Ajaran
@@ -9416,7 +9422,8 @@ class Munaqosah extends BaseController
         try {
             helper('nilai');
             $typeUjian = $this->request->getVar('type') ?? 'munaqosah';
-            $idTpq = (int)($this->request->getVar('tpq') ?? 0);
+            $idTpqRaw = $this->request->getVar('tpq');
+            $idTpq = ($idTpqRaw !== null && $idTpqRaw !== '') ? trim((string)$idTpqRaw) : '0';
             $roomNumber = $this->request->getVar('room_number') ?? 'all';
             $showUsername = $this->request->getVar('show_username') === '1' || $this->request->getVar('show_username') === 'true';
             $tahunAjaran = $this->request->getVar('tahun_ajaran') ?: $this->helpFunction->getTahunAjaranSaatIni();
@@ -9424,13 +9431,13 @@ class Munaqosah extends BaseController
             $sessionIdTpq = session()->get('IdTpq');
             $isAdmin = in_groups('Admin') || (empty($sessionIdTpq) || $sessionIdTpq == 0);
             if (!$isAdmin && !empty($sessionIdTpq)) {
-                $idTpq = (int)$sessionIdTpq;
+                $idTpq = (string)$sessionIdTpq;
                 $typeUjian = 'pra-munaqosah';
             }
 
             // Info TPQ jika ada
             $tpqInfo = null;
-            if (!empty($idTpq)) {
+            if (!empty($idTpq) && $idTpq !== '0') {
                 $tpqInfo = $this->db->table('tbl_tpq')->where('IdTpq', $idTpq)->get()->getRowArray();
             }
 
@@ -9447,7 +9454,7 @@ class Munaqosah extends BaseController
             $juriBuilder->where('j.Status', 'Aktif');
             $juriBuilder->where('j.TypeUjian', $typeUjian);
 
-            if ($typeUjian === 'pra-munaqosah' && !empty($idTpq)) {
+            if ($typeUjian === 'pra-munaqosah' && !empty($idTpq) && $idTpq !== '0') {
                 $juriBuilder->where('j.IdTpq', $idTpq);
             }
 
@@ -9537,18 +9544,19 @@ class Munaqosah extends BaseController
         try {
             helper('nilai');
             $typeUjian = $this->request->getVar('type') ?? 'munaqosah';
-            $idTpq = (int)($this->request->getVar('tpq') ?? 0);
+            $idTpqRaw = $this->request->getVar('tpq');
+            $idTpq = ($idTpqRaw !== null && $idTpqRaw !== '') ? trim((string)$idTpqRaw) : '0';
             $tahunAjaran = $this->request->getVar('tahun_ajaran') ?: $this->helpFunction->getTahunAjaranSaatIni();
 
             $sessionIdTpq = session()->get('IdTpq');
             $isAdmin = in_groups('Admin') || (empty($sessionIdTpq) || $sessionIdTpq == 0);
             if (!$isAdmin && !empty($sessionIdTpq)) {
-                $idTpq = (int)$sessionIdTpq;
+                $idTpq = (string)$sessionIdTpq;
                 $typeUjian = 'pra-munaqosah';
             }
 
             $tpqInfo = null;
-            if (!empty($idTpq)) {
+            if (!empty($idTpq) && $idTpq !== '0') {
                 $tpqInfo = $this->db->table('tbl_tpq')->where('IdTpq', $idTpq)->get()->getRowArray();
             }
 
@@ -9571,7 +9579,7 @@ class Munaqosah extends BaseController
                 ->where('j.Status', 'Aktif')
                 ->where('j.TypeUjian', $typeUjian);
 
-            if ($typeUjian === 'pra-munaqosah' && !empty($idTpq)) {
+            if ($typeUjian === 'pra-munaqosah' && !empty($idTpq) && $idTpq !== '0') {
                 $juriImlaBuilder->where('j.IdTpq', $idTpq);
             }
 
@@ -9641,19 +9649,20 @@ class Munaqosah extends BaseController
     {
         try {
             helper('nilai');
-            $typeUjian = $this->request->getPost('type') ?? 'munaqosah';
-            $idTpq = (int)($this->request->getPost('tpq') ?? 0);
-            $tahunAjaran = $this->request->getPost('tahun_ajaran') ?: $this->helpFunction->getTahunAjaranSaatIni();
+            $typeUjian = $this->request->getVar('type') ?? 'munaqosah';
+            $idTpqRaw = $this->request->getVar('tpq');
+            $idTpq = ($idTpqRaw !== null && $idTpqRaw !== '') ? trim((string)$idTpqRaw) : '0';
+            $tahunAjaran = $this->request->getVar('tahun_ajaran') ?: $this->helpFunction->getTahunAjaranSaatIni();
 
             $sessionIdTpq = session()->get('IdTpq');
             $isAdmin = in_groups('Admin') || (empty($sessionIdTpq) || $sessionIdTpq == 0);
             if (!$isAdmin && !empty($sessionIdTpq)) {
-                $idTpq = (int)$sessionIdTpq;
+                $idTpq = (string)$sessionIdTpq;
                 $typeUjian = 'pra-munaqosah';
             }
 
             $tpqInfo = null;
-            if (!empty($idTpq)) {
+            if (!empty($idTpq) && $idTpq !== '0') {
                 $tpqInfo = $this->db->table('tbl_tpq')->where('IdTpq', $idTpq)->get()->getRowArray();
             }
 
@@ -9676,7 +9685,7 @@ class Munaqosah extends BaseController
                 ->get()->getResultArray();
 
             // Ambil Nilai Maksimal & Minimal dari konfigurasi aplikasi
-            $configKey = !empty($idTpq) ? (string)$idTpq : '0';
+            $configKey = (!empty($idTpq) && $idTpq !== '0') ? (string)$idTpq : '0';
             $nilaiMaximal = $this->munaqosahKonfigurasiModel->getSettingAsInt($configKey, 'NilaiMaximal', 99);
             $nilaiMinimal = $this->munaqosahKonfigurasiModel->getSettingAsInt($configKey, 'NilaiMinimal', 40);
             $nilaiKelulusan = $this->munaqosahKonfigurasiModel->getSettingAsInt($configKey, 'NilaiKelulusan', 65);
@@ -9732,19 +9741,20 @@ class Munaqosah extends BaseController
     {
         try {
             helper('nilai');
-            $typeUjian = $this->request->getPost('type') ?? 'munaqosah';
-            $idTpq = (int)($this->request->getPost('tpq') ?? 0);
-            $tahunAjaran = $this->request->getPost('tahun_ajaran') ?: $this->helpFunction->getTahunAjaranSaatIni();
+            $typeUjian = $this->request->getVar('type') ?? 'munaqosah';
+            $idTpqRaw = $this->request->getVar('tpq');
+            $idTpq = ($idTpqRaw !== null && $idTpqRaw !== '') ? trim((string)$idTpqRaw) : '0';
+            $tahunAjaran = $this->request->getVar('tahun_ajaran') ?: $this->helpFunction->getTahunAjaranSaatIni();
 
             $sessionIdTpq = session()->get('IdTpq');
             $isAdmin = in_groups('Admin') || (empty($sessionIdTpq) || $sessionIdTpq == 0);
             if (!$isAdmin && !empty($sessionIdTpq)) {
-                $idTpq = (int)$sessionIdTpq;
+                $idTpq = (string)$sessionIdTpq;
                 $typeUjian = 'pra-munaqosah';
             }
 
             $tpqInfo = null;
-            if (!empty($idTpq)) {
+            if (!empty($idTpq) && $idTpq !== '0') {
                 $tpqInfo = $this->db->table('tbl_tpq')->where('IdTpq', $idTpq)->get()->getRowArray();
             }
 
@@ -9761,7 +9771,7 @@ class Munaqosah extends BaseController
             $juriBuilder->where('j.Status', 'Aktif');
             $juriBuilder->where('j.TypeUjian', $typeUjian);
 
-            if ($typeUjian === 'pra-munaqosah' && !empty($idTpq)) {
+            if ($typeUjian === 'pra-munaqosah' && !empty($idTpq) && $idTpq !== '0') {
                 $juriBuilder->where('j.IdTpq', $idTpq);
             }
 
@@ -9842,19 +9852,20 @@ class Munaqosah extends BaseController
         try {
             helper('nilai');
             $typeUjian = $this->request->getVar('type') ?? 'munaqosah';
-            $idTpq = (int)($this->request->getVar('tpq') ?? 0);
+            $idTpqRaw = $this->request->getVar('tpq');
+            $idTpq = ($idTpqRaw !== null && $idTpqRaw !== '') ? trim((string)$idTpqRaw) : '0';
             $tahunAjaran = $this->request->getVar('tahun_ajaran') ?: $this->helpFunction->getTahunAjaranSaatIni();
             $mode = $this->request->getVar('mode') ?? 'data';
 
             $sessionIdTpq = session()->get('IdTpq');
             $isAdmin = in_groups('Admin') || (empty($sessionIdTpq) || $sessionIdTpq == 0);
             if (!$isAdmin && !empty($sessionIdTpq)) {
-                $idTpq = (int)$sessionIdTpq;
+                $idTpq = (string)$sessionIdTpq;
                 $typeUjian = 'pra-munaqosah';
             }
 
             $tpqInfo = null;
-            if (!empty($idTpq)) {
+            if (!empty($idTpq) && $idTpq !== '0') {
                 $tpqInfo = $this->db->table('tbl_tpq')->where('IdTpq', $idTpq)->get()->getRowArray();
             }
 
@@ -9871,22 +9882,110 @@ class Munaqosah extends BaseController
 
             $pesertaList = [];
             if ($mode !== 'blank') {
-                $pBuilder = $this->db->table('tbl_munaqosah_peserta mp')
-                    ->select('mp.*, s.NamaSantri, COALESCE(NULLIF(s.NamaAyah, ""), NULLIF(s.NamaIbu, ""), NULLIF(s.WaliSantri, ""), "-") as NamaOrtuWali, t.NamaTpq')
-                    ->join('tbl_santri_baru s', 's.IdSantri = mp.IdSantri', 'left')
-                    ->join('tbl_tpq t', 't.IdTpq = mp.IdTpq', 'left')
-                    ->where('mp.IdTahunAjaran', $tahunAjaran);
+                $cleanTa = preg_replace('/[^0-9]/', '', (string)$tahunAjaran);
+                $formattedTa = convertTahunAjaran($tahunAjaran);
+                $taVariants = array_values(array_unique(array_filter([(string)$tahunAjaran, $cleanTa, $formattedTa])));
 
-                if (!empty($idTpq)) {
-                    $pBuilder->where('mp.IdTpq', $idTpq);
+                // 1. Coba dari tbl_munaqosah_peserta
+                $pBuilder = $this->db->table('tbl_munaqosah_peserta mp')
+                    ->select('mp.IdSantri, s.NamaSantri, s.NamaAyah, s.NamaIbu, s.NamaWali, s.NamaKepalaKeluarga, COALESCE(NULLIF(s.NamaAyah, ""), NULLIF(s.NamaIbu, ""), NULLIF(s.NamaKepalaKeluarga, ""), NULLIF(s.NamaWali, ""), "-") as NamaOrtuWali, COALESCE(t.NamaTpq, "") as NamaTpq, mp.IdTahunAjaran')
+                    ->join('tbl_santri_baru s', 's.IdSantri = mp.IdSantri OR s.id = mp.IdSantri', 'left')
+                    ->join('tbl_tpq t', 't.IdTpq = mp.IdTpq OR t.IdTpq = s.IdTpq', 'left');
+
+                if (!empty($taVariants)) {
+                    $pBuilder->groupStart();
+                    foreach ($taVariants as $idx => $tv) {
+                        if ($idx === 0) {
+                            $pBuilder->where('mp.IdTahunAjaran', $tv);
+                            $pBuilder->orLike('mp.IdTahunAjaran', $tv);
+                        } else {
+                            $pBuilder->orWhere('mp.IdTahunAjaran', $tv);
+                            $pBuilder->orLike('mp.IdTahunAjaran', $tv);
+                        }
+                    }
+                    $pBuilder->groupEnd();
                 }
 
-                $pesertaList = $pBuilder->orderBy('t.NamaTpq', 'ASC')
+                if (!empty($idTpq) && $idTpq !== '0') {
+                    $pBuilder->groupStart()
+                        ->where('mp.IdTpq', $idTpq)
+                        ->orWhere('s.IdTpq', $idTpq)
+                    ->groupEnd();
+                }
+
+                $pesertaList = $pBuilder->groupBy('mp.IdSantri')
+                    ->orderBy('t.NamaTpq', 'ASC')
                     ->orderBy('s.NamaSantri', 'ASC')
                     ->get()->getResultArray();
+
+                // 2. Jika masih kosong, coba dari tbl_munaqosah_registrasi_uji
+                if (empty($pesertaList)) {
+                    $rBuilder = $this->db->table('tbl_munaqosah_registrasi_uji mr')
+                        ->select('mr.IdSantri, s.NamaSantri, s.NamaAyah, s.NamaIbu, s.NamaWali, s.NamaKepalaKeluarga, COALESCE(NULLIF(s.NamaAyah, ""), NULLIF(s.NamaIbu, ""), NULLIF(s.NamaKepalaKeluarga, ""), NULLIF(s.NamaWali, ""), "-") as NamaOrtuWali, COALESCE(t.NamaTpq, "") as NamaTpq, mr.IdTahunAjaran')
+                        ->join('tbl_santri_baru s', 's.IdSantri = mr.IdSantri OR s.id = mr.IdSantri', 'left')
+                        ->join('tbl_tpq t', 't.IdTpq = mr.IdTpq OR t.IdTpq = s.IdTpq', 'left');
+
+                    if (!empty($taVariants)) {
+                        $rBuilder->groupStart();
+                        foreach ($taVariants as $idx => $tv) {
+                            if ($idx === 0) {
+                                $rBuilder->where('mr.IdTahunAjaran', $tv);
+                                $rBuilder->orLike('mr.IdTahunAjaran', $tv);
+                            } else {
+                                $rBuilder->orWhere('mr.IdTahunAjaran', $tv);
+                                $rBuilder->orLike('mr.IdTahunAjaran', $tv);
+                            }
+                        }
+                        $rBuilder->groupEnd();
+                    }
+
+                    if (!empty($idTpq) && $idTpq !== '0') {
+                        $rBuilder->groupStart()
+                            ->where('mr.IdTpq', $idTpq)
+                            ->orWhere('s.IdTpq', $idTpq)
+                        ->groupEnd();
+                    }
+
+                    $pesertaList = $rBuilder->groupBy('mr.IdSantri')
+                        ->orderBy('t.NamaTpq', 'ASC')
+                        ->orderBy('s.NamaSantri', 'ASC')
+                        ->get()->getResultArray();
+                }
+
+                // 3. Jika masih kosong untuk tahun ajaran tertentu, ambil dari data peserta munaqosah manapun yang ada di TPQ tersebut
+                if (empty($pesertaList) && !empty($idTpq) && $idTpq !== '0') {
+                    $pBuilderAll = $this->db->table('tbl_munaqosah_peserta mp')
+                        ->select('mp.IdSantri, s.NamaSantri, s.NamaAyah, s.NamaIbu, s.NamaWali, s.NamaKepalaKeluarga, COALESCE(NULLIF(s.NamaAyah, ""), NULLIF(s.NamaIbu, ""), NULLIF(s.NamaKepalaKeluarga, ""), NULLIF(s.NamaWali, ""), "-") as NamaOrtuWali, COALESCE(t.NamaTpq, "") as NamaTpq, mp.IdTahunAjaran')
+                        ->join('tbl_santri_baru s', 's.IdSantri = mp.IdSantri OR s.id = mp.IdSantri', 'left')
+                        ->join('tbl_tpq t', 't.IdTpq = mp.IdTpq OR t.IdTpq = s.IdTpq', 'left')
+                        ->where('mp.IdTpq', $idTpq)
+                        ->groupBy('mp.IdSantri')
+                        ->orderBy('s.NamaSantri', 'ASC')
+                        ->get()->getResultArray();
+
+                    if (!empty($pBuilderAll)) {
+                        $pesertaList = $pBuilderAll;
+                    }
+                }
+
+                // 4. Jika masih kosong, coba santri aktif di TPQ tersebut
+                if (empty($pesertaList) && !empty($idTpq) && $idTpq !== '0') {
+                    $santriTpq = $this->db->table('tbl_santri_baru s')
+                        ->select('s.IdSantri, s.NamaSantri, s.NamaAyah, s.NamaIbu, s.NamaWali, s.NamaKepalaKeluarga, COALESCE(NULLIF(s.NamaAyah, ""), NULLIF(s.NamaIbu, ""), NULLIF(s.NamaKepalaKeluarga, ""), NULLIF(s.NamaWali, ""), "-") as NamaOrtuWali, COALESCE(t.NamaTpq, "") as NamaTpq')
+                        ->join('tbl_tpq t', 't.IdTpq = s.IdTpq', 'left')
+                        ->where('s.IdTpq', $idTpq)
+                        ->where('s.Active', 1)
+                        ->orderBy('s.NamaSantri', 'ASC')
+                        ->limit(40)
+                        ->get()->getResultArray();
+
+                    if (!empty($santriTpq)) {
+                        $pesertaList = $santriTpq;
+                    }
+                }
             }
 
-            // Jika kosong atau mode blank, siapkan 15 baris kosong
+            // Jika tetap kosong atau mode blank, siapkan 15 baris kosong
             if (empty($pesertaList)) {
                 for ($i = 1; $i <= 15; $i++) {
                     $pesertaList[] = [

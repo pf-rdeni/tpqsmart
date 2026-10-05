@@ -150,21 +150,22 @@
         }
 
         .col-no {
-            width: 7%;
+            width: 6%;
             text-align: center;
             font-weight: 700;
             font-size: 10pt;
         }
 
         .col-santri {
-            width: 39%;
+            width: 34%;
             font-weight: 600;
             color: #000000;
         }
 
         .col-ortu {
-            width: 32%;
+            width: 38%;
             color: #111827;
+            font-size: 9pt;
         }
 
         .col-paraf-1, .col-paraf-2 {
@@ -238,7 +239,7 @@
                 <tr>
                     <th class="col-no">No</th>
                     <th class="col-santri">Nama Santri</th>
-                    <th class="col-ortu">Nama Ortu/Wali</th>
+                    <th class="col-ortu">Wali Santri (Bapak/Ibu)</th>
                     <th colspan="2" style="width: 22%;">Paraf</th>
                 </tr>
             </thead>
@@ -247,11 +248,37 @@
                 $no = 1;
                 foreach ($pesertaList as $santri): 
                     $isGanjil = ($no % 2 !== 0);
+
+                    // Susun nama Bapak dan Ibu secara lengkap
+                    $namaAyah = !empty($santri['NamaAyah']) ? trim($santri['NamaAyah']) : '';
+                    $namaIbu = !empty($santri['NamaIbu']) ? trim($santri['NamaIbu']) : '';
+                    $namaWali = !empty($santri['NamaWali']) ? trim($santri['NamaWali']) : '';
+                    $namaKK = !empty($santri['NamaKepalaKeluarga']) ? trim($santri['NamaKepalaKeluarga']) : '';
+
+                    $ortuParts = [];
+                    if (!empty($namaAyah)) {
+                        $ortuParts[] = 'Bpk. ' . $namaAyah;
+                    }
+                    if (!empty($namaIbu)) {
+                        $ortuParts[] = 'Ibu ' . $namaIbu;
+                    }
+
+                    if (!empty($ortuParts)) {
+                        $displayOrtu = implode(' / ', $ortuParts);
+                    } elseif (!empty($namaWali)) {
+                        $displayOrtu = 'Wali: ' . $namaWali;
+                    } elseif (!empty($namaKK)) {
+                        $displayOrtu = $namaKK;
+                    } elseif (!empty($santri['NamaOrtuWali']) && $santri['NamaOrtuWali'] !== '-') {
+                        $displayOrtu = $santri['NamaOrtuWali'];
+                    } else {
+                        $displayOrtu = '';
+                    }
                 ?>
                     <tr>
                         <td class="col-no"><?= $no; ?></td>
                         <td class="col-santri"><?= esc($santri['NamaSantri'] ?? ''); ?></td>
-                        <td class="col-ortu"><?= esc($santri['NamaOrtuWali'] ?? ''); ?></td>
+                        <td class="col-ortu"><?= esc($displayOrtu); ?></td>
                         
                         <?php if ($isGanjil): ?>
                             <!-- Baris Ganjil: Angka nomor paraf di kolom kanan -->

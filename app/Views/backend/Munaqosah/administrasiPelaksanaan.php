@@ -43,14 +43,25 @@
                 </div>
                 <div class="col-md-4 col-sm-8 mb-2 mb-md-0">
                     <label class="font-weight-bold text-secondary small mb-1"><i class="fas fa-mosque mr-1"></i> Lembaga / TPQ</label>
-                    <select name="tpq" class="form-control form-control-sm select2bs4" onchange="this.form.submit()" <?= (!empty($activeRole) && $activeRole == 'operator') ? 'disabled' : ''; ?>>
-                        <option value="0" <?= ($idTpq == 0 || $idTpq === '0') ? 'selected' : ''; ?>>Semua Lembaga / Seluruh TPQ</option>
-                        <?php foreach ($tpqList as $tpq): ?>
-                            <option value="<?= esc($tpq['IdTpq']); ?>" <?= ($idTpq == $tpq['IdTpq']) ? 'selected' : ''; ?>>
-                                <?= esc($tpq['NamaTpq']); ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
+                    <?php if (!empty($activeRole) && $activeRole == 'operator'): ?>
+                        <input type="hidden" name="tpq" value="<?= esc($idTpq); ?>">
+                        <select class="form-control form-control-sm select2bs4" disabled>
+                            <?php foreach ($tpqList as $tpq): ?>
+                                <option value="<?= esc($tpq['IdTpq']); ?>" <?= ($idTpq == $tpq['IdTpq']) ? 'selected' : ''; ?>>
+                                    <?= esc($tpq['NamaTpq']); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    <?php else: ?>
+                        <select name="tpq" class="form-control form-control-sm select2bs4" onchange="this.form.submit()">
+                            <option value="0" <?= ($idTpq == 0 || $idTpq === '0') ? 'selected' : ''; ?>>Semua Lembaga / Seluruh TPQ</option>
+                            <?php foreach ($tpqList as $tpq): ?>
+                                <option value="<?= esc($tpq['IdTpq']); ?>" <?= ($idTpq == $tpq['IdTpq']) ? 'selected' : ''; ?>>
+                                    <?= esc($tpq['NamaTpq']); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    <?php endif; ?>
                 </div>
                 <div class="col-md-2 col-sm-4 text-right">
                     <button type="submit" class="btn btn-sm btn-primary btn-block shadow-sm">
@@ -309,18 +320,18 @@
             </div>
         </div>
 
-        <!-- CARD 5: ABSENSI SANTRI DAN ORANG TUA/WALI -->
+        <!-- CARD 5: ABSENSI SANTRI DAN WALI SANTRI (BAPAK/IBU) -->
         <div class="col-lg-6 mb-4">
             <div class="card h-100 border shadow-sm">
                 <div class="card-header bg-gradient-dark text-white d-flex justify-content-between align-items-center">
                     <h5 class="card-title mb-0 font-weight-bold">
-                        <i class="fas fa-user-check mr-2"></i> 5. Absensi Santri & Orang Tua/Wali
+                        <i class="fas fa-user-check mr-2"></i> 5. Absensi Santri & Wali Santri (Bapak/Ibu)
                     </h5>
                     <span class="badge badge-light text-dark font-weight-bold">A4 Portrait</span>
                 </div>
                 <div class="card-body d-flex flex-column">
                     <p class="text-muted small mb-3">
-                        Mencetak <strong>Daftar Hadir / Form Absensi Resmi (A4 Portrait)</strong> untuk santri peserta ujian beserta orang tua/wali dengan format kolom paraf berselang-seling (*zig-zag signature*).
+                        Mencetak <strong>Daftar Hadir / Form Absensi Resmi (A4 Portrait)</strong> untuk santri peserta ujian beserta wali santri (Bapak/Ibu) dengan format kolom paraf berselang-seling (*zig-zag signature*).
                     </p>
 
                     <form action="<?= base_url('backend/munaqosah/print-absensi-peserta'); ?>" method="POST" target="_blank" class="mt-auto">
@@ -340,7 +351,7 @@
                         </div>
 
                         <button type="submit" class="btn btn-dark btn-block shadow-sm font-weight-bold">
-                            <i class="fas fa-print mr-1"></i> Cetak Form Absensi Santri & Ortu (PDF)
+                            <i class="fas fa-print mr-1"></i> Cetak Form Absensi Santri & Wali Santri (PDF)
                         </button>
                     </form>
                 </div>
