@@ -272,20 +272,27 @@ class StatusUjianMunaqosah extends BaseController
         }
 
         // Ambil setting AktiveTombolKelulusan per type ujian
-        // - Untuk pra-munaqosah: ambil dari idTpq peserta
-        // - Untuk munaqosah: ambil dari idTpq = 0 (umum)
+        // Pembatasan hanya berlaku untuk tahun ajaran berjalan. Santri dari tahun ajaran lama selalu aktif.
         $idTpq = $peserta['IdTpq'] ?? 0;
+        $idTahunAjaranPeserta = $peserta['IdTahunAjaran'] ?? '';
+        $currentTahunAjaran = $this->helpFunctionModel->getTahunAjaranSaatIni();
+        $isTahunAjaranLama = (!empty($idTahunAjaranPeserta) && !empty($currentTahunAjaran) && $idTahunAjaranPeserta !== $currentTahunAjaran);
+
         $aktiveTombolKelulusanPerType = [];
 
         // Cek untuk pra-munaqosah (menggunakan idTpq peserta)
         if (in_array('pra-munaqosah', $availableTypeUjian)) {
-            $aktiveTombolKelulusanPraMunaqosah = $this->munaqosahKonfigurasiModel->getSettingAsBool((string)$idTpq, 'AktiveTombolKelulusan', false);
+            $aktiveTombolKelulusanPraMunaqosah = $isTahunAjaranLama
+                ? true
+                : $this->munaqosahKonfigurasiModel->getSettingAsBool((string)$idTpq, 'AktiveTombolKelulusan', false);
             $aktiveTombolKelulusanPerType['pra-munaqosah'] = $aktiveTombolKelulusanPraMunaqosah;
         }
 
         // Cek untuk munaqosah (menggunakan idTpq = 0 untuk umum)
         if (in_array('munaqosah', $availableTypeUjian)) {
-            $aktiveTombolKelulusanMunaqosah = $this->munaqosahKonfigurasiModel->getSettingAsBool('0', 'AktiveTombolKelulusan', false);
+            $aktiveTombolKelulusanMunaqosah = $isTahunAjaranLama
+                ? true
+                : $this->munaqosahKonfigurasiModel->getSettingAsBool('0', 'AktiveTombolKelulusan', false);
             $aktiveTombolKelulusanPerType['munaqosah'] = $aktiveTombolKelulusanMunaqosah;
         }
 
@@ -453,8 +460,22 @@ class StatusUjianMunaqosah extends BaseController
             ]);
         }
 
-        // Untuk action 'kelulusan', cek status verified di database
-        // Untuk action 'status', tidak perlu pengecekan (selalu bisa digunakan)
+        // Normalisasi TypeUjian
+        if (!empty($typeUjian)) {
+            $typeUjian = strtolower(trim($typeUjian));
+            if ($typeUjian === 'pramunaqsah' || $typeUjian === 'pra-munaqosah') {
+                $typeUjian = 'pra-munaqosah';
+            }
+            // Validasi TypeUjian
+            if (!in_array($typeUjian, ['munaqosah', 'pra-munaqosah'])) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Type Ujian tidak valid'
+                ]);
+            }
+        }
+
+        // Untuk action 'kelulusan', cek status verified dan setting AktiveTombolKelulusan
         if ($action === 'kelulusan') {
             // Ambil status verifikasi dari database
             $pesertaData = $this->munaqosahPesertaModel
@@ -471,19 +492,17 @@ class StatusUjianMunaqosah extends BaseController
                     'message' => 'Data Ananda belum diverifikasi. Tombol kelulusan akan aktif setelah data selesai diverifikasi dan dikonfirmasi oleh admin atau sedang dalam perbaikan.'
                 ]);
             }
-        }
 
-        // Normalisasi TypeUjian
-        if (!empty($typeUjian)) {
-            $typeUjian = strtolower(trim($typeUjian));
-            if ($typeUjian === 'pramunaqsah' || $typeUjian === 'pra-munaqosah') {
-                $typeUjian = 'pra-munaqosah';
-            }
-            // Validasi TypeUjian
-            if (!in_array($typeUjian, ['munaqosah', 'pra-munaqosah'])) {
+            // Validasi setting AktiveTombolKelulusan per tipe ujian
+            $targetType = $typeUjian ?: 'munaqosah';
+            $idTpqPeserta = (int)($peserta['IdTpq'] ?? 0);
+            $idTahunAjaranPeserta = (string)($peserta['IdTahunAjaran'] ?? '');
+            if (!$this->isTombolKelulusanActive($targetType, $idTpqPeserta, $idTahunAjaranPeserta)) {
+                $label = ($targetType === 'pra-munaqosah') ? 'Pra-Munaqosah Lembaga' : 'Munaqosah Terpusat';
+                $pihak = ($targetType === 'pra-munaqosah') ? 'operator lembaga TPQ' : 'panitia / admin pusat';
                 return $this->response->setJSON([
                     'success' => false,
-                    'message' => 'Type Ujian tidak valid'
+                    'message' => "Pengumuman hasil kelulusan {$label} saat ini belum dibuka oleh pihak {$pihak}."
                 ]);
             }
         }
@@ -508,6 +527,34 @@ class StatusUjianMunaqosah extends BaseController
             'success' => true,
             'redirect' => $redirectUrl
         ]);
+    }
+
+    /**
+     * Cek apakah tombol/akses kelulusan aktif untuk tipe ujian tertentu
+     * - Santri dari tahun ajaran lama/lampau: selalu aktif (true).
+     * - Santri dari tahun ajaran berjalan:
+     *   - pra-munaqosah: mengacu pada setting TPQ lembaga peserta
+     *   - munaqosah: mengacu pada setting global Admin (IdTpq = '0')
+     */
+    private function isTombolKelulusanActive(string $typeUjian, ?int $idTpq = null, ?string $idTahunAjaranPeserta = null): bool
+    {
+        $currentTahunAjaran = $this->helpFunctionModel->getTahunAjaranSaatIni();
+
+        // Jika peserta berasal dari tahun ajaran lampau (bukan tahun ajaran berjalan), selalu aktif
+        if (!empty($idTahunAjaranPeserta) && !empty($currentTahunAjaran) && $idTahunAjaranPeserta !== $currentTahunAjaran) {
+            return true;
+        }
+
+        $normalizedType = strtolower(trim($typeUjian));
+        if ($normalizedType === 'pramunaqsah' || $normalizedType === 'pra-munaqosah') {
+            if (empty($idTpq)) {
+                return false;
+            }
+            return $this->munaqosahKonfigurasiModel->getSettingAsBool((string)$idTpq, 'AktiveTombolKelulusan', false);
+        }
+
+        // Munaqosah Terpusat (IdTpq = '0')
+        return $this->munaqosahKonfigurasiModel->getSettingAsBool('0', 'AktiveTombolKelulusan', false);
     }
 
     /**
@@ -717,6 +764,15 @@ class StatusUjianMunaqosah extends BaseController
             }
         }
 
+        $idTahunAjaran = $peserta['IdTahunAjaran'];
+        $idTpq = (int)($peserta['IdTpq'] ?? 0);
+
+        // Validasi apakah tombol kelulusan aktif untuk type ujian ini
+        if (!$this->isTombolKelulusanActive($typeUjian, $idTpq, (string)$idTahunAjaran)) {
+            $label = ($typeUjian === 'pra-munaqosah') ? 'Pra-Munaqosah Lembaga' : 'Munaqosah Terpusat';
+            return redirect()->to(base_url('munaqosah/konfirmasi-data'))->with('error', "Pengumuman hasil kelulusan {$label} saat ini belum dibuka.");
+        }
+
         // Ambil NoPeserta berdasarkan TypeUjian
         $noPeserta = $registrasiMap[$typeUjian] ?? null;
         if (empty($noPeserta)) {
@@ -732,9 +788,6 @@ class StatusUjianMunaqosah extends BaseController
             }
             $noPeserta = $registrasi['NoPeserta'];
         }
-
-        $idTahunAjaran = $peserta['IdTahunAjaran'];
-        $idTpq = $peserta['IdTpq'] ?? null;
 
         // Gunakan fungsi prepareKelulusanPesertaData dari Munaqosah controller
         $kelulusanData = $this->prepareKelulusanPesertaData($noPeserta, $idTahunAjaran, $typeUjian, $idTpq);
@@ -818,6 +871,14 @@ class StatusUjianMunaqosah extends BaseController
             } else {
                 $typeUjian = 'munaqosah';
             }
+        }
+
+        $idTahunAjaran = $peserta['IdTahunAjaran'];
+        $idTpq = (int)($peserta['IdTpq'] ?? 0);
+
+        // Validasi apakah tombol kelulusan aktif untuk type ujian ini
+        if (!$this->isTombolKelulusanActive($typeUjian, $idTpq, (string)$idTahunAjaran)) {
+            return redirect()->to(base_url('munaqosah/konfirmasi-data'))->with('error', 'Fitur cetak surat kelulusan saat ini belum dibuka.');
         }
 
         // Ambil NoPeserta berdasarkan TypeUjian

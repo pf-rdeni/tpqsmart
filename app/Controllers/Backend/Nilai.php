@@ -598,27 +598,24 @@ class Nilai extends BaseController
                 $hideGenap = false;
             }
 
-            // Cek apakah setting munaqosah aktif untuk menampilkan nilai munaqosah
-            // Cek setting dengan IdTpq spesifik terlebih dahulu, jika tidak ada cek dengan IdTpq = '0' (global)
-            $munaqosahAktif = false;
-            if (!empty($IdTpqKelas)) {
-                // Cek setting untuk TPQ spesifik
-                $munaqosahAktif = $this->munaqosahKonfigurasiModel->getSettingAsBool((string)$IdTpqKelas, 'AktiveTombolKelulusan', false);
-
-                // Jika tidak ada setting untuk TPQ spesifik, cek setting global (IdTpq = '0')
-                if (!$munaqosahAktif) {
-                    $munaqosahAktif = $this->munaqosahKonfigurasiModel->getSettingAsBool('0', 'AktiveTombolKelulusan', false);
-                }
-            } else {
-                // Jika IdTpq kosong, cek setting global
-                $munaqosahAktif = $this->munaqosahKonfigurasiModel->getSettingAsBool('0', 'AktiveTombolKelulusan', false);
-            }
+            // Cek apakah setting munaqosah aktif untuk menampilkan nilai munaqosah:
+            // Pembatasan AktiveTombolKelulusan hanya berlaku di tahun ajaran berjalan ($this->IdTahunAjaran).
+            // Untuk tahun ajaran lampau/lama, nilai munaqosah dan pra-munaqosah selalu aktif/ditampilkan.
+            $isTahunBerjalan = ($IdTahunAjaran == $this->IdTahunAjaran);
+            $praMunaqosahAktif = !$isTahunBerjalan
+                ? true
+                : (!empty($IdTpqKelas) ? $this->munaqosahKonfigurasiModel->getSettingAsBool((string)$IdTpqKelas, 'AktiveTombolKelulusan', false) : false);
+            $munaqosahAktif = !$isTahunBerjalan
+                ? true
+                : $this->munaqosahKonfigurasiModel->getSettingAsBool('0', 'AktiveTombolKelulusan', false);
 
             // Ambil data nilai munaqosah dan pra-munaqosah hanya jika setting aktif
             $nilaiMunaqosah = [];
             $nilaiPraMunaqosah = [];
             if ($munaqosahAktif) {
                 $nilaiMunaqosah = $this->getNilaiMunaqosah($IdSantri, $IdTahunAjaran, $IdTpqKelas);
+            }
+            if ($praMunaqosahAktif) {
                 $nilaiPraMunaqosah = $this->getNilaiPraMunaqosah($IdSantri, $IdTahunAjaran, $IdTpqKelas);
             }
 
@@ -636,7 +633,7 @@ class Nilai extends BaseController
                 'statistikGenap' => $statistikGenap,
                 'nilaiMunaqosah' => $nilaiMunaqosah,
                 'nilaiPraMunaqosah' => $nilaiPraMunaqosah,
-                'munaqosahAktif' => $munaqosahAktif,
+                'munaqosahAktif' => ($munaqosahAktif || $praMunaqosahAktif),
                 'waliKelas' => $waliKelas ? ($waliKelas->Nama ?? '') : '',
                 'hideGanjil' => $hideGanjil,
                 'hideGenap' => $hideGenap,

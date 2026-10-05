@@ -24,11 +24,11 @@
                             <div class="col-12">
                                 <div class="card">
                                     <div class="card-header">
-                                        <h3 class="card-title"><i class="fas fa-toggle-on"></i> Pengaturan Tombol Kelulusan (Munaqosah)</h3>
+                                        <h3 class="card-title"><i class="fas fa-toggle-on"></i> Pengaturan Tombol Kelulusan (Munaqosah Terpusat)</h3>
                                     </div>
                                     <div class="card-body">
                                         <div class="form-group">
-                                            <label class="mb-3"><strong>Aktifkan Tombol Kelulusan</strong></label>
+                                            <label class="mb-3"><strong>Aktifkan Tombol Kelulusan Munaqosah Terpusat</strong></label>
                                             <div class="d-flex align-items-center">
                                                 <div class="toggle-switch-container position-relative">
                                                     <label class="toggle-switch">
@@ -56,7 +56,7 @@
                                                 </small>
                                             <?php else: ?>
                                                 <small class="form-text text-muted mt-2">
-                                                    <i class="fas fa-info-circle"></i> Toggle ini mengaktifkan/menonaktifkan tombol "Lihat Kelulusan" di halaman konfirmasi data santri untuk typeUjian Munaqosah. <strong>Hanya Admin yang dapat mengubah pengaturan ini.</strong>
+                                                    <i class="fas fa-info-circle"></i> Toggle ini mengaktifkan/menonaktifkan tombol "Lihat Kelulusan" di halaman publik santri khusus untuk type ujian <strong>Munaqosah Terpusat</strong>. <strong>Hanya Admin yang dapat mengubah pengaturan ini.</strong>
                                                 </small>
                                             <?php endif; ?>
                                         </div>

@@ -10063,6 +10063,19 @@ class Munaqosah extends BaseController
         try {
             $idTpq = $this->request->getPost('IdTpq');
             $value = $this->request->getPost('value'); // true/false
+            $isAdmin = in_groups('Admin');
+
+            // Jika bukan Admin, paksa IdTpq menggunakan IdTpq dari session operator
+            if (!$isAdmin) {
+                $sessionTpq = session()->get('IdTpq');
+                if (empty($sessionTpq) || $sessionTpq == 0) {
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'message' => 'Anda tidak memiliki hak akses untuk mengubah pengaturan ini'
+                    ]);
+                }
+                $idTpq = (string)$sessionTpq;
+            }
 
             if (empty($idTpq) && $idTpq !== '0' && $idTpq !== 0) {
                 return $this->response->setJSON([
@@ -10072,10 +10085,10 @@ class Munaqosah extends BaseController
             }
 
             // Untuk typeUjian munaqosah (IdTpq = '0' atau 0), hanya Admin yang bisa mengubah pengaturan
-            if (($idTpq === '0' || $idTpq === 0) && !in_groups('Admin')) {
+            if (($idTpq === '0' || $idTpq === 0) && !$isAdmin) {
                 return $this->response->setJSON([
                     'success' => false,
-                    'message' => 'Hanya Admin yang dapat mengubah pengaturan tombol kelulusan untuk typeUjian munaqosah'
+                    'message' => 'Hanya Admin yang dapat mengubah pengaturan tombol kelulusan untuk Munaqosah Terpusat'
                 ]);
             }
 
@@ -10101,11 +10114,16 @@ class Munaqosah extends BaseController
                     ->first();
             }
 
+            $description = ($idTpq === '0' || $idTpq === 0)
+                ? 'Mengaktifkan tombol kelulusan Munaqosah Terpusat di halaman publik santri'
+                : 'Mengaktifkan tombol kelulusan Pra-Munaqosah lembaga di halaman publik santri';
+
             if ($existing) {
                 // Update existing setting dengan IdTpq yang sesuai
                 $updateData = [
                     'SettingValue' => $settingValue,
-                    'SettingType' => 'boolean'
+                    'SettingType' => 'boolean',
+                    'Description' => $description
                 ];
 
                 if ($this->munaqosahKonfigurasiModel->update($existing['id'], $updateData)) {
@@ -10128,7 +10146,7 @@ class Munaqosah extends BaseController
                     'SettingKey' => 'AktiveTombolKelulusan',
                     'SettingValue' => $settingValue,
                     'SettingType' => 'boolean',
-                    'Description' => 'Mengaktifkan tombol kelulusan di halaman konfirmasi data santri'
+                    'Description' => $description
                 ];
 
                 if ($this->munaqosahKonfigurasiModel->insert($insertData)) {
