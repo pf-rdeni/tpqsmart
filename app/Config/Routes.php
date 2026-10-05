@@ -517,6 +517,14 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->post('munaqosah/update-password-juri/(:num)', 'Munaqosah::updatePasswordJuri/$1');
     $routes->post('munaqosah/update-nama-juri/(:num)', 'Munaqosah::updateNamaJuri/$1');
 
+    // Administrasi Pelaksanaan Munaqosah Routes
+    $routes->get('munaqosah/administrasi', 'Munaqosah::administrasiPelaksanaan');
+    $routes->match(['GET', 'POST'], 'munaqosah/print-label-ruangan', 'Munaqosah::printLabelRuangan');
+    $routes->match(['GET', 'POST'], 'munaqosah/print-lembar-imla', 'Munaqosah::printLembarImla');
+    $routes->match(['GET', 'POST'], 'munaqosah/print-klasifikasi-nilai', 'Munaqosah::printKlasifikasiNilai');
+    $routes->match(['GET', 'POST'], 'munaqosah/print-rekap-ruangan-juri', 'Munaqosah::printRekapRuanganJuri');
+    $routes->match(['GET', 'POST'], 'munaqosah/print-absensi-peserta', 'Munaqosah::printAbsensiPeserta');
+
     // Panitia Munaqosah Routes
     $routes->post('munaqosah/generate-username-panitia', 'Munaqosah::generateUsernamePanitia');
     $routes->post('munaqosah/save-panitia', 'Munaqosah::savePanitia');

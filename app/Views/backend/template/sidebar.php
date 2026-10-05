@@ -511,6 +511,12 @@
                                         <p>Data Juri dan Panitia</p>
                                     </a>
                                 </li>
+                                <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/munaqosah/administrasi') ?> class="nav-link">
+                                        <i class="fas fa-print nav-icon text-warning"></i>
+                                        <p>Administrasi Ujian</p>
+                                    </a>
+                                </li>
                                 <?php if (!in_groups('Juri')): ?>
                                     <li class="nav-item">
                                         <a href=<?php echo base_url('backend/munaqosah/peserta') ?> class="nav-link">

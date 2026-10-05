@@ -9274,6 +9274,672 @@ class Munaqosah extends BaseController
         }
     }
 
+    // ==================== ADMINISTRASI PELAKSANAAN MUNAQOSAH ====================
+
+    /**
+     * Halaman Administrasi Pelaksanaan Munaqosah / Pra-Munaqosah
+     */
+    public function administrasiPelaksanaan()
+    {
+        helper('nilai');
+
+        $sessionTpq = session()->get('IdTpq');
+        $isAdmin = in_groups('Admin') || (empty($sessionTpq) || $sessionTpq == 0);
+        $activeRole = session()->get('activeRole') ?? ($isAdmin ? 'admin' : (in_groups('Operator') ? 'operator' : 'user'));
+
+        $tahunSaatIni = $this->helpFunction->getTahunAjaranSaatIni();
+        $tahunSebelumnya = $this->helpFunction->getTahunAjaranSebelumnya();
+
+        $idTahunAjaran = $this->request->getGet('tahun_ajaran') ?: (session()->get('IdTahunAjaran') ?: $tahunSaatIni);
+        $typeUjian = $this->request->getGet('type') ?: ($isAdmin ? 'munaqosah' : 'pra-munaqosah');
+        $idTpq = $this->request->getGet('tpq') !== null ? (int)$this->request->getGet('tpq') : ($isAdmin ? 0 : (int)$sessionTpq);
+
+        if (!$isAdmin && !empty($sessionTpq)) {
+            $idTpq = (int)$sessionTpq;
+        }
+
+        // Daftar Tahun Ajaran
+        $dbTahun = $this->db->table('tbl_munaqosah_peserta')
+            ->select('IdTahunAjaran')
+            ->distinct()
+            ->orderBy('IdTahunAjaran', 'DESC')
+            ->get()->getResultArray();
+
+        $allTahun = [$tahunSaatIni, $tahunSebelumnya];
+        foreach ($dbTahun as $dt) {
+            if (!empty($dt['IdTahunAjaran']) && !in_array($dt['IdTahunAjaran'], $allTahun)) {
+                $allTahun[] = $dt['IdTahunAjaran'];
+            }
+        }
+        rsort($allTahun);
+
+        $tahunAjaranList = [];
+        foreach ($allTahun as $ta) {
+            $tahunAjaranList[] = [
+                'IdTahunAjaran' => $ta,
+                'NamaTahunAjaran' => convertTahunAjaran($ta),
+                'StatusAktif' => ($ta == $tahunSaatIni) ? '1' : '0'
+            ];
+        }
+
+        // Daftar TPQ
+        if ($isAdmin) {
+            $tpqList = $this->db->table('tbl_tpq')->select('IdTpq, NamaTpq, Alamat')->orderBy('NamaTpq', 'ASC')->get()->getResultArray();
+        } else {
+            $tpqList = $this->db->table('tbl_tpq')->select('IdTpq, NamaTpq, Alamat')->where('IdTpq', $idTpq)->get()->getResultArray();
+        }
+
+        // Data Juri & Ruangan
+        $juriBuilder = $this->db->table('tbl_munaqosah_juri j');
+        $juriBuilder->select('j.*, COALESCE(t.NamaTpq, tg.NamaTpq, tgu.NamaTpq, "-") as NamaTpq, g.NamaMateriGrup, COALESCE(u.fullname, j.UsernameJuri) as NamaJuri');
+        $juriBuilder->join('tbl_tpq t', 't.IdTpq = j.IdTpq', 'left');
+        $juriBuilder->join('users u', 'u.username = j.UsernameJuri', 'left');
+        $juriBuilder->join('tbl_guru gr', 'gr.IdGuru = u.nik', 'left');
+        $juriBuilder->join('tbl_tpq tg', 'tg.IdTpq = gr.IdTpq', 'left');
+        $juriBuilder->join('tbl_guru gru', 'gru.Nama = u.fullname', 'left');
+        $juriBuilder->join('tbl_tpq tgu', 'tgu.IdTpq = gru.IdTpq', 'left');
+        $juriBuilder->join('tbl_munaqosah_grup_materi_uji g', 'g.IdGrupMateriUjian = j.IdGrupMateriUjian', 'left');
+        $juriBuilder->where('j.Status', 'Aktif');
+        $juriBuilder->where('j.TypeUjian', $typeUjian);
+
+        if ($typeUjian === 'pra-munaqosah' && !empty($idTpq)) {
+            $juriBuilder->where('j.IdTpq', $idTpq);
+        }
+
+        $juriBuilder->where('j.RoomId IS NOT NULL');
+        $juriBuilder->where('j.RoomId !=', '');
+        $juriBuilder->orderBy('j.RoomId', 'ASC');
+        $juriBuilder->orderBy('j.UsernameJuri', 'ASC');
+        $juriRaw = $juriBuilder->get()->getResultArray();
+
+        $ruanganList = [];
+        foreach ($juriRaw as $j) {
+            $rNo = $j['RoomId'];
+            if (!isset($ruanganList[$rNo])) {
+                $ruanganList[$rNo] = [
+                    'RoomNumber' => $rNo,
+                    'NamaMateriGrup' => $j['NamaMateriGrup'] ?? 'Materi Ujian',
+                    'JuriList' => []
+                ];
+            }
+            $ruanganList[$rNo]['JuriList'][] = $j;
+        }
+
+        // Materi & Kategori Kesalahan
+        $materiList = $this->db->table('tbl_munaqosah_materi mm')
+            ->select('mm.id, mm.IdMateri, mm.Status, m.NamaMateri, g.NamaMateriGrup')
+            ->join('tbl_materi_pelajaran m', 'm.IdMateri = mm.IdMateri', 'left')
+            ->join('tbl_munaqosah_grup_materi_uji g', 'g.IdGrupMateriUjian = mm.IdGrupMateriUjian', 'left')
+            ->where('mm.Status', 'Aktif')
+            ->orderBy('m.NamaMateri', 'ASC')
+            ->get()->getResultArray();
+
+        $kategoriKesalahan = $this->db->table('tbl_munaqosah_kategori_kesalahan kk')
+            ->select('kk.*, km.NamaKategoriMateri')
+            ->join('tbl_kategori_materi km', 'km.IdKategoriMateri = kk.IdKategoriMateri', 'left')
+            ->where('kk.Status', 'Aktif')
+            ->orderBy("CASE 
+                WHEN km.NamaKategoriMateri LIKE '%Qur%' OR km.NamaKategoriMateri LIKE '%Baca%' THEN 1
+                WHEN km.NamaKategoriMateri LIKE '%Surat%' OR km.NamaKategoriMateri LIKE '%Juz%' OR km.NamaKategoriMateri LIKE '%Hafalan%' THEN 2
+                WHEN km.NamaKategoriMateri LIKE '%Sholat%' OR km.NamaKategoriMateri LIKE '%Ibadah%' OR km.NamaKategoriMateri LIKE '%Wudhu%' THEN 3
+                WHEN km.NamaKategoriMateri LIKE '%Doa%' OR km.NamaKategoriMateri LIKE '%Do\'a%' THEN 4
+                WHEN km.NamaKategoriMateri LIKE '%Dinul%' OR km.NamaKategoriMateri LIKE '%Teori%' OR km.NamaKategoriMateri LIKE '%Tajwid%' THEN 5
+                WHEN km.NamaKategoriMateri LIKE '%Imla%' OR km.NamaKategoriMateri LIKE '%Tulis%' THEN 6
+                ELSE 7
+            END", "ASC", false)
+            ->orderBy('km.NamaKategoriMateri', 'ASC')
+            ->orderBy('kk.NilaiMin', 'ASC')
+            ->get()->getResultArray();
+
+        $data = [
+            'page_title' => 'Administrasi Pelaksanaan Ujian Munaqosah',
+            'title' => 'Administrasi Pelaksanaan Ujian Munaqosah',
+            'activeRole' => $activeRole,
+            'idTahunAjaran' => $idTahunAjaran,
+            'tahunAjaranList' => $tahunAjaranList,
+            'typeUjian' => $typeUjian,
+            'idTpq' => $idTpq,
+            'tpqList' => $tpqList,
+            'ruanganList' => $ruanganList,
+            'materiList' => $materiList,
+            'kategoriKesalahan' => $kategoriKesalahan,
+        ];
+
+        return view('backend/Munaqosah/administrasiPelaksanaan', $data);
+    }
+
+    /**
+     * Cetak Label / Plang Pintu Ruangan Juri
+     */
+    public function printLabelRuangan()
+    {
+        try {
+            helper('nilai');
+            $typeUjian = $this->request->getVar('type') ?? 'munaqosah';
+            $idTpq = (int)($this->request->getVar('tpq') ?? 0);
+            $roomNumber = $this->request->getVar('room_number') ?? 'all';
+            $showUsername = $this->request->getVar('show_username') === '1' || $this->request->getVar('show_username') === 'true';
+            $tahunAjaran = $this->request->getVar('tahun_ajaran') ?: $this->helpFunction->getTahunAjaranSaatIni();
+
+            $sessionIdTpq = session()->get('IdTpq');
+            $isAdmin = in_groups('Admin') || (empty($sessionIdTpq) || $sessionIdTpq == 0);
+            if (!$isAdmin && !empty($sessionIdTpq)) {
+                $idTpq = (int)$sessionIdTpq;
+                $typeUjian = 'pra-munaqosah';
+            }
+
+            // Info TPQ jika ada
+            $tpqInfo = null;
+            if (!empty($idTpq)) {
+                $tpqInfo = $this->db->table('tbl_tpq')->where('IdTpq', $idTpq)->get()->getRowArray();
+            }
+
+            // Query Juri
+            $juriBuilder = $this->db->table('tbl_munaqosah_juri j');
+            $juriBuilder->select('j.*, COALESCE(t.NamaTpq, tg.NamaTpq, tgu.NamaTpq, "-") as NamaTpq, g.NamaMateriGrup, COALESCE(u.fullname, j.UsernameJuri) as NamaJuri');
+            $juriBuilder->join('tbl_tpq t', 't.IdTpq = j.IdTpq', 'left');
+            $juriBuilder->join('users u', 'u.username = j.UsernameJuri', 'left');
+            $juriBuilder->join('tbl_guru gr', 'gr.IdGuru = u.nik', 'left');
+            $juriBuilder->join('tbl_tpq tg', 'tg.IdTpq = gr.IdTpq', 'left');
+            $juriBuilder->join('tbl_guru gru', 'gru.Nama = u.fullname', 'left');
+            $juriBuilder->join('tbl_tpq tgu', 'tgu.IdTpq = gru.IdTpq', 'left');
+            $juriBuilder->join('tbl_munaqosah_grup_materi_uji g', 'g.IdGrupMateriUjian = j.IdGrupMateriUjian', 'left');
+            $juriBuilder->where('j.Status', 'Aktif');
+            $juriBuilder->where('j.TypeUjian', $typeUjian);
+
+            if ($typeUjian === 'pra-munaqosah' && !empty($idTpq)) {
+                $juriBuilder->where('j.IdTpq', $idTpq);
+            }
+
+            if (!empty($roomNumber) && $roomNumber !== 'all') {
+                $juriBuilder->where('j.RoomId', $roomNumber);
+            }
+
+            $juriBuilder->where('j.RoomId IS NOT NULL');
+            $juriBuilder->where('j.RoomId !=', '');
+            $juriBuilder->orderBy('j.RoomId', 'ASC');
+            $juriBuilder->orderBy('j.UsernameJuri', 'ASC');
+            $juriRaw = $juriBuilder->get()->getResultArray();
+
+            $ruanganList = [];
+            foreach ($juriRaw as $j) {
+                $rNo = $j['RoomId'];
+                if (!isset($ruanganList[$rNo])) {
+                    $ruanganList[$rNo] = [
+                        'RoomNumber' => $rNo,
+                        'NamaMateriGrup' => $j['NamaMateriGrup'] ?? 'Materi Ujian',
+                        'JuriList' => []
+                    ];
+                }
+                $ruanganList[$rNo]['JuriList'][] = $j;
+            }
+
+            // Jika ruangan dipilih spesifik tapi belum ada juri di ruangan tsb
+            if (!empty($roomNumber) && $roomNumber !== 'all' && empty($ruanganList)) {
+                $ruanganList[$roomNumber] = [
+                    'RoomNumber' => $roomNumber,
+                    'NamaMateriGrup' => 'Ujian Munaqosah',
+                    'JuriList' => []
+                ];
+            }
+
+            if (empty($ruanganList)) {
+                return redirect()->back()->with('error', 'Tidak ada data ruangan untuk dicetak.');
+            }
+
+            $data = [
+                'title' => 'Label Ruangan ' . ($roomNumber !== 'all' ? $roomNumber : 'Semua Ruangan'),
+                'idTahunAjaran' => $tahunAjaran,
+                'typeUjian' => $typeUjian,
+                'idTpq' => $idTpq,
+                'tpqInfo' => $tpqInfo,
+                'ruanganList' => $ruanganList,
+                'showUsername' => $showUsername,
+            ];
+
+            $html = view('backend/Munaqosah/printLabelRuangan', $data);
+
+            $options = new \Dompdf\Options();
+            $options->set('isHtml5ParserEnabled', true);
+            $options->set('isPhpEnabled', true);
+            $options->set('defaultFont', 'Helvetica');
+            $options->set('defaultMediaType', 'print');
+
+            $dompdf = new \Dompdf\Dompdf($options);
+            $dompdf->loadHtml($html);
+            $dompdf->setPaper('A4', 'landscape');
+            $dompdf->render();
+
+            $filename = 'label_ruangan_' . $typeUjian . '_' . ($roomNumber !== 'all' ? $roomNumber : 'all') . '_' . date('Ymd') . '.pdf';
+
+            if (ob_get_level()) {
+                ob_end_clean();
+            }
+
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: inline; filename="' . $filename . '"');
+            header('Cache-Control: private, max-age=0, must-revalidate');
+            header('Pragma: public');
+
+            echo $dompdf->output();
+            exit();
+        } catch (\Exception $e) {
+            log_message('error', 'Munaqosah: printLabelRuangan - Error: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal membuat PDF Label Ruangan: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Cetak Form Lembaran Imla / Tulis Al-Qur'an (Master 1 Lembar)
+     */
+    public function printLembarImla()
+    {
+        try {
+            helper('nilai');
+            $typeUjian = $this->request->getVar('type') ?? 'munaqosah';
+            $idTpq = (int)($this->request->getVar('tpq') ?? 0);
+            $tahunAjaran = $this->request->getVar('tahun_ajaran') ?: $this->helpFunction->getTahunAjaranSaatIni();
+
+            $sessionIdTpq = session()->get('IdTpq');
+            $isAdmin = in_groups('Admin') || (empty($sessionIdTpq) || $sessionIdTpq == 0);
+            if (!$isAdmin && !empty($sessionIdTpq)) {
+                $idTpq = (int)$sessionIdTpq;
+                $typeUjian = 'pra-munaqosah';
+            }
+
+            $tpqInfo = null;
+            if (!empty($idTpq)) {
+                $tpqInfo = $this->db->table('tbl_tpq')->where('IdTpq', $idTpq)->get()->getRowArray();
+            }
+
+            // Cari logo jika ada
+            $logoBase64 = '';
+            if (!empty($tpqInfo['LogoLembaga'])) {
+                $logoPath = FCPATH . 'uploads/logo/' . $tpqInfo['LogoLembaga'];
+                if (file_exists($logoPath)) {
+                    $type = pathinfo($logoPath, PATHINFO_EXTENSION);
+                    $dataImg = file_get_contents($logoPath);
+                    $logoBase64 = 'data:image/' . $type . ';base64,' . base64_encode($dataImg);
+                }
+            }
+
+            // Cari data juri untuk materi Imla / Tulis Al-Qur'an
+            $juriImlaBuilder = $this->db->table('tbl_munaqosah_juri j')
+                ->select('j.*, g.NamaMateriGrup, COALESCE(u.fullname, j.UsernameJuri) as NamaJuri')
+                ->join('tbl_munaqosah_grup_materi_uji g', 'g.IdGrupMateriUjian = j.IdGrupMateriUjian', 'left')
+                ->join('users u', 'u.username = j.UsernameJuri', 'left')
+                ->where('j.Status', 'Aktif')
+                ->where('j.TypeUjian', $typeUjian);
+
+            if ($typeUjian === 'pra-munaqosah' && !empty($idTpq)) {
+                $juriImlaBuilder->where('j.IdTpq', $idTpq);
+            }
+
+            $juriImlaBuilder->groupStart()
+                ->like('g.NamaMateriGrup', 'Imla')
+                ->orLike('g.NamaMateriGrup', 'Tulis')
+                ->orLike('g.NamaMateriGrup', 'Khat')
+                ->orLike('g.NamaMateriGrup', 'Ayat')
+            ->groupEnd();
+
+            $juriList = $juriImlaBuilder->orderBy('j.IdJuri', 'ASC')->get()->getResultArray();
+
+            // Jika belum ada juri terdaftar khusus imla, default 2 juri
+            if (empty($juriList)) {
+                $juriList = [
+                    ['NamaJuri' => ''],
+                    ['NamaJuri' => '']
+                ];
+            }
+
+            $data = [
+                'title' => 'Formulir Penilaian Praktek Tulis Ayat Al-Quran',
+                'idTahunAjaran' => $tahunAjaran,
+                'typeUjian' => $typeUjian,
+                'idTpq' => $idTpq,
+                'tpqInfo' => $tpqInfo,
+                'logoBase64' => $logoBase64,
+                'juriList' => $juriList,
+            ];
+
+            $html = view('backend/Munaqosah/printLembarImla', $data);
+
+            $options = new \Dompdf\Options();
+            $options->set('isHtml5ParserEnabled', true);
+            $options->set('isPhpEnabled', true);
+            $options->set('defaultFont', 'Helvetica');
+            $options->set('defaultMediaType', 'print');
+
+            $dompdf = new \Dompdf\Dompdf($options);
+            $dompdf->loadHtml($html);
+            $dompdf->setPaper('A4', 'portrait');
+            $dompdf->render();
+
+            $filename = 'formulir_penilaian_imla_' . $typeUjian . '_' . date('Ymd') . '.pdf';
+
+            if (ob_get_level()) {
+                ob_end_clean();
+            }
+
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: inline; filename="' . $filename . '"');
+            header('Cache-Control: private, max-age=0, must-revalidate');
+            header('Pragma: public');
+
+            echo $dompdf->output();
+            exit();
+        } catch (\Exception $e) {
+            log_message('error', 'Munaqosah: printLembarImla - Error: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal membuat PDF Lembar Imla: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Cetak Lembaran Klasifikasi & Range Nilai (Pedoman Kategori Kesalahan Juri)
+     */
+    public function printKlasifikasiNilai()
+    {
+        try {
+            helper('nilai');
+            $typeUjian = $this->request->getPost('type') ?? 'munaqosah';
+            $idTpq = (int)($this->request->getPost('tpq') ?? 0);
+            $tahunAjaran = $this->request->getPost('tahun_ajaran') ?: $this->helpFunction->getTahunAjaranSaatIni();
+
+            $sessionIdTpq = session()->get('IdTpq');
+            $isAdmin = in_groups('Admin') || (empty($sessionIdTpq) || $sessionIdTpq == 0);
+            if (!$isAdmin && !empty($sessionIdTpq)) {
+                $idTpq = (int)$sessionIdTpq;
+                $typeUjian = 'pra-munaqosah';
+            }
+
+            $tpqInfo = null;
+            if (!empty($idTpq)) {
+                $tpqInfo = $this->db->table('tbl_tpq')->where('IdTpq', $idTpq)->get()->getRowArray();
+            }
+
+            // Ambil Kategori Kesalahan
+            $kategoriKesalahan = $this->db->table('tbl_munaqosah_kategori_kesalahan kk')
+                ->select('kk.*, km.NamaKategoriMateri')
+                ->join('tbl_kategori_materi km', 'km.IdKategoriMateri = kk.IdKategoriMateri', 'left')
+                ->where('kk.Status', 'Aktif')
+                ->orderBy("CASE 
+                    WHEN km.NamaKategoriMateri LIKE '%Qur%' OR km.NamaKategoriMateri LIKE '%Baca%' THEN 1
+                    WHEN km.NamaKategoriMateri LIKE '%Surat%' OR km.NamaKategoriMateri LIKE '%Juz%' OR km.NamaKategoriMateri LIKE '%Hafalan%' THEN 2
+                    WHEN km.NamaKategoriMateri LIKE '%Sholat%' OR km.NamaKategoriMateri LIKE '%Ibadah%' OR km.NamaKategoriMateri LIKE '%Wudhu%' THEN 3
+                    WHEN km.NamaKategoriMateri LIKE '%Doa%' OR km.NamaKategoriMateri LIKE '%Do\'a%' THEN 4
+                    WHEN km.NamaKategoriMateri LIKE '%Dinul%' OR km.NamaKategoriMateri LIKE '%Teori%' OR km.NamaKategoriMateri LIKE '%Tajwid%' THEN 5
+                    WHEN km.NamaKategoriMateri LIKE '%Imla%' OR km.NamaKategoriMateri LIKE '%Tulis%' THEN 6
+                    ELSE 7
+                END", "ASC", false)
+                ->orderBy('km.NamaKategoriMateri', 'ASC')
+                ->orderBy('kk.NilaiMin', 'ASC')
+                ->get()->getResultArray();
+
+            // Ambil Nilai Maksimal & Minimal dari konfigurasi aplikasi
+            $configKey = !empty($idTpq) ? (string)$idTpq : '0';
+            $nilaiMaximal = $this->munaqosahKonfigurasiModel->getSettingAsInt($configKey, 'NilaiMaximal', 99);
+            $nilaiMinimal = $this->munaqosahKonfigurasiModel->getSettingAsInt($configKey, 'NilaiMinimal', 40);
+            $nilaiKelulusan = $this->munaqosahKonfigurasiModel->getSettingAsInt($configKey, 'NilaiKelulusan', 65);
+
+            $data = [
+                'title' => 'Pedoman Standar Range Nilai Kesalahan Munaqosah',
+                'idTahunAjaran' => $tahunAjaran,
+                'typeUjian' => $typeUjian,
+                'idTpq' => $idTpq,
+                'tpqInfo' => $tpqInfo,
+                'kategoriKesalahan' => $kategoriKesalahan,
+                'nilaiMaximal' => $nilaiMaximal,
+                'nilaiMinimal' => $nilaiMinimal,
+                'nilaiKelulusan' => $nilaiKelulusan,
+            ];
+
+            $html = view('backend/Munaqosah/printKlasifikasiNilai', $data);
+
+            $options = new \Dompdf\Options();
+            $options->set('isHtml5ParserEnabled', true);
+            $options->set('isPhpEnabled', true);
+            $options->set('defaultFont', 'Helvetica');
+            $options->set('defaultMediaType', 'print');
+
+            $dompdf = new \Dompdf\Dompdf($options);
+            $dompdf->loadHtml($html);
+            $dompdf->setPaper('A4', 'portrait');
+            $dompdf->render();
+
+            $filename = 'pedoman_range_nilai_' . $typeUjian . '_' . date('Ymd') . '.pdf';
+
+            if (ob_get_level()) {
+                ob_end_clean();
+            }
+
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: inline; filename="' . $filename . '"');
+            header('Cache-Control: private, max-age=0, must-revalidate');
+            header('Pragma: public');
+
+            echo $dompdf->output();
+            exit();
+        } catch (\Exception $e) {
+            log_message('error', 'Munaqosah: printKlasifikasiNilai - Error: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal membuat PDF Klasifikasi Nilai: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Cetak Rekapitulasi Penempatan Ruangan Juri
+     */
+    public function printRekapRuanganJuri()
+    {
+        try {
+            helper('nilai');
+            $typeUjian = $this->request->getPost('type') ?? 'munaqosah';
+            $idTpq = (int)($this->request->getPost('tpq') ?? 0);
+            $tahunAjaran = $this->request->getPost('tahun_ajaran') ?: $this->helpFunction->getTahunAjaranSaatIni();
+
+            $sessionIdTpq = session()->get('IdTpq');
+            $isAdmin = in_groups('Admin') || (empty($sessionIdTpq) || $sessionIdTpq == 0);
+            if (!$isAdmin && !empty($sessionIdTpq)) {
+                $idTpq = (int)$sessionIdTpq;
+                $typeUjian = 'pra-munaqosah';
+            }
+
+            $tpqInfo = null;
+            if (!empty($idTpq)) {
+                $tpqInfo = $this->db->table('tbl_tpq')->where('IdTpq', $idTpq)->get()->getRowArray();
+            }
+
+            // Query Juri
+            $juriBuilder = $this->db->table('tbl_munaqosah_juri j');
+            $juriBuilder->select('j.*, COALESCE(t.NamaTpq, tg.NamaTpq, tgu.NamaTpq, "-") as NamaTpq, g.NamaMateriGrup, COALESCE(u.fullname, j.UsernameJuri) as NamaJuri');
+            $juriBuilder->join('tbl_tpq t', 't.IdTpq = j.IdTpq', 'left');
+            $juriBuilder->join('users u', 'u.username = j.UsernameJuri', 'left');
+            $juriBuilder->join('tbl_guru gr', 'gr.IdGuru = u.nik', 'left');
+            $juriBuilder->join('tbl_tpq tg', 'tg.IdTpq = gr.IdTpq', 'left');
+            $juriBuilder->join('tbl_guru gru', 'gru.Nama = u.fullname', 'left');
+            $juriBuilder->join('tbl_tpq tgu', 'tgu.IdTpq = gru.IdTpq', 'left');
+            $juriBuilder->join('tbl_munaqosah_grup_materi_uji g', 'g.IdGrupMateriUjian = j.IdGrupMateriUjian', 'left');
+            $juriBuilder->where('j.Status', 'Aktif');
+            $juriBuilder->where('j.TypeUjian', $typeUjian);
+
+            if ($typeUjian === 'pra-munaqosah' && !empty($idTpq)) {
+                $juriBuilder->where('j.IdTpq', $idTpq);
+            }
+
+            $juriBuilder->where('j.RoomId IS NOT NULL');
+            $juriBuilder->where('j.RoomId !=', '');
+            $juriBuilder->orderBy('j.RoomId', 'ASC');
+            $juriBuilder->orderBy('j.UsernameJuri', 'ASC');
+            $juriRaw = $juriBuilder->get()->getResultArray();
+
+            $ruanganList = [];
+            foreach ($juriRaw as $j) {
+                $rNo = $j['RoomId'];
+                if (!isset($ruanganList[$rNo])) {
+                    $ruanganList[$rNo] = [
+                        'RoomNumber' => $rNo,
+                        'NamaMateriGrup' => $j['NamaMateriGrup'] ?? 'Materi Ujian',
+                        'JuriList' => []
+                    ];
+                }
+                $ruanganList[$rNo]['JuriList'][] = $j;
+            }
+
+            $materiList = $this->db->table('tbl_munaqosah_materi mm')
+                ->select('mm.id, mm.IdMateri, mm.Status, m.NamaMateri, g.NamaMateriGrup')
+                ->join('tbl_materi_pelajaran m', 'm.IdMateri = mm.IdMateri', 'left')
+                ->join('tbl_munaqosah_grup_materi_uji g', 'g.IdGrupMateriUjian = mm.IdGrupMateriUjian', 'left')
+                ->where('mm.Status', 'Aktif')
+                ->orderBy('m.NamaMateri', 'ASC')
+                ->get()->getResultArray();
+
+            $data = [
+                'title' => 'Rekapitulasi Penempatan Juri dan Ruangan',
+                'idTahunAjaran' => $tahunAjaran,
+                'typeUjian' => $typeUjian,
+                'idTpq' => $idTpq,
+                'tpqInfo' => $tpqInfo,
+                'ruanganList' => $ruanganList,
+                'materiList' => $materiList,
+            ];
+
+            $html = view('backend/Munaqosah/printRekapRuanganJuri', $data);
+
+            $options = new \Dompdf\Options();
+            $options->set('isHtml5ParserEnabled', true);
+            $options->set('isPhpEnabled', true);
+            $options->set('defaultFont', 'Helvetica');
+            $options->set('defaultMediaType', 'print');
+
+            $dompdf = new \Dompdf\Dompdf($options);
+            $dompdf->loadHtml($html);
+            $dompdf->setPaper('A4', 'portrait');
+            $dompdf->render();
+
+            $filename = 'rekap_penempatan_juri_' . $typeUjian . '_' . date('Ymd') . '.pdf';
+
+            if (ob_get_level()) {
+                ob_end_clean();
+            }
+
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: inline; filename="' . $filename . '"');
+            header('Cache-Control: private, max-age=0, must-revalidate');
+            header('Pragma: public');
+
+            echo $dompdf->output();
+            exit();
+        } catch (\Exception $e) {
+            log_message('error', 'Munaqosah: printRekapRuanganJuri - Error: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal membuat PDF Rekap Ruangan: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Cetak Formulir / Daftar Hadir Absensi Santri dan Orang Tua/Wali
+     */
+    public function printAbsensiPeserta()
+    {
+        try {
+            helper('nilai');
+            $typeUjian = $this->request->getVar('type') ?? 'munaqosah';
+            $idTpq = (int)($this->request->getVar('tpq') ?? 0);
+            $tahunAjaran = $this->request->getVar('tahun_ajaran') ?: $this->helpFunction->getTahunAjaranSaatIni();
+            $mode = $this->request->getVar('mode') ?? 'data';
+
+            $sessionIdTpq = session()->get('IdTpq');
+            $isAdmin = in_groups('Admin') || (empty($sessionIdTpq) || $sessionIdTpq == 0);
+            if (!$isAdmin && !empty($sessionIdTpq)) {
+                $idTpq = (int)$sessionIdTpq;
+                $typeUjian = 'pra-munaqosah';
+            }
+
+            $tpqInfo = null;
+            if (!empty($idTpq)) {
+                $tpqInfo = $this->db->table('tbl_tpq')->where('IdTpq', $idTpq)->get()->getRowArray();
+            }
+
+            // Cari logo jika ada
+            $logoBase64 = '';
+            if (!empty($tpqInfo['LogoLembaga'])) {
+                $logoPath = FCPATH . 'uploads/logo/' . $tpqInfo['LogoLembaga'];
+                if (file_exists($logoPath)) {
+                    $type = pathinfo($logoPath, PATHINFO_EXTENSION);
+                    $dataImg = file_get_contents($logoPath);
+                    $logoBase64 = 'data:image/' . $type . ';base64,' . base64_encode($dataImg);
+                }
+            }
+
+            $pesertaList = [];
+            if ($mode !== 'blank') {
+                $pBuilder = $this->db->table('tbl_munaqosah_peserta mp')
+                    ->select('mp.*, s.NamaSantri, COALESCE(NULLIF(s.NamaAyah, ""), NULLIF(s.NamaIbu, ""), NULLIF(s.WaliSantri, ""), "-") as NamaOrtuWali, t.NamaTpq')
+                    ->join('tbl_santri_baru s', 's.IdSantri = mp.IdSantri', 'left')
+                    ->join('tbl_tpq t', 't.IdTpq = mp.IdTpq', 'left')
+                    ->where('mp.IdTahunAjaran', $tahunAjaran);
+
+                if (!empty($idTpq)) {
+                    $pBuilder->where('mp.IdTpq', $idTpq);
+                }
+
+                $pesertaList = $pBuilder->orderBy('t.NamaTpq', 'ASC')
+                    ->orderBy('s.NamaSantri', 'ASC')
+                    ->get()->getResultArray();
+            }
+
+            // Jika kosong atau mode blank, siapkan 15 baris kosong
+            if (empty($pesertaList)) {
+                for ($i = 1; $i <= 15; $i++) {
+                    $pesertaList[] = [
+                        'NamaSantri' => '',
+                        'NamaOrtuWali' => '',
+                        'NamaTpq' => !empty($tpqInfo['NamaTpq']) ? $tpqInfo['NamaTpq'] : ''
+                    ];
+                }
+            }
+
+            $data = [
+                'title' => 'Absensi Santri dan Orang Tua/Wali',
+                'idTahunAjaran' => $tahunAjaran,
+                'typeUjian' => $typeUjian,
+                'idTpq' => $idTpq,
+                'tpqInfo' => $tpqInfo,
+                'logoBase64' => $logoBase64,
+                'pesertaList' => $pesertaList,
+                'mode' => $mode
+            ];
+
+            $html = view('backend/Munaqosah/printAbsensiPeserta', $data);
+
+            $options = new \Dompdf\Options();
+            $options->set('isHtml5ParserEnabled', true);
+            $options->set('isPhpEnabled', true);
+            $options->set('defaultFont', 'Helvetica');
+            $options->set('defaultMediaType', 'print');
+
+            $dompdf = new \Dompdf\Dompdf($options);
+            $dompdf->loadHtml($html);
+            $dompdf->setPaper('A4', 'portrait');
+            $dompdf->render();
+
+            $filename = 'absensi_santri_ortu_' . $typeUjian . '_' . date('Ymd') . '.pdf';
+
+            if (ob_get_level()) {
+                ob_end_clean();
+            }
+
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: inline; filename="' . $filename . '"');
+            header('Cache-Control: private, max-age=0, must-revalidate');
+            header('Pragma: public');
+
+            echo $dompdf->output();
+            exit();
+        } catch (\Exception $e) {
+            log_message('error', 'Munaqosah: printAbsensiPeserta - Error: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal membuat PDF Absensi: ' . $e->getMessage());
+        }
+    }
+
     // ==================== PANITIA MUNAQOSAH ====================
 
     /**
