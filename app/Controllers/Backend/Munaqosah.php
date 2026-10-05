@@ -9285,6 +9285,9 @@ class Munaqosah extends BaseController
         $isAdmin = in_groups('Admin') && (empty($sessionTpq) || $sessionTpq == 0);
         $isOperator = in_groups('Operator') || in_groups('User') || (!empty($sessionTpq) && $sessionTpq != 0);
         $activeRole = session()->get('activeRole') ?? ($isAdmin ? 'admin' : 'operator');
+        if (!$isAdmin && (!empty($sessionTpq) || in_groups('Operator') || in_groups('User'))) {
+            $activeRole = 'operator';
+        }
 
         $tahunSaatIni = $this->helpFunction->getTahunAjaranSaatIni();
         $tahunSebelumnya = $this->helpFunction->getTahunAjaranSebelumnya();
@@ -9295,13 +9298,13 @@ class Munaqosah extends BaseController
 
         $idTahunAjaran = $this->request->getGet('tahun_ajaran') ?: $fallbackTahun;
 
-        // Jika login operator lembaga, default Agenda Pelaksanaan diset ke 'pra-munaqosah' dan TPQ ke TPQ miliknya
+        // Jika login operator lembaga, Agenda Pelaksanaan otomatis dikunci ke 'pra-munaqosah' dan TPQ ke TPQ miliknya
         if ($isOperator && !$isAdmin) {
-            $typeUjian = $this->request->getGet('type') ?: 'pra-munaqosah';
-            $idTpq = (int)$sessionTpq;
+            $typeUjian = 'pra-munaqosah';
+            $idTpq = (string)$sessionTpq;
         } else {
             $typeUjian = $this->request->getGet('type') ?: 'munaqosah';
-            $idTpq = $this->request->getGet('tpq') !== null ? (int)$this->request->getGet('tpq') : 0;
+            $idTpq = $this->request->getGet('tpq') !== null ? trim((string)$this->request->getGet('tpq')) : '0';
         }
 
         // Daftar Tahun Ajaran
@@ -9348,7 +9351,7 @@ class Munaqosah extends BaseController
         $juriBuilder->where('j.Status', 'Aktif');
         $juriBuilder->where('j.TypeUjian', $typeUjian);
 
-        if ($typeUjian === 'pra-munaqosah' && !empty($idTpq)) {
+        if ($typeUjian === 'pra-munaqosah' && !empty($idTpq) && $idTpq !== '0') {
             $juriBuilder->where('j.IdTpq', $idTpq);
         }
 
@@ -9400,6 +9403,8 @@ class Munaqosah extends BaseController
         $data = [
             'page_title' => 'Administrasi Pelaksanaan Ujian Munaqosah',
             'title' => 'Administrasi Pelaksanaan Ujian Munaqosah',
+            'isAdmin' => $isAdmin,
+            'isOperator' => ($isOperator && !$isAdmin),
             'activeRole' => $activeRole,
             'idTahunAjaran' => $idTahunAjaran,
             'tahunAjaranList' => $tahunAjaranList,

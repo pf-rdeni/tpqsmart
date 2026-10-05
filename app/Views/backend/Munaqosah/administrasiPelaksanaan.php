@@ -36,10 +36,17 @@
                 </div>
                 <div class="col-md-3 col-sm-6 mb-2 mb-md-0">
                     <label class="font-weight-bold text-secondary small mb-1"><i class="fas fa-tasks mr-1"></i> Agenda Pelaksanaan</label>
-                    <select name="type" class="form-control form-control-sm" onchange="this.form.submit()">
-                        <option value="munaqosah" <?= ($typeUjian == 'munaqosah') ? 'selected' : ''; ?>>Ujian Munaqosah (Kecamatan / FKPQ)</option>
-                        <option value="pra-munaqosah" <?= ($typeUjian == 'pra-munaqosah') ? 'selected' : ''; ?>>Pra-Munaqosah (Lembaga / TPQ)</option>
-                    </select>
+                    <?php if (!empty($activeRole) && $activeRole == 'operator'): ?>
+                        <input type="hidden" name="type" value="pra-munaqosah">
+                        <select class="form-control form-control-sm" disabled>
+                            <option value="pra-munaqosah" selected>Pra-Munaqosah (Lembaga / TPQ)</option>
+                        </select>
+                    <?php else: ?>
+                        <select name="type" class="form-control form-control-sm" onchange="this.form.submit()">
+                            <option value="munaqosah" <?= ($typeUjian == 'munaqosah') ? 'selected' : ''; ?>>Ujian Munaqosah (Kecamatan / FKPQ)</option>
+                            <option value="pra-munaqosah" <?= ($typeUjian == 'pra-munaqosah') ? 'selected' : ''; ?>>Pra-Munaqosah (Lembaga / TPQ)</option>
+                        </select>
+                    <?php endif; ?>
                 </div>
                 <div class="col-md-4 col-sm-8 mb-2 mb-md-0">
                     <label class="font-weight-bold text-secondary small mb-1"><i class="fas fa-mosque mr-1"></i> Lembaga / TPQ</label>
