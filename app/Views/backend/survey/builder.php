@@ -4,7 +4,7 @@
 <!-- Quill Rich Text Editor (Google Forms-like) -->
 <link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet">
 <!-- Custom Survey Builder Styles -->
-<link rel="stylesheet" href="<?= base_url('template/backend/dist/css/survey-builder.css') ?>">
+<link rel="stylesheet" href="<?= base_url('helpers/css/survey-builder.css') ?>?v=<?= time() ?>">
 
 <section class="content pt-2">
     <div class="container-fluid">
@@ -169,5 +169,5 @@
     const SURVEY_ID = <?= $survey['id'] ?>;
     const BASE_URL = '<?= base_url() ?>';
 </script>
-<script src="<?= base_url('template/backend/dist/js/survey-builder.js') ?>"></script>
+<script src="<?= base_url('helpers/js/survey-builder.js') ?>?v=<?= time() ?>"></script>
 <?= $this->endSection() ?>

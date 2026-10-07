@@ -1,0 +1,308 @@
+/* Survey Form Builder Stylesheet */
+
+/* Save Status Badge */
+#save-status {
+    font-size: 0.85rem;
+    padding: 0.35em 0.75em;
+    border-radius: 10px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+/* Toolbox Styles */
+.toolbox-section-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: #8898aa;
+    margin-top: 15px;
+    margin-bottom: 5px;
+}
+.toolbox-item {
+    padding: 10px 12px;
+    margin-bottom: 6px;
+    background-color: #f8f9fe;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 0.92rem;
+    color: #4a5568;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+.toolbox-item:hover {
+    background-color: #edf2f7;
+    border-color: #cbd5e0;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+}
+.toolbox-item:active {
+    transform: translateY(0);
+}
+
+/* Color codes */
+.text-purple { color: #805ad5; }
+.text-pink { color: #d53f8c; }
+.text-teal { color: #319795; }
+.text-lightblue { color: #3182ce; }
+.text-emerald { color: #10b981; }
+.text-indigo { color: #6366f1; }
+.text-orange { color: #f97316; }
+.text-gray { color: #718096; }
+
+/* Canvas Drag-and-Drop Area */
+.survey-canvas-dropzone {
+    min-height: 400px;
+}
+
+/* Section Card */
+.section-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-left: 4px solid #718096;
+    border-radius: 8px;
+    margin-bottom: 25px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    transition: box-shadow 0.2s;
+}
+.section-card:hover {
+    box-shadow: 0 4px 6px rgba(0,0,0,0.08);
+}
+.section-header {
+    background-color: #f7fafc;
+    border-bottom: 1px solid #edf2f7;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.section-body {
+    padding: 20px;
+    min-height: 80px;
+}
+.section-drag-handle {
+    cursor: move;
+    color: #a0aec0;
+    padding: 5px;
+}
+.section-drag-handle:hover {
+    color: #4a5568;
+}
+
+/* Question Card */
+.question-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    transition: all 0.2s ease;
+    position: relative;
+}
+.question-card:hover {
+    border-color: #cbd5e0;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+}
+.question-card.active-question {
+    border-left: 4px solid #4285F4;
+    box-shadow: 0 4px 12px rgba(66, 133, 244, 0.12);
+}
+.question-card-header {
+    padding: 10px 15px 5px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.question-drag-handle {
+    cursor: move;
+    color: #cbd5e0;
+    font-size: 0.9rem;
+}
+.question-drag-handle:hover {
+    color: #718096;
+}
+.question-card-body {
+    padding: 15px 20px 20px;
+}
+
+/* Question Option Row */
+.option-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+}
+.option-row .drag-option-handle {
+    cursor: move;
+    color: #cbd5e0;
+    padding: 5px 10px;
+}
+.option-row .drag-option-handle:hover {
+    color: #718096;
+}
+.option-row .remove-option-btn {
+    color: #e53e3e;
+    cursor: pointer;
+    padding: 8px;
+    transition: color 0.15s;
+}
+.option-row .remove-option-btn:hover {
+    color: #9b2c2c;
+}
+.add-option-btn {
+    color: #3182ce;
+    cursor: pointer;
+    font-weight: 500;
+    padding: 5px 10px;
+    display: inline-block;
+}
+.add-option-btn:hover {
+    color: #2b6cb0;
+    text-decoration: underline;
+}
+
+/* Image/Video Display Boxes */
+.media-display-box {
+    background: #f7fafc;
+    border: 2px dashed #e2e8f0;
+    border-radius: 6px;
+    padding: 15px;
+    text-align: center;
+    margin-top: 10px;
+}
+.media-display-box img {
+    max-width: 100%;
+    max-height: 250px;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+/* Form Controls Custom Focus */
+.survey-title-input:focus,
+.survey-description-input:focus,
+.question-text-input:focus,
+.option-text-input:focus {
+    outline: none;
+    border-bottom: 2px solid #4285F4 !important;
+}
+.question-text-input {
+    font-size: 1.1rem;
+    font-weight: 500;
+    border: 0;
+    border-bottom: 1px solid #edf2f7;
+    border-radius: 0;
+    padding-left: 0;
+    padding-right: 0;
+    background-color: transparent;
+}
+.option-text-input {
+    border: 0;
+    border-bottom: 1px solid #edf2f7;
+    border-radius: 0;
+    padding-left: 5px;
+    background-color: transparent;
+}
+
+/* Question Action Footer */
+.question-actions-footer {
+    border-top: 1px solid #f7fafc;
+    padding-top: 10px;
+    margin-top: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+.question-action-btn {
+    background: none;
+    border: none;
+    color: #718096;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    transition: color 0.15s;
+    border-radius: 4px;
+}
+.question-action-btn:hover {
+    color: #2d3748;
+    background-color: #edf2f7;
+}
+.question-action-btn.text-danger:hover {
+    color: #e53e3e;
+    background-color: #fff5f5;
+}
+.divider-vertical {
+    border-left: 1px solid #e2e8f0;
+    height: 20px;
+    margin: 0 10px;
+}
+
+/* Sortable Placeholder Styles */
+.sortable-placeholder {
+    border: 2px dashed #4285F4;
+    background-color: #ebf8ff;
+    border-radius: 8px;
+    height: 100px;
+    margin-bottom: 15px;
+}
+.sortable-ghost {
+    opacity: 0.4;
+}
+
+/* Quill Editor Styles */
+.quill-editor-area {
+    font-size: 1rem;
+    color: #2d3748;
+    min-height: auto;
+}
+.quill-title-area {
+    font-size: 1.1rem;
+    font-weight: 500;
+}
+.quill-desc-area {
+    font-size: 0.85rem;
+    color: #718096;
+}
+
+/* Hide toolbar by default */
+.ql-toolbar.ql-snow {
+    display: none !important;
+    border: none !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    background: #f8f9fe;
+    padding: 4px 8px !important;
+}
+
+.ql-container.ql-snow {
+    border: none !important;
+    font-family: inherit !important;
+}
+
+/* When the card is active, show toolbar and add a subtle border to the editor area */
+.question-card.active-question .ql-toolbar.ql-snow,
+.section-card:hover .ql-toolbar.ql-snow,
+.section-card:focus-within .ql-toolbar.ql-snow,
+.card-outline:hover .ql-toolbar.ql-snow,
+.card-outline:focus-within .ql-toolbar.ql-snow {
+    display: block !important;
+}
+
+.question-card.active-question .quill-question-editor,
+.question-card.active-question .quill-question-desc-editor,
+.section-card:hover .quill-section-desc-editor,
+.section-card:focus-within .quill-section-desc-editor,
+.card-outline:hover .quill-survey-desc-editor,
+.card-outline:focus-within .quill-survey-desc-editor {
+    border: 1px solid #cbd5e0;
+    border-radius: 6px;
+    background: #ffffff;
+    margin-bottom: 10px;
+}
+
+.question-card.active-question .quill-question-editor .ql-container,
+.question-card.active-question .quill-question-desc-editor .ql-container,
+.section-card:hover .quill-section-desc-editor .ql-container,
+.section-card:focus-within .quill-section-desc-editor .ql-container,
+.card-outline:hover .quill-survey-desc-editor .ql-container,
+.card-outline:focus-within .quill-survey-desc-editor .ql-container {
+    min-height: 50px;
+}
