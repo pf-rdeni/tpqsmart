@@ -139,7 +139,7 @@ class UjianMdtaJawabanModel extends Model
         $builder->join('tbl_ujian_mdta_pilihan pilihan', 'pilihan.id = j.IdPilihan', 'left');
         $builder->join('tbl_ujian_mdta_soal_sesi ss', 'ss.IdSesi = j.IdSesi AND ss.IdSoal = j.IdSoal', 'left');
         $builder->where('j.IdSesi', $idSesi);
-        $builder->orderBy('COALESCE(ss.UrutanSoal, soal.NomorSoal)', 'ASC');
+        $builder->orderBy('COALESCE(ss.UrutanSoal, soal.NomorSoal)', 'ASC', false);
         $rows = $builder->get()->getResultArray();
 
         $hurufPositional = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
