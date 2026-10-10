@@ -127,14 +127,64 @@ class UjianMdtaJawabanModel extends Model
         $builder = $this->db->table($this->table . ' j');
         $builder->select('j.IdSoal, j.IdPilihan, j.JawabanEsai, j.NilaiEsai, j.IsBenar, 
                           soal.UraianSoal, soal.NomorSoal, soal.Pembahasan, soal.JenisSoal,
-                          pilihan.HurufPilihan as JawabanDipilih,
+                          pilihan.HurufPilihan as HurufAsliDipilih,
+                          pilihan.TeksPilihan as TeksPilihanDipilih,
                           (SELECT p2.HurufPilihan FROM tbl_ujian_mdta_pilihan p2 
-                           WHERE p2.IdSoal = j.IdSoal AND p2.IsBenar = 1 LIMIT 1) as JawabanBenar');
+                           WHERE p2.IdSoal = j.IdSoal AND p2.IsBenar = 1 LIMIT 1) as HurufAsliBenar,
+                          (SELECT p3.TeksPilihan FROM tbl_ujian_mdta_pilihan p3 
+                           WHERE p3.IdSoal = j.IdSoal AND p3.IsBenar = 1 LIMIT 1) as TeksPilihanBenar,
+                          ss.UrutanSoal,
+                          ss.UrutanPilihan');
         $builder->join('tbl_ujian_mdta_soal soal', 'soal.id = j.IdSoal', 'left');
         $builder->join('tbl_ujian_mdta_pilihan pilihan', 'pilihan.id = j.IdPilihan', 'left');
+        $builder->join('tbl_ujian_mdta_soal_sesi ss', 'ss.IdSesi = j.IdSesi AND ss.IdSoal = j.IdSoal', 'left');
         $builder->where('j.IdSesi', $idSesi);
-        $builder->orderBy('soal.NomorSoal', 'ASC');
-        return $builder->get()->getResultArray();
+        $builder->orderBy('COALESCE(ss.UrutanSoal, soal.NomorSoal)', 'ASC');
+        $rows = $builder->get()->getResultArray();
+
+        $hurufPositional = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+
+        foreach ($rows as &$r) {
+            $urutanPilihan = !empty($r['UrutanPilihan']) ? json_decode($r['UrutanPilihan'], true) : null;
+
+            // 1. Tentukan Huruf Jawaban yang Dipilih Santri
+            if (!empty($r['IdPilihan'])) {
+                if (!empty($urutanPilihan) && is_array($urutanPilihan)) {
+                    $idxDipilih = array_search($r['HurufAsliDipilih'], $urutanPilihan);
+                    if ($idxDipilih !== false) {
+                        $r['JawabanDipilih'] = $hurufPositional[$idxDipilih] ?? chr(65 + $idxDipilih);
+                    } else {
+                        $r['JawabanDipilih'] = $r['HurufAsliDipilih'];
+                    }
+                } else {
+                    $r['JawabanDipilih'] = $r['HurufAsliDipilih'];
+                }
+            } else {
+                $r['JawabanDipilih'] = null;
+            }
+
+            // 2. Tentukan Huruf Kunci Jawaban Benar (sesuai urutan acak yang dilihat santri)
+            if (!empty($r['HurufAsliBenar'])) {
+                if (!empty($urutanPilihan) && is_array($urutanPilihan)) {
+                    $idxBenar = array_search($r['HurufAsliBenar'], $urutanPilihan);
+                    if ($idxBenar !== false) {
+                        $r['JawabanBenar'] = $hurufPositional[$idxBenar] ?? chr(65 + $idxBenar);
+                    } else {
+                        $r['JawabanBenar'] = $r['HurufAsliBenar'];
+                    }
+                } else {
+                    $r['JawabanBenar'] = $r['HurufAsliBenar'];
+                }
+            } else {
+                $r['JawabanBenar'] = null;
+            }
+
+            // 3. Nomor urut soal yang ditampilkan
+            $r['NomorSoalTampil'] = !empty($r['UrutanSoal']) ? $r['UrutanSoal'] : $r['NomorSoal'];
+        }
+        unset($r);
+
+        return $rows;
     }
 
     /**

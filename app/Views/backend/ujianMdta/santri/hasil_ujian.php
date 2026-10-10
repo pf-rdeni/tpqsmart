@@ -90,7 +90,7 @@
                                     <div class="card-header py-2 d-flex justify-content-between align-items-center <?= $d['IsBenar'] == 1 ? 'bg-success-subtle' : ($isEsai ? 'bg-light' : 'bg-danger-subtle') ?>">
                                         <strong class="text-dark">
                                             <i class="<?= $isEsai ? 'fas fa-pen-fancy text-primary' : 'fas fa-list-ul text-secondary' ?> me-1"></i>
-                                            Soal No. <?= $d['NomorSoal'] ?> <?= $isEsai ? '(Uraian / Esai)' : '(Pilihan Ganda)' ?>
+                                            Soal No. <?= $d['NomorSoalTampil'] ?? $d['NomorSoal'] ?> <?= $isEsai ? '(Uraian / Esai)' : '(Pilihan Ganda)' ?>
                                         </strong>
                                         <?php if ($isEsai): ?>
                                             <?php if ($d['NilaiEsai'] !== null): ?>
