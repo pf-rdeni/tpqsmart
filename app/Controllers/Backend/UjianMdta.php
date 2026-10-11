@@ -42,15 +42,29 @@ class UjianMdta extends BaseController
     public function index()
     {
         $idTpq = $this->idTpq;
+        $allowedKelasIds = $this->getAllowedKelasIdsForCurrentUser();
 
         // Statistik ringkas
-        $totalPaket  = $this->paketModel->where('IdTpq', $idTpq)->where('Status', 'aktif')->countAllResults();
-        $totalSoal   = $this->db->table('tbl_ujian_mdta_soal s')
+        $paketQuery = $this->paketModel->where('IdTpq', $idTpq)->where('Status', 'aktif');
+        if ($allowedKelasIds !== null) {
+            $paketQuery->whereIn('IdKelas', !empty($allowedKelasIds) ? $allowedKelasIds : [-1]);
+        }
+        $totalPaket = $paketQuery->countAllResults();
+
+        $soalQuery = $this->db->table('tbl_ujian_mdta_soal s')
             ->join('tbl_ujian_mdta_paket p', 'p.id = s.IdPaket')
             ->where('p.IdTpq', $idTpq)
-            ->where('s.Status', 'aktif')
-            ->countAllResults();
-        $jadwalAktif = $this->jadwalModel->where('IdTpq', $idTpq)->where('Status', 'aktif')->countAllResults();
+            ->where('s.Status', 'aktif');
+        if ($allowedKelasIds !== null) {
+            $soalQuery->whereIn('p.IdKelas', !empty($allowedKelasIds) ? $allowedKelasIds : [-1]);
+        }
+        $totalSoal = $soalQuery->countAllResults();
+
+        $jadwalQuery = $this->jadwalModel->where('IdTpq', $idTpq)->where('Status', 'aktif');
+        if ($allowedKelasIds !== null) {
+            $jadwalQuery->whereIn('IdKelas', !empty($allowedKelasIds) ? $allowedKelasIds : [-1]);
+        }
+        $jadwalAktif = $jadwalQuery->countAllResults();
 
         $data = [
             'page_title'  => 'Ujian MDTA',
@@ -68,33 +82,51 @@ class UjianMdta extends BaseController
     public function daftarPaket()
     {
         $idTpq    = $this->idTpq;
-        $idKelas  = $this->request->getGet('kelas');
-        $idMateri = $this->request->getGet('materi') ?: null;
+        $idKelas  = $this->request->getGet('kelas') ?: $this->request->getGet('id_kelas');
+        $idMateri = $this->request->getGet('materi') ?: $this->request->getGet('id_materi');
         $keyword  = $this->request->getGet('keyword');
 
+        $allowedKelasIds = $this->getAllowedKelasIdsForCurrentUser();
+
+        // Jika guru memilih kelas yang tidak diizinkan, reset filter kelas
+        if ($allowedKelasIds !== null && !empty($idKelas) && !in_array((int)$idKelas, $allowedKelasIds, true)) {
+            $idKelas = null;
+        }
+
         $paketList = $this->paketModel->getPaketByTpq($idTpq, $idKelas, $idMateri, 'aktif');
+
+        // Filter paket khusus kelas yang diampu guru
+        if ($allowedKelasIds !== null) {
+            $paketList = array_values(array_filter($paketList, function ($p) use ($allowedKelasIds) {
+                return in_array((int)($p['IdKelas'] ?? 0), $allowedKelasIds, true);
+            }));
+        }
 
         foreach ($paketList as &$p) {
             $p['isGlobalReadOnly'] = $this->isGlobalReadOnly($p);
         }
+        unset($p);
 
         // Filter keyword
         if ($keyword) {
-            $paketList = array_filter($paketList, function ($p) use ($keyword) {
+            $paketList = array_values(array_filter($paketList, function ($p) use ($keyword) {
                 return stripos($p['NamaPaket'], $keyword) !== false;
-            });
+            }));
         }
 
         // Daftar kelas dan materi khusus MDTA/MDA untuk filter dropdown
-        $kelasList  = $this->db->table('tbl_kelas')->get()->getResultArray();
+        $kelasList  = $this->getKelasListForUser();
         $materiList = $this->getMateriMdaList();
 
         $data = [
-            'page_title' => 'Paket Soal — Ujian MDTA',
-            'paketList'  => $paketList,
-            'kelasList'  => $kelasList,
-            'materiList' => $materiList,
-            'filter'     => ['kelas' => $idKelas, 'materi' => $idMateri, 'keyword' => $keyword],
+            'page_title'      => 'Paket Soal — Ujian MDTA',
+            'paketList'       => $paketList,
+            'kelasList'       => $kelasList,
+            'materiList'      => $materiList,
+            'idKelasFilter'   => $idKelas,
+            'idMateriFilter'  => $idMateri,
+            'keywordFilter'   => $keyword,
+            'filter'          => ['kelas' => $idKelas, 'id_kelas' => $idKelas, 'materi' => $idMateri, 'id_materi' => $idMateri, 'keyword' => $keyword],
         ];
         return view('backend/ujianMdta/paket/index', $data);
     }
@@ -103,6 +135,14 @@ class UjianMdta extends BaseController
     {
         $idTpq    = $this->idTpq;
         $paketList = $this->paketModel->getPaketByTpq($idTpq, null, null, 'arsip');
+
+        $allowedKelasIds = $this->getAllowedKelasIdsForCurrentUser();
+        if ($allowedKelasIds !== null) {
+            $paketList = array_values(array_filter($paketList, function ($p) use ($allowedKelasIds) {
+                return in_array((int)($p['IdKelas'] ?? 0), $allowedKelasIds, true);
+            }));
+        }
+
         $data = [
             'page_title' => 'Arsip Paket Soal — Ujian MDTA',
             'paketList'  => $paketList,
@@ -113,7 +153,7 @@ class UjianMdta extends BaseController
     public function createPaket()
     {
         $idTpq      = $this->idTpq;
-        $kelasList  = $this->db->table('tbl_kelas')->get()->getResultArray();
+        $kelasList  = $this->getKelasListForUser();
         $materiList = $this->getMateriMdaList();
         $taList     = session()->get('IdTahunAjaranList') ?? [];
 
@@ -142,12 +182,17 @@ class UjianMdta extends BaseController
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
+        $idKelas = $this->request->getPost('IdKelas');
+        if (!$this->isKelasAllowedForCurrentUser($idKelas)) {
+            return redirect()->back()->withInput()->with('error', 'Anda tidak memiliki hak akses membuat paket untuk kelas tersebut.');
+        }
+
         $isGlobal = (int)($this->request->getPost('IsGlobal') ?? 0);
 
         $this->paketModel->insert([
             'IdTpq'               => $this->idTpq,
             'IsGlobal'            => $isGlobal,
-            'IdKelas'             => $this->request->getPost('IdKelas'),
+            'IdKelas'             => $idKelas,
             'IdMateri'            => $this->request->getPost('IdMateri'),
             'IdTahunAjaran'       => $this->request->getPost('IdTahunAjaran'),
             'NamaPaket'           => $this->request->getPost('NamaPaket'),
@@ -189,13 +234,18 @@ class UjianMdta extends BaseController
             return redirect()->to(base_url('backend/ujian-mdta/paket'))->with('error', 'Paket tidak ditemukan.');
         }
 
+        if (!$this->isKelasAllowedForCurrentUser($paket['IdKelas'])) {
+            return redirect()->to(base_url('backend/ujian-mdta/paket'))
+                             ->with('error', 'Anda tidak memiliki hak akses ke paket soal kelas ini.');
+        }
+
         if ($this->isGlobalReadOnly($paket)) {
             return redirect()->to(base_url('backend/ujian-mdta/paket'))
                              ->with('error', 'Paket Soal Global / Pusat bersifat Read-Only (Hanya Dibaca). Silakan Duplikasi Paket ini ke TPQ Anda jika ingin menyesuaikan.');
         }
 
         $idTpq      = $this->idTpq;
-        $kelasList  = $this->db->table('tbl_kelas')->get()->getResultArray();
+        $kelasList  = $this->getKelasListForUser();
         $materiList = $this->db->table('tbl_materi_pelajaran')->get()->getResultArray();
         $taList     = session()->get('IdTahunAjaranList') ?? [];
 
@@ -214,6 +264,14 @@ class UjianMdta extends BaseController
     public function updatePaket(int $id)
     {
         $paket = $this->paketModel->find($id);
+        if (!$paket) {
+            return redirect()->to(base_url('backend/ujian-mdta/paket'))->with('error', 'Paket tidak ditemukan.');
+        }
+
+        if (!$this->isKelasAllowedForCurrentUser($paket['IdKelas'])) {
+            return redirect()->to(base_url('backend/ujian-mdta/paket'))->with('error', 'Akses ditolak.');
+        }
+
         if ($this->isGlobalReadOnly($paket)) {
             return redirect()->to(base_url('backend/ujian-mdta/paket'))
                              ->with('error', 'Paket Soal Global / Pusat bersifat Read-Only (Hanya Dibaca).');
@@ -230,8 +288,13 @@ class UjianMdta extends BaseController
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
+        $newIdKelas = $this->request->getPost('IdKelas');
+        if (!$this->isKelasAllowedForCurrentUser($newIdKelas)) {
+            return redirect()->back()->withInput()->with('error', 'Anda tidak berhak memindahkan paket ke kelas tersebut.');
+        }
+
         $updateData = [
-            'IdKelas'             => $this->request->getPost('IdKelas'),
+            'IdKelas'             => $newIdKelas,
             'IdMateri'            => $this->request->getPost('IdMateri'),
             'IdTahunAjaran'       => $this->request->getPost('IdTahunAjaran'),
             'NamaPaket'           => $this->request->getPost('NamaPaket'),
@@ -253,6 +316,14 @@ class UjianMdta extends BaseController
     public function deletePaket(int $id)
     {
         $paket = $this->paketModel->find($id);
+        if (!$paket) {
+            return redirect()->to(base_url('backend/ujian-mdta/paket'))->with('error', 'Paket tidak ditemukan.');
+        }
+
+        if (!$this->isKelasAllowedForCurrentUser($paket['IdKelas'])) {
+            return redirect()->to(base_url('backend/ujian-mdta/paket'))->with('error', 'Akses ditolak.');
+        }
+
         if ($this->isGlobalReadOnly($paket)) {
             return redirect()->to(base_url('backend/ujian-mdta/paket'))
                              ->with('error', 'Paket Soal Global / Pusat tidak dapat dihapus oleh TPQ.');
@@ -269,6 +340,15 @@ class UjianMdta extends BaseController
 
     public function duplikasiPaket(int $id)
     {
+        $paket = $this->paketModel->find($id);
+        if (!$paket) {
+            return redirect()->back()->with('error', 'Paket tidak ditemukan.');
+        }
+
+        if (!$this->isKelasAllowedForCurrentUser($paket['IdKelas'])) {
+            return redirect()->back()->with('error', 'Akses ditolak.');
+        }
+
         $idPaketBaru = $this->paketModel->duplikasiPaket($id, $this->idTpq);
         if (!$idPaketBaru) {
             return redirect()->back()->with('error', 'Gagal menduplikasi paket soal.');
@@ -279,12 +359,22 @@ class UjianMdta extends BaseController
 
     public function arsipkanPaket(int $id)
     {
+        $paket = $this->paketModel->find($id);
+        if (!$paket || !$this->isKelasAllowedForCurrentUser($paket['IdKelas'])) {
+            return redirect()->back()->with('error', 'Akses ditolak.');
+        }
+
         $this->paketModel->arsipkan($id);
         return redirect()->back()->with('success', 'Paket soal dipindahkan ke arsip.');
     }
 
     public function restorePaket(int $id)
     {
+        $paket = $this->paketModel->find($id);
+        if (!$paket || !$this->isKelasAllowedForCurrentUser($paket['IdKelas'])) {
+            return redirect()->back()->with('error', 'Akses ditolak.');
+        }
+
         $this->paketModel->restoreArsip($id);
         return redirect()->back()->with('success', 'Paket soal berhasil direstore dari arsip.');
     }
@@ -295,6 +385,11 @@ class UjianMdta extends BaseController
         if (!$paket) {
             return redirect()->to(base_url('backend/ujian-mdta/paket'))->with('error', 'Paket tidak ditemukan.');
         }
+
+        if (!$this->isKelasAllowedForCurrentUser($paket['IdKelas'])) {
+            return redirect()->to(base_url('backend/ujian-mdta/paket'))->with('error', 'Akses ditolak.');
+        }
+
         $soalList = $this->soalModel->getSoalByPaket($id);
         foreach ($soalList as &$soal) {
             $soal['pilihan'] = $this->pilihanModel->getPilihanBySoal((int)$soal['id']);
@@ -422,6 +517,10 @@ class UjianMdta extends BaseController
             return redirect()->to(base_url('backend/ujian-mdta/paket'))->with('error', 'Paket soal tidak ditemukan.');
         }
 
+        if (!$this->isKelasAllowedForCurrentUser($paket['IdKelas'])) {
+            return redirect()->to(base_url('backend/ujian-mdta/paket'))->with('error', 'Akses ditolak.');
+        }
+
         $soalList = $this->soalModel->getSoalByPaket($id);
         foreach ($soalList as &$soal) {
             $soal['pilihan'] = $this->pilihanModel->getPilihanBySoal((int)$soal['id']);
@@ -458,6 +557,10 @@ class UjianMdta extends BaseController
             return redirect()->to(base_url('backend/ujian-mdta/paket'))->with('error', 'Paket tidak ditemukan.');
         }
 
+        if (!$this->isKelasAllowedForCurrentUser($paket['IdKelas'])) {
+            return redirect()->to(base_url('backend/ujian-mdta/paket'))->with('error', 'Anda tidak memiliki hak akses ke paket soal kelas ini.');
+        }
+
         $soalList = $this->soalModel->getSoalByPaket($idPaket);
         foreach ($soalList as &$soal) {
             $soal['pilihan'] = $this->pilihanModel->getPilihanBySoal((int)$soal['id']);
@@ -479,6 +582,10 @@ class UjianMdta extends BaseController
             return redirect()->to(base_url('backend/ujian-mdta/paket'))->with('error', 'Paket tidak ditemukan.');
         }
 
+        if (!$this->isKelasAllowedForCurrentUser($paket['IdKelas'])) {
+            return redirect()->to(base_url('backend/ujian-mdta/paket'))->with('error', 'Akses ditolak.');
+        }
+
         if ($this->isGlobalReadOnly($paket)) {
             return redirect()->to(base_url("backend/ujian-mdta/paket/{$idPaket}/soal"))
                              ->with('error', 'Paket Soal Global / Pusat bersifat Read-Only (Hanya Dibaca). Silakan Duplikasi Paket ini ke TPQ Anda jika ingin menambah soal.');
@@ -498,6 +605,11 @@ class UjianMdta extends BaseController
 
     public function saveSoal(int $idPaket)
     {
+        $paket = $this->paketModel->find($idPaket);
+        if (!$paket || !$this->isKelasAllowedForCurrentUser($paket['IdKelas'])) {
+            return redirect()->to(base_url('backend/ujian-mdta/paket'))->with('error', 'Akses ditolak.');
+        }
+
         $rules = [
             'UraianSoal' => 'required',
         ];
@@ -551,6 +663,10 @@ class UjianMdta extends BaseController
             return redirect()->back()->with('error', 'Soal tidak ditemukan.');
         }
         $paket = $this->paketModel->getPaketDetail((int)$soal['IdPaket']);
+        if (!$paket || !$this->isKelasAllowedForCurrentUser($paket['IdKelas'])) {
+            return redirect()->to(base_url('backend/ujian-mdta/paket'))->with('error', 'Akses ditolak.');
+        }
+
         $data = [
             'page_title'  => 'Edit Soal',
             'paket'       => $paket,
@@ -567,6 +683,11 @@ class UjianMdta extends BaseController
         $soal = $this->soalModel->find($id);
         if (!$soal) {
             return redirect()->back()->with('error', 'Soal tidak ditemukan.');
+        }
+
+        $paket = $this->paketModel->find((int)$soal['IdPaket']);
+        if (!$paket || !$this->isKelasAllowedForCurrentUser($paket['IdKelas'])) {
+            return redirect()->to(base_url('backend/ujian-mdta/paket'))->with('error', 'Akses ditolak.');
         }
 
         $jenisSoal = $this->request->getPost('JenisSoal') ?? 'pilihan_ganda';
@@ -608,6 +729,15 @@ class UjianMdta extends BaseController
         if (!$soal) {
             return $this->response->setJSON(['success' => false, 'message' => 'Soal tidak ditemukan.']);
         }
+
+        $paket = $this->paketModel->find((int)$soal['IdPaket']);
+        if (!$paket || !$this->isKelasAllowedForCurrentUser($paket['IdKelas'])) {
+            if ($this->request->isAJAX()) {
+                return $this->response->setJSON(['success' => false, 'message' => 'Akses ditolak.']);
+            }
+            return redirect()->to(base_url('backend/ujian-mdta/paket'))->with('error', 'Akses ditolak.');
+        }
+
         $idPaket = $soal['IdPaket'];
         $this->soalModel->update($id, ['Status' => 'nonaktif']);
         $this->soalModel->reorderNomor((int)$idPaket);
@@ -630,6 +760,14 @@ class UjianMdta extends BaseController
                 return $this->response->setJSON(['success' => false, 'message' => 'Soal tidak ditemukan.']);
             }
             return redirect()->back()->with('error', 'Soal tidak ditemukan.');
+        }
+
+        $paket = $this->paketModel->find((int)$soal['IdPaket']);
+        if (!$paket || !$this->isKelasAllowedForCurrentUser($paket['IdKelas'])) {
+            if ($this->request->isAJAX()) {
+                return $this->response->setJSON(['success' => false, 'message' => 'Akses ditolak.']);
+            }
+            return redirect()->back()->with('error', 'Akses ditolak.');
         }
 
         $idPaket   = (int)$soal['IdPaket'];
@@ -689,6 +827,10 @@ class UjianMdta extends BaseController
         $paket = $this->paketModel->find($idPaket);
         if (!$paket) {
             return redirect()->back()->with('error', 'Paket soal tidak ditemukan.');
+        }
+
+        if (!$this->isKelasAllowedForCurrentUser($paket['IdKelas'])) {
+            return redirect()->to(base_url('backend/ujian-mdta/paket'))->with('error', 'Akses ditolak.');
         }
 
         $this->soalModel->where('IdPaket', $idPaket)->set(['Status' => 'nonaktif'])->update();
@@ -761,8 +903,7 @@ class UjianMdta extends BaseController
 
     public function getKelasOptions()
     {
-        $idTpq  = $this->request->getGet('idTpq') ?? $this->idTpq;
-        $kelas  = $this->db->table('tbl_kelas')->get()->getResultArray();
+        $kelas = $this->getKelasListForUser();
         return $this->response->setJSON($kelas);
     }
 
@@ -772,9 +913,22 @@ class UjianMdta extends BaseController
         $idKelas  = $this->request->getGet('idKelas');
         $idMateri = $this->request->getGet('idMateri') ?: null;
 
+        if (!empty($idKelas) && !$this->isKelasAllowedForCurrentUser($idKelas)) {
+            return $this->response->setJSON([]);
+        }
+
         $paketList = $this->paketModel->getPaketByTpq($idTpq, $idKelas, $idMateri, 'aktif');
+
+        $allowedKelasIds = $this->getAllowedKelasIdsForCurrentUser();
+        if ($allowedKelasIds !== null) {
+            $paketList = array_values(array_filter($paketList, function ($p) use ($allowedKelasIds) {
+                return in_array((int)($p['IdKelas'] ?? 0), $allowedKelasIds, true);
+            }));
+        }
+
         return $this->response->setJSON($paketList);
     }
+
 
     // ================================================================
     // JADWAL UJIAN (Phase 3)
@@ -801,6 +955,13 @@ class UjianMdta extends BaseController
         $isArchivedVal = ($filterArsip === '1') ? 1 : (($filterArsip === 'all') ? null : 0);
 
         $jadwalList = $this->jadwalModel->getJadwalWithKelas($idTpq, null, $effectiveTa, $isArchivedVal);
+
+        $allowedKelasIds = $this->getAllowedKelasIdsForCurrentUser();
+        if ($allowedKelasIds !== null) {
+            $jadwalList = array_values(array_filter($jadwalList, function ($j) use ($allowedKelasIds) {
+                return in_array((int)($j['IdKelas'] ?? 0), $allowedKelasIds, true);
+            }));
+        }
 
         // Hitung info status & hak remedial per jadwal
         foreach ($jadwalList as &$j) {
@@ -934,12 +1095,19 @@ class UjianMdta extends BaseController
             return redirect()->back()->with('error', 'Jadwal tidak ditemukan.');
         }
 
-        // Cek hak akses jika bukan admin
+        // Cek hak akses jika bukan admin atau guru kelas
         if ((string)$this->idTpq !== '0' && (string)$jadwal['IdTpq'] !== (string)$this->idTpq) {
             if ($this->request->isAJAX()) {
                 return $this->response->setJSON(['success' => false, 'message' => 'Akses ditolak.']);
             }
             return redirect()->back()->with('error', 'Anda tidak berhak mengarsip jadwal ini.');
+        }
+
+        if (!$this->isKelasAllowedForCurrentUser($jadwal['IdKelas'])) {
+            if ($this->request->isAJAX()) {
+                return $this->response->setJSON(['success' => false, 'message' => 'Akses ditolak.']);
+            }
+            return redirect()->back()->with('error', 'Anda tidak memiliki hak akses ke jadwal kelas ini.');
         }
 
         $newArchived = ((int)($jadwal['IsArchived'] ?? 0) === 1) ? 0 : 1;
@@ -1001,7 +1169,7 @@ class UjianMdta extends BaseController
     }
 
 
-    private function getKelasListForUser(): array
+    protected function getKelasListForUser(): array
     {
         $idTpq         = (string)($this->idTpq ?? '0');
         $idGuru        = session()->get('IdGuru');
@@ -1042,6 +1210,53 @@ class UjianMdta extends BaseController
 
         return $this->db->table('tbl_kelas')->orderBy('NamaKelas', 'ASC')->get()->getResultArray();
     }
+
+    /**
+     * Mendapatkan daftar IdKelas yang diizinkan untuk pengguna saat ini.
+     * Mengembalikan null jika pengguna memiliki Full Access (Admin / Operator),
+     * atau array int [IdKelas1, IdKelas2, ...] jika pengguna dibatasi (Guru/Wali Kelas).
+     */
+    protected function getAllowedKelasIdsForCurrentUser(): ?array
+    {
+        $activeRole    = session()->get('active_role');
+        $hasAdminGroup = in_groups('Admin');
+        $hasOpGroup    = in_groups('Operator');
+
+        $isFullAccess = ($hasAdminGroup || $hasOpGroup) && !in_array($activeRole, ['guru', 'wali_kelas']);
+        if ($isFullAccess) {
+            return null; // Admin & Operator bebas akses seluruh kelas
+        }
+
+        $kelasList = $this->getKelasListForUser();
+        if (empty($kelasList)) {
+            return [];
+        }
+
+        $ids = [];
+        foreach ($kelasList as $k) {
+            if (isset($k['IdKelas'])) {
+                $ids[] = (int)$k['IdKelas'];
+            }
+        }
+
+        return array_values(array_unique(array_filter($ids)));
+    }
+
+    /**
+     * Memeriksa apakah suatu IdKelas diizinkan untuk pengguna saat ini.
+     */
+    protected function isKelasAllowedForCurrentUser($idKelas): bool
+    {
+        $allowed = $this->getAllowedKelasIdsForCurrentUser();
+        if ($allowed === null) {
+            return true;
+        }
+        if (empty($idKelas)) {
+            return false;
+        }
+        return in_array((int)$idKelas, $allowed, true);
+    }
+
 
     public function createJadwal()
     {
@@ -1089,6 +1304,16 @@ class UjianMdta extends BaseController
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
+        $idKelas = $this->request->getPost('IdKelas');
+        if (!$this->isKelasAllowedForCurrentUser($idKelas)) {
+            return redirect()->back()->withInput()->with('error', 'Anda tidak memiliki hak akses membuat jadwal untuk kelas tersebut.');
+        }
+
+        $paket = $this->paketModel->find($idPaket);
+        if (!$paket || !$this->isKelasAllowedForCurrentUser($paket['IdKelas'])) {
+            return redirect()->back()->withInput()->with('error', 'Paket soal tidak valid atau bukan untuk kelas yang Anda ampu.');
+        }
+
         // Validasi: JumlahSoal tidak boleh melebihi soal aktif di paket
         if (!$this->jadwalModel->validasiJumlahSoal($idPaket, $jumlahSoal)) {
             $totalAktif = $this->soalModel->countByPaket($idPaket);
@@ -1111,7 +1336,7 @@ class UjianMdta extends BaseController
             'IdTpq'              => $this->idTpq,
             'TargetTpq'          => $targetTpq,
             'IdPaket'            => $idPaket,
-            'IdKelas'            => $this->request->getPost('IdKelas'),
+            'IdKelas'            => $idKelas,
             'IdTahunAjaran'      => $this->request->getPost('IdTahunAjaran'),
             'NamaUjian'          => $this->request->getPost('NamaUjian'),
             'Semester'           => $this->request->getPost('Semester'),
@@ -1149,6 +1374,11 @@ class UjianMdta extends BaseController
                 ->with('error', 'Jadwal tidak ditemukan.');
         }
 
+        if (!$this->isKelasAllowedForCurrentUser($jadwal['IdKelas'])) {
+            return redirect()->to(base_url('backend/ujian-mdta/jadwal'))
+                ->with('error', 'Anda tidak memiliki hak akses ke jadwal kelas ini.');
+        }
+
         $idTpq        = $this->idTpq;
         $kelasList    = $this->getKelasListForUser();
         $paketList    = $this->paketModel->getPaketByTpq($idTpq, $jadwal['IdKelas'], null, 'aktif', (int)$jadwal['IdPaket']);
@@ -1184,6 +1414,11 @@ class UjianMdta extends BaseController
                 ->with('error', 'Jadwal tidak ditemukan.');
         }
 
+        if (!$this->isKelasAllowedForCurrentUser($jadwal['IdKelas'])) {
+            return redirect()->to(base_url('backend/ujian-mdta/jadwal'))
+                ->with('error', 'Akses ditolak.');
+        }
+
         // Hapus seluruh data sesi, jawaban, dan soal_sesi untuk jadwal ini
         $sesiList = $this->sesiModel->where('IdJadwal', $id)->findAll();
         foreach ($sesiList as $s) {
@@ -1208,11 +1443,26 @@ class UjianMdta extends BaseController
                 ->with('error', 'Jadwal tidak ditemukan.');
         }
 
+        if (!$this->isKelasAllowedForCurrentUser($jadwal['IdKelas'])) {
+            return redirect()->to(base_url('backend/ujian-mdta/jadwal'))
+                ->with('error', 'Akses ditolak.');
+        }
+
         $idPaket         = (int)$this->request->getPost('IdPaket');
         $jumlahSoal      = (int)$this->request->getPost('JumlahSoal');
         $originalIdPaket = (int)($this->request->getPost('OriginalIdPaket') ?? $jadwal['IdPaket']);
         $originalJmlSoal = (int)($this->request->getPost('OriginalJumlahSoal') ?? $jadwal['JumlahSoal']);
         $confirmReset    = (int)($this->request->getPost('ConfirmResetData') ?? 0);
+
+        $newIdKelas = $this->request->getPost('IdKelas');
+        if (!$this->isKelasAllowedForCurrentUser($newIdKelas)) {
+            return redirect()->back()->withInput()->with('error', 'Anda tidak memiliki hak akses untuk kelas tersebut.');
+        }
+
+        $paket = $this->paketModel->find($idPaket);
+        if (!$paket || !$this->isKelasAllowedForCurrentUser($paket['IdKelas'])) {
+            return redirect()->back()->withInput()->with('error', 'Paket soal tidak valid atau bukan untuk kelas yang Anda ampu.');
+        }
 
         if (!$this->jadwalModel->validasiJumlahSoal($idPaket, $jumlahSoal)) {
             $totalAktif = $this->soalModel->countByPaket($idPaket);
@@ -1243,7 +1493,7 @@ class UjianMdta extends BaseController
 
         $updateJadwalData = [
             'IdPaket'            => $idPaket,
-            'IdKelas'            => $this->request->getPost('IdKelas'),
+            'IdKelas'            => $newIdKelas,
             'IdTahunAjaran'      => $this->request->getPost('IdTahunAjaran'),
             'NamaUjian'          => $this->request->getPost('NamaUjian'),
             'Semester'           => $this->request->getPost('Semester'),
@@ -1289,13 +1539,13 @@ class UjianMdta extends BaseController
 
     public function deleteJadwal(int $id)
     {
-        if (!in_groups(['Admin', 'KepalaTpq', 'Operator'])) {
-            return redirect()->back()->with('error', 'Akses ditolak.');
+        $jadwal = $this->jadwalModel->find($id);
+        if (!$jadwal || ((string)$this->idTpq !== '0' && (string)$jadwal['IdTpq'] !== (string)$this->idTpq)) {
+            return redirect()->back()->with('error', 'Jadwal tidak ditemukan atau tidak valid.');
         }
 
-        $jadwal = $this->jadwalModel->find($id);
-        if (!$jadwal || (int)$jadwal['IdTpq'] !== (int)$this->idTpq) {
-            return redirect()->back()->with('error', 'Jadwal tidak ditemukan atau tidak valid.');
+        if (!$this->isKelasAllowedForCurrentUser($jadwal['IdKelas'])) {
+            return redirect()->back()->with('error', 'Akses ditolak.');
         }
 
         $totalSesi = $this->sesiModel->where('IdJadwal', $id)->countAllResults();
@@ -1330,13 +1580,13 @@ class UjianMdta extends BaseController
 
     public function deleteRemedialSubrow(int $idJadwal, int $attemptTarget)
     {
-        if (!in_groups(['Admin', 'KepalaTpq', 'Operator'])) {
-            return redirect()->back()->with('error', 'Akses ditolak.');
+        $jadwal = $this->jadwalModel->find($idJadwal);
+        if (!$jadwal || ((string)$this->idTpq !== '0' && (string)$jadwal['IdTpq'] !== (string)$this->idTpq)) {
+            return redirect()->back()->with('error', 'Jadwal tidak ditemukan.');
         }
 
-        $jadwal = $this->jadwalModel->find($idJadwal);
-        if (!$jadwal || (int)$jadwal['IdTpq'] !== (int)$this->idTpq) {
-            return redirect()->back()->with('error', 'Jadwal tidak ditemukan.');
+        if (!$this->isKelasAllowedForCurrentUser($jadwal['IdKelas'])) {
+            return redirect()->back()->with('error', 'Akses ditolak.');
         }
 
         $attemptSesi = $attemptTarget + 1; // Remedial Ke-1 adalah AttemptKe = 2
@@ -1392,6 +1642,10 @@ class UjianMdta extends BaseController
             return redirect()->back()->with('error', 'Jadwal tidak ditemukan.');
         }
 
+        if (!$this->isKelasAllowedForCurrentUser($jadwal['IdKelas'])) {
+            return redirect()->back()->with('error', 'Akses ditolak.');
+        }
+
         // Validasi soal cukup
         if (!$this->jadwalModel->validasiJumlahSoal((int)$jadwal['IdPaket'], (int)$jadwal['JumlahSoal'])) {
             return redirect()->back()->with('error', 'Tidak bisa mengaktifkan jadwal: jumlah soal aktif di paket tidak mencukupi.');
@@ -1408,6 +1662,10 @@ class UjianMdta extends BaseController
             return redirect()->to(base_url('backend/ujian-mdta/jadwal'))->with('error', 'Jadwal tidak ditemukan.');
         }
 
+        if (!$this->isKelasAllowedForCurrentUser($jadwal['IdKelas'])) {
+            return redirect()->to(base_url('backend/ujian-mdta/jadwal'))->with('error', 'Akses ditolak.');
+        }
+
         $santriGagal = $this->jadwalModel->getSantriGagal($idJadwalAsal);
         $data = [
             'page_title'    => 'Buat Jadwal Remedial',
@@ -1420,6 +1678,11 @@ class UjianMdta extends BaseController
 
     public function saveJadwalRemedial(int $idJadwalAsal)
     {
+        $jadwal = $this->jadwalModel->find($idJadwalAsal);
+        if (!$jadwal || !$this->isKelasAllowedForCurrentUser($jadwal['IdKelas'])) {
+            return redirect()->to(base_url('backend/ujian-mdta/jadwal'))->with('error', 'Akses ditolak.');
+        }
+
         $rules = [
             'TanggalMulai'   => 'required',
             'TanggalSelesai' => 'required',
@@ -1454,6 +1717,10 @@ class UjianMdta extends BaseController
             return redirect()->to(base_url('backend/ujian-mdta/jadwal'))->with('error', 'Jadwal tidak ditemukan.');
         }
 
+        if (!$this->isKelasAllowedForCurrentUser($jadwal['IdKelas'])) {
+            return redirect()->to(base_url('backend/ujian-mdta/jadwal'))->with('error', 'Anda tidak memiliki hak akses ke jadwal kelas ini.');
+        }
+
         $attemptKeFilter = ($attemptKe !== null && (int)$attemptKe > 0) ? (int)$attemptKe : 1;
         $sesiList        = $this->sesiModel->getSesiByJadwal($idJadwal, $attemptKeFilter);
         $namaFilter      = $attemptKeFilter === 1 ? 'Ujian Utama' : 'Ujian Remedial Ke-' . ($attemptKeFilter - 1);
@@ -1476,8 +1743,13 @@ class UjianMdta extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => 'Jadwal tidak ditemukan.']);
         }
 
+        if (!$this->isKelasAllowedForCurrentUser($jadwal['IdKelas'])) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Akses ditolak.']);
+        }
+
         $attemptKeFilter = ($attemptKe !== null && (int)$attemptKe > 0) ? (int)$attemptKe : 1;
         $sesiList        = $this->sesiModel->getSesiByJadwal($idJadwal, $attemptKeFilter);
+
         $durasiDetik     = (int)$jadwal['DurasiMenit'] * 60;
         $nowTime         = time();
 
@@ -1843,6 +2115,13 @@ class UjianMdta extends BaseController
 
         $jadwalList = $this->jadwalModel->getJadwalWithKelas($this->idTpq);
 
+        $allowedKelasIds = $this->getAllowedKelasIdsForCurrentUser();
+        if ($allowedKelasIds !== null) {
+            $jadwalList = array_values(array_filter($jadwalList, function ($j) use ($allowedKelasIds) {
+                return in_array((int)($j['IdKelas'] ?? 0), $allowedKelasIds, true);
+            }));
+        }
+
         // Jika hanya ada 1 jadwal, langsung arahkan ke laporan jadwal tersebut
         if (count($jadwalList) === 1) {
             return $this->laporanNilai((int)$jadwalList[0]['id']);
@@ -1861,6 +2140,10 @@ class UjianMdta extends BaseController
         $jadwal = $this->jadwalModel->find($idJadwal);
         if (!$jadwal) {
             return redirect()->to(base_url('backend/ujian-mdta/jadwal'))->with('error', 'Jadwal tidak ditemukan.');
+        }
+
+        if (!$this->isKelasAllowedForCurrentUser($jadwal['IdKelas'])) {
+            return redirect()->to(base_url('backend/ujian-mdta/jadwal'))->with('error', 'Anda tidak memiliki hak akses ke laporan jadwal kelas ini.');
         }
 
         $sesiList    = $this->sesiModel->getSesiByJadwal($idJadwal);
@@ -1902,6 +2185,10 @@ class UjianMdta extends BaseController
         $jadwal = $this->jadwalModel->find($idJadwal);
         if (!$jadwal) {
             return redirect()->back()->with('error', 'Jadwal tidak ditemukan.');
+        }
+
+        if (!$this->isKelasAllowedForCurrentUser($jadwal['IdKelas'])) {
+            return redirect()->back()->with('error', 'Akses ditolak.');
         }
 
         $sesiList = $this->sesiModel->getSesiByJadwal($idJadwal);
@@ -2052,6 +2339,11 @@ class UjianMdta extends BaseController
         }
 
 
+        $allowedKelasIds = $this->getAllowedKelasIdsForCurrentUser();
+        if ($allowedKelasIds !== null) {
+            $builder->whereIn('j.IdKelas', !empty($allowedKelasIds) ? $allowedKelasIds : [-1]);
+        }
+
         if (!empty($idKelasFilter) && $idKelasFilter !== 'all') {
             $builder->where('j.IdKelas', $idKelasFilter);
         }
@@ -2134,7 +2426,8 @@ class UjianMdta extends BaseController
             }
         }
         $tpqList   = $tpqBuilder->orderBy('NamaTpq', 'ASC')->get()->getResultArray();
-        $kelasList = $this->db->table('tbl_kelas')->orderBy('NamaKelas', 'ASC')->get()->getResultArray();
+        $kelasList = $this->getKelasListForUser();
+
 
         $materiList = $this->db->table('tbl_materi_pelajaran m')
             ->select('m.IdMateri, m.NamaMateri')
@@ -2411,6 +2704,10 @@ class UjianMdta extends BaseController
             return redirect()->back()->with('error', 'Jadwal tidak ditemukan.');
         }
 
+        if (!$this->isKelasAllowedForCurrentUser($jadwal['IdKelas'])) {
+            return redirect()->back()->with('error', 'Akses ditolak.');
+        }
+
         $sessionTpq = (string)($this->idTpq ?? '0');
         $sesiList   = $this->sesiModel->getSesiByJadwal($idJadwal, null, ($sessionTpq !== '0' ? $sessionTpq : null));
 
@@ -2440,6 +2737,10 @@ class UjianMdta extends BaseController
             return redirect()->back()->with('error', 'Jadwal tidak ditemukan.');
         }
 
+        if (!$this->isKelasAllowedForCurrentUser($jadwal['IdKelas'])) {
+            return redirect()->back()->with('error', 'Akses ditolak.');
+        }
+
         $sessionTpq = (string)($this->idTpq ?? '0');
         $sesiList   = $this->sesiModel->getSesiByJadwal($idJadwal, null, ($sessionTpq !== '0' ? $sessionTpq : null));
 
@@ -2463,6 +2764,10 @@ class UjianMdta extends BaseController
         $jadwal = $this->jadwalModel->find($idJadwal);
         if (!$jadwal) {
             return redirect()->back()->with('error', 'Jadwal tidak ditemukan.');
+        }
+
+        if (!$this->isKelasAllowedForCurrentUser($jadwal['IdKelas'])) {
+            return redirect()->back()->with('error', 'Akses ditolak.');
         }
 
         $sessionTpq = (string)($this->idTpq ?? '0');
@@ -2492,6 +2797,10 @@ class UjianMdta extends BaseController
         $jadwal = $this->jadwalModel->find($idJadwal);
         if (!$jadwal) {
             return redirect()->back()->with('error', 'Jadwal tidak ditemukan.');
+        }
+
+        if (!$this->isKelasAllowedForCurrentUser($jadwal['IdKelas'])) {
+            return redirect()->back()->with('error', 'Akses ditolak.');
         }
 
         $sessionTpq  = (string)($this->idTpq ?? '0');
@@ -2528,6 +2837,10 @@ class UjianMdta extends BaseController
         $jadwal = $this->jadwalModel->find($idJadwal);
         if (!$jadwal) {
             return redirect()->back()->with('error', 'Jadwal tidak ditemukan.');
+        }
+
+        if (!$this->isKelasAllowedForCurrentUser($jadwal['IdKelas'])) {
+            return redirect()->back()->with('error', 'Akses ditolak.');
         }
 
         $sessionTpq = (string)($this->idTpq ?? '0');
@@ -2614,6 +2927,10 @@ class UjianMdta extends BaseController
             return redirect()->to(base_url('backend/ujian-mdta/jadwal'))->with('error', 'Jadwal ujian tidak ditemukan.');
         }
 
+        if (!$this->isKelasAllowedForCurrentUser($jadwal['IdKelas'])) {
+            return redirect()->to(base_url('backend/ujian-mdta/jadwal'))->with('error', 'Akses ditolak.');
+        }
+
         $paket = $this->paketModel->getPaketDetail($jadwal['IdPaket']);
         if (!$paket) {
             return redirect()->to(base_url('backend/ujian-mdta/jadwal'))->with('error', 'Paket soal tidak ditemukan.');
@@ -2687,6 +3004,10 @@ class UjianMdta extends BaseController
             return redirect()->to(base_url('backend/ujian-mdta/jadwal'))->with('error', 'Jadwal ujian tidak ditemukan.');
         }
 
+        if (!$this->isKelasAllowedForCurrentUser($jadwal['IdKelas'])) {
+            return redirect()->to(base_url('backend/ujian-mdta/jadwal'))->with('error', 'Akses ditolak.');
+        }
+
         $paket = $this->paketModel->getPaketDetail($jadwal['IdPaket']);
         $attemptKe = (int)($this->request->getGet('attempt') ?? 1);
 
@@ -2712,6 +3033,10 @@ class UjianMdta extends BaseController
         $jadwal = $this->jadwalModel->find($idJadwal);
         if (!$jadwal) {
             return $this->response->setJSON(['success' => false, 'message' => 'Jadwal tidak ditemukan.']);
+        }
+
+        if (!$this->isKelasAllowedForCurrentUser($jadwal['IdKelas'])) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Akses ditolak.']);
         }
 
         $santriInfo = $this->db->table('tbl_santri_baru s')
@@ -2804,6 +3129,11 @@ class UjianMdta extends BaseController
 
         if (empty($idJadwal) || empty($idSantri)) {
             return $this->response->setJSON(['success' => false, 'message' => 'Parameter tidak lengkap.']);
+        }
+
+        $jadwal = $this->jadwalModel->find($idJadwal);
+        if (!$jadwal || !$this->isKelasAllowedForCurrentUser($jadwal['IdKelas'])) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Akses ditolak.']);
         }
 
         if (empty($idSesi)) {
@@ -2938,6 +3268,10 @@ class UjianMdta extends BaseController
             return redirect()->to(base_url('backend/ujian-mdta/jadwal'))->with('error', 'Jadwal ujian tidak ditemukan.');
         }
 
+        if (!$this->isKelasAllowedForCurrentUser($jadwal['IdKelas'])) {
+            return redirect()->to(base_url('backend/ujian-mdta/jadwal'))->with('error', 'Akses ditolak.');
+        }
+
         $paket = $this->paketModel->getPaketDetail($jadwal['IdPaket']);
         $attemptKe = 1;
         $sessionTpq = (string)($this->idTpq ?? '0');
@@ -2972,6 +3306,10 @@ class UjianMdta extends BaseController
         $jadwal = $this->jadwalModel->find($idJadwal);
         if (!$jadwal) {
             return $this->response->setJSON(['success' => false, 'message' => 'Jadwal tidak ditemukan.']);
+        }
+
+        if (!$this->isKelasAllowedForCurrentUser($jadwal['IdKelas'])) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Akses ditolak.']);
         }
 
         $nilaiList   = $this->request->getPost('nilai') ?? [];
@@ -3071,9 +3409,16 @@ class UjianMdta extends BaseController
         $idKelas = $this->request->getGet('kelas') ?? ($jadwalAwal['IdKelas'] ?? null);
         $idMateri = $this->request->getGet('materi') ?? null;
 
-        $kelasList = $this->db->table('tbl_kelas')->orderBy('NamaKelas', 'ASC')->get()->getResultArray();
-        if (!$idKelas && !empty($kelasList)) {
-            $idKelas = $kelasList[0]['IdKelas'];
+        $kelasList = $this->getKelasListForUser();
+        $allowedKelasIds = $this->getAllowedKelasIdsForCurrentUser();
+        if ($allowedKelasIds !== null) {
+            if (empty($idKelas) || !in_array((int)$idKelas, $allowedKelasIds, true)) {
+                $idKelas = !empty($kelasList) ? $kelasList[0]['IdKelas'] : null;
+            }
+        } else {
+            if (!$idKelas && !empty($kelasList)) {
+                $idKelas = $kelasList[0]['IdKelas'];
+            }
         }
 
         $materiList = $this->getMateriMdaList();
@@ -3339,6 +3684,14 @@ class UjianMdta extends BaseController
     {
         $idTpq = (string)($this->idTpq ?? '0');
         $idKelas = $this->request->getPost('idKelas') ?: null;
+
+        if ($idKelas && !$this->isKelasAllowedForCurrentUser($idKelas)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Anda tidak memiliki hak akses untuk mengubah bobot kelas ini.'
+            ]);
+        }
+
         $bobotHarian = (int)$this->request->getPost('bobotHarian');
         $bobotUTS = (int)$this->request->getPost('bobotUTS');
         $bobotUAS = (int)$this->request->getPost('bobotUAS');
