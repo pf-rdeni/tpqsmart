@@ -707,10 +707,10 @@ foreach ($dataNilai as $santri) {
                 },
                 dataType: 'json',
                 success: function(res) {
-                    if (!res.success || !res.santriSummary || res.santriSummary.length === 0) {
+                    if (!res.success || !res.santriSummary || res.santriSummary.length === 0 || res.totalSantriAdaCbt === 0) {
                         Swal.fire({
-                            title: 'Tidak Ada Data',
-                            text: res.message || 'Belum ada data Ujian UMBK untuk santri di kelas ini.',
+                            title: 'Tidak Ada Data Ujian',
+                            text: res.message || 'Belum ada penilaian Ujian MDTA (Harian, UTS, maupun UAS) yang dilaksanakan untuk santri di kelas ini pada semester ini.',
                             icon: 'info',
                             confirmButtonColor: '#6c757d'
                         });

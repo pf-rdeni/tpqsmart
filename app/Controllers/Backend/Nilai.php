@@ -1660,13 +1660,20 @@ class Nilai extends BaseController
         $bobotUTS    = (int)($bobotSetting['BobotUTS'] ?? 30);
         $bobotUAS    = (int)($bobotSetting['BobotUAS'] ?? 30);
 
-        // Ambil komponen nilai dari tbl_ujian_mdta_nilai_komponen
-        $komponenRows = $this->db->table('tbl_ujian_mdta_nilai_komponen')
+        // Ambil komponen nilai dari tbl_ujian_mdta_nilai_komponen (strictly filtered)
+        $komponenBuilder = $this->db->table('tbl_ujian_mdta_nilai_komponen')
             ->where('IdSantri', $idSantri)
             ->where('IdMateri', $idMateri)
             ->where('IdTahunAjaran', $idTahunAjaran)
-            ->whereIn('Semester', $semVariants)
-            ->get()->getResultArray();
+            ->whereIn('Semester', $semVariants);
+
+        if (!empty($idKelas) && (string)$idKelas !== '0') {
+            $komponenBuilder->where('IdKelas', $idKelas);
+        }
+        if (!empty($idTpq) && (string)$idTpq !== '0') {
+            $komponenBuilder->where('IdTpq', $idTpq);
+        }
+        $komponenRows = $komponenBuilder->get()->getResultArray();
 
         $harianScores = [];
         $utsScores    = [];
@@ -1684,17 +1691,26 @@ class Nilai extends BaseController
             }
         }
 
-        // Ambil juga dari nilai sesi CBT online
-        $cbtSesi = $this->db->table('tbl_ujian_mdta_sesi sesi')
+        // Ambil juga dari nilai sesi CBT online (strictly filtered by Tahun Ajaran, Kelas, TPQ, Non-Archived)
+        $cbtBuilder = $this->db->table('tbl_ujian_mdta_sesi sesi')
             ->select('sesi.NilaiAkhir, j.KategoriUjian')
             ->join('tbl_ujian_mdta_jadwal j', 'j.id = sesi.IdJadwal')
             ->join('tbl_ujian_mdta_paket p', 'p.id = j.IdPaket')
             ->where('sesi.IdSantri', $idSantri)
             ->where('p.IdMateri', $idMateri)
+            ->where('j.IdTahunAjaran', $idTahunAjaran)
             ->whereIn('j.Semester', $semVariants)
-            ->whereIn('sesi.StatusSesi', ['selesai', 'timeout'])
-            ->orderBy('sesi.NilaiAkhir', 'DESC')
-            ->get()->getResultArray();
+            ->where('j.IsArchived', 0)
+            ->whereIn('sesi.StatusSesi', ['selesai', 'timeout']);
+
+        if (!empty($idKelas) && (string)$idKelas !== '0') {
+            $cbtBuilder->where('j.IdKelas', $idKelas);
+        }
+        if (!empty($idTpq) && (string)$idTpq !== '0') {
+            $cbtBuilder->where('j.IdTpq', $idTpq);
+        }
+
+        $cbtSesi = $cbtBuilder->orderBy('sesi.NilaiAkhir', 'DESC')->get()->getResultArray();
 
         foreach ($cbtSesi as $cs) {
             $katJadwal = strtolower($cs['KategoriUjian'] ?? 'uas');
@@ -1840,22 +1856,39 @@ class Nilai extends BaseController
         }
 
         // Ambil seluruh materi yang memiliki nilai (komponen atau sesi CBT) untuk santri ini
-        $materiDariKomponen = $this->db->table('tbl_ujian_mdta_nilai_komponen')
+        $komponenBuilder = $this->db->table('tbl_ujian_mdta_nilai_komponen')
             ->select('IdMateri')
             ->distinct()
             ->whereIn('IdSantri', $santriIds)
-            ->whereIn('Semester', $semVariants)
-            ->get()->getResultArray();
+            ->where('IdTahunAjaran', $idTahunAjaran)
+            ->whereIn('Semester', $semVariants);
 
-        $materiDariSesi = $this->db->table('tbl_ujian_mdta_sesi sesi')
+        if (!empty($idKelas) && (string)$idKelas !== '0') {
+            $komponenBuilder->where('IdKelas', $idKelas);
+        }
+        if (!empty($idTpq) && (string)$idTpq !== '0') {
+            $komponenBuilder->where('IdTpq', $idTpq);
+        }
+        $materiDariKomponen = $komponenBuilder->get()->getResultArray();
+
+        $sesiBuilder = $this->db->table('tbl_ujian_mdta_sesi sesi')
             ->select('p.IdMateri')
             ->distinct()
             ->join('tbl_ujian_mdta_jadwal j', 'j.id = sesi.IdJadwal')
             ->join('tbl_ujian_mdta_paket p', 'p.id = j.IdPaket')
             ->whereIn('sesi.IdSantri', $santriIds)
+            ->where('j.IdTahunAjaran', $idTahunAjaran)
             ->whereIn('j.Semester', $semVariants)
-            ->whereIn('sesi.StatusSesi', ['selesai', 'timeout'])
-            ->get()->getResultArray();
+            ->where('j.IsArchived', 0)
+            ->whereIn('sesi.StatusSesi', ['selesai', 'timeout']);
+
+        if (!empty($idKelas) && (string)$idKelas !== '0') {
+            $sesiBuilder->where('j.IdKelas', $idKelas);
+        }
+        if (!empty($idTpq) && (string)$idTpq !== '0') {
+            $sesiBuilder->where('j.IdTpq', $idTpq);
+        }
+        $materiDariSesi = $sesiBuilder->get()->getResultArray();
 
         $allMateriIds = array_unique(array_filter(array_merge(
             array_column($materiDariKomponen, 'IdMateri'),
@@ -1950,17 +1983,20 @@ class Nilai extends BaseController
         }
 
         if (empty($materiList)) {
-            // Fallback ke daftar materi MDTA/MDA umum (tanpa duplikat)
-            $materiList = $this->db->table('tbl_materi_pelajaran m')
-                ->select('m.IdMateri, m.NamaMateri, m.Kategori')
-                ->groupStart()
-                    ->like('m.Kategori', 'MDTA')
-                    ->orLike('m.Kategori', 'MDA')
-                    ->orWhereIn('m.IdKategori', ['KM009', 'KM010'])
-                ->groupEnd()
-                ->groupBy('m.IdMateri')
-                ->orderBy('m.NamaMateri', 'ASC')
-                ->get()->getResultArray();
+            // Jika kelas ini tidak memiliki mata pelajaran MDTA/MDA yang di-mapping,
+            // maka tolak dan informasikan bahwa kelas ini bukan kelas MDTA.
+            return $this->response->setJSON([
+                'success'           => false,
+                'message'           => 'Kelas ini tidak memiliki mata pelajaran kurikulum MDTA/MDA.',
+                'details'           => [],
+                'santriSummary'     => [],
+                'totalMateri'       => 0,
+                'availableCbtCount' => 0,
+                'totalSantri'       => 0,
+                'totalSantriAdaCbt' => 0,
+                'btnClass'          => 'btn-secondary',
+                'buttonColor'       => 'secondary'
+            ]);
         }
 
         $totalMateriCount = count($materiList);
@@ -2086,22 +2122,39 @@ class Nilai extends BaseController
             // Ambil seluruh materi yang memiliki nilai (komponen atau sesi CBT) untuk santri di kelas ini
             $cbtMapPerSantri = [];
             if (!empty($santriIds)) {
-                $materiDariKomponen = $this->db->table('tbl_ujian_mdta_nilai_komponen')
+                $komponenBuilder = $this->db->table('tbl_ujian_mdta_nilai_komponen')
                     ->select('IdSantri, IdMateri')
                     ->distinct()
                     ->whereIn('IdSantri', $santriIds)
-                    ->whereIn('Semester', $semVariants)
-                    ->get()->getResultArray();
+                    ->where('IdTahunAjaran', $idTahunAjaran)
+                    ->whereIn('Semester', $semVariants);
 
-                $materiDariSesi = $this->db->table('tbl_ujian_mdta_sesi sesi')
+                if (!empty($idKelas) && (string)$idKelas !== '0') {
+                    $komponenBuilder->where('IdKelas', $idKelas);
+                }
+                if (!empty($idTpq) && (string)$idTpq !== '0') {
+                    $komponenBuilder->where('IdTpq', $idTpq);
+                }
+                $materiDariKomponen = $komponenBuilder->get()->getResultArray();
+
+                $sesiBuilder = $this->db->table('tbl_ujian_mdta_sesi sesi')
                     ->select('sesi.IdSantri, p.IdMateri')
                     ->distinct()
                     ->join('tbl_ujian_mdta_jadwal j', 'j.id = sesi.IdJadwal')
                     ->join('tbl_ujian_mdta_paket p', 'p.id = j.IdPaket')
                     ->whereIn('sesi.IdSantri', $santriIds)
+                    ->where('j.IdTahunAjaran', $idTahunAjaran)
                     ->whereIn('j.Semester', $semVariants)
-                    ->whereIn('sesi.StatusSesi', ['selesai', 'timeout'])
-                    ->get()->getResultArray();
+                    ->where('j.IsArchived', 0)
+                    ->whereIn('sesi.StatusSesi', ['selesai', 'timeout']);
+
+                if (!empty($idKelas) && (string)$idKelas !== '0') {
+                    $sesiBuilder->where('j.IdKelas', $idKelas);
+                }
+                if (!empty($idTpq) && (string)$idTpq !== '0') {
+                    $sesiBuilder->where('j.IdTpq', $idTpq);
+                }
+                $materiDariSesi = $sesiBuilder->get()->getResultArray();
 
                 $evalPairMap = [];
                 foreach (array_merge($materiDariKomponen, $materiDariSesi) as $item) {
