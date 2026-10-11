@@ -747,6 +747,7 @@ class Nilai extends BaseController
 
         // Konversi nama kelas menjadi MDA jika sesuai dengan mapping
         $dataKelas = [];
+        $mdaKelasIds = [];
         foreach ($datanilai as $key => $nilai) {
             $namaKelasOriginal = $nilai['Nama Kelas'];
 
@@ -796,7 +797,7 @@ class Nilai extends BaseController
             'dataKelas' => $dataKelas,
             'dataNilai' => $datanilai,
             'dataMateri' => $dataMateri,
-            'settingNilai' => $settingNilai
+            'settingNilai' => $settingNilai,
         ];
 
         return view('backend/nilai/nilaiSantriDetailPerKelas', $data);
@@ -1774,6 +1775,35 @@ class Nilai extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => 'Parameter tidak lengkap.']);
         }
 
+        // Cari data kelas santri jika belum spesifik
+        if (empty($idKelas) || (string)$idKelas === '0') {
+            $ksRow = $this->db->table('tbl_kelas_santri')
+                ->select('IdKelas, IdTpq')
+                ->where('IdSantri', $idSantri)
+                ->where('IdTahunAjaran', $idTahunAjaran)
+                ->where('Status', 1)
+                ->get()->getRowArray();
+            if ($ksRow) {
+                $idKelas = $ksRow['IdKelas'];
+                if (empty($idTpq) || (string)$idTpq === '0') {
+                    $idTpq = $ksRow['IdTpq'];
+                }
+            }
+        }
+
+        // Validasi ketat: Tolak keras jika kelas santri bukan jenjang kelas MDTA/MDA
+        if (!empty($idKelas)) {
+            $kelasRow = $this->db->table('tbl_kelas')->select('NamaKelas')->where('IdKelas', $idKelas)->get()->getRowArray();
+            $namaKelas = $kelasRow['NamaKelas'] ?? '';
+            $mdaCheck = $this->helpFunction->checkMdaKelasMapping($idTpq, $namaKelas);
+            if (empty($mdaCheck['useMdaData'])) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Penarikan nilai Ujian MDTA ditolak: Kelas ' . ($namaKelas ? $namaKelas : '') . ' adalah kelas TPQ reguler, bukan jenjang kelas MDTA/MDA.'
+                ]);
+            }
+        }
+
         $semText     = (strtolower((string)$semester) === 'genap' || (string)$semester === '2') ? 'Genap' : 'Ganjil';
         $semNum      = ($semText === 'Genap') ? '2' : '1';
         $semVariants = [$semText, $semNum];
@@ -1831,6 +1861,35 @@ class Nilai extends BaseController
 
         if (empty($idKelas) && empty($idSantriParam)) {
             return $this->response->setJSON(['success' => false, 'message' => 'Parameter tidak lengkap.']);
+        }
+
+        // Jika santri individual dikirim tetapi IdKelas belum ada, cari dari tbl_kelas_santri
+        if (empty($idKelas) && !empty($idSantriParam)) {
+            $ksRow = $this->db->table('tbl_kelas_santri')
+                ->select('IdKelas, IdTpq')
+                ->where('IdSantri', $idSantriParam)
+                ->where('IdTahunAjaran', $idTahunAjaran)
+                ->where('Status', 1)
+                ->get()->getRowArray();
+            if ($ksRow) {
+                $idKelas = $ksRow['IdKelas'];
+                if (empty($idTpq) || (string)$idTpq === '0') {
+                    $idTpq = $ksRow['IdTpq'];
+                }
+            }
+        }
+
+        // Validasi ketat: Tolak keras jika kelas sasaran bukan jenjang kelas MDTA/MDA
+        if (!empty($idKelas)) {
+            $kelasRow = $this->db->table('tbl_kelas')->select('NamaKelas')->where('IdKelas', $idKelas)->get()->getRowArray();
+            $namaKelas = $kelasRow['NamaKelas'] ?? '';
+            $mdaCheck = $this->helpFunction->checkMdaKelasMapping($idTpq, $namaKelas);
+            if (empty($mdaCheck['useMdaData'])) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Penarikan nilai Ujian MDTA ditolak: Kelas ' . ($namaKelas ? $namaKelas : '') . ' adalah kelas TPQ reguler, bukan jenjang kelas MDTA/MDA.'
+                ]);
+            }
         }
 
         if (!empty($idSantriParam)) {
@@ -1962,6 +2021,44 @@ class Nilai extends BaseController
 
         if (empty($idSantri) && empty($idKelas)) {
             return $this->response->setJSON(['success' => false, 'message' => 'Parameter tidak lengkap.']);
+        }
+
+        // Cari data kelas santri jika idSantri ada tapi idKelas belum dikirim
+        if (empty($idKelas) && !empty($idSantri)) {
+            $ksRow = $this->db->table('tbl_kelas_santri')
+                ->select('IdKelas, IdTpq')
+                ->where('IdSantri', $idSantri)
+                ->where('IdTahunAjaran', $idTahunAjaran)
+                ->where('Status', 1)
+                ->get()->getRowArray();
+            if ($ksRow) {
+                $idKelas = $ksRow['IdKelas'];
+                if (empty($idTpq) || (string)$idTpq === '0') {
+                    $idTpq = $ksRow['IdTpq'];
+                }
+            }
+        }
+
+        // Validasi ketat: Tolak jika kelas bukan kelas MDTA/MDA
+        if (!empty($idKelas)) {
+            $kelasRow = $this->db->table('tbl_kelas')->select('NamaKelas')->where('IdKelas', $idKelas)->get()->getRowArray();
+            $namaKelas = $kelasRow['NamaKelas'] ?? '';
+            $mdaCheck = $this->helpFunction->checkMdaKelasMapping($idTpq, $namaKelas);
+            if (empty($mdaCheck['useMdaData'])) {
+                return $this->response->setJSON([
+                    'success'           => false,
+                    'isMdaClass'        => false,
+                    'message'           => 'Kelas ' . ($namaKelas ? $namaKelas : '') . ' adalah kelas TPQ reguler, bukan jenjang kelas MDTA/MDA.',
+                    'details'           => [],
+                    'santriSummary'     => [],
+                    'totalMateri'       => 0,
+                    'availableCbtCount' => 0,
+                    'totalSantri'       => 0,
+                    'totalSantriAdaCbt' => 0,
+                    'btnClass'          => 'btn-secondary',
+                    'buttonColor'       => 'secondary'
+                ]);
+            }
         }
 
         // 1. Ambil seluruh materi pelajaran grup MDTA untuk kelas ini (tanpa duplikat)
