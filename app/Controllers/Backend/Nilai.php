@@ -1648,39 +1648,130 @@ class Nilai extends BaseController
     /**
      * AJAX — Salin nilai Ujian MDTA terbaik ke tabel nilai santri (`tbl_nilai`).
      */
+    /**
+     * Hitung nilai terpadu santri (Komponen Harian/Pekanan + UTS + UAS) dengan pembobotan aktif
+     */
+    private function calculateNilaiTerpaduSantri(string $idSantri, string $idMateri, string $idTahunAjaran, array $semVariants, string $idTpq, ?string $idKelas = null): ?float
+    {
+        $bobotModel = new \App\Models\Frontend\UjianMdta\UjianMdtaBobotRaportModel();
+        $bobotSetting = $bobotModel->getBobotAktif($idTpq, $idKelas);
+        
+        $bobotHarian = (int)($bobotSetting['BobotHarian'] ?? 40);
+        $bobotUTS    = (int)($bobotSetting['BobotUTS'] ?? 30);
+        $bobotUAS    = (int)($bobotSetting['BobotUAS'] ?? 30);
+
+        // Ambil komponen nilai dari tbl_ujian_mdta_nilai_komponen
+        $komponenRows = $this->db->table('tbl_ujian_mdta_nilai_komponen')
+            ->where('IdSantri', $idSantri)
+            ->where('IdMateri', $idMateri)
+            ->where('IdTahunAjaran', $idTahunAjaran)
+            ->whereIn('Semester', $semVariants)
+            ->get()->getResultArray();
+
+        $harianScores = [];
+        $utsScores    = [];
+        $uasScores    = [];
+
+        foreach ($komponenRows as $kr) {
+            $kat = strtolower($kr['Kategori'] ?? 'harian');
+            $val = (float)$kr['Nilai'];
+            if (in_array($kat, ['harian', 'pekanan', 'tugas'])) {
+                $harianScores[] = $val;
+            } elseif ($kat === 'uts') {
+                $utsScores[] = $val;
+            } elseif ($kat === 'uas') {
+                $uasScores[] = $val;
+            }
+        }
+
+        // Ambil juga dari nilai sesi CBT online
+        $cbtSesi = $this->db->table('tbl_ujian_mdta_sesi sesi')
+            ->select('sesi.NilaiAkhir, j.KategoriUjian')
+            ->join('tbl_ujian_mdta_jadwal j', 'j.id = sesi.IdJadwal')
+            ->join('tbl_ujian_mdta_paket p', 'p.id = j.IdPaket')
+            ->where('sesi.IdSantri', $idSantri)
+            ->where('p.IdMateri', $idMateri)
+            ->whereIn('j.Semester', $semVariants)
+            ->whereIn('sesi.StatusSesi', ['selesai', 'timeout'])
+            ->orderBy('sesi.NilaiAkhir', 'DESC')
+            ->get()->getResultArray();
+
+        foreach ($cbtSesi as $cs) {
+            $katJadwal = strtolower($cs['KategoriUjian'] ?? 'uas');
+            $val = (float)$cs['NilaiAkhir'];
+            if (in_array($katJadwal, ['harian', 'pekanan', 'tugas'])) {
+                $harianScores[] = $val;
+            } elseif ($katJadwal === 'uts') {
+                $utsScores[] = $val;
+            } else {
+                $uasScores[] = $val;
+            }
+        }
+
+        if (empty($harianScores) && empty($utsScores) && empty($uasScores)) {
+            return null;
+        }
+
+        $avgHarian = !empty($harianScores) ? array_sum($harianScores) / count($harianScores) : null;
+        $avgUTS    = !empty($utsScores)    ? array_sum($utsScores) / count($utsScores)       : null;
+        $avgUAS    = !empty($uasScores)    ? array_sum($uasScores) / count($uasScores)       : null;
+
+        // Jika hanya ada nilai tunggal UAS
+        if ($avgHarian === null && $avgUTS === null && $avgUAS !== null) {
+            return round($avgUAS, 2);
+        }
+
+        // Pembobotan proporsional
+        $totalBobotAktif = 0;
+        $totalNilaiBobot = 0;
+
+        if ($avgHarian !== null) {
+            $totalNilaiBobot += ($avgHarian * $bobotHarian);
+            $totalBobotAktif += $bobotHarian;
+        }
+        if ($avgUTS !== null) {
+            $totalNilaiBobot += ($avgUTS * $bobotUTS);
+            $totalBobotAktif += $bobotUTS;
+        }
+        if ($avgUAS !== null) {
+            $totalNilaiBobot += ($avgUAS * $bobotUAS);
+            $totalBobotAktif += $bobotUAS;
+        }
+
+        if ($totalBobotAktif > 0) {
+            return round($totalNilaiBobot / $totalBobotAktif, 2);
+        }
+
+        return null;
+    }
+
     public function copyNilaiUjianMdta()
     {
         $idSantri      = $this->request->getPost('IdSantri');
         $idMateri      = $this->request->getPost('IdMateri');
         $idTahunAjaran = $this->request->getPost('IdTahunAjaran') ?? session()->get('IdTahunAjaran');
         $semester      = $this->request->getPost('Semester') ?? '1';
+        $idTpq         = session()->get('IdTpq') ?? '0';
+        $idKelas       = session()->get('IdKelas');
 
         if (empty($idSantri) || empty($idMateri)) {
             return $this->response->setJSON(['success' => false, 'message' => 'Parameter tidak lengkap.']);
         }
 
-        // Cari nilai Ujian MDTA terbaik untuk santri, materi, dan semester ini
-        $builder = $this->db->table('tbl_ujian_mdta_sesi sesi');
-        $builder->select('sesi.NilaiAkhir');
-        $builder->join('tbl_ujian_mdta_jadwal j', 'j.id = sesi.IdJadwal');
-        $builder->join('tbl_ujian_mdta_paket p', 'p.id = j.IdPaket');
-        $builder->where('sesi.IdSantri', $idSantri);
-        $builder->where('p.IdMateri', $idMateri);
-        $builder->where('j.Semester', (strtolower($semester) == 'genap' || $semester == '2') ? 2 : 1);
-        $builder->where('sesi.StatusSesi IN ("selesai", "timeout")');
-        $builder->orderBy('sesi.NilaiAkhir', 'DESC');
-        $row = $builder->get()->getRowArray();
+        $semText     = (strtolower((string)$semester) === 'genap' || (string)$semester === '2') ? 'Genap' : 'Ganjil';
+        $semNum      = ($semText === 'Genap') ? '2' : '1';
+        $semVariants = [$semText, $semNum];
 
-        if (!$row || $row['NilaiAkhir'] === null) {
+        $nilaiUjian = $this->calculateNilaiTerpaduSantri((string)$idSantri, (string)$idMateri, (string)$idTahunAjaran, $semVariants, (string)$idTpq, (string)$idKelas);
+
+        if ($nilaiUjian === null) {
             return $this->response->setJSON(['success' => false, 'message' => 'Nilai Ujian MDTA tidak ditemukan untuk santri dan materi ini.']);
         }
-
-        $nilaiUjian = (float)$row['NilaiAkhir'];
 
         return $this->response->setJSON([
             'success' => true,
             'nilai'   => $nilaiUjian,
-            'message' => "Berhasil mengambil nilai Ujian MDTA: {$nilaiUjian}",
+            'message' => "Berhasil mengambil nilai Ujian MDTA Terpadu: {$nilaiUjian}",
         ]);
     }
 
@@ -1708,7 +1799,7 @@ class Nilai extends BaseController
     }
 
     /**
-     * AJAX — Salin masal nilai Ujian MDTA terbaik seluruh santri dalam 1 kelas / santri individual ke tabel nilai (`tbl_nilai`).
+     * AJAX — Salin masal nilai Ujian MDTA terpadu seluruh santri dalam 1 kelas / santri individual ke tabel nilai (`tbl_nilai`).
      */
     public function copyNilaiUjianMdtaBulkKelas()
     {
@@ -1726,11 +1817,9 @@ class Nilai extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => 'Parameter tidak lengkap.']);
         }
 
-        // Jika IdSantri diberikan (misal dari halaman detail 1 santri), prioritaskan santri tersebut saja!
         if (!empty($idSantriParam)) {
             $santriIds = [(string)$idSantriParam];
         } else {
-            // Ambil seluruh santri aktif di kelas ini (dengan filter IdTpq & IdTahunAjaran & IdKelas)
             $santriBuilder = $this->db->table('tbl_kelas_santri')
                 ->select('IdSantri, IdTpq, IdKelas')
                 ->where('IdKelas', $idKelas)
@@ -1750,58 +1839,66 @@ class Nilai extends BaseController
             $santriIds = array_column($santriRows, 'IdSantri');
         }
 
-        // Cari nilai Ujian MDTA terbaik per santri & per materi
-        $builder = $this->db->table('tbl_ujian_mdta_sesi sesi');
-        $builder->select('sesi.IdSantri, p.IdMateri, MAX(sesi.NilaiAkhir) as NilaiTerbaik');
-        $builder->join('tbl_ujian_mdta_jadwal j', 'j.id = sesi.IdJadwal');
-        $builder->join('tbl_ujian_mdta_paket p', 'p.id = j.IdPaket');
-        $builder->whereIn('sesi.IdSantri', $santriIds);
-        $builder->whereIn('j.Semester', $semVariants);
-        $builder->whereIn('sesi.StatusSesi', ['selesai', 'timeout']);
-        $builder->groupBy('sesi.IdSantri, p.IdMateri');
+        // Ambil seluruh materi yang memiliki nilai (komponen atau sesi CBT) untuk santri ini
+        $materiDariKomponen = $this->db->table('tbl_ujian_mdta_nilai_komponen')
+            ->select('IdMateri')
+            ->distinct()
+            ->whereIn('IdSantri', $santriIds)
+            ->whereIn('Semester', $semVariants)
+            ->get()->getResultArray();
 
-        $results = $builder->get()->getResultArray();
+        $materiDariSesi = $this->db->table('tbl_ujian_mdta_sesi sesi')
+            ->select('p.IdMateri')
+            ->distinct()
+            ->join('tbl_ujian_mdta_jadwal j', 'j.id = sesi.IdJadwal')
+            ->join('tbl_ujian_mdta_paket p', 'p.id = j.IdPaket')
+            ->whereIn('sesi.IdSantri', $santriIds)
+            ->whereIn('j.Semester', $semVariants)
+            ->whereIn('sesi.StatusSesi', ['selesai', 'timeout'])
+            ->get()->getResultArray();
 
-        if (empty($results)) {
-            return $this->response->setJSON(['success' => false, 'message' => 'Belum ada data nilai Ujian MDTA (UMBK) yang selesai untuk santri/kelas ini pada semester yang dipilih.']);
+        $allMateriIds = array_unique(array_filter(array_merge(
+            array_column($materiDariKomponen, 'IdMateri'),
+            array_column($materiDariSesi, 'IdMateri')
+        )));
+
+        if (empty($allMateriIds)) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Belum ada data nilai Ujian MDTA (Harian, UTS, maupun UAS) yang selesai untuk santri/kelas ini pada semester yang dipilih.']);
         }
 
         $importedCount = 0;
-        foreach ($results as $row) {
-            if ($row['NilaiTerbaik'] !== null) {
-                $numNilai = round((float)$row['NilaiTerbaik'], 2);
-                $santriId = (string)$row['IdSantri'];
-                $materiId = (string)$row['IdMateri'];
+        foreach ($santriIds as $santriId) {
+            foreach ($allMateriIds as $materiId) {
+                $calcNilai = $this->calculateNilaiTerpaduSantri((string)$santriId, (string)$materiId, (string)$idTahunAjaran, $semVariants, (string)$idTpq, (string)$idKelas);
+                
+                if ($calcNilai !== null) {
+                    $existing = $this->findExistingNilaiRow((string)$santriId, (string)$materiId, (string)$idTahunAjaran, $semVariants, (string)$idTpq, (string)$idKelas);
 
-                // Cek apakah data nilai sudah ada di tbl_nilai (secara ultra-presisi: IdSantri, IdMateri, IdTahunAjaran, Semester, IdTpq, IdKelas)
-                $existing = $this->findExistingNilaiRow($santriId, $materiId, (string)$idTahunAjaran, $semVariants, (string)$idTpq, (string)$idKelas);
-
-                if ($existing) {
-                    // Update data yang sudah ada — TIDAK MEMBUAT ROW DUPLIKAT
-                    $this->db->table('tbl_nilai')
-                        ->where('Id', $existing['Id'])
-                        ->update([
-                            'Nilai'      => $numNilai,
-                            'IdGuru'     => $idGuru,
-                            'updated_at' => date('Y-m-d H:i:s'),
+                    if ($existing) {
+                        $this->db->table('tbl_nilai')
+                            ->where('Id', $existing['Id'])
+                            ->update([
+                                'Nilai'      => $calcNilai,
+                                'IdGuru'     => $idGuru,
+                                'updated_at' => date('Y-m-d H:i:s'),
+                            ]);
+                    } else {
+                        $targetKelas = !empty($idKelas) ? $idKelas : ($existing['IdKelas'] ?? session()->get('IdKelas') ?? '');
+                        $this->db->table('tbl_nilai')->insert([
+                            'IdTpq'         => $idTpq,
+                            'IdSantri'      => (string)$santriId,
+                            'IdKelas'       => $targetKelas,
+                            'IdMateri'      => (string)$materiId,
+                            'IdGuru'        => $idGuru,
+                            'IdTahunAjaran' => $idTahunAjaran,
+                            'Semester'      => $semText,
+                            'Nilai'         => $calcNilai,
+                            'created_at'    => date('Y-m-d H:i:s'),
+                            'updated_at'    => date('Y-m-d H:i:s'),
                         ]);
-                } else {
-                    // Jika belum pernah ada record sama sekali di tbl_nilai untuk presisi ini, baru lakukan insert
-                    $targetKelas = !empty($idKelas) ? $idKelas : ($existing['IdKelas'] ?? session()->get('IdKelas') ?? '');
-                    $this->db->table('tbl_nilai')->insert([
-                        'IdTpq'         => $idTpq,
-                        'IdSantri'      => $santriId,
-                        'IdKelas'       => $targetKelas,
-                        'IdMateri'      => $materiId,
-                        'IdGuru'        => $idGuru,
-                        'IdTahunAjaran' => $idTahunAjaran,
-                        'Semester'      => $semText,
-                        'Nilai'         => $numNilai,
-                        'created_at'    => date('Y-m-d H:i:s'),
-                        'updated_at'    => date('Y-m-d H:i:s'),
-                    ]);
+                    }
+                    $importedCount++;
                 }
-                $importedCount++;
             }
         }
 
@@ -1811,7 +1908,7 @@ class Nilai extends BaseController
         return $this->response->setJSON([
             'success'       => true,
             'totalImported' => $importedCount,
-            'message'       => 'Berhasil menarik & menyimpan ' . $importedCount . ' nilai Ujian MDTA!',
+            'message'       => 'Berhasil menarik & menghitung ' . $importedCount . ' nilai Ujian MDTA Terpadu ke Raport!',
         ]);
     }
 
@@ -1870,21 +1967,13 @@ class Nilai extends BaseController
 
         // Jika request khusus santri individual ($idSantri)
         if (!empty($idSantri)) {
-            // 2. Ambil nilai CBT terbaik per materi untuk santri ini
-            $cbtBuilder = $this->db->table('tbl_ujian_mdta_sesi sesi');
-            $cbtBuilder->select('p.IdMateri, MAX(sesi.NilaiAkhir) as NilaiCbt');
-            $cbtBuilder->join('tbl_ujian_mdta_jadwal j', 'j.id = sesi.IdJadwal');
-            $cbtBuilder->join('tbl_ujian_mdta_paket p', 'p.id = j.IdPaket');
-            $cbtBuilder->where('sesi.IdSantri', $idSantri);
-            $cbtBuilder->whereIn('j.Semester', $semVariants);
-            $cbtBuilder->whereIn('sesi.StatusSesi', ['selesai', 'timeout']);
-            $cbtBuilder->groupBy('p.IdMateri');
-            $cbtRows = $cbtBuilder->get()->getResultArray();
-
+            // 2. Ambil nilai terpadu per materi untuk santri ini
             $cbtMap = [];
-            foreach ($cbtRows as $cr) {
-                if ($cr['NilaiCbt'] !== null) {
-                    $cbtMap[$cr['IdMateri']] = round((float)$cr['NilaiCbt'], 2);
+            foreach ($materiList as $m) {
+                $matId = $m['IdMateri'];
+                $val = $this->calculateNilaiTerpaduSantri((string)$idSantri, (string)$matId, (string)$idTahunAjaran, $semVariants, (string)$idTpq, (string)$idKelas);
+                if ($val !== null) {
+                    $cbtMap[$matId] = $val;
                 }
             }
 
@@ -1994,27 +2083,42 @@ class Nilai extends BaseController
             $santriRows = $santriBuilder->orderBy('s.NamaSantri', 'ASC')->get()->getResultArray();
             $santriIds  = array_column($santriRows, 'IdSantri');
 
-            // Ambil semua sesi UMBK/CBT untuk santri di kelas ini
+            // Ambil seluruh materi yang memiliki nilai (komponen atau sesi CBT) untuk santri di kelas ini
             $cbtMapPerSantri = [];
             if (!empty($santriIds)) {
-                $cbtBuilder = $this->db->table('tbl_ujian_mdta_sesi sesi');
-                $cbtBuilder->select('sesi.IdSantri, p.IdMateri, MAX(sesi.NilaiAkhir) as NilaiCbt');
-                $cbtBuilder->join('tbl_ujian_mdta_jadwal j', 'j.id = sesi.IdJadwal');
-                $cbtBuilder->join('tbl_ujian_mdta_paket p', 'p.id = j.IdPaket');
-                $cbtBuilder->whereIn('sesi.IdSantri', $santriIds);
-                $cbtBuilder->whereIn('j.Semester', $semVariants);
-                $cbtBuilder->whereIn('sesi.StatusSesi', ['selesai', 'timeout']);
-                $cbtBuilder->groupBy('sesi.IdSantri, p.IdMateri');
-                $cbtRows = $cbtBuilder->get()->getResultArray();
+                $materiDariKomponen = $this->db->table('tbl_ujian_mdta_nilai_komponen')
+                    ->select('IdSantri, IdMateri')
+                    ->distinct()
+                    ->whereIn('IdSantri', $santriIds)
+                    ->whereIn('Semester', $semVariants)
+                    ->get()->getResultArray();
 
-                foreach ($cbtRows as $cr) {
-                    if ($cr['NilaiCbt'] !== null) {
-                        $sId = (string)$cr['IdSantri'];
-                        $mId = (string)$cr['IdMateri'];
-                        if (!isset($cbtMapPerSantri[$sId])) {
-                            $cbtMapPerSantri[$sId] = [];
+                $materiDariSesi = $this->db->table('tbl_ujian_mdta_sesi sesi')
+                    ->select('sesi.IdSantri, p.IdMateri')
+                    ->distinct()
+                    ->join('tbl_ujian_mdta_jadwal j', 'j.id = sesi.IdJadwal')
+                    ->join('tbl_ujian_mdta_paket p', 'p.id = j.IdPaket')
+                    ->whereIn('sesi.IdSantri', $santriIds)
+                    ->whereIn('j.Semester', $semVariants)
+                    ->whereIn('sesi.StatusSesi', ['selesai', 'timeout'])
+                    ->get()->getResultArray();
+
+                $evalPairMap = [];
+                foreach (array_merge($materiDariKomponen, $materiDariSesi) as $item) {
+                    $evalPairMap[$item['IdSantri']][$item['IdMateri']] = true;
+                }
+
+                foreach ($santriIds as $sId) {
+                    if (isset($evalPairMap[$sId])) {
+                        foreach (array_keys($evalPairMap[$sId]) as $mId) {
+                            $cbtVal = $this->calculateNilaiTerpaduSantri((string)$sId, (string)$mId, (string)$idTahunAjaran, $semVariants, (string)$idTpq, (string)$idKelas);
+                            if ($cbtVal !== null) {
+                                if (!isset($cbtMapPerSantri[$sId])) {
+                                    $cbtMapPerSantri[$sId] = [];
+                                }
+                                $cbtMapPerSantri[$sId][$mId] = $cbtVal;
+                            }
                         }
-                        $cbtMapPerSantri[$sId][$mId] = round((float)$cr['NilaiCbt'], 2);
                     }
                 }
             }

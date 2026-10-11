@@ -32,9 +32,14 @@ div.dataTables_wrapper .dataTables_paginate {
                 <h4 class="mb-0 fw-bold"><i class="fas fa-calendar-alt text-success me-2"></i> Jadwal Ujian MDTA</h4>
                 <small class="text-muted">Pengaturan jadwal pelaksanaan ujian online per kelas dan remedial</small>
             </div>
-            <a href="<?= base_url('backend/ujian-mdta/jadwal/create') ?>" class="btn btn-success btn-sm">
-                <i class="fas fa-calendar-plus me-1"></i> Buat Jadwal Ujian Baru
-            </a>
+            <div class="d-flex gap-2 flex-wrap">
+                <a href="<?= base_url('backend/ujian-mdta/buku-nilai') ?>" class="btn btn-outline-primary btn-sm fw-bold">
+                    <i class="fas fa-book-open me-1"></i> Buku Nilai (Leger)
+                </a>
+                <a href="<?= base_url('backend/ujian-mdta/jadwal/create') ?>" class="btn btn-success btn-sm">
+                    <i class="fas fa-calendar-plus me-1"></i> Buat Jadwal Ujian Baru
+                </a>
+            </div>
         </div>
     </div>
 
@@ -184,7 +189,26 @@ div.dataTables_wrapper .dataTables_paginate {
                                     <td class="text-center"><?= $i + 1 ?></td>
                                     <td>
                                         <div class="fw-bold"><?= esc($j['NamaUjian']) ?></div>
-                                        <small class="text-muted"><i class="fas fa-box me-1"></i>Paket: <?= esc($j['NamaPaket'] ?? '-') ?></small>
+                                        <div class="d-flex align-items-center gap-1 flex-wrap mt-1">
+                                            <?php
+                                            $metodeUjian = $j['MetodeUjian'] ?? 'online';
+                                            $katUjian = $j['KategoriUjian'] ?? 'uas';
+                                            $katBadge = [
+                                                'uas'     => '<span class="badge bg-danger text-white"><i class="fas fa-trophy me-1"></i>UAS</span>',
+                                                'uts'     => '<span class="badge bg-info text-white"><i class="fas fa-file-alt me-1"></i>UTS</span>',
+                                                'harian'  => '<span class="badge bg-primary text-white"><i class="fas fa-book me-1"></i>UH</span>',
+                                                'pekanan' => '<span class="badge bg-secondary text-white"><i class="fas fa-calendar me-1"></i>Pekanan</span>',
+                                                'tugas'   => '<span class="badge bg-dark text-white"><i class="fas fa-pen me-1"></i>Tugas</span>',
+                                            ];
+                                            ?>
+                                            <?= $katBadge[$katUjian] ?? '<span class="badge bg-secondary">' . strtoupper(esc($katUjian)) . '</span>' ?>
+                                            <?php if ($metodeUjian === 'manual'): ?>
+                                                <span class="badge bg-warning text-dark border border-warning"><i class="fas fa-pencil-alt me-1"></i>Manual (Offline)</span>
+                                            <?php else: ?>
+                                                <span class="badge bg-success text-white"><i class="fas fa-globe me-1"></i>Online CBT</span>
+                                            <?php endif; ?>
+                                        </div>
+                                        <small class="text-muted d-block mt-1"><i class="fas fa-box me-1"></i>Paket: <?= esc($j['NamaPaket'] ?? '-') ?></small>
                                     </td>
                                      <td>
                                          <span class="badge bg-light text-dark border"><?= esc($j['NamaKelas'] ?? '-') ?></span>
@@ -284,8 +308,16 @@ div.dataTables_wrapper .dataTables_paginate {
                                                       <i class="fas fa-print me-2 text-primary"></i> Cetak Soal & LJK Manual
                                                   </a>
 
+                                                  <a href="<?= base_url("backend/ujian-mdta/jadwal/input-nilai-manual/{$j['id']}") ?>" class="dropdown-item text-primary fw-semibold">
+                                                      <i class="fas fa-table me-2 text-primary"></i> Input Nilai Cepat (Grid)
+                                                  </a>
+
                                                   <a href="<?= base_url("backend/ujian-mdta/jadwal/verifikasi-manual/{$j['id']}") ?>" class="dropdown-item text-success fw-semibold">
-                                                      <i class="fas fa-camera me-2 text-success"></i> Verifikasi Jawaban Manual
+                                                      <i class="fas fa-check-double me-2 text-success"></i> Koreksi Butir Jawaban LJK
+                                                  </a>
+
+                                                  <a href="<?= base_url("backend/ujian-mdta/buku-nilai/{$j['id']}") ?>" class="dropdown-item text-info fw-semibold">
+                                                      <i class="fas fa-book-open me-2 text-info"></i> Buku Nilai (Leger Kelas)
                                                   </a>
 
                                                  <div class="dropdown-divider"></div>
@@ -353,7 +385,7 @@ div.dataTables_wrapper .dataTables_paginate {
                                             </td>
                                              <td class="text-center align-middle">
                                                  <div class="btn-group">
-                                                     <button class="btn btn-outline-purple btn-sm dropdown-toggle fw-bold" style="color: #6f42c1; border-color: #6f42c1;" type="button" data-toggle="dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                     <button class="btn btn-outline-purple btn-sm dropdown-toggle fw-bold" style="color: #6f42c1; border-color: #6f42c1;" type="button" data-toggle="dropdown" data-bs-toggle="dropdown" data-boundary="window" data-bs-boundary="window" aria-haspopup="true" aria-expanded="false">
                                                          <i class="fas fa-cog me-1"></i> Aksi
                                                      </button>
                                                      <div class="dropdown-menu dropdown-menu-right shadow-sm border-0">
@@ -366,6 +398,28 @@ div.dataTables_wrapper .dataTables_paginate {
                                                          ?>
                                                          <a href="javascript:void(0)" class="dropdown-item text-warning fw-semibold" onclick="openModalAturRemedial(<?= $j['id'] ?>, '<?= esc($j['NamaUjian'], 'js') ?>', <?= $sub['attempt_target'] ?>, <?= $sub['jml_santri'] ?>, '<?= $subTglMulaiRemed ?>', '<?= $subTglSelesaiRemed ?>')">
                                                              <i class="fas fa-clock me-2"></i> Edit Waktu Remedial
+                                                         </a>
+
+                                                         <a href="<?= base_url("backend/ujian-mdta/laporan/{$j['id']}") ?>" class="dropdown-item text-info fw-semibold">
+                                                             <i class="fas fa-chart-bar me-2"></i> Laporan Nilai
+                                                         </a>
+
+                                                         <div class="dropdown-divider"></div>
+
+                                                         <a href="javascript:void(0)" class="dropdown-item text-dark fw-semibold" onclick="openModalCetakManual(<?= $j['id'] ?>, '<?= esc($j['NamaUjian'], 'js') ?> (Remedial Ke-<?= $sub['attempt_target'] ?>)')">
+                                                             <i class="fas fa-print me-2 text-primary"></i> Cetak Soal & LJK Manual
+                                                         </a>
+
+                                                         <a href="<?= base_url("backend/ujian-mdta/jadwal/input-nilai-manual/{$j['id']}") ?>" class="dropdown-item text-primary fw-semibold">
+                                                             <i class="fas fa-table me-2 text-primary"></i> Input Nilai Cepat (Grid)
+                                                         </a>
+
+                                                         <a href="<?= base_url("backend/ujian-mdta/jadwal/verifikasi-manual/{$j['id']}") ?>" class="dropdown-item text-success fw-semibold">
+                                                             <i class="fas fa-check-double me-2 text-success"></i> Koreksi Butir Jawaban LJK
+                                                         </a>
+
+                                                         <a href="<?= base_url("backend/ujian-mdta/buku-nilai/{$j['id']}") ?>" class="dropdown-item text-info fw-semibold">
+                                                             <i class="fas fa-book-open me-2 text-info"></i> Buku Nilai (Leger Kelas)
                                                          </a>
 
                                                          <?php if (!empty($sub['is_remedial_ready'])): ?>

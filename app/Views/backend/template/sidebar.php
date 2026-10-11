@@ -933,6 +933,12 @@
                                         <p>Laporan Hasil Ujian</p>
                                     </a>
                                 </li>
+                                <li class="nav-item">
+                                    <a href="<?= base_url('backend/ujian-mdta/buku-nilai') ?>" class="nav-link <?= ($menu_active ?? '') == 'ujian-mdta-buku-nilai' ? 'active' : '' ?>">
+                                        <i class="fas fa-book-open nav-icon text-warning"></i>
+                                        <p>Buku Nilai (Leger)</p>
+                                    </a>
+                                </li>
                             </ul>
                         </li>
                     <?php endif; ?>

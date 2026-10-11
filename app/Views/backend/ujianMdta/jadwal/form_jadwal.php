@@ -233,6 +233,67 @@
                             <option value="pause" <?= old('Status', $jadwal['Status'] ?? '') === 'pause' ? 'selected' : '' ?>>🟡 Pause (Jeda Sementara)</option>
                         </select>
                     </div>
+
+                    <!-- BARIS BARU: KATEGORI & METODE PELAKSANAAN (ONLINE / MANUAL) -->
+                    <div class="col-12 mt-2 pt-2 border-top">
+                        <div class="row g-3">
+                            <!-- Kategori Evaluasi -->
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold text-primary">
+                                    <i class="fas fa-layer-group me-1"></i> Kategori Evaluasi <span class="text-danger">*</span>
+                                </label>
+                                <select name="KategoriUjian" id="selectKategoriUjian" class="form-control custom-select" required>
+                                    <option value="uas" <?= old('KategoriUjian', $jadwal['KategoriUjian'] ?? 'uas') === 'uas' ? 'selected' : '' ?>>🏆 Ujian Akhir Semester (UAS)</option>
+                                    <option value="uts" <?= old('KategoriUjian', $jadwal['KategoriUjian'] ?? '') === 'uts' ? 'selected' : '' ?>>📑 Ujian Tengah Semester (UTS)</option>
+                                    <option value="harian" <?= old('KategoriUjian', $jadwal['KategoriUjian'] ?? '') === 'harian' ? 'selected' : '' ?>>📖 Ujian Harian (UH / Bab)</option>
+                                    <option value="pekanan" <?= old('KategoriUjian', $jadwal['KategoriUjian'] ?? '') === 'pekanan' ? 'selected' : '' ?>>🗓️ Ujian Pekanan</option>
+                                    <option value="tugas" <?= old('KategoriUjian', $jadwal['KategoriUjian'] ?? '') === 'tugas' ? 'selected' : '' ?>>✏️ Tugas / Kuis Formatif</option>
+                                </select>
+                                <small class="text-muted d-block mt-1">Jenis penilaian untuk pengelompokan bobot raport</small>
+                            </div>
+
+                            <!-- Metode Pelaksanaan -->
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold text-success">
+                                    <i class="fas fa-laptop-code me-1"></i> Metode Pelaksanaan <span class="text-danger">*</span>
+                                </label>
+                                <select name="MetodeUjian" id="selectMetodeUjian" class="form-control custom-select" required onchange="toggleMetodeUjianOptions()">
+                                    <option value="online" <?= old('MetodeUjian', $jadwal['MetodeUjian'] ?? 'online') === 'online' ? 'selected' : '' ?>>🌐 Online CBT (Santri login HP/Laptop)</option>
+                                    <option value="manual" <?= old('MetodeUjian', $jadwal['MetodeUjian'] ?? '') === 'manual' ? 'selected' : '' ?>>📝 Manual / Offline (Ujian Kertas / Guru)</option>
+                                </select>
+                                <small class="text-muted d-block mt-1">Pilih Online jika CBT, atau Manual jika berbasis kertas/lisan</small>
+                            </div>
+
+                            <!-- Opsi Tipe Koreksi Manual (Muncul jika Manual) -->
+                            <div class="col-md-3" id="wrapperTipeKoreksiManual" style="<?= old('MetodeUjian', $jadwal['MetodeUjian'] ?? 'online') === 'manual' ? '' : 'display: none;' ?>">
+                                <label class="form-label fw-bold text-warning">
+                                    <i class="fas fa-tasks me-1"></i> Alur Input Penilaian Guru
+                                </label>
+                                <select name="TipeKoreksiManual" id="selectTipeKoreksi" class="form-control custom-select">
+                                    <option value="nilai_langsung" <?= old('TipeKoreksiManual', $jadwal['TipeKoreksiManual'] ?? 'nilai_langsung') === 'nilai_langsung' ? 'selected' : '' ?>>⚡ Input Nilai Angka Langsung (Grid/Excel)</option>
+                                    <option value="periksa_butir" <?= old('TipeKoreksiManual', $jadwal['TipeKoreksiManual'] ?? '') === 'periksa_butir' ? 'selected' : '' ?>>🔍 Koreksi Butir Jawaban LJK (/verifikasi)</option>
+                                </select>
+                                <small class="text-muted d-block mt-1">Metode pengisian nilai oleh guru/wali kelas</small>
+                            </div>
+
+                            <!-- Bobot Khusus (Opsional) -->
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold text-secondary">
+                                    <i class="fas fa-percentage me-1"></i> Bobot Nilai Khusus (%)
+                                </label>
+                                <input type="number" name="BobotNilai" min="1" max="100" class="form-control form-control-adminlte" placeholder="Default: Mengikuti Setting Raport" value="<?= old('BobotNilai', $jadwal['BobotNilai'] ?? '') ?>">
+                                <small class="text-muted d-block mt-1">Kosongkan untuk memakai bobot standar TPQ/Kelas</small>
+                            </div>
+
+                            <!-- Alert Info Khusus Mode Manual -->
+                            <div class="col-12" id="alertInfoManual" style="<?= old('MetodeUjian', $jadwal['MetodeUjian'] ?? 'online') === 'manual' ? '' : 'display: none;' ?>">
+                                <div class="alert alert-warning py-2 px-3 mb-0 rounded-3 small border-start border-4 border-warning">
+                                    <i class="fas fa-info-circle me-1 text-warning"></i>
+                                    <strong>Mode Ujian Manual / Offline Aktif:</strong> Santri tidak wajib login ke CBT. Setelah jadwal disimpan, Anda dapat langsung <strong>Mencetak Naskah Soal & LJK Standar</strong> dari tabel jadwal, serta menginput nilai secara fleksibel (via Tabel Cepat atau Verifikasi Butir LJK).
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -469,6 +530,20 @@ $(document).ready(function() {
         });
     }
 });
+
+function toggleMetodeUjianOptions() {
+    const metode = document.getElementById('selectMetodeUjian').value;
+    const wrapperTipe = document.getElementById('wrapperTipeKoreksiManual');
+    const alertInfo = document.getElementById('alertInfoManual');
+    
+    if (metode === 'manual') {
+        if (wrapperTipe) wrapperTipe.style.display = 'block';
+        if (alertInfo) alertInfo.style.display = 'block';
+    } else {
+        if (wrapperTipe) wrapperTipe.style.display = 'none';
+        if (alertInfo) alertInfo.style.display = 'none';
+    }
+}
 </script>
 <?= $this->endSection(); ?>
 

@@ -37,6 +37,10 @@ class UjianMdtaJadwalModel extends Model
         'StatusRemedial',
         'TampilKunciJawaban',
         'TampilSoalJawaban',
+        'KategoriUjian',
+        'MetodeUjian',
+        'TipeKoreksiManual',
+        'BobotNilai',
         'Status',
         'IsArchived',
     ];
@@ -58,6 +62,18 @@ class UjianMdtaJadwalModel extends Model
             }
             if (!$this->db->fieldExists('IsArchived', $this->table)) {
                 $this->db->query("ALTER TABLE {$this->table} ADD COLUMN IsArchived TINYINT(1) DEFAULT 0 AFTER Status");
+            }
+            if (!$this->db->fieldExists('KategoriUjian', $this->table)) {
+                $this->db->query("ALTER TABLE {$this->table} ADD COLUMN KategoriUjian VARCHAR(20) DEFAULT 'uas' AFTER Semester");
+            }
+            if (!$this->db->fieldExists('MetodeUjian', $this->table)) {
+                $this->db->query("ALTER TABLE {$this->table} ADD COLUMN MetodeUjian VARCHAR(20) DEFAULT 'online' AFTER KategoriUjian");
+            }
+            if (!$this->db->fieldExists('TipeKoreksiManual', $this->table)) {
+                $this->db->query("ALTER TABLE {$this->table} ADD COLUMN TipeKoreksiManual VARCHAR(30) DEFAULT 'nilai_langsung' AFTER MetodeUjian");
+            }
+            if (!$this->db->fieldExists('BobotNilai', $this->table)) {
+                $this->db->query("ALTER TABLE {$this->table} ADD COLUMN BobotNilai INT DEFAULT NULL AFTER TipeKoreksiManual");
             }
             $this->db->query("ALTER TABLE {$this->table} MODIFY COLUMN Semester VARCHAR(50) DEFAULT '1'");
         } catch (\Throwable $e) {

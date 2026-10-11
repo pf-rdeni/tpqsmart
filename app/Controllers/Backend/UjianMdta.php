@@ -1130,6 +1130,10 @@ class UjianMdta extends BaseController
             'MaksRemedial'       => (int)($this->request->getPost('MaksRemedial') ?? 1),
             'TampilKunciJawaban' => $this->request->getPost('TampilKunciJawaban') ? 1 : 0,
             'TampilSoalJawaban'  => $this->request->getPost('TampilSoalJawaban') ? 1 : 0,
+            'KategoriUjian'      => $this->request->getPost('KategoriUjian') ?: 'uas',
+            'MetodeUjian'        => $this->request->getPost('MetodeUjian') ?: 'online',
+            'TipeKoreksiManual'  => $this->request->getPost('TipeKoreksiManual') ?: 'nilai_langsung',
+            'BobotNilai'         => $this->request->getPost('BobotNilai') ? (int)$this->request->getPost('BobotNilai') : null,
             'Status'             => $this->request->getPost('Status') ?: 'aktif',
         ]);
 
@@ -1256,6 +1260,10 @@ class UjianMdta extends BaseController
             'MaksRemedial'       => (int)($this->request->getPost('MaksRemedial') ?? 1),
             'TampilKunciJawaban' => $this->request->getPost('TampilKunciJawaban') ? 1 : 0,
             'TampilSoalJawaban'  => $this->request->getPost('TampilSoalJawaban') ? 1 : 0,
+            'KategoriUjian'      => $this->request->getPost('KategoriUjian') ?: ($jadwal['KategoriUjian'] ?? 'uas'),
+            'MetodeUjian'        => $this->request->getPost('MetodeUjian') ?: ($jadwal['MetodeUjian'] ?? 'online'),
+            'TipeKoreksiManual'  => $this->request->getPost('TipeKoreksiManual') ?: ($jadwal['TipeKoreksiManual'] ?? 'nilai_langsung'),
+            'BobotNilai'         => $this->request->getPost('BobotNilai') ? (int)$this->request->getPost('BobotNilai') : null,
             'Status'             => $this->request->getPost('Status') ?: ($jadwal['Status'] ?? 'aktif'),
         ];
 
@@ -2920,6 +2928,521 @@ class UjianMdta extends BaseController
             'message'  => 'Foto LJK berhasil diunggah.',
             'filePath' => $fotoPath,
             'fileUrl'  => base_url($fotoPath),
+        ]);
+    }
+
+    public function inputNilaiManual(int $idJadwal)
+    {
+        $jadwal = $this->jadwalModel->find($idJadwal);
+        if (!$jadwal) {
+            return redirect()->to(base_url('backend/ujian-mdta/jadwal'))->with('error', 'Jadwal ujian tidak ditemukan.');
+        }
+
+        $paket = $this->paketModel->getPaketDetail($jadwal['IdPaket']);
+        $attemptKe = 1;
+        $sessionTpq = (string)($this->idTpq ?? '0');
+        $santriList = $this->sesiModel->getAllSantriMonitorByJadwal($idJadwal, $attemptKe, ($sessionTpq !== '0' ? $sessionTpq : null));
+
+        // Ambil data nilai komponen tersimpan
+        $nilaiKomponenModel = new \App\Models\Frontend\UjianMdta\UjianMdtaNilaiKomponenModel();
+        $existingNilai = $nilaiKomponenModel->where('IdJadwal', $idJadwal)->findAll();
+        
+        $nilaiKomponenMap = [];
+        $catatanMap = [];
+        foreach ($existingNilai as $en) {
+            $nilaiKomponenMap[$en['IdSantri']] = (float)$en['Nilai'];
+            $catatanMap[$en['IdSantri']] = $en['Catatan'];
+        }
+
+        $data = [
+            'page_title'       => 'Input Nilai Manual — ' . $jadwal['NamaUjian'],
+            'jadwal'           => $jadwal,
+            'paket'            => $paket,
+            'santriList'       => $santriList,
+            'nilaiKomponenMap' => $nilaiKomponenMap,
+            'catatanMap'       => $catatanMap,
+        ];
+
+        return view('backend/ujianMdta/manual/input_nilai_grid', $data);
+    }
+
+    public function simpanNilaiManualBulk()
+    {
+        $idJadwal = (int)$this->request->getPost('idJadwal');
+        $jadwal = $this->jadwalModel->find($idJadwal);
+        if (!$jadwal) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Jadwal tidak ditemukan.']);
+        }
+
+        $nilaiList   = $this->request->getPost('nilai') ?? [];
+        $catatanList = $this->request->getPost('catatan') ?? [];
+
+        $paket = $this->paketModel->find($jadwal['IdPaket']);
+        $idMateri = $paket['IdMateri'] ?? '0';
+
+        $nilaiKomponenModel = new \App\Models\Frontend\UjianMdta\UjianMdtaNilaiKomponenModel();
+        $idGuru = session()->get('IdGuru') ?? session()->get('id_user') ?? '0';
+
+        $savedCount = 0;
+        foreach ($nilaiList as $idSantri => $nilaiVal) {
+            $nilaiVal = trim((string)$nilaiVal);
+            if ($nilaiVal === '') {
+                continue;
+            }
+
+            $numNilai = (float)$nilaiVal;
+            $catatan  = $catatanList[$idSantri] ?? null;
+
+            // 1. Simpan ke tbl_ujian_mdta_nilai_komponen
+            $dataKomponen = [
+                'IdTpq'         => $jadwal['IdTpq'],
+                'IdKelas'       => $jadwal['IdKelas'],
+                'IdSantri'      => (string)$idSantri,
+                'IdMateri'      => (string)$idMateri,
+                'IdTahunAjaran' => (string)$jadwal['IdTahunAjaran'],
+                'Semester'      => (string)$jadwal['Semester'],
+                'IdJadwal'      => $idJadwal,
+                'Kategori'      => $jadwal['KategoriUjian'] ?? 'uas',
+                'NamaKomponen'  => $jadwal['NamaUjian'],
+                'Nilai'         => $numNilai,
+                'Metode'        => 'manual',
+                'ModePenilaian' => 'langsung',
+                'Catatan'       => $catatan,
+                'CreatedBy'     => (string)$idGuru,
+            ];
+
+            $nilaiKomponenModel->saveOrUpdateNilai($dataKomponen);
+
+            // 2. Sinkronkan ke tbl_ujian_mdta_sesi agar status dan nilai sesi juga tercatat di analitik CBT
+            $sesi = $this->sesiModel->where('IdJadwal', $idJadwal)
+                ->where('IdSantri', (string)$idSantri)
+                ->first();
+
+            if ($sesi) {
+                $this->sesiModel->update($sesi['id'], [
+                    'NilaiAkhir'        => $numNilai,
+                    'StatusSesi'        => 'selesai',
+                    'TipePengerjaan'    => 'manual',
+                    'CatatanVerifikasi' => $catatan,
+                    'WaktuVerifikasi'   => date('Y-m-d H:i:s'),
+                    'DiverifikasiOleh'  => session()->get('NamaUser') ?? 'Guru',
+                ]);
+            } else {
+                $buatResult = $this->sesiModel->buatSesi($idJadwal, (string)$idSantri, (string)$jadwal['IdTpq'], 1);
+                if ($buatResult) {
+                    $this->sesiModel->update($buatResult['id'], [
+                        'NilaiAkhir'        => $numNilai,
+                        'StatusSesi'        => 'selesai',
+                        'TipePengerjaan'    => 'manual',
+                        'CatatanVerifikasi' => $catatan,
+                        'WaktuVerifikasi'   => date('Y-m-d H:i:s'),
+                        'DiverifikasiOleh'  => session()->get('NamaUser') ?? 'Guru',
+                    ]);
+                }
+            }
+
+            $savedCount++;
+        }
+
+        return $this->response->setJSON([
+            'success'    => true,
+            'savedCount' => $savedCount,
+            'message'    => "Berhasil menyimpan {$savedCount} data nilai santri.",
+        ]);
+    }
+
+    /**
+     * BUKU NILAI & PREVIEW EVALUASI TERPADU KELAS (LEGER MDTA)
+     */
+    public function bukuNilaiKelas(?int $idJadwal = null)
+    {
+        $idTpq = (string)($this->idTpq ?? '0');
+        $idTahunAjaran = $this->request->getGet('tahun') ?? session()->get('IdTahunAjaran');
+        $semesterParam = $this->request->getGet('semester') ?? '1';
+        $semText = (strtolower((string)$semesterParam) === 'genap' || (string)$semesterParam === '2') ? 'Genap' : 'Ganjil';
+        $semNum = ($semText === 'Genap') ? '2' : '1';
+        $semVariants = [$semText, $semNum];
+
+        $jadwalAwal = null;
+        if ($idJadwal) {
+            $jadwalAwal = $this->jadwalModel->find($idJadwal);
+        }
+
+        $idKelas = $this->request->getGet('kelas') ?? ($jadwalAwal['IdKelas'] ?? null);
+        $idMateri = $this->request->getGet('materi') ?? null;
+
+        $kelasList = $this->db->table('tbl_kelas')->orderBy('NamaKelas', 'ASC')->get()->getResultArray();
+        if (!$idKelas && !empty($kelasList)) {
+            $idKelas = $kelasList[0]['IdKelas'];
+        }
+
+        $materiList = $this->getMateriMdaList();
+        if (!$idMateri && $jadwalAwal) {
+            $paketAwal = $this->paketModel->find($jadwalAwal['IdPaket']);
+            $idMateri = $paketAwal['IdMateri'] ?? null;
+        }
+        if (!$idMateri && !empty($materiList)) {
+            $idMateri = $materiList[0]['IdMateri'];
+        }
+
+        // Info materi & kelas aktif
+        $materiInfo = null;
+        foreach ($materiList as $m) {
+            if ($m['IdMateri'] == $idMateri) {
+                $materiInfo = $m;
+                break;
+            }
+        }
+
+        $kelasInfo = null;
+        foreach ($kelasList as $k) {
+            if ($k['IdKelas'] == $idKelas) {
+                $kelasInfo = $k;
+                break;
+            }
+        }
+
+        // 1. Ambil santri aktif di kelas
+        $santriBuilder = $this->db->table('tbl_kelas_santri ks')
+            ->select('ks.IdSantri, ks.IdTpq, s.NamaSantri, s.NISN')
+            ->join('tbl_santri_baru s', 's.IdSantri = ks.IdSantri')
+            ->where('ks.IdKelas', $idKelas)
+            ->where('ks.IdTahunAjaran', $idTahunAjaran)
+            ->where('ks.Status', 1);
+
+        if (!empty($idTpq) && $idTpq !== '0') {
+            $santriBuilder->where('ks.IdTpq', $idTpq);
+        }
+
+        $santriRows = $santriBuilder->orderBy('s.NamaSantri', 'ASC')->get()->getResultArray();
+        $santriIds = array_column($santriRows, 'IdSantri');
+
+        // 2. Ambil seluruh agenda ujian untuk kelas, materi, dan semester ini
+        $agendaUjian = [];
+        $agendaHarian = [];
+        $agendaUTS = [];
+        $agendaUAS = [];
+
+        if (!empty($idKelas) && !empty($idMateri)) {
+            $jBuilder = $this->db->table('tbl_ujian_mdta_jadwal j')
+                ->select('j.*, p.NamaPaket, p.IdMateri')
+                ->join('tbl_ujian_mdta_paket p', 'p.id = j.IdPaket')
+                ->where('j.IdKelas', $idKelas)
+                ->where('p.IdMateri', $idMateri)
+                ->whereIn('j.Semester', $semVariants);
+
+            if (!empty($idTpq) && $idTpq !== '0') {
+                $jBuilder->groupStart()
+                    ->where('j.IdTpq', $idTpq)
+                    ->orWhere('j.IdTpq', '0')
+                    ->groupEnd();
+            }
+
+            $agendaUjian = $jBuilder->orderBy('j.TanggalMulai', 'ASC')->get()->getResultArray();
+
+            foreach ($agendaUjian as $ag) {
+                $kat = strtolower($ag['KategoriUjian'] ?? 'uas');
+                if (in_array($kat, ['harian', 'pekanan', 'tugas'])) {
+                    $agendaHarian[] = $ag;
+                } elseif ($kat === 'uts') {
+                    $agendaUTS[] = $ag;
+                } else {
+                    $agendaUAS[] = $ag;
+                }
+            }
+        }
+
+        // 3. Ambil data nilai dari tbl_ujian_mdta_nilai_komponen
+        $nilaiKomponenRows = [];
+        if (!empty($santriIds) && !empty($idMateri)) {
+            $nilaiKomponenRows = $this->db->table('tbl_ujian_mdta_nilai_komponen')
+                ->whereIn('IdSantri', $santriIds)
+                ->where('IdMateri', $idMateri)
+                ->where('IdTahunAjaran', $idTahunAjaran)
+                ->whereIn('Semester', $semVariants)
+                ->get()->getResultArray();
+        }
+
+        $komponenMap = [];
+        foreach ($nilaiKomponenRows as $nkr) {
+            $sId = (string)$nkr['IdSantri'];
+            $jId = $nkr['IdJadwal'] ? (int)$nkr['IdJadwal'] : $nkr['NamaKomponen'];
+            $komponenMap[$sId][$jId] = (float)$nkr['Nilai'];
+        }
+
+        // 4. Ambil data sesi CBT (jika ada nilai dari sesi online)
+        $sesiRows = [];
+        if (!empty($santriIds) && !empty($agendaUjian)) {
+            $jadwalIds = array_column($agendaUjian, 'id');
+            $sesiRows = $this->db->table('tbl_ujian_mdta_sesi')
+                ->whereIn('IdSantri', $santriIds)
+                ->whereIn('IdJadwal', $jadwalIds)
+                ->whereIn('StatusSesi', ['selesai', 'timeout'])
+                ->get()->getResultArray();
+        }
+
+        $sesiMap = [];
+        foreach ($sesiRows as $sr) {
+            $sId = (string)$sr['IdSantri'];
+            $jId = (int)$sr['IdJadwal'];
+            if (!isset($sesiMap[$sId][$jId]) || (float)$sr['NilaiAkhir'] > $sesiMap[$sId][$jId]) {
+                $sesiMap[$sId][$jId] = (float)$sr['NilaiAkhir'];
+            }
+        }
+
+        // 5. Ambil nilai yang sudah tersimpan di tbl_nilai (Raport)
+        $existingNilaiRaport = [];
+        if (!empty($santriIds) && !empty($idMateri)) {
+            $enBuilder = $this->db->table('tbl_nilai')
+                ->select('IdSantri, Nilai')
+                ->whereIn('IdSantri', $santriIds)
+                ->where('IdMateri', $idMateri)
+                ->where('IdTahunAjaran', $idTahunAjaran)
+                ->whereIn('Semester', $semVariants);
+            if (!empty($idKelas) && (string)$idKelas !== '0') {
+                $enBuilder->where('IdKelas', $idKelas);
+            }
+            $enRows = $enBuilder->get()->getResultArray();
+            foreach ($enRows as $en) {
+                $existingNilaiRaport[(string)$en['IdSantri']] = (float)$en['Nilai'];
+            }
+        }
+
+        // 6. Ambil konfigurasi bobot aktif
+        $bobotModel = new \App\Models\Frontend\UjianMdta\UjianMdtaBobotRaportModel();
+        $bobotSetting = $bobotModel->getBobotAktif($idTpq, $idKelas);
+
+        // 7. Kalkulasi leger per santri
+        $legerSantri = [];
+        $totalNilaiKelas = 0;
+        $santriLengkapCount = 0;
+
+        foreach ($santriRows as $s) {
+            $sId = (string)$s['IdSantri'];
+
+            // Nilai Harian
+            $scoresHarian = [];
+            foreach ($agendaHarian as $ag) {
+                $jId = (int)$ag['id'];
+                $val = $komponenMap[$sId][$jId] ?? ($sesiMap[$sId][$jId] ?? null);
+                $scoresHarian[$jId] = $val;
+            }
+            $validHarian = array_filter($scoresHarian, fn($v) => $v !== null);
+            $avgHarian = !empty($validHarian) ? round(array_sum($validHarian) / count($validHarian), 1) : null;
+
+            // Nilai UTS
+            $scoresUTS = [];
+            foreach ($agendaUTS as $ag) {
+                $jId = (int)$ag['id'];
+                $val = $komponenMap[$sId][$jId] ?? ($sesiMap[$sId][$jId] ?? null);
+                $scoresUTS[$jId] = $val;
+            }
+            $validUTS = array_filter($scoresUTS, fn($v) => $v !== null);
+            $valUTS = !empty($validUTS) ? round(array_sum($validUTS) / count($validUTS), 1) : null;
+
+            // Nilai UAS
+            $scoresUAS = [];
+            foreach ($agendaUAS as $ag) {
+                $jId = (int)$ag['id'];
+                $val = $komponenMap[$sId][$jId] ?? ($sesiMap[$sId][$jId] ?? null);
+                $scoresUAS[$jId] = $val;
+            }
+            $validUAS = array_filter($scoresUAS, fn($v) => $v !== null);
+            $valUAS = !empty($validUAS) ? round(array_sum($validUAS) / count($validUAS), 1) : null;
+
+            // Perhitungan Nilai Akhir Raport Berbobot
+            $bH = (int)($bobotSetting['BobotHarian'] ?? 40);
+            $bT = (int)($bobotSetting['BobotUTS'] ?? 30);
+            $bA = (int)($bobotSetting['BobotUAS'] ?? 30);
+
+            $totBobotAktif = 0;
+            $totNilaiKaliBobot = 0;
+
+            if ($avgHarian !== null) {
+                $totNilaiKaliBobot += ($avgHarian * $bH);
+                $totBobotAktif += $bH;
+            }
+            if ($valUTS !== null) {
+                $totNilaiKaliBobot += ($valUTS * $bT);
+                $totBobotAktif += $bT;
+            }
+            if ($valUAS !== null) {
+                $totNilaiKaliBobot += ($valUAS * $bA);
+                $totBobotAktif += $bA;
+            }
+
+            $nilaiAkhir = $totBobotAktif > 0 ? round($totNilaiKaliBobot / $totBobotAktif, 1) : null;
+
+            // Cek kelengkapan
+            $isLengkap = (!empty($agendaHarian) ? $avgHarian !== null : true)
+                     && (!empty($agendaUTS) ? $valUTS !== null : true)
+                     && (!empty($agendaUAS) ? $valUAS !== null : true);
+
+            if ($isLengkap && $nilaiAkhir !== null) {
+                $santriLengkapCount++;
+            }
+
+            if ($nilaiAkhir !== null) {
+                $totalNilaiKelas += $nilaiAkhir;
+            }
+
+            // Status sinkron ke raport
+            $nilaiRaportEksisting = $existingNilaiRaport[$sId] ?? null;
+            $isTersinkron = ($nilaiAkhir !== null && $nilaiRaportEksisting !== null && (abs($nilaiAkhir - $nilaiRaportEksisting) < 0.1 || round($nilaiAkhir) == round($nilaiRaportEksisting)));
+
+            $legerSantri[] = [
+                'IdSantri'             => $sId,
+                'NamaSantri'           => $s['NamaSantri'],
+                'NISN'                 => $s['NISN'],
+                'scoresHarian'         => $scoresHarian,
+                'avgHarian'            => $avgHarian,
+                'scoresUTS'            => $scoresUTS,
+                'valUTS'               => $valUTS,
+                'scoresUAS'            => $scoresUAS,
+                'valUAS'               => $valUAS,
+                'nilaiAkhir'           => $nilaiAkhir,
+                'nilaiRaportEksisting' => $nilaiRaportEksisting,
+                'isLengkap'            => $isLengkap,
+                'isTersinkron'         => $isTersinkron,
+            ];
+        }
+
+        $totalSantri = count($santriRows);
+        $jumlahSantriDinilai = count(array_filter($legerSantri, fn($l) => $l['nilaiAkhir'] !== null));
+        $rataRataKelas = $jumlahSantriDinilai > 0 ? round($totalNilaiKelas / $jumlahSantriDinilai, 1) : 0;
+
+        $data = [
+            'page_title'         => 'Buku Nilai & Preview Evaluasi MDTA',
+            'kelasList'          => $kelasList,
+            'materiList'         => $materiList,
+            'idKelas'            => $idKelas,
+            'idMateri'           => $idMateri,
+            'kelasInfo'          => $kelasInfo,
+            'materiInfo'         => $materiInfo,
+            'semesterParam'      => $semesterParam,
+            'idTahunAjaran'      => $idTahunAjaran,
+            'agendaUjian'        => $agendaUjian,
+            'agendaHarian'       => $agendaHarian,
+            'agendaUTS'          => $agendaUTS,
+            'agendaUAS'          => $agendaUAS,
+            'legerSantri'        => $legerSantri,
+            'bobotSetting'       => $bobotSetting,
+            'totalSantri'        => $totalSantri,
+            'santriLengkapCount' => $santriLengkapCount,
+            'rataRataKelas'      => $rataRataKelas,
+        ];
+
+        return view('backend/ujianMdta/laporan/buku_nilai_kelas', $data);
+    }
+
+    public function simpanBobotRaport()
+    {
+        $idTpq = (string)($this->idTpq ?? '0');
+        $idKelas = $this->request->getPost('idKelas') ?: null;
+        $bobotHarian = (int)$this->request->getPost('bobotHarian');
+        $bobotUTS = (int)$this->request->getPost('bobotUTS');
+        $bobotUAS = (int)$this->request->getPost('bobotUAS');
+
+        if (($bobotHarian + $bobotUTS + $bobotUAS) !== 100) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Total persentase bobot harus tepat 100% (Saat ini: ' . ($bobotHarian + $bobotUTS + $bobotUAS) . '%).'
+            ]);
+        }
+
+        $bobotModel = new \App\Models\Frontend\UjianMdta\UjianMdtaBobotRaportModel();
+        
+        $existing = $bobotModel->where('IdTpq', $idTpq)
+            ->where('IdKelas', $idKelas)
+            ->first();
+
+        if ($existing) {
+            $bobotModel->update($existing['id'], [
+                'BobotHarian' => $bobotHarian,
+                'BobotUTS'    => $bobotUTS,
+                'BobotUAS'    => $bobotUAS,
+                'updated_at'  => date('Y-m-d H:i:s')
+            ]);
+        } else {
+            $bobotModel->insert([
+                'IdTpq'       => $idTpq,
+                'IdKelas'     => $idKelas,
+                'BobotHarian' => $bobotHarian,
+                'BobotUTS'    => $bobotUTS,
+                'BobotUAS'    => $bobotUAS,
+                'created_at'  => date('Y-m-d H:i:s'),
+                'updated_at'  => date('Y-m-d H:i:s')
+            ]);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Konfigurasi bobot raport berhasil disimpan.'
+        ]);
+    }
+
+    public function bukuNilaiDetailSantriAjax($idSantri, $idMateri)
+    {
+        $idTpq = (string)($this->idTpq ?? session()->get('IdTpq') ?? '0');
+        $idTahunAjaran = $this->request->getGet('tahun') ?? session()->get('IdTahunAjaran');
+        $semester = $this->request->getGet('semester') ?? '1';
+        $semText = (strtolower((string)$semester) === 'genap' || (string)$semester === '2') ? 'Genap' : 'Ganjil';
+        $semNum = ($semText === 'Genap') ? '2' : '1';
+        $semVariants = [$semText, $semNum];
+
+        $santri = $this->db->table('tbl_santri_baru')->where('IdSantri', $idSantri)->get()->getRowArray();
+        $materi = $this->db->table('tbl_materi_pelajaran')->where('IdMateri', $idMateri)->get()->getRowArray();
+
+        // 1. Ambil nilai dari komponen manual / terpadu
+        $komponenRows = $this->db->table('tbl_ujian_mdta_nilai_komponen')
+            ->where('IdSantri', $idSantri)
+            ->where('IdMateri', $idMateri)
+            ->where('IdTahunAjaran', $idTahunAjaran)
+            ->whereIn('Semester', $semVariants)
+            ->orderBy('created_at', 'ASC')
+            ->get()->getResultArray();
+
+        // 2. Ambil nilai dari sesi CBT Online jika ada
+        $sesiRows = $this->db->table('tbl_ujian_mdta_sesi sesi')
+            ->select('sesi.id as SesiId, sesi.NilaiAkhir, sesi.StatusSesi, j.id as IdJadwal, j.NamaUjian, j.KategoriUjian, j.MetodeUjian')
+            ->join('tbl_ujian_mdta_jadwal j', 'j.id = sesi.IdJadwal')
+            ->join('tbl_ujian_mdta_paket p', 'p.id = j.IdPaket')
+            ->where('sesi.IdSantri', $idSantri)
+            ->where('p.IdMateri', $idMateri)
+            ->where('j.IdTahunAjaran', $idTahunAjaran)
+            ->whereIn('j.Semester', $semVariants)
+            ->whereIn('sesi.StatusSesi', ['selesai', 'timeout'])
+            ->get()->getResultArray();
+
+        $jadwalIdsInKomponen = array_filter(array_column($komponenRows, 'IdJadwal'));
+        foreach ($sesiRows as $sr) {
+            if (!in_array($sr['IdJadwal'], $jadwalIdsInKomponen)) {
+                $komponenRows[] = [
+                    'IdJadwal'      => $sr['IdJadwal'],
+                    'Kategori'      => $sr['KategoriUjian'] ?: 'uas',
+                    'NamaKomponen'  => $sr['NamaUjian'],
+                    'Metode'        => 'online',
+                    'ModePenilaian' => 'cbt',
+                    'Nilai'         => (float)$sr['NilaiAkhir'],
+                ];
+            }
+        }
+
+        // 3. Ambil nilai yang tercatat di tbl_nilai (Raport)
+        $nilaiRaportRow = $this->db->table('tbl_nilai')
+            ->where('IdSantri', $idSantri)
+            ->where('IdMateri', $idMateri)
+            ->where('IdTahunAjaran', $idTahunAjaran)
+            ->whereIn('Semester', $semVariants)
+            ->orderBy('Id', 'DESC')
+            ->get()->getRowArray();
+
+        return $this->response->setJSON([
+            'success'     => true,
+            'santri'      => $santri ?: ['NamaSantri' => 'Santri #' . $idSantri, 'NISN' => '-'],
+            'materi'      => $materi ?: ['NamaMateri' => (string)$idMateri],
+            'komponen'    => $komponenRows,
+            'nilaiRaport' => $nilaiRaportRow ? (float)$nilaiRaportRow['Nilai'] : null,
         ]);
     }
 }

@@ -245,9 +245,22 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     // Manual & Hybrid Exam (Print Soal & Verifikasi Jawaban)
     $routes->get('ujian-mdta/jadwal/cetak-manual/(:num)', 'UjianMdta::cetakSoalManual/$1');
     $routes->get('ujian-mdta/jadwal/verifikasi-manual/(:num)', 'UjianMdta::verifikasiJawabanManual/$1');
+    $routes->get('ujian-mdta/jadwal/input-nilai-manual/(:num)', 'UjianMdta::inputNilaiManual/$1');
+    $routes->post('ujian-mdta/jadwal/simpan-nilai-manual-bulk', 'UjianMdta::simpanNilaiManualBulk');
     $routes->get('ujian-mdta/jadwal/get-form-jawaban-santri/(:num)/(:num)', 'UjianMdta::getFormJawabanSantriAjax/$1/$2');
     $routes->post('ujian-mdta/jadwal/simpan-jawaban-manual', 'UjianMdta::simpanJawabanManual');
     $routes->post('ujian-mdta/jadwal/upload-foto-ljk', 'UjianMdta::uploadFotoLjkAjax');
+
+    // Buku Nilai & Pembobotan Raport MDTA
+    $routes->get('ujian-mdta/buku-nilai', 'UjianMdta::bukuNilaiKelas');
+    $routes->get('ujian-mdta/buku-nilai/(:segment)', 'UjianMdta::bukuNilaiKelas/$1');
+    $routes->get('ujian-mdta/buku-nilai/detail-santri/(:segment)/(:segment)', 'UjianMdta::bukuNilaiDetailSantriAjax/$1/$2');
+    $routes->post('ujian-mdta/simpan-bobot-raport', 'UjianMdta::simpanBobotRaport');
+
+    $routes->get('ujianMdta/buku-nilai', 'UjianMdta::bukuNilaiKelas');
+    $routes->get('ujianMdta/buku-nilai/(:segment)', 'UjianMdta::bukuNilaiKelas/$1');
+    $routes->get('ujianMdta/buku-nilai/detail-santri/(:segment)/(:segment)', 'UjianMdta::bukuNilaiDetailSantriAjax/$1/$2');
+    $routes->post('ujianMdta/simpan-bobot-raport', 'UjianMdta::simpanBobotRaport');
     $routes->get('ujian-mdta/jadwal/monitor/(:num)', 'UjianMdta::monitorUjian/$1');
     $routes->get('ujian-mdta/jadwal/monitor/(:num)/(:num)', 'UjianMdta::monitorUjian/$1/$2');
     $routes->get('ujian-mdta/jadwal/get-monitor-ajax/(:num)', 'UjianMdta::getMonitorDataAjax/$1');

@@ -113,7 +113,7 @@ foreach ($dataNilai as $santri) {
             <h3 class="card-title">List nilai santri</h3>
             <div class="card-tools">
                 <button type="button" class="btn btn-success btn-sm btn-tarik-mdta-kelas shadow-sm font-weight-bold mr-2">
-                    <i class="fas fa-file-import me-1"></i> Tarik Nilai UMBK Kelas Ini
+                    <i class="fas fa-calculator me-1"></i> Tarik Nilai Ujian Terpadu (Harian & Semester)
                 </button>
                 <a href=<?php echo base_url('backend/nilai/showDetailNilaiSantriPerKelas' . '/' . 'Ganjil') ?> class="btn btn-warning btn-sm">Semester Ganjil</a>
                 <a href=<?php echo base_url('backend/nilai/showDetailNilaiSantriPerKelas' . '/' . 'Genap') ?> class="btn btn-info btn-sm">Semester Genap</a>
@@ -721,7 +721,10 @@ foreach ($dataNilai as $santri) {
                     let tableHtml = `
                         <div class="text-left mb-3" style="font-size:13px;">
                             <p class="mb-1">Kelas: <strong>${namaKelas}</strong> (Semester: ${semesterVal})</p>
-                            <p class="mb-2">Ketersediaan Nilai: <span class="badge bg-success" style="font-size:12px;">${res.totalSantriAdaCbt} dari ${res.totalSantri} Santri Memiliki Nilai UMBK</span></p>
+                            <p class="mb-2">Ketersediaan Nilai: <span class="badge bg-success" style="font-size:12px;">${res.totalSantriAdaCbt} dari ${res.totalSantri} Santri Memiliki Nilai Evaluasi (Harian/UTS/UAS)</span></p>
+                            <div class="alert alert-light border py-1 px-2 small mb-0 text-muted">
+                                <i class="fas fa-info-circle text-primary me-1"></i> Nilai akhir raport dikalkulasi otomatis dari pembobotan Ujian Harian/Pekanan + UTS + UAS yang telah diinput/diujikan.
+                            </div>
                         </div>
                         <div class="table-responsive text-left mb-2" style="max-height:300px; overflow-y:auto;">
                             <table class="table table-sm table-bordered table-striped text-xs mb-0" style="font-size:12px;">
@@ -729,7 +732,7 @@ foreach ($dataNilai as $santri) {
                                     <tr>
                                         <th style="width:35px;" class="text-center">No</th>
                                         <th>Nama Santri</th>
-                                        <th class="text-center">Ketersediaan UMBK</th>
+                                        <th class="text-center">Ketersediaan Nilai</th>
                                         <th class="text-center">Status</th>
                                     </tr>
                                 </thead>
@@ -757,10 +760,10 @@ foreach ($dataNilai as $santri) {
                         </div>`;
 
                     let showConfirm = (res.totalSantriAdaCbt > 0);
-                    let confirmText = '<i class="fas fa-file-import me-1"></i> Ya, Tarik Nilai UMBK Kelas Ini';
+                    let confirmText = '<i class="fas fa-calculator me-1"></i> Ya, Hitung & Tarik Nilai Raport';
 
                     Swal.fire({
-                        title: `Rincian UMBK — ${namaKelas}`,
+                        title: `Rincian Ujian Terpadu — ${namaKelas}`,
                         html: tableHtml,
                         icon: 'info',
                         showCancelButton: true,
