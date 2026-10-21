@@ -13772,38 +13772,14 @@ class Munaqosah extends BaseController
     public function printKelulusanPesertaUjian()
     {
         try {
+            ini_set('memory_limit', '512M');
+            set_time_limit(300);
+
             $noPeserta = $this->request->getGet('NoPeserta');
             $idTahunAjaran = $this->request->getGet('IdTahunAjaran');
             $typeUjian = $this->request->getGet('TypeUjian');
             $idTpqParam = $this->request->getGet('IdTpq');
             $idTpq = ($idTpqParam === null || $idTpqParam === '') ? null : (int)$idTpqParam;
-
-            $result = $this->prepareKelulusanPesertaData($noPeserta ?? '', $idTahunAjaran, $typeUjian, $idTpq);
-
-            if (!$result['success']) {
-                return redirect()->to(base_url('backend/munaqosah/kelulusan'))
-                    ->with('error', $result['message'] ?? 'Data peserta tidak ditemukan');
-            }
-
-            $detail = $result['data'];
-            $pesertaData = $detail['peserta'];
-            $detail['generated_at'] = date('Y-m-d H:i:s');
-
-            // Ambil data TPQ untuk logo/kop
-            $tpqRaw = $this->helpFunction->getNamaTpqById($pesertaData['IdTpq'] ?? null);
-
-            // Map data TPQ sesuai dengan format yang digunakan template
-            $tpqData = [];
-            if ($tpqRaw) {
-                $tpqData = [
-                    'NamaTpq' => $tpqRaw['NamaTpq'] ?? '',
-                    'AlamatTpq' => $tpqRaw['Alamat'] ?? '',
-                    'NoTelp' => $tpqRaw['NoHp'] ?? '',
-                    'Logo' => $tpqRaw['LogoLembaga'] ?? null,
-                    'KopLembaga' => $tpqRaw['KopLembaga'] ?? '',
-                    'KepalaSekolah' => $tpqRaw['KepalaSekolah'] ?? '',
-                ];
-            }
 
             // Normalisasi TypeUjian untuk pengecekan
             $typeUjianNormalized = strtolower(trim($typeUjian ?? ''));
@@ -13816,123 +13792,224 @@ class Munaqosah extends BaseController
             // Jika TypeUjian adalah Munaqosah, ambil kop dari FKPQ
             $useFkpqData = false;
             $fkpqRow = null;
-            $kopLembaga = $tpqData['KopLembaga'] ?? '';
-            $namaLembaga = $tpqData['NamaTpq'] ?? '';
-            $kepalaSekolah = $tpqData['KepalaSekolah'] ?? '';
-
             if ($typeUjianNormalized === 'munaqosah') {
-                // Ambil data FKPQ (ambil yang pertama jika ada lebih dari satu)
                 $fkpqData = $this->fkpqModel->GetData();
                 if (!empty($fkpqData) && !empty($fkpqData[0])) {
                     $fkpqRow = $fkpqData[0];
                     $useFkpqData = true;
-                    // Gunakan kop lembaga dari FKPQ jika ada
-                    $kopLembaga = $fkpqRow['KopLembaga'] ?? $tpqData['KopLembaga'] ?? '';
-                    $namaLembaga = $fkpqRow['NamaFkpq'] ?? $tpqData['NamaTpq'] ?? '';
-                    $kepalaSekolah = $fkpqRow['KetuaFkpq'] ?? $tpqData['KepalaSekolah'] ?? '';
-                    // Simpan data Kecamatan dan Ketua FKPQ untuk tanda tangan
-                    $tpqData['KecamatanFkpq'] = $fkpqRow['Kecamatan'] ?? '';
-                    $tpqData['KetuaFkpq'] = $fkpqRow['KetuaFkpq'] ?? '';
                 }
             }
 
-            // Jika bukan Munaqosah (Pra-Munaqosah), gunakan logic lama (MDA atau TPQ)
-            if ($typeUjianNormalized !== 'munaqosah') {
-                // Ambil nama kelas dari data santri untuk menentukan apakah menggunakan kop MDA atau TPQ
-                $namaKelasSantri = null;
-                $santriDetail = $this->helpFunction->getDetailSantriByKelasSantri(
-                    $pesertaData['IdSantri'] ?? null,
-                    $idTahunAjaran,
-                    $pesertaData['IdTpq'] ?? null
-                );
+            // Cache data TPQ agar tidak query berulang-ulang saat batch print
+            $cachedTpqData = [];
+            $buildStudentTpqData = function ($pIdTpq, $pIdSantri, $pTahunAjaran) use ($typeUjianNormalized, $useFkpqData, $fkpqRow, &$cachedTpqData) {
+                $pIdTpq = (int)($pIdTpq ?? 0);
+                if (!isset($cachedTpqData[$pIdTpq])) {
+                    $tpqRaw = $this->helpFunction->getNamaTpqById($pIdTpq);
+                    $tData = [];
+                    if ($tpqRaw) {
+                        $tData = [
+                            'NamaTpq' => $tpqRaw['NamaTpq'] ?? '',
+                            'AlamatTpq' => $tpqRaw['Alamat'] ?? '',
+                            'NoTelp' => $tpqRaw['NoHp'] ?? '',
+                            'Logo' => $tpqRaw['LogoLembaga'] ?? null,
+                            'KopLembaga' => $tpqRaw['KopLembaga'] ?? '',
+                            'KepalaSekolah' => $tpqRaw['KepalaSekolah'] ?? '',
+                        ];
+                    }
 
-                if (!empty($santriDetail) && isset($santriDetail['NamaKelas'])) {
-                    $namaKelasSantri = $santriDetail['NamaKelas'];
+                    if ($typeUjianNormalized === 'munaqosah' && $useFkpqData && $fkpqRow) {
+                        $tData['KopLembaga'] = $fkpqRow['KopLembaga'] ?? $tData['KopLembaga'] ?? '';
+                        $tData['NamaTpq'] = $fkpqRow['NamaFkpq'] ?? $tData['NamaTpq'] ?? '';
+                        $tData['KepalaSekolah'] = $fkpqRow['KetuaFkpq'] ?? $tData['KepalaSekolah'] ?? '';
+                        $tData['KecamatanFkpq'] = $fkpqRow['Kecamatan'] ?? '';
+                        $tData['KetuaFkpq'] = $fkpqRow['KetuaFkpq'] ?? '';
+                        $tData['LembagaType'] = 'FKPQ';
+                    } else {
+                        $tData['LembagaType'] = 'TPQ';
+                    }
+                    $cachedTpqData[$pIdTpq] = $tData;
                 }
 
-                // Check apakah kelas sesuai dengan mapping MDA
-                $useMdaData = false;
-                $mdaRow = null;
+                $tData = $cachedTpqData[$pIdTpq];
 
-                if (!empty($namaKelasSantri) && !empty($pesertaData['IdTpq'])) {
-                    $mdaCheckResult = $this->helpFunction->checkMdaKelasMapping($pesertaData['IdTpq'], $namaKelasSantri);
-                    $useMdaData = $mdaCheckResult['useMdaData'];
+                // Jika bukan Munaqosah (Pra-Munaqosah), cek MDA
+                if ($typeUjianNormalized !== 'munaqosah') {
+                    $namaKelasSantri = null;
+                    $santriDetail = $this->helpFunction->getDetailSantriByKelasSantri($pIdSantri, $pTahunAjaran, $pIdTpq);
+                    if (!empty($santriDetail) && isset($santriDetail['NamaKelas'])) {
+                        $namaKelasSantri = $santriDetail['NamaKelas'];
+                    }
 
-                    // Jika sesuai, ambil data MDA
-                    if ($useMdaData) {
-                        $mdaData = $this->mdaModel->GetData($pesertaData['IdTpq']);
-                        if (!empty($mdaData) && !empty($mdaData[0])) {
-                            $mdaRow = $mdaData[0];
-                            // Gunakan kop lembaga dari MDA jika ada, fallback ke TPQ
-                            $kopLembaga = $mdaRow['KopLembaga'] ?? $tpqData['KopLembaga'] ?? '';
-                            $namaLembaga = $mdaRow['NamaTpq'] ?? $tpqData['NamaTpq'] ?? '';
-                            $kepalaSekolah = $mdaRow['KepalaSekolah'] ?? $tpqData['KepalaSekolah'] ?? '';
+                    $useMdaData = false;
+                    $mdaRow = null;
+                    if (!empty($namaKelasSantri) && !empty($pIdTpq)) {
+                        $mdaCheckResult = $this->helpFunction->checkMdaKelasMapping($pIdTpq, $namaKelasSantri);
+                        $useMdaData = $mdaCheckResult['useMdaData'];
+                        if ($useMdaData) {
+                            $mdaData = $this->mdaModel->GetData($pIdTpq);
+                            if (!empty($mdaData) && !empty($mdaData[0])) {
+                                $mdaRow = $mdaData[0];
+                                $tData['KopLembaga'] = $mdaRow['KopLembaga'] ?? $tData['KopLembaga'] ?? '';
+                                $tData['NamaTpq'] = $mdaRow['NamaTpq'] ?? $tData['NamaTpq'] ?? '';
+                                $tData['KepalaSekolah'] = $mdaRow['KepalaSekolah'] ?? $tData['KepalaSekolah'] ?? '';
+                            }
                         }
                     }
+                    $tData['LembagaType'] = $useMdaData && $mdaRow ? 'MDA' : 'TPQ';
                 }
 
-                // Tentukan data yang akan digunakan (MDA atau TPQ)
-                $lembagaType = $useMdaData && $mdaRow ? 'MDA' : 'TPQ';
-            } else {
-                // Untuk Munaqosah, gunakan FKPQ
-                $lembagaType = $useFkpqData && $fkpqRow ? 'FKPQ' : 'TPQ';
-            }
+                return $tData;
+            };
 
-            // Update tpqData dengan kop lembaga yang sesuai
-            $tpqData['KopLembaga'] = $kopLembaga;
-            $tpqData['NamaTpq'] = $namaLembaga;
-            $tpqData['KepalaSekolah'] = $kepalaSekolah;
-            $tpqData['LembagaType'] = $lembagaType;
+            $getStudentSignature = function ($pIdSantri, $pIdTahunAjaran, $pIdTpq) use ($typeUjianNormalized) {
+                if (empty($pIdSantri) || empty($pIdTahunAjaran)) {
+                    return null;
+                }
 
-            // Generate signature untuk Ketua FKPQ jika TypeUjian adalah Munaqosah
-            $signatureKetuaFkpq = null;
-            if ($typeUjianNormalized === 'munaqosah' && !empty($pesertaData['IdSantri']) && !empty($idTahunAjaran)) {
-                // Cek apakah signature sudah ada
-                $existingSignature = $this->signatureModel->where([
-                    'IdSantri' => $pesertaData['IdSantri'],
-                    'IdTahunAjaran' => $idTahunAjaran,
-                    'JenisDokumen' => 'Munaqosah',
-                    'SignatureData' => 'Ketua FKPQ',
-                    'StatusValidasi' => 'Valid'
-                ])->first();
+                helper('signature');
+
+                $isPra = ($typeUjianNormalized === 'pra-munaqosah');
+                $jenisDokumen = $isPra ? 'Pra-Munaqosah' : 'Munaqosah';
+                $signatureDataLabel = $isPra ? 'Kepala Lembaga' : 'Ketua FKPQ';
+
+                // Cari signature yang sudah ada
+                $existingQuery = $this->signatureModel
+                    ->where('IdSantri', $pIdSantri)
+                    ->where('IdTahunAjaran', $pIdTahunAjaran);
+
+                if ($isPra) {
+                    $existingQuery->whereIn('JenisDokumen', ['Pra-Munaqosah', 'Munaqosah'])
+                                  ->whereIn('SignatureData', ['Kepala Lembaga', 'Kepala TPQ', 'Ketua MDTA']);
+                } else {
+                    $existingQuery->where('JenisDokumen', 'Munaqosah')
+                                  ->where('SignatureData', 'Ketua FKPQ');
+                }
+
+                $existingSignature = $existingQuery->first();
 
                 if ($existingSignature) {
-                    // Gunakan signature yang sudah ada
-                    $signatureKetuaFkpq = $existingSignature;
-                } else {
-                    // Generate signature baru
-                    helper('signature');
-                    $token = generateUniqueSignatureToken($this->signatureModel);
-                    $qrCodeData = generateSignatureQRCode($token);
+                    $token = $existingSignature['Token'] ?? null;
+                    $qrFileName = $existingSignature['QrCode'] ?? null;
+                    $qrFile = !empty($qrFileName) ? (FCPATH . 'uploads/qr/' . $qrFileName) : null;
 
-                    if ($qrCodeData) {
-                        // Simpan signature ke database
-                        // Untuk Munaqosah, IdKelas, Semester, dan IdGuru tidak relevan, jadi tidak disertakan
-                        $signatureData = [
-                            'Token' => $token,
-                            'IdSantri' => $pesertaData['IdSantri'],
-                            'IdTahunAjaran' => $idTahunAjaran,
-                            'IdTpq' => $pesertaData['IdTpq'] ?? null,
-                            'JenisDokumen' => 'Munaqosah',
-                            'SignatureData' => 'Ketua FKPQ',
-                            'QrCode' => $qrCodeData['filename'],
-                            'StatusValidasi' => 'Valid',
-                            'TanggalTtd' => date('Y-m-d H:i:s')
-                        ];
-
-                        $signatureId = $this->signatureModel->insert($signatureData);
-                        if ($signatureId) {
-                            $signatureKetuaFkpq = $this->signatureModel->find($signatureId);
+                    // Jika token ada tetapi file fisik di uploads/qr/ hilang, regenerasi SVG QR code
+                    if (!empty($token) && ($qrFile === null || !file_exists($qrFile))) {
+                        $qrCodeData = generateSignatureQRCode($token);
+                        if ($qrCodeData && !empty($qrCodeData['filename'])) {
+                            $existingSignature['QrCode'] = $qrCodeData['filename'];
+                            $existingSignature['StatusValidasi'] = 'Valid';
+                            $this->signatureModel->update($existingSignature['Id'], [
+                                'QrCode' => $qrCodeData['filename'],
+                                'StatusValidasi' => 'Valid'
+                            ]);
                         }
+                    } elseif (($existingSignature['StatusValidasi'] ?? '') !== 'Valid') {
+                        $this->signatureModel->update($existingSignature['Id'], ['StatusValidasi' => 'Valid']);
+                        $existingSignature['StatusValidasi'] = 'Valid';
+                    }
+
+                    return $existingSignature;
+                }
+
+                // Generate signature baru jika belum ada
+                $token = generateUniqueSignatureToken($this->signatureModel);
+                $qrCodeData = generateSignatureQRCode($token);
+
+                if ($qrCodeData) {
+                    $signatureData = [
+                        'Token' => $token,
+                        'IdSantri' => $pIdSantri,
+                        'IdTahunAjaran' => $pIdTahunAjaran,
+                        'IdTpq' => $pIdTpq,
+                        'JenisDokumen' => $jenisDokumen,
+                        'SignatureData' => $signatureDataLabel,
+                        'QrCode' => $qrCodeData['filename'],
+                        'StatusValidasi' => 'Valid',
+                        'TanggalTtd' => date('Y-m-d H:i:s')
+                    ];
+
+                    $signatureId = $this->signatureModel->insert($signatureData);
+                    if ($signatureId) {
+                        return $this->signatureModel->find($signatureId);
                     }
                 }
+                return null;
+            };
+
+            $isAll = empty($noPeserta) || strtolower(trim($noPeserta)) === 'all' || strtolower(trim($noPeserta)) === 'semua';
+
+            if ($isAll) {
+                // Cetak untuk semua peserta sesuai filter
+                $resolvedTahun = $idTahunAjaran ?: $this->helpFunction->getTahunAjaranSaatIni();
+                $resolvedType = $typeUjianNormalized;
+                $resolvedTpq = (int)($idTpq ?? 0);
+
+                $dataset = $this->buildMonitoringDataset($resolvedTahun, $resolvedTpq, $resolvedType, true);
+
+                if (!$dataset['success'] || empty($dataset['data']['rows'])) {
+                    return redirect()->back()
+                        ->with('error', 'Tidak ada data peserta untuk dicetak');
+                }
+
+                $items = [];
+                foreach ($dataset['data']['rows'] as $r) {
+                    $np = $r['NoPeserta'] ?? '';
+                    if (empty($np)) {
+                        continue;
+                    }
+                    $res = $this->prepareKelulusanPesertaData($np, $resolvedTahun, $resolvedType, $resolvedTpq);
+                    if (!$res['success']) {
+                        continue;
+                    }
+                    $sDetail = $res['data'];
+                    $sPeserta = $sDetail['peserta'];
+                    $sSantriId = $sPeserta['IdSantri'] ?? ($r['IdSantri'] ?? null);
+                    $sTahun = $sPeserta['IdTahunAjaran'] ?? $resolvedTahun;
+                    $sTpq = $sPeserta['IdTpq'] ?? ($r['IdTpq'] ?? null);
+
+                    $sDetail['tpqData'] = $buildStudentTpqData($sTpq, $sSantriId, $sTahun);
+                    $sigObj = $getStudentSignature($sSantriId, $sTahun, $sTpq);
+                    $sDetail['signatureKetuaFkpq'] = $sigObj;
+                    $sDetail['signatureKepalaLembaga'] = $sigObj;
+                    $sDetail['signature'] = $sigObj;
+                    $items[] = $sDetail;
+                }
+
+                if (empty($items)) {
+                    return redirect()->back()
+                        ->with('error', 'Tidak ada data nilai peserta yang valid untuk dicetak');
+                }
+
+                $viewData = [
+                    'items' => $items,
+                    'isMultiple' => true,
+                    'generated_at' => date('Y-m-d H:i:s'),
+                ];
+                $filename = 'kelulusan_semua_peserta_' . ($resolvedTpq ? 'tpq_' . $resolvedTpq . '_' : '') . date('Ymd_His') . '.pdf';
+            } else {
+                // Cetak satu peserta
+                $result = $this->prepareKelulusanPesertaData($noPeserta, $idTahunAjaran, $typeUjian, $idTpq);
+
+                if (!$result['success']) {
+                    return redirect()->back()
+                        ->with('error', $result['message'] ?? 'Data peserta tidak ditemukan');
+                }
+
+                $detail = $result['data'];
+                $pesertaData = $detail['peserta'];
+                $detail['generated_at'] = date('Y-m-d H:i:s');
+                $detail['tpqData'] = $buildStudentTpqData($pesertaData['IdTpq'] ?? null, $pesertaData['IdSantri'] ?? null, $idTahunAjaran);
+                $sigObj = $getStudentSignature($pesertaData['IdSantri'] ?? null, $idTahunAjaran, $pesertaData['IdTpq'] ?? null);
+                $detail['signatureKetuaFkpq'] = $sigObj;
+                $detail['signatureKepalaLembaga'] = $sigObj;
+                $detail['signature'] = $sigObj;
+
+                $viewData = $detail;
+                $filename = 'kelulusan_' . strtoupper($noPeserta) . '_' . date('Ymd_His') . '.pdf';
             }
 
-            // Tambahkan tpqData dan signatureKetuaFkpq ke detail
-            $detail['tpqData'] = $tpqData;
-            $detail['signatureKetuaFkpq'] = $signatureKetuaFkpq;
-
-            $html = view('backend/Munaqosah/printKelulusanPesertaUjian', $detail);
+            $html = view('backend/Munaqosah/printKelulusanPesertaUjian', $viewData);
 
             $options = new \Dompdf\Options();
             $options->set('isHtml5ParserEnabled', true);
@@ -13945,8 +14022,6 @@ class Munaqosah extends BaseController
             $dompdf->loadHtml($html);
             $dompdf->setPaper('A4', 'portrait');
             $dompdf->render();
-
-            $filename = 'kelulusan_' . strtoupper($noPeserta ?? 'peserta') . '_' . date('Ymd_His') . '.pdf';
 
             if (ob_get_length()) {
                 ob_end_clean();
@@ -13961,7 +14036,7 @@ class Munaqosah extends BaseController
             exit();
         } catch (\Throwable $e) {
             log_message('error', 'Error in printKelulusanPesertaUjian: ' . $e->getMessage());
-            return redirect()->to(base_url('backend/munaqosah/kelulusan'))
+            return redirect()->back()
                 ->with('error', 'Gagal membuat PDF: ' . $e->getMessage());
         }
     }

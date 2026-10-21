@@ -158,6 +158,19 @@
                                             <div class="info-value"><strong><?= toTitleCase(esc($fkpq['NamaFkpq'] ?? '-')) ?></strong></div>
                                         </div>
                                     <?php endif; ?>
+                                <?php elseif ($signature['JenisDokumen'] === 'Pra-Munaqosah'): ?>
+                                    <div class="info-row">
+                                        <div class="info-label">Nama Kepala Lembaga</div>
+                                        <div class="info-value"><strong><?= formatNamaGuru(esc($tpq['KepalaSekolah'] ?? '-')) ?></strong></div>
+                                    </div>
+                                    <div class="info-row">
+                                        <div class="info-label">Jabatan</div>
+                                        <div class="info-value"><strong><?= esc($signature['SignatureData'] ?? 'Kepala Lembaga') ?></strong></div>
+                                    </div>
+                                    <div class="info-row">
+                                        <div class="info-label">Nama Lembaga</div>
+                                        <div class="info-value"><strong><?= toTitleCase(esc($tpq['NamaTpq'] ?? '-')) ?></strong></div>
+                                    </div>
                                 <?php elseif (isset($perlombaan)): ?>
                                     <div class="info-row">
                                         <div class="info-label">Nama Penandatangan</div>
@@ -289,7 +302,7 @@
                                             <div class="info-value"><strong><?= toTitleCase(esc($fkpq['Kecamatan'] ?? '-')) ?></strong></div>
                                         </div>
                                     <?php endif; ?>
-                                <?php elseif ($signature['JenisDokumen'] === 'Munaqosah' && $signature['SignatureData'] === 'Ketua FKPQ'): ?>
+                                <?php elseif (in_array($signature['JenisDokumen'], ['Munaqosah', 'Pra-Munaqosah'], true)): ?>
                                     <div class="info-row">
                                         <div class="info-label">No. Peserta</div>
                                         <div class="info-value"><strong><?= esc($pesertaMunaqosah['NoPeserta'] ?? '-') ?></strong></div>
@@ -300,7 +313,7 @@
                                     </div>
                                     <div class="info-row">
                                         <div class="info-label">Type Ujian</div>
-                                        <div class="info-value"><strong>Munaqosah</strong></div>
+                                        <div class="info-value"><strong><?= esc(toTitleCase($signature['JenisDokumen'])) ?></strong></div>
                                     </div>
                                 <?php else: ?>
                                     <?php if ($kelas): ?>
@@ -327,12 +340,15 @@
                 <div class="row mt-4">
                     <div class="col-12">
                         <h5 class="border-bottom pb-2">Tanda Tangan Digital</h5>
-                        <div class="row">
-                            <?php if (!empty($signature['SignatureData']) && 
-                                      $signature['SignatureData'] !== 'Kepsek' && 
-                                      $signature['SignatureData'] !== 'Walas' && 
-                                      $signature['SignatureData'] !== 'Ketua FKPQ' && 
-                                      strpos($signature['JenisDokumen'], 'SertifikatLomba') === false): ?>
+                        <div class="row justify-content-center">
+                            <?php 
+                            $showGambarTtd = !empty($signature['SignatureData']) && 
+                                             !in_array($signature['SignatureData'], ['Kepsek', 'Walas', 'Ketua FKPQ', 'Kepala Lembaga', 'Kepala TPQ', 'Ketua MDTA'], true) && 
+                                             !in_array($signature['JenisDokumen'], ['Munaqosah', 'Pra-Munaqosah'], true) && 
+                                             strpos($signature['JenisDokumen'], 'SertifikatLomba') === false &&
+                                             (strpos($signature['SignatureData'], 'data:image/') === 0 || strpos($signature['SignatureData'], 'http') === 0 || strpos($signature['SignatureData'], 'uploads/') === 0);
+                            ?>
+                            <?php if ($showGambarTtd): ?>
                                 <div class="col-12 col-md-6 text-center mb-3">
                                     <h6 class="mb-2">Gambar Tanda Tangan</h6>
                                     <img src="<?= esc($signature['SignatureData']) ?>" alt="Tanda Tangan Digital" class="img-fluid" style="max-height: 150px;">
@@ -340,11 +356,7 @@
                             <?php endif; ?>
 
                             <?php if (!empty($signature['QrCode'])): ?>
-                                <div class="col-12 col-md-<?= (!empty($signature['SignatureData']) && 
-                                                              $signature['SignatureData'] !== 'Kepsek' && 
-                                                              $signature['SignatureData'] !== 'Walas' && 
-                                                              $signature['SignatureData'] !== 'Ketua FKPQ' && 
-                                                              strpos($signature['JenisDokumen'], 'SertifikatLomba') === false) ? '6' : '12' ?> text-center mb-3">
+                                <div class="col-12 <?= $showGambarTtd ? 'col-md-6' : 'col-md-8' ?> text-center mb-3">
                                     <h6 class="mb-2">QR Code Validasi</h6>
                                     <?php
                                     $qrPath = FCPATH . 'uploads/qr/' . $signature['QrCode'];

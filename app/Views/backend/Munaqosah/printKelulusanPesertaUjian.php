@@ -5,27 +5,48 @@ $meta = $meta ?? [];
 $tpqData = $tpqData ?? [];
 $signatureKetuaFkpq = $signatureKetuaFkpq ?? null;
 
-// Normalisasi TypeUjian untuk display
-$typeUjian = strtolower(trim($peserta['TypeUjian'] ?? 'munaqosah'));
-if ($typeUjian === 'pramunaqsah' || $typeUjian === 'pra-munaqosah') {
-    $typeUjian = 'pra-munaqosah';
-    $typeUjianLabel = 'Pra-Munaqosah';
-} else {
-    $typeUjian = 'munaqosah';
-    $typeUjianLabel = 'Munaqosah';
-}
+// Support multi peserta (batch print) atau single peserta
+$students = !empty($items) && is_array($items) ? $items : [[
+    'peserta' => $peserta,
+    'categoryDetails' => $categoryDetails,
+    'tpqData' => $tpqData,
+    'signatureKetuaFkpq' => $signatureKetuaFkpq,
+    'meta' => $meta ?? [],
+]];
+
+$totalStudents = count($students);
+$isMultiple = $totalStudents > 1;
+$docTitle = $isMultiple
+    ? 'Laporan Nilai Kelulusan Peserta'
+    : ('Laporan Nilai Kelulusan ' . esc($students[0]['peserta']['NoPeserta'] ?? ''));
 ?>
 <!DOCTYPE html>
 <html lang="id">
 
 <head>
     <meta charset="UTF-8">
-    <title>Laporan Nilai Kelulusan <?= esc($peserta['NoPeserta'] ?? '') ?></title>
+    <title><?= $docTitle ?></title>
     <style>
+        @page {
+            margin: 15mm;
+            size: A4 portrait;
+        }
+
         body {
             font-family: Arial, sans-serif;
             font-size: 12px;
             color: #333;
+            margin: 0;
+            padding: 0;
+        }
+
+        .page-container {
+            width: 100%;
+        }
+
+        .page-break {
+            page-break-after: always;
+            break-after: page;
         }
 
         h2,
@@ -35,9 +56,9 @@ if ($typeUjian === 'pramunaqsah' || $typeUjian === 'pra-munaqosah') {
 
         .header {
             text-align: center;
-            margin-bottom: 16px;
+            margin-bottom: 14px;
             border-bottom: 2px solid #333;
-            padding-bottom: 20px;
+            padding-bottom: 14px;
         }
 
         .header.has-kop {
@@ -63,7 +84,7 @@ if ($typeUjian === 'pramunaqsah' || $typeUjian === 'pra-munaqosah') {
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 16px;
+            margin-bottom: 14px;
         }
 
         th,
@@ -117,9 +138,10 @@ if ($typeUjian === 'pramunaqsah' || $typeUjian === 'pra-munaqosah') {
         }
 
         .footer {
-            margin-top: 60px;
+            margin-top: 35px;
             display: table;
             width: 100%;
+            page-break-inside: avoid;
         }
 
         .footer-left {
@@ -138,287 +160,310 @@ if ($typeUjian === 'pramunaqsah' || $typeUjian === 'pra-munaqosah') {
         .signature-name {
             font-weight: bold;
             text-decoration: underline;
-            margin-top: 60px;
+            margin-top: 50px;
         }
 
         .print-date {
-            margin-top: 20px;
+            margin-top: 25px;
             font-size: 11px;
             color: #777;
             text-align: center;
+            page-break-inside: avoid;
         }
     </style>
 </head>
 
 <body>
-    <div class="header <?= !empty($tpqData['KopLembaga']) ? 'has-kop' : '' ?>">
-        <?php if (!empty($tpqData['KopLembaga'])): ?>
-            <!-- Kop Lembaga -->
-            <?php
-            $kopPath = FCPATH . 'uploads/kop/' . $tpqData['KopLembaga'];
-            if (file_exists($kopPath)) {
-                // Cek ukuran file untuk optimasi
-                $fileSize = filesize($kopPath);
-                if ($fileSize > 2 * 1024 * 1024) { // Jika file > 2MB
-                    // Resize image untuk performa yang lebih baik
-                    $imageInfo = getimagesize($kopPath);
-                    if ($imageInfo) {
-                        $width = $imageInfo[0];
-                        $height = $imageInfo[1];
-                        $mimeType = $imageInfo['mime'];
+    <?php foreach ($students as $sIndex => $studentItem): ?>
+        <?php
+        $peserta = $studentItem['peserta'] ?? [];
+        $categoryDetails = $studentItem['categoryDetails'] ?? [];
+        $tpqData = $studentItem['tpqData'] ?? [];
+        $signatureKetuaFkpq = $studentItem['signatureKetuaFkpq'] ?? null;
+        $meta = $studentItem['meta'] ?? [];
 
-                        // Resize jika terlalu besar
-                        if ($width > 1200) {
-                            $newWidth = 1200;
-                            $newHeight = ($height * $newWidth) / $width;
-
-                            // Buat image resource berdasarkan tipe
-                            switch ($mimeType) {
-                                case 'image/jpeg':
-                                    $source = imagecreatefromjpeg($kopPath);
-                                    break;
-                                case 'image/png':
-                                    $source = imagecreatefrompng($kopPath);
-                                    break;
-                                case 'image/gif':
-                                    $source = imagecreatefromgif($kopPath);
-                                    break;
-                                default:
-                                    $source = false;
-                            }
-
-                            if ($source) {
-                                $resized = imagecreatetruecolor($newWidth, $newHeight);
-                                imagecopyresampled($resized, $source, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
-
-                                ob_start();
-                                switch ($mimeType) {
-                                    case 'image/jpeg':
-                                        imagejpeg($resized, null, 85);
-                                        break;
-                                    case 'image/png':
-                                        imagepng($resized, null, 8);
-                                        break;
-                                    case 'image/gif':
-                                        imagegif($resized);
-                                        break;
+        // Normalisasi TypeUjian untuk display
+        $typeUjian = strtolower(trim($peserta['TypeUjian'] ?? 'munaqosah'));
+        if ($typeUjian === 'pramunaqsah' || $typeUjian === 'pra-munaqosah') {
+            $typeUjian = 'pra-munaqosah';
+            $typeUjianLabel = 'Pra-Munaqosah';
+        } else {
+            $typeUjian = 'munaqosah';
+            $typeUjianLabel = 'Munaqosah';
+        }
+        ?>
+        <div class="page-container <?= ($sIndex < $totalStudents - 1) ? 'page-break' : '' ?>">
+            <div class="header <?= !empty($tpqData['KopLembaga']) ? 'has-kop' : '' ?>">
+                <?php if (!empty($tpqData['KopLembaga'])): ?>
+                    <!-- Kop Lembaga -->
+                    <?php
+                    $kopPath = FCPATH . 'uploads/kop/' . $tpqData['KopLembaga'];
+                    if (file_exists($kopPath)) {
+                        static $kopCache = [];
+                        if (!isset($kopCache[$kopPath])) {
+                            $fileSize = filesize($kopPath);
+                            $mimeType = mime_content_type($kopPath);
+                            if ($fileSize > 2 * 1024 * 1024) { // Jika file > 2MB
+                                $imageInfo = getimagesize($kopPath);
+                                if ($imageInfo && $imageInfo[0] > 1200) {
+                                    $width = $imageInfo[0];
+                                    $height = $imageInfo[1];
+                                    $newWidth = 1200;
+                                    $newHeight = ($height * $newWidth) / $width;
+                                    $source = null;
+                                    switch ($mimeType) {
+                                        case 'image/jpeg': $source = @imagecreatefromjpeg($kopPath); break;
+                                        case 'image/png':  $source = @imagecreatefrompng($kopPath); break;
+                                        case 'image/gif':  $source = @imagecreatefromgif($kopPath); break;
+                                    }
+                                    if ($source) {
+                                        $resized = imagecreatetruecolor($newWidth, $newHeight);
+                                        imagecopyresampled($resized, $source, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
+                                        ob_start();
+                                        switch ($mimeType) {
+                                            case 'image/jpeg': imagejpeg($resized, null, 85); break;
+                                            case 'image/png':  imagepng($resized, null, 8); break;
+                                            case 'image/gif':  imagegif($resized); break;
+                                        }
+                                        $kopContent = ob_get_clean();
+                                        imagedestroy($source);
+                                        imagedestroy($resized);
+                                    } else {
+                                        $kopContent = file_get_contents($kopPath);
+                                    }
+                                } else {
+                                    $kopContent = file_get_contents($kopPath);
                                 }
-                                $kopContent = ob_get_clean();
-                                imagedestroy($source);
-                                imagedestroy($resized);
                             } else {
                                 $kopContent = file_get_contents($kopPath);
                             }
-                        } else {
-                            $kopContent = file_get_contents($kopPath);
+                            $kopCache[$kopPath] = 'data:' . $mimeType . ';base64,' . base64_encode($kopContent);
                         }
-                    } else {
-                        $kopContent = file_get_contents($kopPath);
+                        echo '<div class="kop-lembaga">';
+                        echo '<img src="' . $kopCache[$kopPath] . '" alt="Kop Lembaga">';
+                        echo '</div>';
                     }
-                } else {
-                    $kopContent = file_get_contents($kopPath);
-                }
+                    ?>
+                <?php endif; ?>
+                <h2>Laporan Nilai Kelulusan</h2>
+                <h3><?= esc($peserta['NamaSantri'] ?? '-') ?></h3>
+            </div>
 
-                $kopBase64 = base64_encode($kopContent);
-                $kopMimeType = mime_content_type($kopPath);
-                echo '<div class="kop-lembaga">';
-                echo '<img src="data:' . $kopMimeType . ';base64,' . $kopBase64 . '" alt="Kop Lembaga">';
-                echo '</div>';
-            }
-            ?>
-        <?php endif; ?>
-        <h2>Laporan Nilai Kelulusan</h2>
-        <h3><?= esc($peserta['NamaSantri'] ?? '-') ?></h3>
-    </div>
-
-    <table class="meta-table">
-        <tr>
-            <td><strong><?= esc(($tpqData['LembagaType'] ?? 'TPQ') === 'MDA' ? 'MDTA' : 'TPQ') ?></strong></td>
-            <td>: <?= esc($peserta['NamaTpq'] ?? '-') ?></td>
-            <td><strong>Tahun Ajaran</strong></td>
-            <td>: <?= esc(convertTahunAjaran($peserta['IdTahunAjaran'] ?? '')) ?></td>
-        </tr>
-        <tr>
-            <td><strong>Type Ujian</strong></td>
-            <td>: <?= esc($peserta['TypeUjian'] ?? '-') ?></td>
-            <td><strong>Status</strong></td>
-            <td>:
-                <?php $passed = !empty($peserta['KelulusanMet']); ?>
-                <span class="badge <?= $passed ? 'badge-lulus' : 'badge-belum' ?>">
-                    <?= esc($peserta['KelulusanStatus'] ?? '-') ?>
-                </span>
-            </td>
-        </tr>
-        <tr>
-            <td><strong>Total Nilai Bobot</strong></td>
-            <td>: <?= number_format((float)($peserta['TotalWeighted'] ?? 0), 2) ?></td>
-            <td><strong>Nilai Minimal Kelulusan</strong></td>
-            <td>: <?= number_format((float)($peserta['KelulusanThreshold'] ?? 0), 2) ?></td>
-        </tr>
-        <tr>
-            <td><strong>Selisih</strong></td>
-            <td>: <?= number_format((float)($peserta['KelulusanDifference'] ?? 0), 2) ?></td>
-            <td><strong>No Peserta</strong></td>
-            <td>: <?= esc($peserta['NoPeserta'] ?? '-') ?></td>
-        </tr>
-    </table>
-
-    <table>
-        <thead>
-            <tr>
-                <th>KATEGORI</th>
-                <th>MATERI</th>
-                <th style="text-align:center">NILAI</th>
-                <th style="text-align:center">NILAI BOBOT</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php
-            $totalNilai = 0;
-            $totalBobot = 0;
-            ?>
-            <?php foreach ($categoryDetails as $detail): ?>
-                <?php
-                $category = $detail['category'] ?? [];
-                $juriScores = $detail['juri_scores'] ?? [];
-                $materis = $detail['materi'] ?? [];
-
-                // Gunakan average yang sudah dihitung di controller (sudah memfilter berdasarkan maxJuri)
-                $average = (float)($detail['average'] ?? 0);
-
-                // Jika average masih 0, coba hitung dari juri_scores yang sudah difilter
-                if ($average == 0 && !empty($juriScores)) {
-                    $validScores = array_filter($juriScores, function ($score) {
-                        return isset($score['Nilai']) && (float)$score['Nilai'] > 0;
-                    });
-                    $validScores = array_values($validScores);
-
-                    if (count($validScores) === 1) {
-                        $average = (float)$validScores[0]['Nilai'];
-                    } elseif (count($validScores) > 1) {
-                        $sum = array_sum(array_column($validScores, 'Nilai'));
-                        $average = round($sum / count($validScores), 2);
-                    }
-                }
-
-                $weighted = (float)($detail['weighted'] ?? 0);
-                $totalNilai += $average;
-                $totalBobot += $weighted;
-
-                // Ambil materi pertama, atau gabungkan jika ada beberapa
-                $materiName = '-';
-                if (!empty($materis)) {
-                    $materi = $materis[0];
-                    $materiName = esc($materi['NamaMateri'] ?? '-', 'html');
-                    // Hapus link ayat untuk kesederhanaan
-                }
-
-                // Jika kategori adalah TULIS AL-QURAN dan materi kosong, set default
-                $categoryName = $category['name'] ?? '';
-                if (stripos($categoryName, 'TULIS') !== false && stripos($categoryName, 'AL-QURAN') !== false && $materiName === '-') {
-                    $materiName = 'SURAH AL-FATIHAH';
-                }
-                ?>
+            <table class="meta-table">
                 <tr>
-                    <td><?= esc($category['name'] ?? '-') ?></td>
-                    <td><?= $materiName ?></td>
-                    <td style="text-align:center" class="<?= $average == 0 ? 'nilai-0' : '' ?>"><?= number_format($average, 1) ?></td>
-                    <td style="text-align:center" class="<?= $weighted == 0 ? 'nilai-0' : '' ?>"><?= number_format($weighted, 1) ?></td>
+                    <td><strong><?= esc(($tpqData['LembagaType'] ?? 'TPQ') === 'MDA' ? 'MDTA' : 'TPQ') ?></strong></td>
+                    <td>: <?= esc($peserta['NamaTpq'] ?? '-') ?></td>
+                    <td><strong>Tahun Ajaran</strong></td>
+                    <td>: <?= esc(convertTahunAjaran($peserta['IdTahunAjaran'] ?? '')) ?></td>
                 </tr>
-            <?php endforeach; ?>
-            <tr class="summary-row">
-                <td></td>
-                <td><strong>JUMLAH</strong></td>
-                <td style="text-align:center"><strong><?= number_format($totalNilai, 1) ?></strong></td>
-                <td style="text-align:center"><strong><?= number_format($totalBobot, 1) ?></strong></td>
-            </tr>
-        </tbody>
-    </table>
+                <tr>
+                    <td><strong>Type Ujian</strong></td>
+                    <td>: <?= esc($peserta['TypeUjian'] ?? '-') ?></td>
+                    <td><strong>Status</strong></td>
+                    <td>:
+                        <?php $passed = !empty($peserta['KelulusanMet']); ?>
+                        <span class="badge <?= $passed ? 'badge-lulus' : 'badge-belum' ?>">
+                            <?= esc($peserta['KelulusanStatus'] ?? '-') ?>
+                        </span>
+                    </td>
+                </tr>
+                <tr>
+                    <td><strong>Total Nilai Bobot</strong></td>
+                    <td>: <?= number_format((float)($peserta['TotalWeighted'] ?? 0), 2) ?></td>
+                    <td><strong>Nilai Minimal Kelulusan</strong></td>
+                    <td>: <?= number_format((float)($peserta['KelulusanThreshold'] ?? 0), 2) ?></td>
+                </tr>
+                <tr>
+                    <td><strong>Selisih</strong></td>
+                    <td>: <?= number_format((float)($peserta['KelulusanDifference'] ?? 0), 2) ?></td>
+                    <td><strong>No Peserta</strong></td>
+                    <td>: <?= esc($peserta['NoPeserta'] ?? '-') ?></td>
+                </tr>
+            </table>
 
-    <div class="footer">
-        <div class="footer-left">
-            <!-- Kosong, sesuai format formal -->
-        </div>
-        <div class="footer-right">
-            <div style="margin-top: 0; text-align: center;">
-                <?php
-                // Untuk Munaqosah, gunakan Kecamatan dari FKPQ, jika tidak ada gunakan AlamatTpq
-                if ($typeUjian === 'munaqosah' && !empty($tpqData['KecamatanFkpq'])) {
-                    $tempatTandaTangan = esc(toTitleCase($tpqData['KecamatanFkpq']));
-                } else {
-                    $tempatTandaTangan = esc(toTitleCase($tpqData['AlamatTpq'] ?? 'TPQ'));
-                }
-                ?>
-                <?= $tempatTandaTangan ?>, <?= esc(formatTanggalIndonesia($generated_at ?? date('Y-m-d'), 'd F Y')) ?>
-            </div>
-            <div style="margin-top: 10px; text-align: center;">
-                <?php
-                $lembagaType = $tpqData['LembagaType'] ?? 'TPQ';
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 25%;">KATEGORI</th>
+                        <th style="width: 35%;">MATERI</th>
+                        <th style="width: 13%; text-align:center">NILAI</th>
+                        <th style="width: 13%; text-align:center">BOBOT %</th>
+                        <th style="width: 14%; text-align:center">NILAI BOBOT</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php
+                    $totalNilai = 0;
+                    $totalBobotPersen = 0;
+                    $totalBobot = 0;
+                    ?>
+                    <?php foreach ($categoryDetails as $detail): ?>
+                        <?php
+                        $category = $detail['category'] ?? [];
+                        $juriScores = $detail['juri_scores'] ?? [];
+                        $materis = $detail['materi'] ?? [];
 
-                if ($typeUjian === 'pra-munaqosah') {
-                    if ($lembagaType === 'MDA') {
-                        $jabatanTandaTangan = 'Ketua MDTA';
-                        $namaTandaTangan = $tpqData['KepalaSekolah'] ?? '';
-                    } else {
-                        $jabatanTandaTangan = 'Kepala TPQ';
-                        $namaTandaTangan = $tpqData['KepalaSekolah'] ?? '';
-                    }
-                } else {
-                    // Untuk Munaqosah, menggunakan Ketua FKPQ
-                    $jabatanTandaTangan = 'Ketua FKPQ';
-                    $namaTandaTangan = $tpqData['KetuaFkpq'] ?? ''; // Ambil dari KetuaFkpq
-                }
-                ?>
-                Mengetahui <?= esc($jabatanTandaTangan) ?>
-            </div>
-            <div style="text-align: center; margin-top: 10px;">
-                <?php
-                // Tampilkan QR code jika ada signature untuk Ketua FKPQ
-                if ($typeUjian === 'munaqosah' && !empty($signatureKetuaFkpq) && !empty($signatureKetuaFkpq['QrCode'])) {
-                    $qrPath = FCPATH . 'uploads/qr/' . $signatureKetuaFkpq['QrCode'];
-                    if (file_exists($qrPath)) {
-                        $qrContent = file_get_contents($qrPath);
-                        $ext = pathinfo($signatureKetuaFkpq['QrCode'], PATHINFO_EXTENSION);
-                        $mime = $ext === 'svg' ? 'image/svg+xml' : 'image/' . strtolower($ext);
+                        // Gunakan average yang sudah dihitung di controller (sudah memfilter berdasarkan maxJuri)
+                        $average = (float)($detail['average'] ?? 0);
 
-                        // Buat URL validasi dari token
-                        $validationUrl = '';
-                        if (!empty($signatureKetuaFkpq['Token'])) {
-                            $validationUrl = base_url("signature/validateSignature/{$signatureKetuaFkpq['Token']}");
+                        // Jika average masih 0, coba hitung dari juri_scores yang sudah difilter
+                        if ($average == 0 && !empty($juriScores)) {
+                            $validScores = array_filter($juriScores, function ($score) {
+                                return isset($score['Nilai']) && (float)$score['Nilai'] > 0;
+                            });
+                            $validScores = array_values($validScores);
+
+                            if (count($validScores) === 1) {
+                                $average = (float)$validScores[0]['Nilai'];
+                            } elseif (count($validScores) > 1) {
+                                $sum = array_sum(array_column($validScores, 'Nilai'));
+                                $average = round($sum / count($validScores), 2);
+                            }
                         }
 
-                        // Tampilkan QR code
-                        if (!empty($validationUrl)) {
-                            echo '<a href="' . htmlspecialchars($validationUrl) . '" target="_blank" style="display: inline-block; margin-bottom: 10px;">';
+                        $weightPersen = (float)($category['weight'] ?? 0);
+                        $weighted = (float)($detail['weighted'] ?? 0);
+                        $totalNilai += $average;
+                        $totalBobotPersen += $weightPersen;
+                        $totalBobot += $weighted;
+
+                        // Ambil materi pertama, atau gabungkan jika ada beberapa
+                        $materiName = '-';
+                        if (!empty($materis)) {
+                            $materi = $materis[0];
+                            $materiName = esc($materi['NamaMateri'] ?? '-', 'html');
                         }
-                        echo '<img src="data:' . $mime . ';base64,' . base64_encode($qrContent) . '" alt="QR Code Ketua FKPQ" style="width: 70px; height: 70px; cursor: pointer;">';
-                        if (!empty($validationUrl)) {
-                            echo '</a>';
+
+                        // Jika kategori adalah TULIS AL-QURAN dan materi kosong, set default
+                        $categoryName = $category['name'] ?? '';
+                        if (stripos($categoryName, 'TULIS') !== false && stripos($categoryName, 'AL-QURAN') !== false && $materiName === '-') {
+                            $materiName = 'SURAH AL-FATIHAH';
                         }
-                    }
-                }
-                ?>
-            </div>
-            <?php if (!empty($namaTandaTangan)): ?>
-                <div class="signature-name" style="text-align: center; margin-top: 10px;">
-                    <?= esc($namaTandaTangan) ?>
+                        ?>
+                        <tr>
+                            <td><?= esc($category['name'] ?? '-') ?></td>
+                            <td><?= $materiName ?></td>
+                            <td style="text-align:center" class="<?= $average == 0 ? 'nilai-0' : '' ?>"><?= number_format($average, 1) ?></td>
+                            <td style="text-align:center"><?= ($weightPersen == (int)$weightPersen) ? number_format($weightPersen, 0) : number_format($weightPersen, 1) ?>%</td>
+                            <td style="text-align:center" class="<?= $weighted == 0 ? 'nilai-0' : '' ?>"><?= number_format($weighted, 1) ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                    <tr class="summary-row">
+                        <td></td>
+                        <td><strong>JUMLAH</strong></td>
+                        <td style="text-align:center"><strong><?= number_format($totalNilai, 1) ?></strong></td>
+                        <td style="text-align:center"><strong><?= ($totalBobotPersen == (int)$totalBobotPersen) ? number_format($totalBobotPersen, 0) : number_format($totalBobotPersen, 1) ?>%</strong></td>
+                        <td style="text-align:center"><strong><?= number_format($totalBobot, 1) ?></strong></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="footer">
+                <div class="footer-left">
+                    <!-- Kosong, sesuai format formal -->
                 </div>
-            <?php else: ?>
-                <div class="signature-name" style="text-align: center; margin-top: 80px;">
-                    (_____________________)
+                <div class="footer-right">
+                    <div style="margin-top: 0; text-align: center;">
+                        <?php
+                        // Untuk Munaqosah, gunakan Kecamatan dari FKPQ, jika tidak ada gunakan AlamatTpq
+                        if ($typeUjian === 'munaqosah' && !empty($tpqData['KecamatanFkpq'])) {
+                            $tempatTandaTangan = esc(toTitleCase($tpqData['KecamatanFkpq']));
+                        } else {
+                            $tempatTandaTangan = esc(toTitleCase($tpqData['AlamatTpq'] ?? 'TPQ'));
+                        }
+                        ?>
+                        <?= $tempatTandaTangan ?>, <?= esc(formatTanggalIndonesia($generated_at ?? date('Y-m-d'), 'd F Y')) ?>
+                    </div>
+                    <div style="margin-top: 10px; text-align: center;">
+                        <?php
+                        $lembagaType = $tpqData['LembagaType'] ?? 'TPQ';
+
+                        if ($typeUjian === 'pra-munaqosah') {
+                            if ($lembagaType === 'MDA') {
+                                $jabatanTandaTangan = 'Ketua MDTA';
+                                $namaTandaTangan = $tpqData['KepalaSekolah'] ?? '';
+                            } else {
+                                $jabatanTandaTangan = 'Kepala TPQ';
+                                $namaTandaTangan = $tpqData['KepalaSekolah'] ?? '';
+                            }
+                        } else {
+                            // Untuk Munaqosah, menggunakan Ketua FKPQ
+                            $jabatanTandaTangan = 'Ketua FKPQ';
+                            $namaTandaTangan = $tpqData['KetuaFkpq'] ?? ''; // Ambil dari KetuaFkpq
+                        }
+                        ?>
+                        Mengetahui <?= esc($jabatanTandaTangan) ?>
+                    </div>
+                    <div style="text-align: center; margin-top: 10px;">
+                        <?php
+                        // Ambil signature untuk Pra-Munaqosah (Kepala Lembaga) atau Munaqosah (Ketua FKPQ)
+                        $sig = $studentItem['signature'] 
+                            ?? $studentItem['signatureKepalaLembaga'] 
+                            ?? $studentItem['signatureKetuaFkpq'] 
+                            ?? ($typeUjian === 'pra-munaqosah' ? ($signatureKepalaLembaga ?? $signatureKetuaFkpq ?? null) : ($signatureKetuaFkpq ?? null));
+
+                        if (!empty($sig)) {
+                            $qrFileName = $sig['QrCode'] ?? '';
+                            $qrPath = !empty($qrFileName) ? (FCPATH . 'uploads/qr/' . $qrFileName) : '';
+
+                            // Jika file belum ada di disk, regenerasi otomatis dari token
+                            if ((empty($qrFileName) || !file_exists($qrPath)) && !empty($sig['Token'])) {
+                                helper('signature');
+                                $regen = generateSignatureQRCode($sig['Token']);
+                                if ($regen && !empty($regen['filename'])) {
+                                    $qrFileName = $regen['filename'];
+                                    $qrPath = FCPATH . 'uploads/qr/' . $qrFileName;
+                                }
+                            }
+
+                            if (!empty($qrFileName) && file_exists($qrPath)) {
+                                static $qrCache = [];
+                                if (!isset($qrCache[$qrPath])) {
+                                    $qrContent = file_get_contents($qrPath);
+                                    $ext = strtolower(pathinfo($qrFileName, PATHINFO_EXTENSION));
+                                    $mime = $ext === 'svg' ? 'image/svg+xml' : 'image/' . $ext;
+                                    $qrCache[$qrPath] = 'data:' . $mime . ';base64,' . base64_encode($qrContent);
+                                }
+
+                                // Buat URL validasi dari token
+                                $validationUrl = '';
+                                if (!empty($sig['Token'])) {
+                                    $validationUrl = base_url("signature/validateSignature/{$sig['Token']}");
+                                }
+
+                                // Tampilkan QR code
+                                if (!empty($validationUrl)) {
+                                    echo '<a href="' . htmlspecialchars($validationUrl) . '" target="_blank" style="display: inline-block; margin-bottom: 10px;">';
+                                }
+                                $altText = ($typeUjian === 'pra-munaqosah') ? 'QR Code Kepala Lembaga' : 'QR Code Ketua FKPQ';
+                                echo '<img src="' . $qrCache[$qrPath] . '" alt="' . $altText . '" style="width: 70px; height: 70px; cursor: pointer;">';
+                                if (!empty($validationUrl)) {
+                                    echo '</a>';
+                                }
+                            }
+                        }
+                        ?>
+                    </div>
+                    <?php 
+                    $sigMargin = !empty($sig) ? '10px' : '60px';
+                    if (!empty($namaTandaTangan)): ?>
+                        <div class="signature-name" style="text-align: center; margin-top: <?= $sigMargin ?>;">
+                            <?= esc($namaTandaTangan) ?>
+                        </div>
+                    <?php else: ?>
+                        <div class="signature-name" style="text-align: center; margin-top: <?= $sigMargin ?>;">
+                            (_____________________)
+                        </div>
+                    <?php endif; ?>
                 </div>
-            <?php endif; ?>
+            </div>
+
+            <div class="print-date">
+                Dicetak pada: <?= esc(formatTanggalIndonesia($generated_at ?? date('Y-m-d'), 'd F Y')) ?> <?= esc(date('H:i:s')) ?>
+                Dokumen ini dihasilkan otomatis dari sistem http://tpqsmart.simpedis.com.
+            </div>
         </div>
-    </div>
-    <br><br>
-    <br><br>
-    <br><br>
-    <br><br>
-    <br><br>
-    <div class="print-date">
-        Dicetak pada: <?= esc(formatTanggalIndonesia($generated_at ?? date('Y-m-d'), 'd F Y')) ?> <?= esc(date('H:i:s')) ?>
-        Dokumen ini dihasilkan otomatis dari sistem http://tpqsmart.simpedis.com.
-    </div>
+    <?php endforeach; ?>
 </body>
 
 </html>

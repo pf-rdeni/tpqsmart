@@ -39,8 +39,11 @@
                                     <option value="pra-munaqosah">Pra-Munaqosah</option>
                                 </select>
                             </div>
+                            <div class="align-self-end mr-2">
+                                <button id="btnReloadKelulusan" class="btn btn-sm btn-primary"><i class="fas fa-sync-alt mr-1"></i> Muat</button>
+                            </div>
                             <div class="align-self-end">
-                                <button id="btnReloadKelulusan" class="btn btn-sm btn-primary"><i class="fas fa-sync-alt"></i> Muat</button>
+                                <button id="btnPrintAllNilai" class="btn btn-sm btn-danger" title="Cetak Nilai PDF untuk Semua Santri"><i class="fas fa-file-pdf mr-1"></i> Cetak PDF Nilai</button>
                             </div>
                         </div>
                     </div>
@@ -315,6 +318,32 @@ $isAdmin = function_exists('in_groups') && in_groups('Admin');
         });
         $tpqSelect.on('change', loadKelulusan);
         $typeUjianSelect.on('change', loadKelulusan);
+
+        $('#btnPrintAllNilai').on('click', function(e) {
+            e.preventDefault();
+            const tahun = $tahunAjaranSelect.val() ? $tahunAjaranSelect.val().trim() : '';
+            const tpq = $tpqSelect.val() || '0';
+            const type = $typeUjianSelect.val() || 'munaqosah';
+
+            if (!tahun) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Validasi',
+                    text: 'Tahun ajaran tidak boleh kosong'
+                });
+                return;
+            }
+
+            const params = new URLSearchParams({
+                IdTahunAjaran: tahun,
+                IdTpq: tpq,
+                TypeUjian: type,
+                NoPeserta: 'all'
+            }).toString();
+
+            const printUrl = '<?= base_url('backend/munaqosah/printKelulusanPesertaUjian') ?>?' + params;
+            window.open(printUrl, '_blank');
+        });
 
         // Copy link button click handler untuk kelulusan
         $(document).on('click', '.copy-link-btn-kelulusan:not(:disabled)', function() {

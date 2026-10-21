@@ -74,16 +74,19 @@ class Signature extends \App\Controllers\BaseController
             $santri = $this->santriModel->where('IdSantri', $signature['IdSantri'])->first();
         }
 
-        // Handle signature untuk Munaqosah (Ketua FKPQ)
-        if ($signature['JenisDokumen'] === 'Munaqosah' && $signature['SignatureData'] === 'Ketua FKPQ') {
+        // Handle signature untuk Munaqosah (Ketua FKPQ) atau Pra-Munaqosah (Kepala Lembaga)
+        if (in_array($signature['JenisDokumen'], ['Munaqosah', 'Pra-Munaqosah'], true)) {
             $tpq = $this->tpqModel->find($signature['IdTpq']);
 
-            // Ambil data FKPQ
-            $fkpqModel = new \App\Models\FkpqModel();
-            $fkpqData = $fkpqModel->GetData();
-            $fkpq = !empty($fkpqData) ? $fkpqData[0] : null;
+            // Ambil data FKPQ jika penandatangan adalah Ketua FKPQ
+            $fkpq = null;
+            if ($signature['SignatureData'] === 'Ketua FKPQ') {
+                $fkpqModel = new \App\Models\FkpqModel();
+                $fkpqData = $fkpqModel->GetData();
+                $fkpq = !empty($fkpqData) ? $fkpqData[0] : null;
+            }
 
-            // Ambil data peserta Munaqosah
+            // Ambil data peserta Munaqosah / Pra-Munaqosah
             $munaqosahPesertaModel = new \App\Models\MunaqosahPesertaModel();
             $pesertaMunaqosah = $munaqosahPesertaModel
                 ->where('IdSantri', $signature['IdSantri'])
