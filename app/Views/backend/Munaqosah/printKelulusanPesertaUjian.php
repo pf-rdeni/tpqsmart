@@ -343,17 +343,17 @@ $docTitle = $isMultiple
                         <tr>
                             <td><?= esc($category['name'] ?? '-') ?></td>
                             <td><?= $materiName ?></td>
-                            <td style="text-align:center" class="<?= $average == 0 ? 'nilai-0' : '' ?>"><?= number_format($average, 1) ?></td>
+                            <td style="text-align:center" class="<?= $average == 0 ? 'nilai-0' : '' ?>"><?= number_format($average, 2) ?></td>
                             <td style="text-align:center"><?= ($weightPersen == (int)$weightPersen) ? number_format($weightPersen, 0) : number_format($weightPersen, 1) ?>%</td>
-                            <td style="text-align:center" class="<?= $weighted == 0 ? 'nilai-0' : '' ?>"><?= number_format($weighted, 1) ?></td>
+                            <td style="text-align:center" class="<?= $weighted == 0 ? 'nilai-0' : '' ?>"><?= number_format($weighted, 2) ?></td>
                         </tr>
                     <?php endforeach; ?>
                     <tr class="summary-row">
                         <td></td>
                         <td><strong>JUMLAH</strong></td>
-                        <td style="text-align:center"><strong><?= number_format($totalNilai, 1) ?></strong></td>
+                        <td style="text-align:center"><strong><?= number_format($totalNilai, 2) ?></strong></td>
                         <td style="text-align:center"><strong><?= ($totalBobotPersen == (int)$totalBobotPersen) ? number_format($totalBobotPersen, 0) : number_format($totalBobotPersen, 1) ?>%</strong></td>
-                        <td style="text-align:center"><strong><?= number_format($totalBobot, 1) ?></strong></td>
+                        <td style="text-align:center"><strong><?= number_format($totalBobot, 2) ?></strong></td>
                     </tr>
                 </tbody>
             </table>
