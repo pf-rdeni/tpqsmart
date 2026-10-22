@@ -91,6 +91,7 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
                         <div class="mt-1">
                             <span class="small text-muted">Preset:</span>
                             <a href="#" class="badge badge-light preset" data-v="65,70">Default 65/70</a>
+                            <a href="#" class="badge badge-light preset" data-v="70,75">Aman 75 (70/75)</a>
                             <a href="#" class="badge badge-light preset" data-v="60,70,80,90">60/70/80/90</a>
                             <a href="#" class="badge badge-light preset" data-v="50,65,80">50/65/80</a>
                             <a href="#" class="badge badge-light preset" data-v="70">Lulus 70</a>
@@ -103,6 +104,7 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
                             <option value="grouped">Batang berkelompok</option>
                             <option value="combo">Batang &amp; Garis (Kombinasi)</option>
                             <option value="stacked">Batang bertumpuk</option>
+                            <option value="horizontal_stacked">Batang Horisontal (Sebaran Capaian)</option>
                             <option value="line">Garis</option>
                         </select>
                     </div>
@@ -813,6 +815,430 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
             return h + '</tbody></table></div>';
         }
 
+        function renderHorizontalStackedChart(canvas, labels, datasets, title, onPick, extra) {
+            const ctx = canvas.getContext('2d');
+            let hitAreas = [];
+            let hoveredHit = null;
+            let currentWidth = 0;
+            let currentHeight = 0;
+
+            const box = canvas.closest('.chart-box');
+
+            function getIcon(name) {
+                const s = String(name || '').toLowerCase();
+                if (s.includes('doa')) return '🤲';
+                if (s.includes('surah') || s.includes('surat') || s.includes('juz')) return '📖';
+                if (s.includes('sholat') || s.includes('shalat')) return '🧎';
+                if (s.includes('ayat')) return '☪️';
+                if (s.includes('tulis') || s.includes('khat') || s.includes('imla')) return '✏️';
+                if (s.includes('baca') || s.includes('tajwid') || s.includes('tilawah')) return '📕';
+                if (s.includes('hafalan') || s.includes('tahfidz')) return '🧠';
+                if (s.includes('fiqih') || s.includes('dinul')) return '🕌';
+                return '📘';
+            }
+
+            const colorMap = {};
+            if (datasets.length === 3) {
+                colorMap[datasets[0].label] = '#ef4444'; // Kurang
+                colorMap[datasets[1].label] = '#f59e0b'; // Cukup
+                colorMap[datasets[2].label] = '#16a34a'; // Aman
+            }
+
+            // Urutan segmen dari kiri ke kanan: Aman (hijau) -> Cukup (oranye) -> Kurang (merah) -> Belum Dinilai (abu-abu)
+            const drawOrder = [];
+            for (let d = datasets.length - 1; d >= 0; d--) {
+                if (!datasets[d].bin || !datasets[d].bin.zero) {
+                    drawOrder.push(d);
+                }
+            }
+            for (let d = 0; d < datasets.length; d++) {
+                if (datasets[d].bin && datasets[d].bin.zero) {
+                    drawOrder.push(d);
+                }
+            }
+
+            let totalSantriAll = 0;
+            if (DATA && DATA.rows && DATA.rows.length) {
+                totalSantriAll = new Set(DATA.rows.map(r => r.y + '|' + (r.type || '') + '|' + r.np)).size;
+            } else {
+                labels.forEach((_, i) => {
+                    const rowSum = datasets.reduce((acc, ds) => acc + (ds.data[i] || 0), 0);
+                    if (rowSum > totalSantriAll) totalSantriAll = rowSum;
+                });
+            }
+
+            function draw() {
+                hitAreas = [];
+                const dpr = Math.max(window.devicePixelRatio || 1, 2);
+                const rect = box ? box.getBoundingClientRect() : canvas.getBoundingClientRect();
+                const cssW = Math.max(rect.width || (canvas.parentElement ? canvas.parentElement.clientWidth : 800), 320);
+
+                const isNarrow = cssW < 640;
+                const headerH = isNarrow ? 90 : 68;
+                const rowH = 58;
+                const padLeft = 14;
+                const padRight = 14;
+                const cssH = headerH + (labels.length * rowH) + 24;
+
+                currentWidth = cssW;
+                currentHeight = cssH;
+
+                if (box) {
+                    box.style.height = cssH + 'px';
+                }
+
+                canvas.width = Math.round(cssW * dpr);
+                canvas.height = Math.round(cssH * dpr);
+                canvas.style.width = cssW + 'px';
+                canvas.style.height = cssH + 'px';
+
+                ctx.save();
+                ctx.scale(dpr, dpr);
+
+                // Latar belakang putih solid
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, cssW, cssH);
+
+                // 1. Subjudul "GRAFIK SEBARAN NILAI"
+                ctx.font = '800 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+                ctx.fillStyle = '#0284c7';
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'top';
+                ctx.letterSpacing = '1.2px';
+                ctx.fillText('GRAFIK SEBARAN NILAI', padLeft, 12);
+                ctx.letterSpacing = '0px';
+
+                // 2. Judul Utama "Sebaran Capaian [N] Santri per Materi"
+                let mainTitle = `Sebaran Capaian ${totalSantriAll} Santri per Materi`;
+                if (extra && extra.catName) {
+                    mainTitle = `Sebaran Capaian ${totalSantriAll} Santri — ${extra.catName}`;
+                } else if (settings.generalMode === 'tahun') {
+                    mainTitle = `Sebaran Capaian ${totalSantriAll} Santri per Tahun / Type`;
+                }
+
+                ctx.font = 'bold 20px "Playfair Display", "Merriweather", Georgia, "Times New Roman", serif';
+                ctx.fillStyle = '#0f172a';
+                ctx.fillText(mainTitle, padLeft, 28);
+
+                // 3. Legenda (Aman, Cukup, Kurang / Wajib Perbaikan)
+                const legendItems = [];
+                if (datasets.length === 3) {
+                    legendItems.push({
+                        label: `Aman (${datasets[2].label})`,
+                        color: colorMap[datasets[2].label] || '#16a34a'
+                    });
+                    legendItems.push({
+                        label: `Cukup (${datasets[1].label.replace('≥', '').replace(' - <', '–')})`,
+                        color: colorMap[datasets[1].label] || '#f59e0b'
+                    });
+                    legendItems.push({
+                        label: `Kurang / Wajib Perbaikan (${datasets[0].label})`,
+                        color: colorMap[datasets[0].label] || '#ef4444'
+                    });
+                } else {
+                    drawOrder.forEach(dsIdx => {
+                        const ds = datasets[dsIdx];
+                        legendItems.push({
+                            label: ds.label,
+                            color: colorMap[ds.label] || ds.color
+                        });
+                    });
+                }
+
+                ctx.font = '600 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+                let legendX = cssW - padRight;
+                let legendY = isNarrow ? 62 : 36;
+
+                if (!isNarrow) {
+                    for (let j = legendItems.length - 1; j >= 0; j--) {
+                        const item = legendItems[j];
+                        const textW = ctx.measureText(item.label).width;
+                        const startX = legendX - textW;
+
+                        ctx.beginPath();
+                        ctx.arc(startX - 8, legendY + 5, 4.5, 0, Math.PI * 2);
+                        ctx.fillStyle = item.color;
+                        ctx.fill();
+
+                        ctx.fillStyle = '#334155';
+                        ctx.textAlign = 'left';
+                        ctx.fillText(item.label, startX, legendY);
+
+                        legendX -= (textW + 30);
+                    }
+                } else {
+                    legendX = padLeft;
+                    legendItems.forEach(item => {
+                        const textW = ctx.measureText(item.label).width;
+                        ctx.beginPath();
+                        ctx.arc(legendX + 4.5, legendY + 5, 4.5, 0, Math.PI * 2);
+                        ctx.fillStyle = item.color;
+                        ctx.fill();
+
+                        ctx.fillStyle = '#334155';
+                        ctx.textAlign = 'left';
+                        ctx.fillText(item.label, legendX + 13, legendY);
+
+                        legendX += textW + 24;
+                    });
+                }
+
+                // 4. Baris Materi
+                const startY = headerH + 12;
+                const barW = cssW - padLeft - padRight;
+                const barH = 19;
+
+                labels.forEach((label, i) => {
+                    const rowY = startY + (i * rowH);
+                    const icon = getIcon(label);
+
+                    const totalRow = datasets.reduce((sum, ds) => sum + (ds.data[i] || 0), 0);
+                    const dsHigh = datasets[datasets.length - 1];
+                    const countAman = dsHigh ? (dsHigh.data[i] || 0) : 0;
+                    const pctAman = totalRow > 0 ? Math.round(countAman * 100 / totalRow) : 0;
+
+                    const lowestIdx = settings.separateZero ? 1 : 0;
+                    const dsLow = datasets[lowestIdx] || datasets[0];
+                    const countKurang = dsLow ? (dsLow.data[i] || 0) : 0;
+                    const pctKurang = totalRow > 0 ? Math.round(countKurang * 100 / totalRow) : 0;
+
+                    // Label Kiri: Icon + Nama Materi
+                    ctx.textAlign = 'left';
+                    ctx.textBaseline = 'top';
+                    ctx.font = 'bold 14px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+                    ctx.fillStyle = '#0f172a';
+                    const iconOffset = icon ? 24 : 0;
+                    if (icon) {
+                        ctx.font = '14px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
+                        ctx.fillText(icon, padLeft, rowY);
+                    }
+                    ctx.font = 'bold 14px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+                    ctx.fillText(label, padLeft + iconOffset, rowY);
+
+                    // Label Kanan: Ringkasan (Aman & Perbaikan)
+                    let p1Text = '';
+                    let p3Text = '';
+                    if (countKurang === 0) {
+                        p1Text = `${countAman} Santri Aman (100%)`;
+                        p3Text = `0 Perbaikan`;
+                    } else if (pctAman >= 45 || countAman >= countKurang) {
+                        p1Text = `${countAman} Santri Aman (${pctAman}%)`;
+                        p3Text = `${countKurang} Perbaikan`;
+                    } else {
+                        p1Text = `${countAman} Santri Aman`;
+                        p3Text = `${countKurang} Perbaikan (${pctKurang}%)`;
+                    }
+                    const dotText = ' • ';
+
+                    ctx.font = 'bold 13px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+                    const p3Width = ctx.measureText(p3Text).width;
+                    const dotWidth = ctx.measureText(dotText).width;
+                    const p1Width = ctx.measureText(p1Text).width;
+
+                    const summaryEndX = cssW - padRight;
+                    const p3X = summaryEndX - p3Width;
+                    const dotX = p3X - dotWidth;
+                    const p1X = dotX - p1Width;
+
+                    ctx.fillStyle = '#16a34a';
+                    ctx.fillText(p1Text, p1X, rowY + 1);
+
+                    ctx.fillStyle = '#94a3b8';
+                    ctx.fillText(dotText, dotX, rowY + 1);
+
+                    ctx.fillStyle = (countKurang > 0) ? '#dc2626' : '#94a3b8';
+                    ctx.fillText(p3Text, p3X, rowY + 1);
+
+                    // Bar Area
+                    const barX = padLeft;
+                    const barY = rowY + 22;
+
+                    ctx.save();
+                    ctx.beginPath();
+                    const pillRadius = 7;
+                    if (ctx.roundRect) {
+                        ctx.roundRect(barX, barY, barW, barH, pillRadius);
+                    } else {
+                        ctx.rect(barX, barY, barW, barH);
+                    }
+                    ctx.closePath();
+                    ctx.clip();
+
+                    if (totalRow === 0) {
+                        ctx.fillStyle = '#f1f5f9';
+                        ctx.fillRect(barX, barY, barW, barH);
+                    } else {
+                        let curX = barX;
+                        drawOrder.forEach(dsIdx => {
+                            const ds = datasets[dsIdx];
+                            const val = ds.data[i] || 0;
+                            if (val <= 0) return;
+                            const segW = (val / totalRow) * barW;
+                            const segColor = colorMap[ds.label] || ds.color;
+
+                            ctx.fillStyle = segColor;
+                            ctx.fillRect(curX, barY, segW, barH);
+
+                            hitAreas.push({
+                                x: curX,
+                                y: barY,
+                                w: segW,
+                                h: barH,
+                                labelIdx: i,
+                                datasetIdx: dsIdx,
+                                count: val,
+                                pct: Math.round(val * 1000 / totalRow) / 10,
+                                label: label,
+                                binLabel: ds.label,
+                                color: segColor
+                            });
+
+                            curX += segW;
+                        });
+                    }
+                    ctx.restore();
+                });
+
+                if (hoveredHit) {
+                    drawTooltip(hoveredHit);
+                }
+
+                ctx.restore();
+            }
+
+            function drawTooltip(hit) {
+                ctx.save();
+                ctx.font = 'bold 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+                const l1 = hit.label;
+                const l2 = `${hit.binLabel}: ${hit.count} Santri (${hit.pct}%)`;
+                const l3 = onPick ? 'Klik untuk melihat rincian santri' : '';
+
+                const w1 = ctx.measureText(l1).width;
+                const w2 = ctx.measureText(l2).width + 16;
+                ctx.font = 'italic 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+                const w3 = l3 ? ctx.measureText(l3).width : 0;
+                const tipW = Math.max(w1, w2, w3) + 24;
+                const tipH = l3 ? 68 : 50;
+
+                let tipX = hit.x + (hit.w / 2) - (tipW / 2);
+                let tipY = hit.y - tipH - 8;
+
+                if (tipX < 10) tipX = 10;
+                if (tipX + tipW > currentWidth - 10) tipX = currentWidth - tipW - 10;
+                if (tipY < 10) tipY = hit.y + hit.h + 8;
+
+                ctx.shadowColor = 'rgba(15, 23, 42, 0.25)';
+                ctx.shadowBlur = 10;
+                ctx.shadowOffsetY = 4;
+
+                ctx.fillStyle = '#0f172a';
+                ctx.beginPath();
+                if (ctx.roundRect) {
+                    ctx.roundRect(tipX, tipY, tipW, tipH, 6);
+                } else {
+                    ctx.rect(tipX, tipY, tipW, tipH);
+                }
+                ctx.fill();
+
+                ctx.shadowColor = 'transparent';
+                ctx.strokeStyle = '#334155';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'top';
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+                ctx.fillText(l1, tipX + 12, tipY + 8);
+
+                ctx.beginPath();
+                ctx.arc(tipX + 14, tipY + 29, 4, 0, Math.PI * 2);
+                ctx.fillStyle = hit.color;
+                ctx.fill();
+
+                ctx.font = '600 11.5px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+                ctx.fillStyle = '#cbd5e1';
+                ctx.fillText(l2, tipX + 24, tipY + 23);
+
+                if (l3) {
+                    ctx.font = 'italic 10.5px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+                    ctx.fillStyle = '#94a3b8';
+                    ctx.fillText(l3, tipX + 12, tipY + 44);
+                }
+
+                ctx.restore();
+            }
+
+            function getHit(evt) {
+                const rect = canvas.getBoundingClientRect();
+                const mouseX = (evt.clientX - rect.left);
+                const mouseY = (evt.clientY - rect.top);
+
+                for (let k = 0; k < hitAreas.length; k++) {
+                    const h = hitAreas[k];
+                    if (mouseX >= h.x && mouseX <= h.x + h.w && mouseY >= h.y && mouseY <= h.y + h.h) {
+                        return h;
+                    }
+                }
+                return null;
+            }
+
+            function onMouseMove(e) {
+                const hit = getHit(e);
+                if (hit !== hoveredHit) {
+                    hoveredHit = hit;
+                    canvas.style.cursor = hit ? 'pointer' : 'default';
+                    draw();
+                }
+            }
+
+            function onMouseLeave() {
+                if (hoveredHit) {
+                    hoveredHit = null;
+                    canvas.style.cursor = 'default';
+                    draw();
+                }
+            }
+
+            function onClick(e) {
+                const hit = getHit(e);
+                if (hit && onPick) {
+                    onPick(hit.labelIdx, hit.datasetIdx);
+                }
+            }
+
+            let resizeTimer = null;
+            function onResize() {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(() => {
+                    draw();
+                }, 100);
+            }
+
+            canvas.addEventListener('mousemove', onMouseMove);
+            canvas.addEventListener('mouseleave', onMouseLeave);
+            canvas.addEventListener('click', onClick);
+            window.addEventListener('resize', onResize);
+
+            draw();
+
+            return {
+                canvas: canvas,
+                destroy: function() {
+                    canvas.removeEventListener('mousemove', onMouseMove);
+                    canvas.removeEventListener('mouseleave', onMouseLeave);
+                    canvas.removeEventListener('click', onClick);
+                    window.removeEventListener('resize', onResize);
+                    clearTimeout(resizeTimer);
+                    if (box) box.style.height = '';
+                },
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                }
+            };
+        }
+
         function addChartCard(container, id, title, labels, datasets, ctxFn, extra) {
             const card = document.createElement('div');
             card.className = 'card chart-card';
@@ -882,7 +1308,13 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
                 if (!ds || !ds.data[idx]) return; // batang 0 tidak dibuka
                 openDetail(ctxFn(idx), ds.bin, title);
             } : null;
-            inst = new Chart(canvas, chartConfig(labels, datasets, title, onPick));
+            if (settings.chartType === 'horizontal_stacked') {
+                inst = renderHorizontalStackedChart(canvas, labels, datasets, title, onPick, extra);
+            } else {
+                const b = canvas.closest('.chart-box');
+                if (b) b.style.height = '';
+                inst = new Chart(canvas, chartConfig(labels, datasets, title, onPick));
+            }
             charts.push(inst);
 
             card.querySelector('.btn-tbl').onclick = () => {
@@ -1679,47 +2111,6 @@ $defaultTahun = in_array($current_tahun_ajaran, $tahunList, true) ? $current_tah
             }
         }
 
-        function loadJsPdf() {
-            if (window.jspdf && window.jspdf.jsPDF) {
-                if (typeof window.jspdf.jsPDF.API.autoTable === 'function' || typeof window.jspdf.autoTable === 'function') {
-                    return Promise.resolve(window.jspdf.jsPDF);
-                }
-            }
-            return new Promise((resolve, reject) => {
-                const s1 = document.createElement('script');
-                s1.src = 'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js';
-                s1.onload = () => {
-                    const s2 = document.createElement('script');
-                    s2.src = 'https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js';
-                    s2.onload = () => resolve(window.jspdf.jsPDF);
-                    s2.onerror = () => resolve(window.jspdf.jsPDF);
-                    document.head.appendChild(s2);
-                };
-                s1.onerror = () => reject(new Error('Gagal memuat library PDF (cek koneksi internet).'));
-                document.head.appendChild(s1);
-            });
-        }
-
-        function whiteDataUrl(canvas) {
-            const tmp = document.createElement('canvas');
-            tmp.width = canvas.width;
-            tmp.height = canvas.height;
-            const t = tmp.getContext('2d');
-            t.fillStyle = '#ffffff';
-            t.fillRect(0, 0, tmp.width, tmp.height);
-            t.drawImage(canvas, 0, 0);
-            return tmp.toDataURL('image/png');
-        }
-
-        function cleanPdfText(str) {
-            if (str === null || str === undefined) return '';
-            return String(str)
-                .replace(/≥/g, '>=')
-                .replace(/≤/g, '<=')
-                .replace(/[–—]/g, '-')
-                .replace(/•/g, '-')
-                .replace(/…/g, '...');
-        }
 
         async function exportPdf(opts = {}) {
             if (!DATA || !charts.length) return;
