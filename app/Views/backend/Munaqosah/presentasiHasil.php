@@ -132,6 +132,22 @@ $tpqLogo = !empty($activeTpq['LogoLembaga']) ? base_url('uploads/tpq/' . $active
     padding: 2.2% 4.5%;
 }
 
+/* Custom Scrollbar for Matriks Table */
+.prs-matriks-scroll::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+.prs-matriks-scroll::-webkit-scrollbar-track {
+    background: #f8fafc;
+}
+.prs-matriks-scroll::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+.prs-matriks-scroll::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
 /* Thumbnail Carousel */
 .prs-thumb-strip {
     display: flex;
@@ -457,7 +473,7 @@ $tpqLogo = !empty($activeTpq['LogoLembaga']) ? base_url('uploads/tpq/' . $active
             <!-- HUD Floating Controls -->
             <div class="prs-hud" id="prsHud">
                 <button class="prs-hud-btn" id="hudPrev" title="Slide Sebelumnya (Panah Kiri)"><i class="fas fa-chevron-left"></i></button>
-                <span class="small font-weight-bold px-2" id="hudSlideCounter">1 / 12</span>
+                <span class="small font-weight-bold px-2" id="hudSlideCounter">1 / 13</span>
                 <button class="prs-hud-btn" id="hudNext" title="Slide Berikutnya (Panah Kanan / Space)"><i class="fas fa-chevron-right"></i></button>
                 <div style="width: 1px; height: 16px; background: rgba(255,255,255,0.2); margin: 0 4px;"></div>
                 <button class="prs-hud-btn" id="hudLaser" title="Toggle Laser Pointer (P)"><i class="fas fa-bullseye"></i></button>
@@ -508,6 +524,9 @@ $tpqLogo = !empty($activeTpq['LogoLembaga']) ? base_url('uploads/tpq/' . $active
                     </li>
                     <li class="nav-item">
                         <a class="nav-link font-weight-bold" id="tab-kendala-link" data-toggle="pill" href="#tab-kendala" role="tab">Analisis Kendala</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link font-weight-bold" id="tab-matriks-link" data-toggle="pill" href="#tab-matriks" role="tab"><i class="fas fa-table mr-1"></i> Matriks Evaluasi</a>
                     </li>
                 </ul>
 
@@ -747,6 +766,37 @@ $tpqLogo = !empty($activeTpq['LogoLembaga']) ? base_url('uploads/tpq/' . $active
                             </div>
                         </div>
                     </div>
+
+                    <!-- Tab 5: Matriks Evaluasi & Pemetaan (Slide 12) -->
+                    <div class="tab-pane fade" id="tab-matriks" role="tabpanel">
+                        <div class="alert alert-info py-2 px-3 small">
+                            <i class="fas fa-table mr-1"></i> Pengaturan untuk <strong>Slide 12 (Matriks Evaluasi &amp; Pemetaan Materi)</strong>.
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="small font-weight-bold">Judul Slide Matriks</label>
+                                <input type="text" id="cfg_matriks_title" class="form-control form-control-sm" value="Matriks Evaluasi &amp; Pemetaan Kekurangan Materi">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="small font-weight-bold">Sub-Judul / Keterangan</label>
+                                <input type="text" id="cfg_matriks_subtitle" class="form-control form-control-sm" value="Daftar Rekapitulasi Capaian Materi per Santri">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="small font-weight-bold">Filter Tampilan Santri</label>
+                                <select id="cfg_matriks_filter" class="form-control form-control-sm">
+                                    <option value="kurang_only">Hanya yang Kurang (Nilai &lt; KKM)</option>
+                                    <option value="semua">Tampilkan Seluruh Santri (Lengkap)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="small font-weight-bold">Tampilkan Angka Nilai</label>
+                                <div class="custom-control custom-switch mt-1">
+                                    <input type="checkbox" class="custom-control-input" id="cfg_matriks_show_score" checked>
+                                    <label class="custom-control-label small" for="cfg_matriks_show_score">Tampilkan skor numerik di samping bulatan merah / hijau</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -760,6 +810,62 @@ $tpqLogo = !empty($activeTpq['LogoLembaga']) ? base_url('uploads/tpq/' . $active
                         <i class="fas fa-save mr-1"></i> Simpan &amp; Terapkan
                     </button>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== MODAL RINCIAN SANTRI PER MATERI (DRILL-DOWN DARI SLIDE 4) ==================== -->
+<div class="modal fade" id="modalDetailSantriMateri" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
+        <div class="modal-content" style="border-radius: 16px;">
+            <div class="modal-header bg-light">
+                <div>
+                    <h5 class="modal-title font-weight-bold text-dark mb-0" id="mdsmTitle">
+                        <i class="fas fa-book-reader text-primary mr-1"></i> Rincian Capaian Santri
+                    </h5>
+                    <div class="small text-muted" id="mdsmSubtitle">Daftar santri dan perolehan nilai materi</div>
+                </div>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body p-3">
+                <div class="d-flex justify-content-between align-items-center flex-wrap mb-3" style="gap: 8px;">
+                    <!-- Filter Pills -->
+                    <div class="btn-group btn-group-sm" role="group" id="mdsmFilterGroup">
+                        <button type="button" class="btn btn-primary font-weight-bold btn-filter-materi-status" data-filter="all">Semua (<span id="mdsmCountAll">0</span>)</button>
+                        <button type="button" class="btn btn-outline-success font-weight-bold btn-filter-materi-status" data-filter="aman">Aman (<span id="mdsmCountAman">0</span>)</button>
+                        <button type="button" class="btn btn-outline-warning font-weight-bold btn-filter-materi-status" data-filter="cukup">Cukup (<span id="mdsmCountCukup">0</span>)</button>
+                        <button type="button" class="btn btn-outline-danger font-weight-bold btn-filter-materi-status" data-filter="kurang">Perbaikan (<span id="mdsmCountKurang">0</span>)</button>
+                    </div>
+                    <!-- Search Input -->
+                    <div style="min-width: 200px;">
+                        <input type="search" id="mdsmSearchInput" class="form-control form-control-sm" placeholder="Cari santri...">
+                    </div>
+                </div>
+
+                <div class="table-responsive rounded border" style="max-height: 400px; overflow-y: auto;">
+                    <table class="table table-sm table-striped table-hover mb-0" id="mdsmTable">
+                        <thead class="thead-light" style="position: sticky; top: 0; z-index: 1;">
+                            <tr>
+                                <th style="width: 45px;" class="text-center">No</th>
+                                <th>Nama Santri</th>
+                                <th class="text-center" style="width: 100px;">Nilai</th>
+                                <th class="text-center" style="width: 130px;">Kategori</th>
+                            </tr>
+                        </thead>
+                        <tbody id="mdsmTableBody">
+                            <!-- Diisi secara dinamis -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer justify-content-between bg-light py-2">
+                <div class="small text-muted" id="mdsmFooterInfo">
+                    Total santri ditampilkan
+                </div>
+                <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Tutup</button>
             </div>
         </div>
     </div>
@@ -787,7 +893,7 @@ $tpqLogo = !empty($activeTpq['LogoLembaga']) ? base_url('uploads/tpq/' . $active
     // State object
     const TPQ_APP = {
         currentSlide: 1,
-        totalSlides: 12,
+        totalSlides: 13,
         dataset: null,
         chartInstance: null,
         isLaserActive: false,
@@ -820,7 +926,12 @@ $tpqLogo = !empty($activeTpq['LogoLembaga']) ? base_url('uploads/tpq/' . $active
         step1: { ctx: "TPQ", title: "Bimbingan Tambahan Maghrib", tag: "Ustadz Pembina Kelas 6", desc: "Fokus drill materi tajwid & kelancaran ayat-ayat panjang" },
         step2: { ctx: "TPQ", title: "Klinik Menulis & Imla' Khusus", tag: "Tim Pengajar Khat & Imla'", desc: "Pendampingan privat penulisan surah pendek dan kaidah sambung huruf" },
         step3: { ctx: "RUMAH", title: "Setoran Rutin Ba'da Subuh", tag: "Ayah / Bunda di Rumah", desc: "Murojaah 15 menit setiap pagi untuk menguatkan retensi hafalan" },
-        step4: { ctx: "WALI SANTRI", title: "Buku Kendali & Komunikasi Guru", tag: "Wali Kelas & Orang Tua", desc: "Pemeriksaan paraf buku pantauan harian dan simulasi ujian berkala" }
+        step4: { ctx: "WALI SANTRI", title: "Buku Kendali & Komunikasi Guru", tag: "Wali Kelas & Orang Tua", desc: "Pemeriksaan paraf buku pantauan harian dan simulasi ujian berkala" },
+        // Slide 12 Matriks Evaluasi
+        matriks_title: "Matriks Evaluasi & Pemetaan Kekurangan Materi",
+        matriks_subtitle: "Daftar Rekapitulasi Capaian Materi per Santri",
+        matriks_filter: "kurang_only",
+        matriks_show_score: true
     };
 
     // Storage Key per TPQ
@@ -868,6 +979,12 @@ $tpqLogo = !empty($activeTpq['LogoLembaga']) ? base_url('uploads/tpq/' . $active
         TPQ_APP.config.step2 = { ctx: $('#cfg_step2_ctx').val(), title: $('#cfg_step2_title').val(), tag: $('#cfg_step2_tag').val(), desc: $('#cfg_step2_desc').val() };
         TPQ_APP.config.step3 = { ctx: $('#cfg_step3_ctx').val(), title: $('#cfg_step3_title').val(), tag: $('#cfg_step3_tag').val(), desc: $('#cfg_step3_desc').val() };
         TPQ_APP.config.step4 = { ctx: $('#cfg_step4_ctx').val(), title: $('#cfg_step4_title').val(), tag: $('#cfg_step4_tag').val(), desc: $('#cfg_step4_desc').val() };
+
+        // Slide 12 Matriks Config
+        TPQ_APP.config.matriks_title = $('#cfg_matriks_title').val();
+        TPQ_APP.config.matriks_subtitle = $('#cfg_matriks_subtitle').val();
+        TPQ_APP.config.matriks_filter = $('#cfg_matriks_filter').val();
+        TPQ_APP.config.matriks_show_score = $('#cfg_matriks_show_score').is(':checked');
 
         try {
             localStorage.setItem(getStorageKey(), JSON.stringify(TPQ_APP.config));
@@ -922,6 +1039,12 @@ $tpqLogo = !empty($activeTpq['LogoLembaga']) ? base_url('uploads/tpq/' . $active
             $('#cfg_step4_tag').val(TPQ_APP.config.step4.tag);
             $('#cfg_step4_desc').val(TPQ_APP.config.step4.desc);
         }
+
+        // Slide 12 Matriks Config
+        $('#cfg_matriks_title').val(TPQ_APP.config.matriks_title || DEFAULT_CONFIG.matriks_title);
+        $('#cfg_matriks_subtitle').val(TPQ_APP.config.matriks_subtitle || DEFAULT_CONFIG.matriks_subtitle);
+        $('#cfg_matriks_filter').val(TPQ_APP.config.matriks_filter || 'kurang_only');
+        $('#cfg_matriks_show_score').prop('checked', TPQ_APP.config.matriks_show_score !== false);
     }
 
     // Parse thresholds
@@ -1031,6 +1154,7 @@ $tpqLogo = !empty($activeTpq['LogoLembaga']) ? base_url('uploads/tpq/' . $active
         "Strategi Perbaikan",
         "Peran Wali Santri",
         "Peta Kebutuhan Santri",
+        "Matriks Evaluasi Materi",
         "Penutup & Komitmen"
     ];
 
@@ -1087,6 +1211,7 @@ $tpqLogo = !empty($activeTpq['LogoLembaga']) ? base_url('uploads/tpq/' . $active
             case 10: renderSlide10(canvas); break;
             case 11: renderSlide11(canvas); break;
             case 12: renderSlide12(canvas); break;
+            case 13: renderSlide13(canvas); break;
             default: renderSlide1(canvas); break;
         }
     }
@@ -1293,7 +1418,7 @@ $tpqLogo = !empty($activeTpq['LogoLembaga']) ? base_url('uploads/tpq/' . $active
         `);
     }
 
-    // SLIDE 4: Grafik Sebaran Nilai per Materi (Sepenuhnya dari DB)
+    // SLIDE 4: Grafik Sebaran Nilai per Materi (Sepenuhnya dari DB dengan Ringkasan Aman & Perbaikan)
     function renderSlide4(canvas) {
         canvas.addClass('slide-theme-light');
         const th = getThresholds();
@@ -1327,39 +1452,141 @@ $tpqLogo = !empty($activeTpq['LogoLembaga']) ? base_url('uploads/tpq/' . $active
             };
         });
 
+        // Cari materi dengan jumlah perbaikan terbanyak
+        let worstCat = null;
+        catStats.forEach(c => {
+            if (!worstCat || c.kurang > worstCat.kurang) {
+                worstCat = c;
+            }
+        });
+
+        function getCategoryIcon(name) {
+            const s = String(name || '').toLowerCase();
+            if (s.includes('doa') || s.includes('adab')) return '🤲';
+            if (s.includes('surah') || s.includes('surat') || s.includes('juz')) return '📖';
+            if (s.includes('sholat') || s.includes('shalat')) return '🧎';
+            if (s.includes('ayat')) return '☪️';
+            if (s.includes('tulis') || s.includes('khat') || s.includes('imla')) return '✏️';
+            if (s.includes('baca') || s.includes('tajwid') || s.includes('tilawah')) return '📕';
+            if (s.includes('hafalan') || s.includes('tahfidz')) return '🧠';
+            if (s.includes('fiqih') || s.includes('dinul')) return '🕌';
+            return '📘';
+        }
+
+        const catCount = catStats.length;
+        const itemMb = catCount >= 8 ? 'mb-1' : (catCount >= 6 ? 'mb-2' : (catCount >= 5 ? 'mb-2' : 'mb-3'));
+        const itemPy = catCount >= 6 ? 'py-1 px-2' : 'py-1 px-2';
+        const barHeight = catCount >= 8 ? '12px' : (catCount >= 6 ? '14px' : (catCount >= 5 ? '16px' : '18px'));
+        const titleSize = catCount >= 8 ? '0.84rem' : (catCount >= 6 ? '0.88rem' : '0.94rem');
+        const sumSize = catCount >= 8 ? '0.78rem' : (catCount >= 6 ? '0.82rem' : '0.86rem');
+        const iconSize = catCount >= 8 ? '0.95rem' : '1.05rem';
+
+        const barRowsHtml = catStats.map(c => {
+            const icon = getCategoryIcon(c.name);
+            const total = c.aman + c.cukup + c.kurang;
+            const pctAman = total > 0 ? Math.round((c.aman / total) * 100) : 0;
+            const pctCukup = total > 0 ? Math.round((c.cukup / total) * 100) : 0;
+            const pctKurang = total > 0 ? Math.max(0, 100 - pctAman - pctCukup) : 0;
+
+            // Logika label ringkasan persis seperti halaman statistik
+            let p1Text = '';
+            let p2Text = '';
+            if (c.kurang === 0) {
+                p1Text = `${c.aman} Santri Aman (100%)`;
+                p2Text = `0 Perbaikan`;
+            } else if (pctAman >= 45 || c.aman >= c.kurang) {
+                p1Text = `${c.aman} Santri Aman (${pctAman}%)`;
+                p2Text = `${c.kurang} Perbaikan`;
+            } else {
+                p1Text = `${c.aman} Santri Aman`;
+                p2Text = `${c.kurang} Perbaikan (${pctKurang}%)`;
+            }
+
+            return `
+                <div class="${itemMb} prs-stat-bar-item ${itemPy} rounded" style="transition: background 0.15s ease;" onmouseenter="this.style.background='#f8fafc'" onmouseleave="this.style.background='transparent'">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <div class="font-weight-bold text-dark d-flex align-items-center text-truncate mr-2" style="font-size: ${titleSize}; cursor: pointer;" onclick="openMateriSantriModal('${c.id}', 'all')" title="Klik untuk melihat rincian santri">
+                            <span class="mr-2" style="font-size: ${iconSize};">${icon}</span>
+                            <span class="text-truncate" style="max-width: 250px;">${c.name}</span>
+                        </div>
+                        <div class="text-right flex-shrink-0" style="font-size: ${sumSize}; cursor: pointer;" onclick="openMateriSantriModal('${c.id}', 'all')" title="Klik untuk melihat rincian santri">
+                            <span class="font-weight-bold" style="color: #16a34a;">${p1Text}</span>
+                            <span class="mx-1" style="color: #94a3b8; font-weight: bold;">•</span>
+                            <span class="font-weight-bold" style="color: ${c.kurang > 0 ? '#dc2626' : '#94a3b8'};">${p2Text}</span>
+                        </div>
+                    </div>
+                    <div class="progress" style="height: ${barHeight}; border-radius: 99px; background: #e2e8f0; overflow: hidden; box-shadow: inset 0 1px 2px rgba(0,0,0,0.06); cursor: pointer;" title="Klik untuk melihat rincian santri">
+                        ${pctAman > 0 ? `<div class="progress-bar" role="progressbar" onclick="event.stopPropagation(); openMateriSantriModal('${c.id}', 'aman');" style="width: ${pctAman}%; background: #16a34a;" title="Aman (&ge;${th.aman}): ${c.aman} Santri (${pctAman}%) • Klik untuk rincian"></div>` : ''}
+                        ${pctCukup > 0 ? `<div class="progress-bar" role="progressbar" onclick="event.stopPropagation(); openMateriSantriModal('${c.id}', 'cukup');" style="width: ${pctCukup}%; background: #f59e0b;" title="Cukup (${th.kkm} - ${th.aman}): ${c.cukup} Santri (${pctCukup}%) • Klik untuk rincian"></div>` : ''}
+                        ${pctKurang > 0 ? `<div class="progress-bar" role="progressbar" onclick="event.stopPropagation(); openMateriSantriModal('${c.id}', 'kurang');" style="width: ${pctKurang}%; background: #ef4444;" title="Kurang (<${th.kkm}): ${c.kurang} Santri (${pctKurang}%) • Klik untuk rincian"></div>` : ''}
+                    </div>
+                </div>
+            `;
+        }).join('');
+
         canvas.html(`
-            <div class="slide-content-area h-100 d-flex flex-column justify-content-between">
+            <div class="slide-content-area h-100 d-flex flex-column justify-content-between p-3 p-lg-4" style="overflow: visible;">
                 <div>
                     <div class="slide-eyebrow text-primary">GRAFIK SEBARAN NILAI</div>
-                    <div class="d-flex justify-content-between align-items-baseline">
+                    <div class="d-flex justify-content-between align-items-baseline mb-2 flex-wrap">
                         <h2 class="slide-title-serif text-dark font-weight-bold mb-1">Sebaran Capaian ${totalSantri} Santri per Materi</h2>
                         <div class="d-flex gap-2">
-                            <span class="badge badge-success px-2 py-1"><i class="fas fa-square mr-1"></i> Aman (&ge;${th.aman})</span>
-                            <span class="badge badge-warning px-2 py-1 ml-1"><i class="fas fa-square mr-1"></i> Cukup (${th.kkm}-${th.aman})</span>
-                            <span class="badge badge-danger px-2 py-1 ml-1"><i class="fas fa-square mr-1"></i> Kurang (&lt;${th.kkm})</span>
+                            <span class="badge badge-success px-2 py-1"><i class="fas fa-circle mr-1" style="font-size:0.5rem; vertical-align:middle;"></i> Aman (&ge;${th.aman})</span>
+                            <span class="badge badge-warning px-2 py-1 ml-1"><i class="fas fa-circle mr-1" style="font-size:0.5rem; vertical-align:middle;"></i> Cukup (${th.kkm}-${th.aman})</span>
+                            <span class="badge badge-danger px-2 py-1 ml-1"><i class="fas fa-circle mr-1" style="font-size:0.5rem; vertical-align:middle;"></i> Kurang (&lt;${th.kkm})</span>
                         </div>
                     </div>
                 </div>
 
-                <div class="row align-items-center my-auto">
-                    <div class="col-8">
-                        <div style="height: 38vh; position: relative;">
-                            <canvas id="chartSebaranMateri"></canvas>
+                <div class="row align-items-center my-auto w-100 mx-0">
+                    <!-- Kolom Kiri: Baris Sebaran per Materi dengan Ringkasan Aman & Perbaikan (Semua Tampil Penuh Tanpa Scroll) -->
+                    <div class="col-8 px-2">
+                        <div class="w-100" style="overflow: visible;">
+                            ${barRowsHtml}
                         </div>
                     </div>
-                    <div class="col-4">
-                        <div class="prs-card p-3 mb-2" style="border-left: 4px solid #10b981;">
-                            <div class="small text-muted font-weight-bold">TOTAL SANTRI DIUJI</div>
+
+                    <!-- Kolom Kanan: Rangkuman Prioritas & Keterangan -->
+                    <div class="col-4 px-2">
+                        <div class="prs-card p-2 p-xl-3 mb-2" style="border-left: 4px solid #16a34a;">
+                            <div class="small text-muted font-weight-bold text-uppercase" style="font-size: 0.72rem;">TOTAL SANTRI DIUJI</div>
                             <div class="h3 font-weight-bold text-dark mb-0">${totalSantri} Santri</div>
+                            <div class="small text-muted mt-1">${catStats.length} Materi Ujian Dinilai</div>
                         </div>
 
-                        <div class="prs-card p-3 mb-2" style="border-left: 4px solid #ef4444;">
-                            <div class="small text-muted font-weight-bold">FOKUS PRIORITAS PEMBINAAN</div>
-                            <div class="small text-muted mt-1">Materi dengan jumlah santri belum tuntas terbanyak akan dijadwalkan drill khusus ustadz.</div>
+                        ${worstCat && worstCat.kurang > 0 ? `
+                        <div class="prs-card p-2 p-xl-3 mb-2" style="border-left: 4px solid #ef4444; background: #fff5f5;">
+                            <div class="small text-danger font-weight-bold text-uppercase" style="font-size: 0.72rem;"><i class="fas fa-exclamation-triangle mr-1"></i>Fokus Pembinaan Utama</div>
+                            <div class="font-weight-bold text-dark mt-1">${worstCat.name}</div>
+                            <div class="small text-danger font-weight-bold mt-1">${worstCat.kurang} Santri Butuh Perbaikan</div>
+                            <div class="small text-muted mt-1" style="font-size: 0.78rem;">Prioritas pendampingan sebelum munaqosah.</div>
+                        </div>
+                        ` : `
+                        <div class="prs-card p-2 p-xl-3 mb-2" style="border-left: 4px solid #16a34a; background: #f0fdf4;">
+                            <div class="small text-success font-weight-bold text-uppercase" style="font-size: 0.72rem;"><i class="fas fa-check-circle mr-1"></i>Status Capaian</div>
+                            <div class="font-weight-bold text-dark mt-1">Pencapaian Sangat Baik</div>
+                            <div class="small text-muted mt-1" style="font-size: 0.78rem;">Seluruh santri memenuhi ambang kelulusan.</div>
+                        </div>
+                        `}
+
+                        <div class="prs-card p-2 p-xl-3 bg-light border mb-2">
+                            <div class="small font-weight-bold text-dark mb-1" style="font-size: 0.76rem;"><i class="fas fa-layer-group text-primary mr-1"></i> Standar Kategori:</div>
+                            <div class="d-flex justify-content-between align-items-center mb-1 small" style="font-size: 0.78rem;">
+                                <span><i class="fas fa-circle mr-1" style="color: #16a34a; font-size: 0.5rem;"></i>Aman</span>
+                                <span class="font-weight-bold text-success">&ge; ${th.aman}</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mb-1 small" style="font-size: 0.78rem;">
+                                <span><i class="fas fa-circle mr-1" style="color: #f59e0b; font-size: 0.5rem;"></i>Cukup</span>
+                                <span class="font-weight-bold text-warning">${th.kkm} - ${th.aman}</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center small" style="font-size: 0.78rem;">
+                                <span><i class="fas fa-circle mr-1" style="color: #ef4444; font-size: 0.5rem;"></i>Perbaikan</span>
+                                <span class="font-weight-bold text-danger">&lt; ${th.kkm}</span>
+                            </div>
                         </div>
 
-                        <div class="prs-card p-2 text-center bg-light">
-                            <span class="small font-weight-bold text-primary"><i class="fas fa-info-circle mr-1"></i> Data Realtime Penilaian Juri</span>
+                        <div class="small text-muted text-center" style="font-size: 0.75rem;">
+                            <i class="fas fa-hand-pointer text-primary mr-1"></i> Klik pada batang untuk rincian santri
                         </div>
                     </div>
                 </div>
@@ -1369,41 +1596,134 @@ $tpqLogo = !empty($activeTpq['LogoLembaga']) ? base_url('uploads/tpq/' . $active
                 </div>
             </div>
         `);
+    }
 
-        // Render Chart.js Horizontal Stacked Bar
-        setTimeout(() => {
-            const ctx = document.getElementById('chartSebaranMateri');
-            if (!ctx) return;
+    // State & Handler Modal Rincian Santri per Materi (Slide 4 Drill-down)
+    let currentMateriDetail = {
+        catId: null,
+        catName: '',
+        filter: 'all',
+        searchTerm: '',
+        items: []
+    };
 
-            const labels = catStats.map(c => c.name);
-            const dataAman = catStats.map(c => c.aman);
-            const dataCukup = catStats.map(c => c.cukup);
-            const dataKurang = catStats.map(c => c.kurang);
+    window.openMateriSantriModal = function(catId, filterType) {
+        const data = TPQ_APP.dataset;
+        const th = getThresholds();
+        if (!data || !data.rows || !data.categories) return;
 
-            TPQ_APP.chartInstance = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        { label: 'Aman', data: dataAman, backgroundColor: '#10b981', borderRadius: 4 },
-                        { label: 'Cukup', data: dataCukup, backgroundColor: '#f59e0b', borderRadius: 4 },
-                        { label: 'Kurang', data: dataKurang, backgroundColor: '#ef4444', borderRadius: 4 }
-                    ]
-                },
-                options: {
-                    indexAxis: 'y',
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        x: { stacked: true, grid: { display: false } },
-                        y: { stacked: true, grid: { color: '#f1f5f9' }, ticks: { font: { weight: 'bold' } } }
-                    },
-                    plugins: {
-                        legend: { display: false }
-                    }
-                }
-            });
-        }, 50);
+        const cat = data.categories.find(c => String(c.id) === String(catId));
+        if (!cat) return;
+
+        const items = [];
+        data.rows.forEach(r => {
+            const score = r.avg ? r.avg[cat.id] : null;
+            if (score !== undefined && score !== null) {
+                const sVal = Number(score) || 0;
+                let status = 'kurang';
+                if (sVal >= th.aman) status = 'aman';
+                else if (sVal >= th.kkm) status = 'cukup';
+
+                items.push({
+                    np: r.np,
+                    nm: r.nm,
+                    scores: r.avg || {},
+                    score: sVal,
+                    status: status
+                });
+            }
+        });
+
+        // Urutkan nilai dari terendah ke tertinggi (prioritas santri butuh bimbingan)
+        items.sort((a, b) => a.score - b.score);
+
+        currentMateriDetail = {
+            catId: cat.id,
+            catName: cat.name,
+            filter: filterType || 'all',
+            searchTerm: '',
+            items: items
+        };
+
+        const countAman = items.filter(i => i.status === 'aman').length;
+        const countCukup = items.filter(i => i.status === 'cukup').length;
+        const countKurang = items.filter(i => i.status === 'kurang').length;
+
+        $('#mdsmTitle').html(`<i class="fas fa-book-reader text-primary mr-2"></i> ${cat.name} • Rincian Santri`);
+        $('#mdsmSubtitle').text(`${items.length} Santri Dinilai • Standar Aman: ≥${th.aman}, KKM: ≥${th.kkm}`);
+        $('#mdsmCountAll').text(items.length);
+        $('#mdsmCountAman').text(countAman);
+        $('#mdsmCountCukup').text(countCukup);
+        $('#mdsmCountKurang').text(countKurang);
+        $('#mdsmSearchInput').val('');
+
+        updateMateriDetailFilterUI(currentMateriDetail.filter);
+        renderMateriDetailTable();
+        $('#modalDetailSantriMateri').modal('show');
+    };
+
+    function updateMateriDetailFilterUI(activeFilter) {
+        $('.btn-filter-materi-status').each(function() {
+            const f = $(this).data('filter');
+            $(this).removeClass('btn-primary btn-success btn-warning btn-danger active').addClass('btn-outline-secondary');
+            if (f === activeFilter) {
+                $(this).removeClass('btn-outline-secondary').addClass('active');
+                if (f === 'all') $(this).addClass('btn-primary');
+                else if (f === 'aman') $(this).addClass('btn-success');
+                else if (f === 'cukup') $(this).addClass('btn-warning text-dark');
+                else if (f === 'kurang') $(this).addClass('btn-danger');
+            }
+        });
+    }
+
+    function renderMateriDetailTable() {
+        const { items, filter, searchTerm } = currentMateriDetail;
+        const term = (searchTerm || '').toLowerCase();
+
+        const filtered = items.filter(i => {
+            if (filter !== 'all' && i.status !== filter) return false;
+            if (term && !i.nm.toLowerCase().includes(term) && !String(i.np || '').toLowerCase().includes(term)) return false;
+            return true;
+        });
+
+        if (!filtered.length) {
+            $('#mdsmTableBody').html(`
+                <tr>
+                    <td colspan="4" class="text-center text-muted py-4">
+                        <i class="fas fa-info-circle mr-1"></i> Tidak ada data santri yang cocok dengan filter / pencarian.
+                    </td>
+                </tr>
+            `);
+            $('#mdsmFooterInfo').text('Menampilkan 0 santri');
+            return;
+        }
+
+        const rowsHtml = filtered.map((s, idx) => {
+            let badge = '';
+            if (s.status === 'aman') {
+                badge = `<span class="badge badge-success px-2 py-1"><i class="fas fa-check-circle mr-1"></i>Aman</span>`;
+            } else if (s.status === 'cukup') {
+                badge = `<span class="badge badge-warning px-2 py-1"><i class="fas fa-exclamation-circle mr-1"></i>Cukup</span>`;
+            } else {
+                badge = `<span class="badge badge-danger px-2 py-1"><i class="fas fa-times-circle mr-1"></i>Perbaikan</span>`;
+            }
+
+            const valColor = (s.status === 'kurang') ? '#dc2626' : (s.status === 'aman' ? '#16a34a' : '#d97706');
+
+            return `
+                <tr>
+                    <td class="text-center text-muted align-middle">${idx + 1}</td>
+                    <td class="align-middle">${formatSantriIdentity(s)}</td>
+                    <td class="text-center align-middle font-weight-bold" style="color: ${valColor}; font-size: 0.95rem;">
+                        ${s.score.toFixed(2)}
+                    </td>
+                    <td class="text-center align-middle">${badge}</td>
+                </tr>
+            `;
+        }).join('');
+
+        $('#mdsmTableBody').html(rowsHtml);
+        $('#mdsmFooterInfo').text(`Menampilkan ${filtered.length} dari total ${items.length} santri`);
     }
 
     // Helper: Hitung rata-rata & tuntas per materi
@@ -1906,8 +2226,178 @@ $tpqLogo = !empty($activeTpq['LogoLembaga']) ? base_url('uploads/tpq/' . $active
         `);
     }
 
-    // SLIDE 12: Penutup / Closing (Dark Theme)
+    // SLIDE 12: Matriks Evaluasi & Pemetaan Kekurangan Materi Santri (Tampilan Bersih & Presentatif)
     function renderSlide12(canvas) {
+        canvas.addClass('slide-theme-light');
+        const th = getThresholds();
+        const cfg = TPQ_APP.config;
+        const data = TPQ_APP.dataset;
+
+        if (!data || !data.rows || data.rows.length === 0) {
+            canvas.html(`
+                <div class="slide-content-area h-100 d-flex align-items-center justify-content-center text-muted">
+                    <div class="text-center">
+                        <i class="fas fa-inbox fa-3x mb-3 text-secondary"></i>
+                        <h5>Belum Ada Data Peserta</h5>
+                        <p class="small">Silakan pilih Tahun Ajaran &amp; Lembaga TPQ yang sesuai.</p>
+                    </div>
+                </div>
+            `);
+            return;
+        }
+
+        const showScore = cfg.matriks_show_score !== false;
+        const filterMode = cfg.matriks_filter || 'kurang_only';
+        const cats = data.categories || [];
+        const currentTh = th.kkm;
+
+        // Process rows
+        const items = data.rows.map(r => {
+            const scores = {};
+            let totalKurang = 0;
+            cats.forEach(c => {
+                const v = (r.avg && r.avg[c.id] !== undefined) ? Number(r.avg[c.id]) : 0;
+                scores[c.id] = v;
+                if (v < currentTh) {
+                    totalKurang++;
+                }
+            });
+            return {
+                np: r.np,
+                nm: r.nm || '-',
+                name: r.nm || '-',
+                scores: scores,
+                totalKurang: totalKurang
+            };
+        });
+
+        // Filter: default hanya santri yang memiliki nilai kurang (< KKM)
+        let filtered = items;
+        if (filterMode === 'kurang_only') {
+            filtered = items.filter(s => s.totalKurang > 0);
+        }
+
+        // Urutkan santri dengan kekurangan materi terbanyak di paling atas
+        filtered.sort((a, b) => {
+            if (b.totalKurang !== a.totalKurang) return b.totalKurang - a.totalKurang;
+            return a.nm.localeCompare(b.nm);
+        });
+
+        const totalKurangSantri = items.filter(s => s.totalKurang > 0).length;
+        const title = cfg.matriks_title || 'Matriks Evaluasi & Pemetaan Kekurangan Materi';
+        const subtitle = cfg.matriks_subtitle || 'Daftar Rekapitulasi Capaian Materi per Santri';
+
+        // Table Header (Tanpa No Test, T.A, Type, dan TPQ)
+        let thCols = `
+            <th style="width: 45px;" class="text-center bg-light">No</th>
+            <th class="bg-light" style="min-width: 180px;">Nama Santri</th>
+        `;
+        cats.forEach(c => {
+            thCols += `<th class="text-center bg-light font-weight-bold" style="min-width: 95px;">${c.name.toUpperCase()}</th>`;
+        });
+        thCols += `<th class="text-center font-weight-bold bg-light" style="width: 110px;">Total Kurang</th>`;
+
+        // Table Body
+        let bodyHtml = '';
+        if (!filtered.length) {
+            bodyHtml = `
+                <tr>
+                    <td colspan="${2 + cats.length + 1}" class="text-center text-muted py-5">
+                        <i class="fas fa-check-circle text-success fa-2x mb-2 d-block"></i>
+                        <strong class="text-success">Alhamdulillah, Seluruh Santri Tuntas di Atas Standar KKM (&ge; ${currentTh}).</strong>
+                    </td>
+                </tr>
+            `;
+        } else {
+            bodyHtml = filtered.map((s, idx) => {
+                const catTds = cats.map(c => {
+                    const v = s.scores[c.id];
+                    if (v < currentTh) {
+                        const scoreDisplay = (v === 0) ? '0' : v.toFixed(2);
+                        const content = showScore ?
+                            `<span class="badge badge-danger font-weight-bold px-2 py-1" style="font-size:0.75rem; border-radius:99px;"><i class="fas fa-circle mr-1" style="font-size:0.46rem; vertical-align:middle;"></i>${scoreDisplay}</span>` :
+                            `<i class="fas fa-circle text-danger" style="font-size:0.9rem;" title="Nilai: ${scoreDisplay}"></i>`;
+                        return `<td class="text-center table-danger" style="background:#ffebee;">${content}</td>`;
+                    } else {
+                        const content = showScore ?
+                            `<span class="badge badge-success font-weight-bold px-2 py-1" style="font-size:0.75rem; border-radius:99px;"><i class="fas fa-circle mr-1" style="font-size:0.46rem; vertical-align:middle;"></i>${v.toFixed(2)}</span>` :
+                            `<i class="fas fa-circle text-success" style="font-size:0.9rem;" title="Nilai: ${v.toFixed(2)}"></i>`;
+                        return `<td class="text-center" style="background:#f0fdf4;">${content}</td>`;
+                    }
+                }).join('');
+
+                const badgeTotal = s.totalKurang > 0 ?
+                    `<span class="badge badge-danger px-2 py-1 font-weight-bold" style="font-size:0.78rem;">${s.totalKurang} Materi</span>` :
+                    `<span class="badge badge-success px-2 py-1" style="font-size:0.78rem;">0 (Tuntas)</span>`;
+
+                return `
+                    <tr style="height: 38px;">
+                        <td class="text-center text-muted align-middle">${idx + 1}</td>
+                        <td class="align-middle">${formatSantriIdentity(s)}</td>
+                        ${catTds}
+                        <td class="text-center align-middle">${badgeTotal}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        canvas.html(`
+            <div class="slide-content-area h-100 d-flex flex-column justify-content-between p-3 p-lg-4">
+                <!-- Header Slide (Bersih, Rapi & Elegan) -->
+                <div>
+                    <div class="slide-eyebrow text-primary">MATRIKS EVALUASI &amp; PEMETAAN</div>
+                    <div class="d-flex justify-content-between align-items-center flex-wrap mb-2">
+                        <div>
+                            <h2 class="slide-title-serif text-dark font-weight-bold mb-0" style="font-size: 1.4rem;">
+                                ${title}
+                            </h2>
+                            <div class="small text-muted mt-1">
+                                <i class="fas fa-clipboard-check text-primary mr-1"></i>${subtitle}
+                            </div>
+                        </div>
+
+                        <!-- Lencana Ringkas Standar & Total -->
+                        <div class="d-flex align-items-center gap-2 mt-2 mt-lg-0">
+                            <span class="prs-badge-soft bg-danger text-white">
+                                <i class="fas fa-user-times mr-1"></i>${totalKurangSantri} Santri Perlu Penguatan (Nilai &lt; ${currentTh})
+                            </span>
+                            <span class="prs-badge-soft bg-light border text-dark font-weight-bold">
+                                Total: ${items.length} Peserta
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Table Container with High-Res Scroll -->
+                <div class="flex-grow-1 table-responsive prs-matriks-scroll border rounded bg-white shadow-sm my-2" style="overflow-y: auto; max-height: 440px;">
+                    <table class="table table-bordered table-sm table-hover mb-0 text-nowrap" id="tblMatriksEvaluasi" style="font-size: 0.82rem;">
+                        <thead class="thead-light" style="position: sticky; top: 0; z-index: 5; box-shadow: 0 1px 3px rgba(0,0,0,0.06);">
+                            <tr>${thCols}</tr>
+                        </thead>
+                        <tbody>${bodyHtml}</tbody>
+                    </table>
+                </div>
+
+                <!-- Footer Slide -->
+                <div class="d-flex justify-content-between align-items-center border-top pt-2 text-muted small">
+                    <div>
+                        <span class="badge badge-light border text-danger mr-2">
+                            <i class="fas fa-circle text-danger mr-1" style="font-size:0.55rem; vertical-align:middle;"></i> Nilai &lt; ${currentTh} (Belum Tuntas)
+                        </span>
+                        <span class="badge badge-light border text-success">
+                            <i class="fas fa-circle text-success mr-1" style="font-size:0.55rem; vertical-align:middle;"></i> Nilai &ge; ${currentTh} (Tuntas)
+                        </span>
+                    </div>
+                    <div>
+                        <i class="fas fa-shield-alt text-primary mr-1"></i> Menuju Sukses Kelulusan 100%
+                    </div>
+                </div>
+            </div>
+        `);
+    }
+
+    // SLIDE 13: Penutup / Closing (Dark Theme)
+    function renderSlide13(canvas) {
         canvas.addClass('slide-theme-dark');
         const cfg = TPQ_APP.config;
 
@@ -2104,6 +2594,20 @@ $tpqLogo = !empty($activeTpq['LogoLembaga']) ? base_url('uploads/tpq/' . $active
         renderSlide(11);
     });
 
+    // Modal Rincian Santri Slide 4 Filter & Search
+    $(document).on('click', '.btn-filter-materi-status', function(e) {
+        e.preventDefault();
+        const f = $(this).data('filter');
+        currentMateriDetail.filter = f;
+        updateMateriDetailFilterUI(f);
+        renderMateriDetailTable();
+    });
+
+    $(document).on('input', '#mdsmSearchInput', function() {
+        currentMateriDetail.searchTerm = $(this).val();
+        renderMateriDetailTable();
+    });
+
     $('#filterTpq, #filterTahunAjaran, #filterTypeUjian').on('change', function() {
         if (this.id === 'filterTpq') {
             loadConfig();
@@ -2122,7 +2626,7 @@ $tpqLogo = !empty($activeTpq['LogoLembaga']) ? base_url('uploads/tpq/' . $active
         const originalHtml = btn.html();
         btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-1"></i> Membuat PDF...');
 
-        toastr.info('Memproses 12 slide ke format PDF Landscape... Mohon tunggu.');
+        toastr.info(`Memproses ${TPQ_APP.totalSlides} slide ke format PDF Landscape... Mohon tunggu.`);
 
         try {
             const { jsPDF } = window.jspdf;
