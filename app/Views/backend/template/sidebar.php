@@ -497,6 +497,12 @@
                                                 <p>Analisis Catatan Juri</p>
                                             </a>
                                         </li>
+                                        <li class="nav-item">
+                                            <a href=<?php echo base_url('backend/munaqosah/presentasi-hasil') ?> class="nav-link">
+                                                <i class="fas fa-tv nav-icon text-info"></i>
+                                                <p>Presentasi Hasil</p>
+                                            </a>
+                                        </li>
                                     </ul>
                                 </li>
                                 <li class="nav-item">

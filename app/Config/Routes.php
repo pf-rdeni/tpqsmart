@@ -472,6 +472,9 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->get('munaqosah/kelulusan-data', 'Munaqosah::getKelulusanData');
     $routes->get('munaqosah/statistik-hasil', 'Munaqosah::statistikHasil');
     $routes->get('munaqosah/statistik-hasil-data', 'Munaqosah::getStatistikHasilData');
+    $routes->get('munaqosah/presentasi-hasil', 'Munaqosah::presentasiHasil');
+    $routes->match(['GET', 'POST'], 'munaqosah/presentasi-hasil/data', 'Munaqosah::getStatistikHasilData');
+    $routes->get('munaqosah/presentasi-slideshow', 'Munaqosah::presentasiSlideshow');
     $routes->get('munaqosah/statistik-hasil-detail', 'Munaqosah::statistikHasilDetail');
     $routes->get('munaqosah/statistik-hasil-detail-data', 'Munaqosah::getStatistikHasilDetailData');
     $routes->get('munaqosah/statistik-catatan-juri', 'Munaqosah::statistikCatatanJuri');

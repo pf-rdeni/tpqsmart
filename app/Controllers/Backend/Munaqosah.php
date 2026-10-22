@@ -11784,6 +11784,65 @@ class Munaqosah extends BaseController
     }
 
     /**
+     * Halaman Presentasi Statistik Hasil Munaqosah (12 Slide Interaktif + Fullscreen + Export PDF)
+     */
+    public function presentasiHasil()
+    {
+        helper('munaqosah');
+
+        $helpFunctionModel = new \App\Models\HelpFunctionModel();
+        $currentTahunAjaran = $helpFunctionModel->getTahunAjaranSaatIni();
+
+        $idTpq = session()->get('IdTpq');
+        $dataTpq = $this->helpFunction->getDataTpq($idTpq);
+        $akses = $this->resolveStatistikAkses();
+
+        $tahunAjaranList = $this->getTahunAjaranFromNilaiMunaqosah();
+
+        // Data TPQ aktif
+        $activeTpq = null;
+        if (!empty($idTpq)) {
+            $tpqRow = $this->tpqModel->where('IdTpq', $idTpq)->first();
+            if ($tpqRow) {
+                $activeTpq = $tpqRow;
+            }
+        }
+
+        // Daftar guru untuk dropdown penanggung jawab langkah aksi
+        $guruList = [];
+        try {
+            $guruQuery = $this->guruModel->where('Status', 1);
+            if (!empty($idTpq)) {
+                $guruQuery->where('IdTpq', $idTpq);
+            }
+            $guruList = $guruQuery->orderBy('Nama', 'ASC')->findAll();
+        } catch (\Throwable $e) {
+            // abaikan jika ada error
+        }
+
+        return view('backend/Munaqosah/presentasiHasil', [
+            'page_title' => 'Presentasi Statistik Hasil Munaqosah',
+            'current_tahun_ajaran' => $currentTahunAjaran,
+            'tahunAjaranList' => $tahunAjaranList,
+            'tpqDropdown' => $dataTpq,
+            'activeTpq' => $activeTpq,
+            'guruList' => $guruList,
+            'aktiveTombolKelulusan' => $akses['aktive'],
+            'isAdmin' => $akses['isAdmin'],
+            'isOperator' => $akses['isOperator'],
+            'isKepalaTpq' => $akses['isKepalaTpq'],
+        ]);
+    }
+
+    /**
+     * Halaman Slideshow Fullscreen Mandiri
+     */
+    public function presentasiSlideshow()
+    {
+        return $this->presentasiHasil();
+    }
+
+    /**
      * Data JSON statistik: nilai rata-rata juri per peserta per materi, per tahun ajaran.
      * Memakai buildMonitoringDataset (sama dengan halaman Nilai Munaqosah); bobot diabaikan.
      * Non-admin dipaksa ke IdTpq sesi.
