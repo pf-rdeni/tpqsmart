@@ -94,6 +94,7 @@ class Filters extends BaseFilters
                     'munaqosah/status-proses',
                     'munaqosah/kelulusan',
                     'munaqosah/generate-surat-kelulusan',
+                    'munaqosah/generate-nilai-kelulusan',
                     'cek-status-rapor',  // Cek status rapor publik
                     'cek-status-rapor/*', // Cek status rapor publik dengan parameter
                     'auth/logout', // untuk logout

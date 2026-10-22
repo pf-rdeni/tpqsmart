@@ -88,6 +88,7 @@ $routes->post('munaqosah/verifikasi-data', 'Frontend\StatusUjianMunaqosah::verif
 $routes->get('munaqosah/status-proses', 'Frontend\StatusUjianMunaqosah::statusProses');
 $routes->get('munaqosah/kelulusan', 'Frontend\StatusUjianMunaqosah::kelulusan');
 $routes->get('munaqosah/generate-surat-kelulusan', 'Frontend\StatusUjianMunaqosah::generateSuratKelulusan');
+$routes->get('munaqosah/generate-nilai-kelulusan', 'Frontend\StatusUjianMunaqosah::generateNilaiKelulusan');
 
 // Admin routes (dengan login)
 $routes->get('backend/santri', 'SantriPendaftaran::createEmisStep/admin');

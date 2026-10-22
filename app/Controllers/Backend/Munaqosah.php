@@ -13473,7 +13473,7 @@ class Munaqosah extends BaseController
 
     // ==================== KELULUSAN DETAIL ====================
 
-    private function prepareKelulusanPesertaData(string $noPeserta, ?string $idTahunAjaran = null, ?string $typeUjian = null, ?int $idTpqFilter = null): array
+    public function prepareKelulusanPesertaData(string $noPeserta, ?string $idTahunAjaran = null, ?string $typeUjian = null, ?int $idTpqFilter = null): array
     {
         $noPeserta = strtoupper(trim($noPeserta));
         if ($noPeserta === '') {
@@ -13769,16 +13769,16 @@ class Munaqosah extends BaseController
         return view('backend/Munaqosah/kelulusanPesertaUjian', $data);
     }
 
-    public function printKelulusanPesertaUjian()
+    public function printKelulusanPesertaUjian($noPesertaParam = null, $idTahunAjaranParam = null, $typeUjianParam = null, $idTpqParam2 = null)
     {
         try {
             ini_set('memory_limit', '512M');
             set_time_limit(300);
 
-            $noPeserta = $this->request->getGet('NoPeserta');
-            $idTahunAjaran = $this->request->getGet('IdTahunAjaran');
-            $typeUjian = $this->request->getGet('TypeUjian');
-            $idTpqParam = $this->request->getGet('IdTpq');
+            $noPeserta = $noPesertaParam ?? $this->request->getGet('NoPeserta') ?? ($_GET['NoPeserta'] ?? null);
+            $idTahunAjaran = $idTahunAjaranParam ?? $this->request->getGet('IdTahunAjaran') ?? ($_GET['IdTahunAjaran'] ?? null);
+            $typeUjian = $typeUjianParam ?? $this->request->getGet('TypeUjian') ?? ($_GET['TypeUjian'] ?? null);
+            $idTpqParam = $idTpqParam2 ?? $this->request->getGet('IdTpq') ?? ($_GET['IdTpq'] ?? null);
             $idTpq = ($idTpqParam === null || $idTpqParam === '') ? null : (int)$idTpqParam;
 
             // Normalisasi TypeUjian untuk pengecekan

@@ -230,27 +230,41 @@ $pageTitle = 'Hasil Kelulusan ' . $typeUjianLabel;
         gap: 15px;
         justify-content: center;
         margin-top: 30px;
+        flex-wrap: wrap;
     }
 
     .btn-action {
-        padding: 12px 30px;
+        padding: 12px 25px;
         border: none;
         border-radius: 6px;
         font-weight: bold;
-        font-size: 16px;
+        font-size: 15px;
         cursor: pointer;
         transition: all 0.3s;
         text-decoration: none;
-        display: inline-block;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
     }
 
     .btn-pdf {
-        background-color: #2196F3;
+        background-color: #28a745;
         color: white;
     }
 
     .btn-pdf:hover {
-        background-color: #1976D2;
+        background-color: #218838;
+        color: white;
+    }
+
+    .btn-nilai {
+        background-color: #007bff;
+        color: white;
+    }
+
+    .btn-nilai:hover {
+        background-color: #0056b3;
+        color: white;
     }
 
     .btn-back {
@@ -260,6 +274,7 @@ $pageTitle = 'Hasil Kelulusan ' . $typeUjianLabel;
 
     .btn-back:hover {
         background-color: #5a6268;
+        color: white;
     }
 </style>
 
@@ -326,8 +341,11 @@ $pageTitle = 'Hasil Kelulusan ' . $typeUjianLabel;
     </div>
 
     <div class="button-group">
-        <a href="<?= base_url('munaqosah/generate-surat-kelulusan?typeUjian=' . urlencode($typeUjian)) ?>" class="btn-action btn-pdf" target="_blank">
+        <a href="<?= base_url('munaqosah/generate-surat-kelulusan?typeUjian=' . urlencode($typeUjian)) ?>" class="btn-action btn-pdf" target="_blank" title="Download Surat Keterangan Kelulusan">
             <i class="fas fa-file-pdf"></i> Surat Keterangan Kelulusan
+        </a>
+        <a href="<?= base_url('munaqosah/generate-nilai-kelulusan?typeUjian=' . urlencode($typeUjian)) ?>" class="btn-action btn-nilai" target="_blank" title="Download Laporan Nilai Kelulusan (PDF)">
+            <i class="fas fa-file-alt"></i> Download PDF Nilai
         </a>
         <a href="<?= base_url('munaqosah/konfirmasi-data') ?>" class="btn-action btn-back">
             <i class="fas fa-arrow-left"></i> Kembali

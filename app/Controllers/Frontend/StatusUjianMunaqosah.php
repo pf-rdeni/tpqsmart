@@ -1099,102 +1099,105 @@ class StatusUjianMunaqosah extends BaseController
     }
 
     /**
-     * Helper function untuk prepare kelulusan data (mirip dengan di Munaqosah controller)
+     * Generate PDF Laporan Nilai Kelulusan untuk santri individual
+     */
+    public function generateNilaiKelulusan()
+    {
+        $peserta = session()->get('munaqosah_peserta');
+
+        if (empty($peserta)) {
+            return redirect()->to(base_url('cek-status'))->with('error', 'Session expired. Silakan masukkan HashKey lagi.');
+        }
+
+        // Ambil TypeUjian dari query parameter atau session
+        $typeUjian = $this->request->getGet('typeUjian') ?? session()->get('munaqosah_type_ujian');
+
+        // Normalisasi TypeUjian
+        if (!empty($typeUjian)) {
+            $typeUjian = strtolower(trim($typeUjian));
+            if ($typeUjian === 'pramunaqsah' || $typeUjian === 'pra-munaqosah') {
+                $typeUjian = 'pra-munaqosah';
+            }
+        }
+
+        // Ambil semua TypeUjian yang tersedia
+        $allRegistrasi = $this->munaqosahRegistrasiUjiModel
+            ->select('TypeUjian, NoPeserta')
+            ->where('IdSantri', $peserta['IdSantri'])
+            ->where('IdTahunAjaran', $peserta['IdTahunAjaran'])
+            ->groupBy('TypeUjian, NoPeserta')
+            ->findAll();
+
+        $availableTypeUjian = [];
+        $registrasiMap = [];
+        foreach ($allRegistrasi as $reg) {
+            $regTypeUjian = strtolower(trim($reg['TypeUjian'] ?? ''));
+            if ($regTypeUjian === 'pramunaqsah' || $regTypeUjian === 'pra-munaqosah') {
+                $regTypeUjian = 'pra-munaqosah';
+            }
+            if (!empty($regTypeUjian) && !in_array($regTypeUjian, $availableTypeUjian)) {
+                $availableTypeUjian[] = $regTypeUjian;
+                $registrasiMap[$regTypeUjian] = $reg['NoPeserta'];
+            }
+        }
+
+        // Jika tidak ada TypeUjian yang dipilih, ambil yang pertama
+        if (empty($typeUjian)) {
+            if (!empty($availableTypeUjian)) {
+                $typeUjian = $availableTypeUjian[0];
+            } else {
+                $typeUjian = 'munaqosah';
+            }
+        }
+
+        $idTahunAjaran = $peserta['IdTahunAjaran'];
+        $idTpq = (int)($peserta['IdTpq'] ?? 0);
+
+        // Validasi apakah tombol kelulusan aktif untuk type ujian ini
+        if (!$this->isTombolKelulusanActive($typeUjian, $idTpq, (string)$idTahunAjaran)) {
+            return redirect()->to(base_url('munaqosah/konfirmasi-data'))->with('error', 'Fitur cetak nilai kelulusan saat ini belum dibuka.');
+        }
+
+        // Ambil NoPeserta berdasarkan TypeUjian
+        $noPeserta = $registrasiMap[$typeUjian] ?? null;
+        if (empty($noPeserta)) {
+            $registrasi = $this->munaqosahRegistrasiUjiModel
+                ->where('IdSantri', $peserta['IdSantri'])
+                ->where('IdTahunAjaran', $peserta['IdTahunAjaran'])
+                ->where('TypeUjian', $typeUjian)
+                ->first();
+
+            if (empty($registrasi)) {
+                return redirect()->to(base_url('cek-status'))->with('error', 'Data registrasi tidak ditemukan.');
+            }
+            $noPeserta = $registrasi['NoPeserta'];
+        }
+
+        $backend = new \App\Controllers\Backend\Munaqosah();
+        $backend->initController($this->request, $this->response, $this->logger);
+        return $backend->printKelulusanPesertaUjian($noPeserta, $idTahunAjaran, $typeUjian, $idTpq);
+    }
+
+    /**
+     * Helper function untuk prepare kelulusan data dari Munaqosah controller (single source of truth)
      */
     private function prepareKelulusanPesertaData(string $noPeserta, ?string $idTahunAjaran = null, ?string $typeUjian = null, ?int $idTpqFilter = null): array
     {
-        $noPeserta = strtoupper(trim($noPeserta));
-        if ($noPeserta === '') {
-            return [
-                'success' => false,
-                'message' => 'NoPeserta harus diisi'
-            ];
+        $backend = new \App\Controllers\Backend\Munaqosah();
+        $backend->initController($this->request, $this->response, $this->logger);
+        $result = $backend->prepareKelulusanPesertaData($noPeserta, $idTahunAjaran, $typeUjian, $idTpqFilter);
+
+        if (!$result['success']) {
+            return $result;
         }
 
-        $registrasiBuilder = $this->db->table('tbl_munaqosah_registrasi_uji r');
-        $registrasiBuilder->select('r.*, s.NamaSantri, t.NamaTpq, s.IdSantri');
-        $registrasiBuilder->join('tbl_santri_baru s', 's.IdSantri = r.IdSantri', 'left');
-        $registrasiBuilder->join('tbl_tpq t', 't.IdTpq = r.IdTpq', 'left');
-        $registrasiBuilder->where('r.NoPeserta', $noPeserta);
-
-        if (!empty($idTahunAjaran)) {
-            $registrasiBuilder->where('r.IdTahunAjaran', $idTahunAjaran);
-        }
-
-        if (!empty($typeUjian)) {
-            $registrasiBuilder->where('r.TypeUjian', $typeUjian);
-        }
-
-        if (!empty($idTpqFilter)) {
-            $registrasiBuilder->where('r.IdTpq', $idTpqFilter);
-        }
-
-        $registrasiBuilder->orderBy('r.IdTahunAjaran', 'DESC');
-        $registrasiBuilder->orderBy('r.TypeUjian', 'ASC');
-
-        $registrasiRows = $registrasiBuilder->get()->getResultArray();
-
-        if (empty($registrasiRows)) {
-            return [
-                'success' => false,
-                'message' => 'Data peserta tidak ditemukan'
-            ];
-        }
-
-        $primaryRow = $registrasiRows[0];
-        $resolvedTahun = $idTahunAjaran ?: $primaryRow['IdTahunAjaran'];
-        $resolvedType = $typeUjian ?: $primaryRow['TypeUjian'];
-        $resolvedType = strtolower($resolvedType);
-        $resolvedTpq = $idTpqFilter ?? ($primaryRow['IdTpq'] ?? 0);
-
-        // Build monitoring dataset
-        $dataset = $this->buildMonitoringDataset($resolvedTahun, (int)$resolvedTpq, $resolvedType, true, $noPeserta);
-
-        if (!$dataset['success'] || empty($dataset['data']['rows'])) {
-            return [
-                'success' => false,
-                'message' => $dataset['message'] ?? 'Data kelulusan tidak ditemukan'
-            ];
-        }
-
-        $rowData = $dataset['data']['rows'][0];
-        $categories = $dataset['data']['categories'];
-        $meta = $dataset['data']['meta'];
-
-        // Prepare category details
-        $categoryDetails = [];
-        foreach ($categories as $cat) {
-            $catId = $cat['id'];
-            $average = $rowData['averages'][$catId] ?? 0;
-            $weighted = $rowData['weighted'][$catId] ?? 0;
-
-            $categoryDetails[] = [
-                'category' => $cat,
-                'average' => $average,
-                'weighted' => $weighted,
-                'juri_scores' => [],
-                'materi' => []
-            ];
-        }
-
+        $data = $result['data'] ?? [];
         return [
             'success' => true,
-            'peserta' => [
-                'IdSantri' => $rowData['IdSantri'],
-                'IdTpq' => $rowData['IdTpq'],
-                'NoPeserta' => $rowData['NoPeserta'],
-                'NamaSantri' => $rowData['NamaSantri'],
-                'NamaTpq' => $rowData['NamaTpq'],
-                'IdTahunAjaran' => $rowData['IdTahunAjaran'],
-                'TypeUjian' => $rowData['TypeUjian'],
-                'TotalWeighted' => $rowData['total_weighted'] ?? 0,
-                'KelulusanThreshold' => $rowData['kelulusan_threshold'] ?? 65,
-                'KelulusanMet' => $rowData['kelulusan_met'] ?? false,
-                'KelulusanStatus' => $rowData['kelulusan_status'] ?? 'Belum Lulus',
-                'KelulusanDifference' => $rowData['kelulusan_difference'] ?? 0
-            ],
-            'categoryDetails' => $categoryDetails,
-            'meta' => $meta
+            'peserta' => $data['peserta'] ?? [],
+            'categoryDetails' => $data['categoryDetails'] ?? [],
+            'meta' => $data['meta'] ?? [],
+            'data' => $data
         ];
     }
 
