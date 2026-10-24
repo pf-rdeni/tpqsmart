@@ -3059,16 +3059,30 @@ class Dashboard extends BaseController
             $guruCounts[$tId]++;
         }
 
-        // 4. Query data santri dengan filter
-        $builder = $this->db->table('tbl_santri_baru s')
-            ->select('s.IdSantri, s.NamaSantri, s.JenisKelamin, s.Active, s.IdTpq, t.NamaTpq, COALESCE(t.KelurahanDesa, t.Alamat, "") as KelurahanDesa, ks.IdKelas, k.NamaKelas')
-            ->join('tbl_tpq t', 't.IdTpq = s.IdTpq', 'inner')
-            ->join('tbl_kelas_santri ks', 'ks.IdSantri = s.IdSantri AND ks.IdTahunAjaran = ' . $this->db->escape($idTahunAjaran) . ' AND ks.Status = 1', 'left')
-            ->join('tbl_kelas k', 'k.IdKelas = ks.IdKelas AND k.NamaKelas NOT LIKE "%ALUMNI%" AND k.NamaKelas NOT LIKE "%Alumni%"', 'left')
-            ->where('s.Active <', 2);
+        // 4. Ambil daftar TPQ sesuai filter untuk inisialisasi Matriks & Rasio
+        $tpqBuilder = $this->db->table('tbl_tpq')
+            ->select('IdTpq, NamaTpq, COALESCE(KelurahanDesa, Alamat, "") as KelurahanDesa')
+            ->orderBy('NamaTpq', 'ASC');
+        if ($idTpqForQuery != 0) {
+            $tpqBuilder->where('IdTpq', $idTpqForQuery);
+        }
+        if (!empty($kelurahan)) {
+            $tpqBuilder->where('KelurahanDesa', $kelurahan);
+        }
+        $targetTpqList = $tpqBuilder->get()->getResultArray();
+
+        // 5. Query data santri terdaftar di kelas reguler pada Tahun Ajaran yang dipilih
+        $builder = $this->db->table('tbl_kelas_santri ks')
+            ->select('s.IdSantri, s.NamaSantri, s.JenisKelamin, s.Active, ks.IdTpq, t.NamaTpq, COALESCE(t.KelurahanDesa, t.Alamat, "") as KelurahanDesa, ks.IdKelas, k.NamaKelas')
+            ->join('tbl_santri_baru s', 's.IdSantri = ks.IdSantri', 'inner')
+            ->join('tbl_tpq t', 't.IdTpq = ks.IdTpq', 'inner')
+            ->join('tbl_kelas k', 'k.IdKelas = ks.IdKelas', 'inner')
+            ->where('ks.IdTahunAjaran', $idTahunAjaran)
+            ->where('ks.Status', 1)
+            ->whereNotIn('k.NamaKelas', ['ALUMNI', 'Alumni', 'alumni']);
 
         if ($idTpqForQuery != 0) {
-            $builder->where('s.IdTpq', $idTpqForQuery);
+            $builder->where('ks.IdTpq', $idTpqForQuery);
         }
         if (!empty($kelurahan)) {
             $builder->where('t.KelurahanDesa', $kelurahan);
@@ -3077,9 +3091,19 @@ class Dashboard extends BaseController
             $builder->where('s.Active', (int)$status);
         }
 
-        $santriRows = $builder->get()->getResultArray();
+        $rawSantriRows = $builder->get()->getResultArray();
 
-        // 5. Agregasi Data
+        // Deduplikasi santri untuk mencegah duplikasi jika santri tercatat lebih dari satu kali
+        $seenSantri = [];
+        $santriRows = [];
+        foreach ($rawSantriRows as $row) {
+            if (!isset($seenSantri[$row['IdSantri']])) {
+                $seenSantri[$row['IdSantri']] = true;
+                $santriRows[] = $row;
+            }
+        }
+
+        // 6. Agregasi Data
         $totalValid = count($santriRows);
         $genderCounts = ['Laki-laki' => 0, 'Perempuan' => 0];
         $santriPerKelasMap = [];
@@ -3093,8 +3117,35 @@ class Dashboard extends BaseController
             ];
         }
 
+        // Inisialisasi santriPerTpqMap & matriksTpqKelas dengan TPQ yang difilter
         $santriPerTpqMap = [];
         $matriksTpqKelas = [];
+        foreach ($targetTpqList as $t) {
+            $tId = $t['IdTpq'];
+            $santriPerTpqMap[$tId] = [
+                'IdTpq' => $tId,
+                'NamaTpq' => $t['NamaTpq'],
+                'KelurahanDesa' => $t['KelurahanDesa'],
+                'LakiLaki' => 0,
+                'Perempuan' => 0,
+                'Total' => 0,
+            ];
+
+            $matriksTpqKelas[$tId] = [
+                'IdTpq' => $tId,
+                'NamaTpq' => $t['NamaTpq'],
+                'KelurahanDesa' => $t['KelurahanDesa'],
+                'Kelas' => [],
+                'Total' => 0,
+            ];
+            foreach ($kelasList as $k) {
+                $matriksTpqKelas[$tId]['Kelas'][$k['IdKelas']] = [
+                    'IdKelas' => $k['IdKelas'],
+                    'NamaKelas' => $k['NamaKelas'],
+                    'Jumlah' => 0,
+                ];
+            }
+        }
 
         foreach ($santriRows as $s) {
             $tId = $s['IdTpq'];
@@ -3187,10 +3238,12 @@ class Dashboard extends BaseController
         $tpqPerempuan = [];
         $tpqTotals = [];
         foreach ($santriPerTpqMap as $tData) {
-            $tpqLabels[] = $tData['NamaTpq'];
-            $tpqLaki[] = $tData['LakiLaki'];
-            $tpqPerempuan[] = $tData['Perempuan'];
-            $tpqTotals[] = $tData['Total'];
+            if ($tData['Total'] > 0) {
+                $tpqLabels[] = $tData['NamaTpq'];
+                $tpqLaki[] = $tData['LakiLaki'];
+                $tpqPerempuan[] = $tData['Perempuan'];
+                $tpqTotals[] = $tData['Total'];
+            }
         }
 
         // Analisis Rasio Guru : Santri Per TPQ

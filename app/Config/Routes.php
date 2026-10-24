@@ -47,6 +47,7 @@ $routes->get('backend/dashboard/admin', 'Dashboard::dashboardAdmin');
 $routes->get('backend/dashboard/santri', 'Dashboard::dashboardSantri');
 $routes->get('backend/dashboard/getMateriPerSantri', 'Dashboard::getMateriPerSantri');
 $routes->get('backend/dashboard/getStatistikGuruAjax', 'Dashboard::getStatistikGuruAjax');
+$routes->get('backend/dashboard/getStatistikSantriAjax', 'Dashboard::getStatistikSantriAjax');
 $routes->post('dashboard/updateTahunAjaranDanKelas', 'Dashboard::updateTahunAjaranDanKelas');
 //$routes->get('/', 'Backend\Pages::index');
 //$routes->get('/', 'Frontend\Home::index');

@@ -1008,7 +1008,8 @@
                                                 <div class="btn-group btn-group-sm santri-status-toggle" role="group">
                                                     <button type="button" class="btn btn-sm btn-info active btn-toggle-santri-status" data-status="all" style="border-radius: 8px 0 0 8px; font-weight: 600;">Semua</button>
                                                     <button type="button" class="btn btn-sm btn-outline-info btn-toggle-santri-status" data-status="1" style="font-weight: 600;">Aktif</button>
-                                                    <button type="button" class="btn btn-sm btn-outline-secondary btn-toggle-santri-status" data-status="0" style="border-radius: 0 8px 8px 0; font-weight: 600;">Non-Aktif</button>
+                                                    <button type="button" class="btn btn-sm btn-outline-warning btn-toggle-santri-status" data-status="0" style="font-weight: 600;">Baru</button>
+                                                    <button type="button" class="btn btn-sm btn-outline-secondary btn-toggle-santri-status" data-status="2" style="border-radius: 0 8px 8px 0; font-weight: 600;">Non-Aktif</button>
                                                 </div>
                                             </div>
                                             <!-- Action Buttons -->
@@ -1248,16 +1249,16 @@
                                                 </div>
                                             </div>
 
-                                            <div class="row">
-                                                <div class="col-lg-7 mb-4 mb-lg-0">
-                                                    <div id="wrapperChartRasioGuruSantri" style="position: relative; width: 100%; min-height: 280px; height: <?= max(300, count($rasioSantri['labels'] ?? []) * 28 + 60) ?>px;">
+                                            <div class="row align-items-stretch">
+                                                <div class="col-lg-7 mb-4 mb-lg-0 d-flex flex-column">
+                                                    <div id="wrapperChartRasioGuruSantri" class="flex-grow-1" style="position: relative; width: 100%; min-height: 320px; height: <?= max(320, count($rasioSantri['items'] ?? []) * 39 + 42) ?>px;">
                                                         <canvas id="chartRasioGuruSantri"></canvas>
                                                     </div>
                                                 </div>
-                                                <div class="col-lg-5">
-                                                    <div class="table-responsive border" style="border-radius: 12px; max-height: <?= max(300, count($rasioSantri['labels'] ?? []) * 28 + 60) ?>px; overflow-y: auto; background: #ffffff;">
+                                                <div class="col-lg-5 d-flex flex-column">
+                                                    <div class="table-responsive border flex-grow-1" style="border-radius: 12px; background: #ffffff;">
                                                         <table class="table table-sm table-hover mb-0" id="tableListRasioTpq">
-                                                            <thead class="thead-light sticky-top" style="position: sticky; top: 0; z-index: 2;">
+                                                            <thead class="thead-light">
                                                                 <tr>
                                                                     <th style="padding-left: 12px;">Lembaga TPQ</th>
                                                                     <th class="text-center">Guru</th>
@@ -1271,7 +1272,6 @@
                                                                         <tr class="row-rasio-tpq">
                                                                             <td style="padding-left: 12px;">
                                                                                 <div class="font-weight-bold text-dark"><?= esc($r['NamaTpq']) ?></div>
-                                                                                <small class="text-muted"><i class="fas fa-map-marker-alt text-muted mr-1"></i><?= esc($r['KelurahanDesa']) ?></small>
                                                                             </td>
                                                                             <td class="text-center font-weight-bold text-success align-middle">
                                                                                 <?= number_format($r['TotalGuru']) ?>
@@ -3742,6 +3742,22 @@
                     },
                     plugins: [pluginRasioLabels]
                 });
+
+                setTimeout(syncRasioChartHeight, 50);
+            }
+        }
+
+        // Sinkronisasi tinggi grafik rasio dengan tinggi tabel rasio agar presisi dan tidak ada area kosong
+        function syncRasioChartHeight() {
+            var $tbl = $('#tableListRasioTpq');
+            if ($tbl.length) {
+                var tblHeight = $tbl.outerHeight();
+                if (tblHeight && tblHeight > 250) {
+                    $('#wrapperChartRasioGuruSantri').css('height', tblHeight + 'px');
+                    if (chartRasioGuruSantriInstance) {
+                        chartRasioGuruSantriInstance.resize();
+                    }
+                }
             }
         }
 
@@ -3751,6 +3767,7 @@
             $('#tableListRasioTpq tbody tr').filter(function() {
                 $(this).toggle($(this).text().toLowerCase().indexOf(val) > -1);
             });
+            setTimeout(syncRasioChartHeight, 50);
         });
 
         // Trigger chart resize if Santri card is expanded or maximized
@@ -3759,7 +3776,12 @@
                 if (chartSantriPerKelasInstance) chartSantriPerKelasInstance.resize();
                 if (chartSantriPerTpqInstance) chartSantriPerTpqInstance.resize();
                 if (chartRasioGuruSantriInstance) chartRasioGuruSantriInstance.resize();
+                syncRasioChartHeight();
             }, 200);
+        });
+
+        $(window).on('resize', function() {
+            syncRasioChartHeight();
         });
 
         // Fungsi Update DOM Infografis Santri
@@ -3770,7 +3792,7 @@
             $('#txtTotalValidSantri').text(Number(d.total_valid || 0).toLocaleString());
             var tpqText = (d.nama_tpq && d.nama_tpq !== 'SEMUA TPQ') ? d.nama_tpq : '';
             var kelText = d.filter_kelurahan ? ('Wilayah ' + d.filter_kelurahan) : '';
-            var stText = (d.filter_status === '1') ? 'Aktif' : ((d.filter_status === '0') ? 'Non-Aktif' : '');
+            var stText = (d.filter_status === '1') ? 'Aktif' : ((d.filter_status === '0') ? 'Santri Baru' : ((d.filter_status === '2') ? 'Non-Aktif' : ''));
             var badgeFilterParts = [];
             if (tpqText) badgeFilterParts.push(tpqText);
             if (kelText) badgeFilterParts.push(kelText);
@@ -3824,9 +3846,6 @@
 
             // Section 3: Rasio Guru : Santri Per TPQ
             var rgs = d.rasio_guru_santri || {};
-            var rasioHeight = Math.max(300, (rgs.labels || []).length * 28 + 60);
-            $('#wrapperChartRasioGuruSantri').css('height', rasioHeight + 'px');
-            $('#tableListRasioTpq').closest('.table-responsive').css('max-height', rasioHeight + 'px');
 
             var tbodyRasioHtml = '';
             if (rgs.items && rgs.items.length > 0) {
@@ -3834,7 +3853,6 @@
                     tbodyRasioHtml += '<tr class="row-rasio-tpq">' +
                         '<td style="padding-left: 12px;">' +
                             '<div class="font-weight-bold text-dark">' + (r.NamaTpq || '') + '</div>' +
-                            '<small class="text-muted"><i class="fas fa-map-marker-alt text-muted mr-1"></i>' + (r.KelurahanDesa || '') + '</small>' +
                         '</td>' +
                         '<td class="text-center font-weight-bold text-success align-middle">' + Number(r.TotalGuru || 0).toLocaleString() + '</td>' +
                         '<td class="text-center font-weight-bold text-primary align-middle">' + Number(r.TotalSantri || 0).toLocaleString() + '</td>' +
@@ -3847,6 +3865,7 @@
                 tbodyRasioHtml = '<tr><td colspan="4" class="text-center py-3 text-muted">Data rasio tidak ditemukan</td></tr>';
             }
             $('#tbodyListRasioTpq').html(tbodyRasioHtml);
+            setTimeout(syncRasioChartHeight, 60);
 
             // Section 4: Matriks Detail
             var mtx = d.matriks_detail || {};
@@ -3960,12 +3979,16 @@
             var selectedStatus = $(this).data('status');
             currentSantriFilterStatus = String(selectedStatus);
 
-            $('.btn-toggle-santri-status').removeClass('active btn-info btn-secondary').addClass('btn-outline-info');
-            $('.btn-toggle-santri-status[data-status="0"]').removeClass('btn-outline-info').addClass('btn-outline-secondary');
+            $('.btn-toggle-santri-status').removeClass('active btn-info btn-warning btn-secondary')
+                .addClass('btn-outline-info');
+            $('.btn-toggle-santri-status[data-status="0"]').removeClass('btn-outline-info').addClass('btn-outline-warning');
+            $('.btn-toggle-santri-status[data-status="2"]').removeClass('btn-outline-info').addClass('btn-outline-secondary');
 
-            if (selectedStatus === 'all' || selectedStatus === '1') {
+            if (selectedStatus === 'all' || selectedStatus === '1' || selectedStatus === 1) {
                 $(this).removeClass('btn-outline-info').addClass('btn-info active');
-            } else {
+            } else if (selectedStatus === '0' || selectedStatus === 0) {
+                $(this).removeClass('btn-outline-warning').addClass('btn-warning active');
+            } else if (selectedStatus === '2' || selectedStatus === 2) {
                 $(this).removeClass('btn-outline-secondary').addClass('btn-secondary active');
             }
 
