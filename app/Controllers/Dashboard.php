@@ -277,6 +277,7 @@ class Dashboard extends BaseController
             'StatistikSantriPerTpqPerKelas' => $statistikSantriPerTpqPerKelas,
             'StatistikProgressNilaiPerTpq' => $statistikProgressNilaiPerTpq,
             'RingkasanStatistikGuru' => $this->getRingkasanStatistikGuru($idTpqForQuery),
+            'RingkasanStatistikSantri' => $this->getRingkasanStatistikSantri($idTpqForQuery),
             'ListTpq' => $this->helpFunctionModel->getDataTpq(),
         ];
     }
@@ -2922,7 +2923,9 @@ class Dashboard extends BaseController
             1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April', 5 => 'Mei', 6 => 'Juni',
             7 => 'Juli', 8 => 'Agustus', 9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
         ];
-        $periodeText = 'Data per ' . ($bulanIndo[(int)date('n')] ?? date('F')) . ' ' . date('Y');
+        $idTahunAjaranSession = session()->get('IdTahunAjaran') ?? $this->helpFunctionModel->getTahunAjaranSaatIni();
+        $taTextGuru = $this->helpFunctionModel->convertTahunAjaran($idTahunAjaranSession);
+        $periodeText = 'Data per ' . ($bulanIndo[(int)date('n')] ?? date('F')) . ' ' . date('Y') . (!empty($taTextGuru) ? (' • TA ' . $taTextGuru) : '');
 
         // Nama TPQ jika difilter
         $namaTpq = 'SEMUA TPQ';
@@ -2992,6 +2995,388 @@ class Dashboard extends BaseController
         $status = $this->request->getGet('status') ?? 'all';
 
         $data = $this->getRingkasanStatistikGuru($idTpq, $kelurahan, $status);
+
+        return $this->response->setJSON([
+            'status' => 'success',
+            'data' => $data
+        ]);
+    }
+
+    /**
+     * Mengambil ringkasan statistik santri & analisis rasio lengkap untuk infografis dashboard admin
+     *
+     * @param int|string $idTpq 0 untuk semua TPQ, atau ID TPQ spesifik
+     * @param string $kelurahan Nama kelurahan/desa atau kosong untuk semua
+     * @param string $status 'all', '1' (aktif), atau '0' (non-aktif)
+     * @param string|null $idTahunAjaran
+     * @return array
+     */
+    public function getRingkasanStatistikSantri($idTpq = 0, $kelurahan = '', $status = 'all', $idTahunAjaran = null)
+    {
+        if (empty($idTahunAjaran)) {
+            $idTahunAjaran = session()->get('IdTahunAjaran') ?? $this->helpFunctionModel->getTahunAjaranSaatIni();
+        }
+        $idTpqForQuery = (empty($idTpq) || $idTpq == '0' || $idTpq == 0) ? 0 : (int)$idTpq;
+
+        // 1. Ambil list semua kelurahan/desa unik dari tbl_tpq untuk dropdown filter
+        $listKelurahan = [];
+        $kelRows = $this->db->table('tbl_tpq')
+            ->select('KelurahanDesa')
+            ->where('KelurahanDesa IS NOT NULL')
+            ->where("TRIM(KelurahanDesa) != ''")
+            ->groupBy('KelurahanDesa')
+            ->orderBy('KelurahanDesa', 'ASC')
+            ->get()
+            ->getResultArray();
+        foreach ($kelRows as $r) {
+            $val = trim($r['KelurahanDesa']);
+            if (!empty($val) && !in_array($val, $listKelurahan)) {
+                $listKelurahan[] = $val;
+            }
+        }
+
+        // 2. Ambil list kelas (kecuali Alumni)
+        $kelasList = $this->db->table('tbl_kelas')
+            ->where('NamaKelas !=', 'ALUMNI')
+            ->where('NamaKelas !=', 'Alumni')
+            ->where('NamaKelas !=', 'alumni')
+            ->orderBy('NamaKelas', 'ASC')
+            ->get()
+            ->getResultArray();
+
+        // 3. Ambil data guru per TPQ untuk menghitung rasio guru:santri
+        $guruRows = $this->db->table('tbl_guru g')
+            ->select('g.IdTpq, g.JenisKelamin, g.Status')
+            ->where('g.Status', 1)
+            ->get()
+            ->getResultArray();
+        $guruCounts = [];
+        foreach ($guruRows as $g) {
+            $tId = $g['IdTpq'];
+            if (!isset($guruCounts[$tId])) {
+                $guruCounts[$tId] = 0;
+            }
+            $guruCounts[$tId]++;
+        }
+
+        // 4. Query data santri dengan filter
+        $builder = $this->db->table('tbl_santri_baru s')
+            ->select('s.IdSantri, s.NamaSantri, s.JenisKelamin, s.Active, s.IdTpq, t.NamaTpq, COALESCE(t.KelurahanDesa, t.Alamat, "") as KelurahanDesa, ks.IdKelas, k.NamaKelas')
+            ->join('tbl_tpq t', 't.IdTpq = s.IdTpq', 'inner')
+            ->join('tbl_kelas_santri ks', 'ks.IdSantri = s.IdSantri AND ks.IdTahunAjaran = ' . $this->db->escape($idTahunAjaran) . ' AND ks.Status = 1', 'left')
+            ->join('tbl_kelas k', 'k.IdKelas = ks.IdKelas AND k.NamaKelas NOT LIKE "%ALUMNI%" AND k.NamaKelas NOT LIKE "%Alumni%"', 'left')
+            ->where('s.Active <', 2);
+
+        if ($idTpqForQuery != 0) {
+            $builder->where('s.IdTpq', $idTpqForQuery);
+        }
+        if (!empty($kelurahan)) {
+            $builder->where('t.KelurahanDesa', $kelurahan);
+        }
+        if ($status !== 'all' && $status !== '') {
+            $builder->where('s.Active', (int)$status);
+        }
+
+        $santriRows = $builder->get()->getResultArray();
+
+        // 5. Agregasi Data
+        $totalValid = count($santriRows);
+        $genderCounts = ['Laki-laki' => 0, 'Perempuan' => 0];
+        $santriPerKelasMap = [];
+        foreach ($kelasList as $k) {
+            $santriPerKelasMap[$k['IdKelas']] = [
+                'IdKelas' => $k['IdKelas'],
+                'NamaKelas' => $k['NamaKelas'],
+                'LakiLaki' => 0,
+                'Perempuan' => 0,
+                'Total' => 0,
+            ];
+        }
+
+        $santriPerTpqMap = [];
+        $matriksTpqKelas = [];
+
+        foreach ($santriRows as $s) {
+            $tId = $s['IdTpq'];
+            $tNama = $s['NamaTpq'];
+            $tKel = $s['KelurahanDesa'];
+            $idK = $s['IdKelas'];
+
+            // Gender
+            $jk = strtolower(trim($s['JenisKelamin'] ?? ''));
+            $isLaki = ($jk === 'l' || $jk === 'laki-laki' || $jk === 'laki laki' || $jk === 'pria');
+            if ($isLaki) {
+                $genderCounts['Laki-laki']++;
+            } else {
+                $genderCounts['Perempuan']++;
+            }
+
+            // Per Kelas
+            if (!empty($idK) && isset($santriPerKelasMap[$idK])) {
+                if ($isLaki) {
+                    $santriPerKelasMap[$idK]['LakiLaki']++;
+                } else {
+                    $santriPerKelasMap[$idK]['Perempuan']++;
+                }
+                $santriPerKelasMap[$idK]['Total']++;
+            }
+
+            // Per TPQ
+            if (!isset($santriPerTpqMap[$tId])) {
+                $santriPerTpqMap[$tId] = [
+                    'IdTpq' => $tId,
+                    'NamaTpq' => $tNama,
+                    'KelurahanDesa' => $tKel,
+                    'LakiLaki' => 0,
+                    'Perempuan' => 0,
+                    'Total' => 0,
+                ];
+            }
+            if ($isLaki) {
+                $santriPerTpqMap[$tId]['LakiLaki']++;
+            } else {
+                $santriPerTpqMap[$tId]['Perempuan']++;
+            }
+            $santriPerTpqMap[$tId]['Total']++;
+
+            // Matriks Detail
+            if (!isset($matriksTpqKelas[$tId])) {
+                $matriksTpqKelas[$tId] = [
+                    'IdTpq' => $tId,
+                    'NamaTpq' => $tNama,
+                    'KelurahanDesa' => $tKel,
+                    'Kelas' => [],
+                    'Total' => 0,
+                ];
+                foreach ($kelasList as $k) {
+                    $matriksTpqKelas[$tId]['Kelas'][$k['IdKelas']] = [
+                        'IdKelas' => $k['IdKelas'],
+                        'NamaKelas' => $k['NamaKelas'],
+                        'Jumlah' => 0,
+                    ];
+                }
+            }
+            if (!empty($idK) && isset($matriksTpqKelas[$tId]['Kelas'][$idK])) {
+                $matriksTpqKelas[$tId]['Kelas'][$idK]['Jumlah']++;
+                $matriksTpqKelas[$tId]['Total']++;
+            }
+        }
+
+        // Persentase Gender
+        $pctLaki = $totalValid > 0 ? round(($genderCounts['Laki-laki'] / $totalValid) * 100, 1) : 0;
+        $pctPerempuan = $totalValid > 0 ? round(($genderCounts['Perempuan'] / $totalValid) * 100, 1) : 0;
+
+        // Santri Per Kelas untuk chart & table
+        $kelasLabels = [];
+        $kelasLaki = [];
+        $kelasPerempuan = [];
+        $kelasTotals = [];
+        foreach ($santriPerKelasMap as $kData) {
+            $kelasLabels[] = $kData['NamaKelas'];
+            $kelasLaki[] = $kData['LakiLaki'];
+            $kelasPerempuan[] = $kData['Perempuan'];
+            $kelasTotals[] = $kData['Total'];
+        }
+
+        // Santri Per TPQ (diurutkan descending by Total)
+        uasort($santriPerTpqMap, function($a, $b) {
+            return $b['Total'] <=> $a['Total'];
+        });
+        $tpqLabels = [];
+        $tpqLaki = [];
+        $tpqPerempuan = [];
+        $tpqTotals = [];
+        foreach ($santriPerTpqMap as $tData) {
+            $tpqLabels[] = $tData['NamaTpq'];
+            $tpqLaki[] = $tData['LakiLaki'];
+            $tpqPerempuan[] = $tData['Perempuan'];
+            $tpqTotals[] = $tData['Total'];
+        }
+
+        // Analisis Rasio Guru : Santri Per TPQ
+        $rasioItems = [];
+        $countIdeal = 0;
+        $countPadat = 0;
+        $countRendah = 0;
+        $sumSantriRasio = 0;
+        $sumGuruRasio = 0;
+
+        foreach ($santriPerTpqMap as $tData) {
+            $tId = $tData['IdTpq'];
+            $totSantri = $tData['Total'];
+            $totGuru = $guruCounts[$tId] ?? 0;
+            $sumSantriRasio += $totSantri;
+            $sumGuruRasio += $totGuru;
+
+            $rasioStr = '-';
+            $rasioNumeric = 0;
+            $rasioCeil = 0;
+            $badgeColor = 'secondary';
+            $chartColor = '#94a3b8';
+
+            if ($totSantri > 0 && $totGuru > 0) {
+                $rasioNumeric = $totSantri / $totGuru;
+                $rasioCeil = (int)ceil($rasioNumeric);
+                $rasioStr = '1:' . $rasioCeil;
+                if ($rasioCeil < 9) {
+                    $badgeColor = 'danger';
+                    $chartColor = '#ef4444';
+                    $countRendah++;
+                } else if ($rasioCeil >= 9 && $rasioCeil <= 11) {
+                    $badgeColor = 'success';
+                    $chartColor = '#10b981';
+                    $countIdeal++;
+                } else {
+                    $badgeColor = 'info';
+                    $chartColor = '#0284c7';
+                    $countPadat++;
+                }
+            } else if ($totSantri > 0 && $totGuru == 0) {
+                $badgeColor = 'dark';
+                $chartColor = '#475569';
+                $countPadat++;
+            }
+
+            $rasioItems[] = [
+                'IdTpq' => $tId,
+                'NamaTpq' => $tData['NamaTpq'],
+                'KelurahanDesa' => $tData['KelurahanDesa'],
+                'TotalSantri' => $totSantri,
+                'TotalGuru' => $totGuru,
+                'Rasio' => $rasioStr,
+                'RasioNumeric' => $rasioNumeric,
+                'RasioCeil' => $rasioCeil,
+                'BadgeColor' => $badgeColor,
+                'ChartColor' => $chartColor,
+            ];
+        }
+
+        // Urutkan rasio ascending by RasioCeil
+        usort($rasioItems, function($a, $b) {
+            return $a['RasioCeil'] <=> $b['RasioCeil'];
+        });
+
+        $rasioLabels = [];
+        $rasioValues = [];
+        $rasioLabelStrs = [];
+        $rasioColors = [];
+        $rasioSantriArr = [];
+        $rasioGuruArr = [];
+        foreach ($rasioItems as $r) {
+            $rasioLabels[] = $r['NamaTpq'];
+            $rasioValues[] = $r['RasioCeil'];
+            $rasioLabelStrs[] = $r['Rasio'];
+            $rasioColors[] = $r['ChartColor'];
+            $rasioSantriArr[] = $r['TotalSantri'];
+            $rasioGuruArr[] = $r['TotalGuru'];
+        }
+
+        $avgRasio = $sumGuruRasio > 0 ? round($sumSantriRasio / $sumGuruRasio, 1) : 0;
+        $avgRasioCeil = (int)ceil($avgRasio);
+
+        // Matriks Detail
+        $matriksData = array_values($matriksTpqKelas);
+        $totalPerKelas = [];
+        foreach ($kelasList as $k) {
+            $totalPerKelas[$k['IdKelas']] = 0;
+        }
+        $grandTotal = 0;
+        foreach ($matriksData as $row) {
+            foreach ($kelasList as $k) {
+                $totalPerKelas[$k['IdKelas']] += ($row['Kelas'][$k['IdKelas']]['Jumlah'] ?? 0);
+            }
+            $grandTotal += $row['Total'];
+        }
+
+        $bulanIndo = [
+            1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April', 5 => 'Mei', 6 => 'Juni',
+            7 => 'Juli', 8 => 'Agustus', 9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+        ];
+        $taTextSantri = $this->helpFunctionModel->convertTahunAjaran($idTahunAjaran);
+        $periodeText = 'Data per ' . ($bulanIndo[(int)date('n')] ?? date('F')) . ' ' . date('Y') . (!empty($taTextSantri) ? (' • TA ' . $taTextSantri) : '');
+
+        $namaTpq = 'SEMUA TPQ';
+        if ($idTpqForQuery != 0) {
+            $tpqRow = $this->db->table('tbl_tpq')->select('NamaTpq')->where('IdTpq', $idTpqForQuery)->get()->getRowArray();
+            if (!empty($tpqRow['NamaTpq'])) {
+                $namaTpq = $tpqRow['NamaTpq'];
+            }
+        }
+
+        return [
+            'total_valid' => $totalValid,
+            'nama_tpq' => $namaTpq,
+            'id_tpq' => $idTpqForQuery,
+            'filter_kelurahan' => $kelurahan,
+            'filter_status' => $status,
+            'list_kelurahan' => $listKelurahan,
+            'komposisi_gender' => [
+                'laki_laki' => $genderCounts['Laki-laki'],
+                'perempuan' => $genderCounts['Perempuan'],
+                'pct_laki' => $pctLaki,
+                'pct_perempuan' => $pctPerempuan,
+            ],
+            'kpi' => [
+                'total_santri' => $totalValid,
+                'total_tpq' => count($santriPerTpqMap),
+                'avg_rasio' => $avgRasio,
+                'avg_rasio_ceil' => $avgRasioCeil,
+                'count_ideal' => $countIdeal,
+                'count_padat' => $countPadat,
+                'count_rendah' => $countRendah,
+            ],
+            'santri_per_kelas' => [
+                'labels' => $kelasLabels,
+                'laki' => $kelasLaki,
+                'perempuan' => $kelasPerempuan,
+                'totals' => $kelasTotals,
+                'items' => array_values($santriPerKelasMap),
+            ],
+            'santri_per_tpq' => [
+                'labels' => $tpqLabels,
+                'laki' => $tpqLaki,
+                'perempuan' => $tpqPerempuan,
+                'totals' => $tpqTotals,
+                'total_tpq' => count($santriPerTpqMap),
+                'top_tpq_nama' => !empty($tpqLabels[0]) ? $tpqLabels[0] : '-',
+                'top_tpq_count' => !empty($tpqTotals[0]) ? $tpqTotals[0] : 0,
+            ],
+            'rasio_guru_santri' => [
+                'labels' => $rasioLabels,
+                'ratios' => $rasioValues,
+                'ratio_labels' => $rasioLabelStrs,
+                'colors' => $rasioColors,
+                'santri' => $rasioSantriArr,
+                'guru' => $rasioGuruArr,
+                'items' => $rasioItems,
+            ],
+            'matriks_detail' => [
+                'data' => $matriksData,
+                'kelasList' => $kelasList,
+                'totalPerKelas' => $totalPerKelas,
+                'grandTotal' => $grandTotal,
+            ],
+            'periode_text' => $periodeText,
+        ];
+    }
+
+    /**
+     * AJAX endpoint untuk filter ringkasan statistik santri & analisis rasio admin dashboard
+     */
+    public function getStatistikSantriAjax()
+    {
+        if (!in_groups('Admin')) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Akses khusus administrator'
+            ])->setStatusCode(403);
+        }
+
+        $idTpq = $this->request->getGet('id_tpq') ?? 0;
+        $kelurahan = $this->request->getGet('kelurahan') ?? '';
+        $status = $this->request->getGet('status') ?? 'all';
+
+        $data = $this->getRingkasanStatistikSantri($idTpq, $kelurahan, $status);
 
         return $this->response->setJSON([
             'status' => 'success',

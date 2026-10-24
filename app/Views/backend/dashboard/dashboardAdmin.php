@@ -535,6 +535,40 @@
                             color: #e2e8f0;
                         }
 
+                        /* ==================== INFOGRAFIS STATISTIK SANTRI ==================== */
+                        .infografis-santri-wrapper {
+                            background: #ffffff;
+                            border-radius: 16px;
+                            position: relative;
+                            overflow: hidden;
+                            color: #1f2937;
+                            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+                        }
+                        .infografis-lantern-icon-santri {
+                            display: inline-flex;
+                            align-items: center;
+                            justify-content: center;
+                            width: 44px;
+                            height: 44px;
+                            border-radius: 12px;
+                            background: #f0fdfa;
+                            border: 1.5px solid #0f766e;
+                            color: #0f766e;
+                            font-size: 1.25rem;
+                            box-shadow: 0 4px 10px rgba(15, 118, 110, 0.12);
+                        }
+                        .infografis-footer-santri {
+                            background: #0f766e;
+                            border-top: 3px solid #c59b27;
+                            padding: 12px 20px;
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                            color: #ffffff;
+                            border-radius: 0 0 14px 14px;
+                            margin-top: 22px;
+                        }
+
                         /* Media Print Rules */
                         @media print {
                             @page {
@@ -551,7 +585,7 @@
                                 margin: 0 !important;
                                 padding: 0 !important;
                             }
-                            .infografis-guru-wrapper {
+                            .infografis-guru-wrapper, .infografis-santri-wrapper {
                                 padding: 10px 15px !important;
                                 border: none !important;
                                 box-shadow: none !important;
@@ -559,7 +593,7 @@
                             .infografis-section-head {
                                 page-break-after: avoid !important;
                             }
-                            #wrapperChartGuruPerTpq {
+                            #wrapperChartGuruPerTpq, #wrapperChartSantriPerTpq, #wrapperChartSantriPerKelas, #wrapperChartRasioGuruSantri {
                                 page-break-inside: avoid !important;
                             }
                             .no-print, .card-header, .main-sidebar, .main-header, .main-footer {
@@ -905,7 +939,7 @@
                                             <!-- 5. FOOTER -->
                                             <div class="infografis-footer">
                                                 <div class="infografis-footer-logo">
-                                                    <i class="fas fa-award text-warning"></i> FKPQ
+                                                    <i class="fas fa-award text-warning"></i> FKPQ &bull; TPQ SMART
                                                 </div>
                                                 <div class="infografis-footer-period" id="txtFooterPeriode">
                                                     <?= esc($periodeTextGuru) ?>
@@ -919,322 +953,422 @@
 
 
 
-                        <!-- ==================== SUITE STATISTIK SANTRI & ANALISIS RASIO ==================== -->
-                        <?php if (!empty($StatistikSantriPerTpq) || !empty($StatistikTpqDenganRasio)): ?>
-                            <?php
-                            // 1. Data Santri Per TPQ (diurutkan descending)
-                            $santriPerTpqSorted = $StatistikSantriPerTpq ?? [];
-                            usort($santriPerTpqSorted, function($a, $b) {
-                                return ($b['Total'] ?? 0) <=> ($a['Total'] ?? 0);
-                            });
-                            $labelsSantriTpq = array_column($santriPerTpqSorted, 'NamaTpq');
-                            $totalsSantriTpq = array_map('intval', array_column($santriPerTpqSorted, 'Total'));
-                            $lakiSantriTpq = array_map('intval', array_column($santriPerTpqSorted, 'LakiLaki'));
-                            $perempuanSantriTpq = array_map('intval', array_column($santriPerTpqSorted, 'Perempuan'));
-
-                            // 2. Data Santri Per Kelas
-                            $santriPerKelasData = $StatistikSantri['per_kelas'] ?? [];
-                            $labelsSantriKelas = array_column($santriPerKelasData, 'NamaKelas');
-                            $totalsSantriKelas = array_map('intval', array_column($santriPerKelasData, 'Total'));
-                            $lakiSantriKelas = array_map('intval', array_column($santriPerKelasData, 'LakiLaki'));
-                            $perempuanSantriKelas = array_map('intval', array_column($santriPerKelasData, 'Perempuan'));
-
-                            // 3. Data Rasio Guru : Santri
-                            $rasioTpqSorted = $StatistikTpqDenganRasio ?? [];
-                            usort($rasioTpqSorted, function($a, $b) {
-                                return ($b['TotalSantri'] ?? 0) <=> ($a['TotalSantri'] ?? 0);
-                            });
-
-                            $countRasioIdeal = 0;
-                            $countRasioPadat = 0;
-                            $countRasioRendah = 0;
-                            foreach ($rasioTpqSorted as $r) {
-                                $c = $r['RasioCeil'] ?? 0;
-                                if ($c > 0) {
-                                    if ($c >= 9 && $c <= 11) $countRasioIdeal++;
-                                    elseif ($c > 11) $countRasioPadat++;
-                                    else $countRasioRendah++;
-                                }
-                            }
-                            $sumGuruRasio = array_sum(array_column($rasioTpqSorted, 'TotalGuru'));
-                            $sumSantriRasio = array_sum(array_column($rasioTpqSorted, 'TotalSantri'));
-                            $avgRasio = ($sumGuruRasio > 0 && $sumSantriRasio > 0) ? round($sumSantriRasio / $sumGuruRasio, 1) : 0;
-                            $avgRasioCeil = (int)ceil($avgRasio);
-                            ?>
-
-                            <div class="row mt-4">
-                                <div class="col-12">
-                                    <div class="card card-outline card-primary shadow-sm" style="border-radius: 16px; overflow: hidden; border-top: 4px solid #0284c7;">
-                                        <div class="card-header bg-white py-3 px-3 d-flex align-items-center justify-content-between flex-wrap">
-                                            <div class="d-flex align-items-center mb-2 mb-md-0">
-                                                <div class="mr-3" style="width: 40px; height: 40px; border-radius: 10px; background: #e0f2fe; color: #0284c7; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
-                                                    <i class="fas fa-user-graduate"></i>
-                                                </div>
-                                                <div>
-                                                    <h3 class="card-title font-weight-bold mb-0 text-dark" style="font-size: 1.2rem;">
-                                                        Statistik Santri & Analisis Rasio Guru:Santri
-                                                    </h3>
-                                                    <small class="text-muted d-block">Visualisasi sebaran santri per TPQ, per tingkatan kelas, dan rasio ideal guru-santri</small>
-                                                </div>
-                                            </div>
-                                            <div class="card-tools d-flex align-items-center">
-                                                <ul class="nav nav-pills" id="pillsTabSantriRasio" role="tablist" style="gap: 6px;">
-                                                    <li class="nav-item">
-                                                        <a class="nav-link active font-weight-bold py-1 px-3" id="tab-santri-tpq-link" data-toggle="pill" href="#tab-santri-tpq" role="tab" style="border-radius: 8px;">
-                                                            <i class="fas fa-chart-bar mr-1"></i> Santri Per TPQ
-                                                        </a>
-                                                    </li>
-                                                    <li class="nav-item">
-                                                        <a class="nav-link font-weight-bold py-1 px-3" id="tab-santri-kelas-link" data-toggle="pill" href="#tab-santri-kelas" role="tab" style="border-radius: 8px;">
-                                                            <i class="fas fa-layer-group mr-1"></i> Santri Per Kelas
-                                                        </a>
-                                                    </li>
-                                                    <li class="nav-item">
-                                                        <a class="nav-link font-weight-bold py-1 px-3" id="tab-rasio-tpq-link" data-toggle="pill" href="#tab-rasio-tpq" role="tab" style="border-radius: 8px;">
-                                                            <i class="fas fa-balance-scale mr-1"></i> Rasio Guru : Santri
-                                                        </a>
-                                                    </li>
-                                                    <li class="nav-item">
-                                                        <a class="nav-link font-weight-bold py-1 px-3" id="tab-matriks-kelas-link" data-toggle="pill" href="#tab-matriks-kelas" role="tab" style="border-radius: 8px;">
-                                                            <i class="fas fa-table mr-1"></i> Matriks Detail
-                                                        </a>
-                                                    </li>
-                                                </ul>
-                                                <button type="button" class="btn btn-tool ml-2" data-card-widget="maximize" title="Layar Penuh">
-                                                    <i class="fas fa-expand"></i>
-                                                </button>
-                                                <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Collapse">
-                                                    <i class="fas fa-minus"></i>
-                                                </button>
-                                            </div>
+                        <!-- ==================== RINGKASAN STATISTIK SANTRI & ANALISIS RASIO (INFOGRAFIS) ==================== -->
+                        <?php
+                        $RingkasanStatistikSantri = $RingkasanStatistikSantri ?? [];
+                        $ListTpq = $ListTpq ?? [];
+                        $listKelurahanSantri = $RingkasanStatistikSantri['list_kelurahan'] ?? [];
+                        $totalValidSantri = $RingkasanStatistikSantri['total_valid'] ?? ($StatistikSantri['total'] ?? 0);
+                        $kpiSantri = $RingkasanStatistikSantri['kpi'] ?? [];
+                        $genderSantri = $RingkasanStatistikSantri['komposisi_gender'] ?? [];
+                        $santriPerKelas = $RingkasanStatistikSantri['santri_per_kelas'] ?? [];
+                        $santriPerTpq = $RingkasanStatistikSantri['santri_per_tpq'] ?? [];
+                        $rasioSantri = $RingkasanStatistikSantri['rasio_guru_santri'] ?? [];
+                        $matriksSantri = $RingkasanStatistikSantri['matriks_detail'] ?? [];
+                        $periodeTextSantri = $RingkasanStatistikSantri['periode_text'] ?? ('Data per ' . date('F Y'));
+                        ?>
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <div class="card card-outline card-info shadow-sm" style="border-radius: 16px; overflow: hidden; border-top: 4px solid #0f766e;">
+                                    <div class="card-header bg-white d-flex align-items-center justify-content-between flex-wrap py-2 px-3 no-print">
+                                        <div class="d-flex align-items-center mb-2 mb-xl-0">
+                                            <i class="fas fa-user-graduate text-info fa-lg mr-2"></i>
+                                            <h3 class="card-title font-weight-bold mb-0 text-dark" style="font-size: 1.15rem;">
+                                                Statistik Santri & Analisis Rasio Guru:Santri
+                                            </h3>
                                         </div>
+                                        <div class="card-tools d-flex align-items-center flex-wrap" style="gap: 10px;">
+                                            <!-- Filter TPQ -->
+                                            <div class="d-flex align-items-center">
+                                                <label for="selectFilterTpqSantri" class="mb-0 mr-1 font-weight-bold text-muted small"><i class="fas fa-building mr-1"></i>TPQ:</label>
+                                                <select id="selectFilterTpqSantri" class="form-control form-control-sm" style="min-width: 170px; border-radius: 8px;">
+                                                    <option value="0">Semua TPQ</option>
+                                                    <?php if (!empty($ListTpq)): ?>
+                                                        <?php foreach ($ListTpq as $tpq): ?>
+                                                            <option value="<?= esc($tpq['IdTpq']) ?>"><?= esc($tpq['NamaTpq']) ?></option>
+                                                        <?php endforeach; ?>
+                                                    <?php endif; ?>
+                                                </select>
+                                            </div>
+                                            <!-- Filter Kelurahan / Desa -->
+                                            <div class="d-flex align-items-center">
+                                                <label for="selectFilterKelurahanSantri" class="mb-0 mr-1 font-weight-bold text-muted small"><i class="fas fa-map-marker-alt mr-1"></i>Wilayah:</label>
+                                                <select id="selectFilterKelurahanSantri" class="form-control form-control-sm" style="min-width: 160px; border-radius: 8px;">
+                                                    <option value="">Semua Wilayah</option>
+                                                    <?php if (!empty($listKelurahanSantri)): ?>
+                                                        <?php foreach ($listKelurahanSantri as $kel): ?>
+                                                            <option value="<?= esc($kel) ?>"><?= esc($kel) ?></option>
+                                                        <?php endforeach; ?>
+                                                    <?php endif; ?>
+                                                </select>
+                                            </div>
+                                            <!-- Toggle Status Aktif / Non-Aktif -->
+                                            <div class="d-flex align-items-center">
+                                                <label class="mb-0 mr-1 font-weight-bold text-muted small"><i class="fas fa-toggle-on mr-1"></i>Status:</label>
+                                                <div class="btn-group btn-group-sm santri-status-toggle" role="group">
+                                                    <button type="button" class="btn btn-sm btn-info active btn-toggle-santri-status" data-status="all" style="border-radius: 8px 0 0 8px; font-weight: 600;">Semua</button>
+                                                    <button type="button" class="btn btn-sm btn-outline-info btn-toggle-santri-status" data-status="1" style="font-weight: 600;">Aktif</button>
+                                                    <button type="button" class="btn btn-sm btn-outline-secondary btn-toggle-santri-status" data-status="0" style="border-radius: 0 8px 8px 0; font-weight: 600;">Non-Aktif</button>
+                                                </div>
+                                            </div>
+                                            <!-- Action Buttons -->
+                                            <button type="button" class="btn btn-sm btn-outline-info ml-1" id="btnCopySantriInfographic" style="border-radius: 8px;" onclick="copySantriInfographicPNG()" title="Capture & Salin PNG ke Clipboard">
+                                                <i class="fas fa-copy mr-1"></i> Salin PNG
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-primary ml-1" id="btnDownloadSantriInfographic" style="border-radius: 8px;" onclick="downloadSantriInfographicPNG()" title="Unduh File Gambar PNG">
+                                                <i class="fas fa-download mr-1"></i> Unduh PNG
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-success ml-1" id="btnPrintSantriInfographic" style="border-radius: 8px;" onclick="printSantriInfographic()" title="Cetak / PDF Infografis">
+                                                <i class="fas fa-print mr-1"></i> Cetak PDF
+                                            </button>
+                                            <button type="button" class="btn btn-tool" data-card-widget="maximize" title="Layar Penuh">
+                                                <i class="fas fa-expand"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Collapse">
+                                                <i class="fas fa-minus"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="card-body p-0">
+                                        <div id="infografis-santri-card-print" class="infografis-santri-wrapper p-3 p-md-4">
+                                            <!-- Watermark ornament -->
+                                            <div class="infografis-watermark"></div>
 
-                                        <div class="card-body p-3 p-md-4">
-                                            <!-- Top KPI Mini Cards -->
-                                            <div class="row mb-4">
-                                                <div class="col-6 col-md-3 mb-2 mb-md-0">
-                                                    <div class="p-3 bg-light border" style="border-radius: 12px;">
-                                                        <div class="text-muted small font-weight-bold text-uppercase mb-1"><i class="fas fa-users text-primary mr-1"></i>Total Santri</div>
-                                                        <div class="h4 font-weight-bold mb-0 text-dark"><?= number_format($StatistikSantri['total'] ?? $sumSantriRasio) ?> <small class="text-muted" style="font-size: 0.8rem;">Santri</small></div>
+                                            <!-- HEADER INFOGRAFIS -->
+                                            <div class="infografis-header">
+                                                <div class="infografis-accent-dots">
+                                                    <span></span><span></span>
+                                                    <span></span><span></span>
+                                                </div>
+                                                <div class="infografis-lantern">
+                                                    <div class="infografis-lantern-icon-santri">
+                                                        <i class="fas fa-graduation-cap"></i>
                                                     </div>
                                                 </div>
-                                                <div class="col-6 col-md-3 mb-2 mb-md-0">
-                                                    <div class="p-3 bg-light border" style="border-radius: 12px;">
-                                                        <div class="text-muted small font-weight-bold text-uppercase mb-1"><i class="fas fa-venus-mars text-info mr-1"></i>Komposisi Gender</div>
-                                                        <div class="font-weight-bold mb-0 text-dark" style="font-size: 1.05rem;">
-                                                            <span class="text-info"><?= number_format($StatistikSantri['laki_laki'] ?? 0) ?> L</span> &bull; 
-                                                            <span class="text-danger"><?= number_format($StatistikSantri['perempuan'] ?? 0) ?> P</span>
+                                                <div class="infografis-eyebrow" style="color: #0f766e;">DATA POKOK PENDIDIKAN TPQ</div>
+                                                <h2 class="infografis-main-title" style="color: #0f172a;">STATISTIK SANTRI & RASIO GURU:SANTRI</h2>
+                                                <div class="infografis-total-pill">
+                                                    TOTAL SANTRI TERDATA: 
+                                                    <span class="infografis-total-badge" id="txtTotalValidSantri" style="background: #0f766e;">
+                                                        <?= number_format($totalValidSantri) ?>
+                                                    </span> 
+                                                    SANTRI
+                                                    <span id="txtFilterBadgeSantri" class="badge badge-light border ml-2 text-dark font-weight-bold" style="font-size: 0.85rem; padding: 4px 10px; border-radius: 8px;">
+                                                        <i class="fas fa-filter text-muted mr-1"></i>Semua Wilayah & TPQ
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <!-- TOP KPI MINI CARDS -->
+                                            <div class="row mt-3 mb-2">
+                                                <div class="col-6 col-lg-3 mb-2">
+                                                    <div class="infografis-stat-card border-top" style="border-top: 3px solid #0f766e !important;">
+                                                        <div class="infografis-stat-label text-muted small font-weight-bold text-uppercase">
+                                                            <i class="fas fa-users text-teal mr-1"></i> Total Santri
                                                         </div>
-                                                    </div>
-                                                </div>
-                                                <div class="col-6 col-md-3">
-                                                    <div class="p-3 bg-light border" style="border-radius: 12px;">
-                                                        <div class="text-muted small font-weight-bold text-uppercase mb-1"><i class="fas fa-balance-scale text-success mr-1"></i>Rata-Rata Rasio</div>
-                                                        <div class="h4 font-weight-bold mb-0 text-success">1 : <?= $avgRasioCeil ?> <small class="text-muted font-weight-normal" style="font-size: 0.8rem;">(1 Guru : <?= $avgRasio ?> Santri)</small></div>
-                                                    </div>
-                                                </div>
-                                                <div class="col-6 col-md-3">
-                                                    <div class="p-3 bg-light border" style="border-radius: 12px;">
-                                                        <div class="text-muted small font-weight-bold text-uppercase mb-1"><i class="fas fa-check-circle text-success mr-1"></i>Status Rasio Lembaga</div>
-                                                        <div class="d-flex align-items-center flex-wrap" style="gap: 6px; font-size: 0.82rem;">
-                                                            <span class="badge badge-success px-2 py-1" title="Ideal (1:9 - 1:11)"><?= $countRasioIdeal ?> Ideal</span>
-                                                            <span class="badge badge-info px-2 py-1" title="Padat / Perlu Tambahan Guru (> 1:11)"><?= $countRasioPadat ?> Padat</span>
-                                                            <span class="badge badge-danger px-2 py-1" title="Rasio Rendah (< 1:9)"><?= $countRasioRendah ?> Rendah</span>
+                                                        <div class="infografis-stat-value text-dark" id="kpiSantriTotalVal">
+                                                            <?= number_format($totalValidSantri) ?>
                                                         </div>
+                                                        <small class="text-muted font-weight-bold" id="kpiSantriTotalTpqVal">
+                                                            Dari <?= count($santriPerTpq['labels'] ?? []) ?> TPQ Terdata
+                                                        </small>
+                                                    </div>
+                                                </div>
+                                                <div class="col-6 col-lg-3 mb-2">
+                                                    <div class="infografis-stat-card border-top" style="border-top: 3px solid #0284c7 !important;">
+                                                        <div class="infografis-stat-label text-muted small font-weight-bold text-uppercase">
+                                                            <i class="fas fa-venus-mars text-primary mr-1"></i> Komposisi Gender
+                                                        </div>
+                                                        <div class="infografis-stat-value text-dark" style="font-size: 1.45rem;" id="kpiSantriGenderVal">
+                                                            <span class="text-info" id="kpiSantriGenderLakiVal"><?= number_format($genderSantri['laki_laki'] ?? 0) ?> L</span> 
+                                                            <span class="text-muted" style="font-size: 1.1rem;">&bull;</span> 
+                                                            <span class="text-pink" style="color: #ec4899;" id="kpiSantriGenderPerempuanVal"><?= number_format($genderSantri['perempuan'] ?? 0) ?> P</span>
+                                                        </div>
+                                                        <small class="text-muted font-weight-bold" id="kpiSantriGenderPctVal">
+                                                            <?= $genderSantri['pct_laki'] ?? 0 ?>% Laki &bull; <?= $genderSantri['pct_perempuan'] ?? 0 ?>% Perempuan
+                                                        </small>
+                                                    </div>
+                                                </div>
+                                                <div class="col-6 col-lg-3 mb-2">
+                                                    <div class="infografis-stat-card border-top" style="border-top: 3px solid #10b981 !important;">
+                                                        <div class="infografis-stat-label text-muted small font-weight-bold text-uppercase">
+                                                            <i class="fas fa-balance-scale text-success mr-1"></i> Rata-Rata Rasio
+                                                        </div>
+                                                        <div class="infografis-stat-value text-success" id="kpiSantriAvgRasioVal">
+                                                            1 : <?= $kpiSantri['avg_rasio_ceil'] ?? 0 ?>
+                                                        </div>
+                                                        <small class="text-muted font-weight-bold" id="kpiSantriAvgRasioSub">
+                                                            1 Guru : <?= $kpiSantri['avg_rasio'] ?? 0 ?> Santri
+                                                        </small>
+                                                    </div>
+                                                </div>
+                                                <div class="col-6 col-lg-3 mb-2">
+                                                    <div class="infografis-stat-card border-top" style="border-top: 3px solid #c59b27 !important;">
+                                                        <div class="infografis-stat-label text-muted small font-weight-bold text-uppercase">
+                                                            <i class="fas fa-check-circle text-warning mr-1"></i> Status Rasio Lembaga
+                                                        </div>
+                                                        <div class="d-flex align-items-center flex-wrap pt-1" style="gap: 5px;" id="kpiSantriStatusBadges">
+                                                            <span class="badge badge-success px-2 py-1 font-weight-bold" id="kpiSantriCountIdealVal" title="Ideal (1:9 - 1:11)"><?= $kpiSantri['count_ideal'] ?? 0 ?> Ideal</span>
+                                                            <span class="badge badge-info px-2 py-1 font-weight-bold" id="kpiSantriCountPadatVal" title="Padat / Butuh Tambahan Guru (> 1:11)"><?= $kpiSantri['count_padat'] ?? 0 ?> Padat</span>
+                                                            <span class="badge badge-danger px-2 py-1 font-weight-bold" id="kpiSantriCountRendahVal" title="Rasio Rendah (< 1:9)"><?= $kpiSantri['count_rendah'] ?? 0 ?> Rendah</span>
+                                                        </div>
+                                                        <small class="text-muted font-weight-bold d-block mt-1">
+                                                            Standar FKPQ (1:9 - 1:11)
+                                                        </small>
                                                     </div>
                                                 </div>
                                             </div>
 
-                                            <!-- Tab Content -->
-                                            <div class="tab-content" id="pillsTabSantriRasioContent">
-                                                <!-- TAB 1: Santri Per TPQ -->
-                                                <div class="tab-pane fade show active" id="tab-santri-tpq" role="tabpanel">
-                                                    <div class="d-flex align-items-center justify-content-between flex-wrap mb-3">
-                                                        <div class="d-flex align-items-center flex-wrap" style="gap: 8px;">
-                                                            <span class="badge badge-light border text-dark px-3 py-2" style="font-size: 0.9rem; border-radius: 8px;">
-                                                                <i class="fas fa-mosque text-primary mr-1"></i> <strong><?= count($santriPerTpqSorted) ?></strong> TPQ Terdata
-                                                            </span>
-                                                            <span class="badge badge-light border text-dark px-3 py-2" style="font-size: 0.9rem; border-radius: 8px;">
-                                                                <i class="fas fa-trophy text-warning mr-1"></i> Santri Terbanyak: <strong><?= !empty($labelsSantriTpq[0]) ? esc($labelsSantriTpq[0]) : '-' ?></strong> (<?= !empty($totalsSantriTpq[0]) ? $totalsSantriTpq[0] : 0 ?> Santri)
-                                                            </span>
-                                                        </div>
-                                                        <div class="d-flex align-items-center font-weight-bold mt-2 mt-md-0" style="gap: 16px; font-size: 0.9rem;">
-                                                            <div class="d-flex align-items-center">
-                                                                <span style="display:inline-block; width: 14px; height: 14px; background-color: #0284c7; border-radius: 3px; margin-right: 6px;"></span>
-                                                                Laki-laki
-                                                            </div>
-                                                            <div class="d-flex align-items-center">
-                                                                <span style="display:inline-block; width: 14px; height: 14px; background-color: #ec4899; border-radius: 3px; margin-right: 6px;"></span>
-                                                                Perempuan
-                                                            </div>
-                                                        </div>
+                                            <!-- 1. DISTRIBUSI SANTRI PER TINGKATAN KELAS -->
+                                            <div class="infografis-section-head">
+                                                <div class="infografis-section-badge" style="background: #0f766e;">1</div>
+                                                <h3 class="infografis-section-title">Distribusi Santri Per Tingkatan Kelas</h3>
+                                                <div class="infografis-section-divider">
+                                                    <div class="line" style="background: #0f766e;"></div>
+                                                    <div class="dots"><div class="dot" style="background: #0f766e;"></div><div class="dot" style="background: #c59b27;"></div></div>
+                                                </div>
+                                            </div>
+
+                                            <div class="row align-items-center mb-3">
+                                                <div class="col-md-7">
+                                                    <span class="badge badge-light border text-dark px-3 py-2 font-weight-bold" style="font-size: 0.9rem; border-radius: 8px;">
+                                                        <i class="fas fa-layer-group text-info mr-1"></i> <strong id="txtKelasCountSantri"><?= count($santriPerKelas['labels'] ?? []) ?></strong> Tingkatan Kelas Aktif
+                                                    </span>
+                                                </div>
+                                                <div class="col-md-5 d-flex justify-content-md-end align-items-center font-weight-bold mt-2 mt-md-0" style="gap: 16px; font-size: 0.9rem;">
+                                                    <div class="d-flex align-items-center">
+                                                        <span style="display:inline-block; width: 14px; height: 14px; background-color: #0284c7; border-radius: 3px; margin-right: 6px;"></span>
+                                                        Laki-laki
                                                     </div>
-                                                    <div style="position: relative; width: 100%; height: <?= max(300, count($labelsSantriTpq) * 28 + 60) ?>px;">
-                                                        <canvas id="chartSantriPerTpq"></canvas>
+                                                    <div class="d-flex align-items-center">
+                                                        <span style="display:inline-block; width: 14px; height: 14px; background-color: #ec4899; border-radius: 3px; margin-right: 6px;"></span>
+                                                        Perempuan
                                                     </div>
                                                 </div>
+                                            </div>
 
-                                                <!-- TAB 2: Santri Per Kelas -->
-                                                <div class="tab-pane fade" id="tab-santri-kelas" role="tabpanel">
-                                                    <div class="row align-items-center mb-3">
-                                                        <div class="col-md-7">
-                                                            <span class="badge badge-light border text-dark px-3 py-2" style="font-size: 0.9rem; border-radius: 8px;">
-                                                                <i class="fas fa-layer-group text-primary mr-1"></i> <strong><?= count($santriPerKelasData) ?></strong> Tingkatan Kelas
-                                                            </span>
-                                                        </div>
-                                                        <div class="col-md-5 d-flex justify-content-md-end align-items-center font-weight-bold mt-2 mt-md-0" style="gap: 16px; font-size: 0.9rem;">
-                                                            <div class="d-flex align-items-center">
-                                                                <span style="display:inline-block; width: 14px; height: 14px; background-color: #0284c7; border-radius: 3px; margin-right: 6px;"></span>
-                                                                Laki-laki
-                                                            </div>
-                                                            <div class="d-flex align-items-center">
-                                                                <span style="display:inline-block; width: 14px; height: 14px; background-color: #ec4899; border-radius: 3px; margin-right: 6px;"></span>
-                                                                Perempuan
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="row">
-                                                        <div class="col-lg-8 mb-4 mb-lg-0">
-                                                            <div style="position: relative; width: 100%; height: 350px;">
-                                                                <canvas id="chartSantriPerKelas"></canvas>
-                                                            </div>
-                                                        </div>
-                                                        <div class="col-lg-4">
-                                                            <div class="table-responsive border" style="border-radius: 12px; overflow: hidden;">
-                                                                <table class="table table-sm table-striped table-hover mb-0">
-                                                                    <thead class="thead-light">
-                                                                        <tr>
-                                                                            <th>Kelas</th>
-                                                                            <th class="text-center text-info">L</th>
-                                                                            <th class="text-center text-danger">P</th>
-                                                                            <th class="text-center font-weight-bold">Total</th>
-                                                                        </tr>
-                                                                    </thead>
-                                                                    <tbody>
-                                                                        <?php foreach ($santriPerKelasData as $k): ?>
-                                                                            <tr>
-                                                                                <td class="font-weight-bold"><?= esc($k['NamaKelas']) ?></td>
-                                                                                <td class="text-center text-info"><?= number_format($k['LakiLaki']) ?></td>
-                                                                                <td class="text-center text-danger"><?= number_format($k['Perempuan']) ?></td>
-                                                                                <td class="text-center font-weight-bold text-dark"><?= number_format($k['Total']) ?></td>
-                                                                            </tr>
-                                                                        <?php endforeach; ?>
-                                                                    </tbody>
-                                                                </table>
-                                                            </div>
-                                                        </div>
+                                            <div class="row">
+                                                <div class="col-lg-8 mb-4 mb-lg-0">
+                                                    <div id="wrapperChartSantriPerKelas" style="position: relative; width: 100%; min-height: 280px; height: 320px;">
+                                                        <canvas id="chartSantriPerKelas"></canvas>
                                                     </div>
                                                 </div>
-
-                                                <!-- TAB 3: Rasio Guru : Santri -->
-                                                <div class="tab-pane fade" id="tab-rasio-tpq" role="tabpanel">
-                                                    <div class="row mb-3 align-items-center">
-                                                        <div class="col-md-8">
-                                                            <p class="text-muted mb-0 small">
-                                                                <i class="fas fa-info-circle text-info mr-1"></i>
-                                                                Standar ideal rasio guru santri adalah <strong>1 : 9 s/d 1 : 11</strong>. 
-                                                                Rasio <span class="badge badge-danger">Merah (&lt; 1:9)</span> menandakan proporsi guru sangat banyak/santri sedikit, dan 
-                                                                <span class="badge badge-info">Biru (&gt; 1:11)</span> menandakan rasio padat/membutuhkan tambahan guru.
-                                                            </p>
-                                                        </div>
-                                                        <div class="col-md-4 text-md-right mt-2 mt-md-0">
-                                                            <input type="text" id="inputSearchTpqRasio" class="form-control form-control-sm d-inline-block" placeholder="Cari TPQ / Kelurahan..." style="max-width: 240px; border-radius: 8px;">
-                                                        </div>
-                                                    </div>
-                                                    <div class="row">
-                                                        <div class="col-lg-7 mb-4 mb-lg-0">
-                                                            <div style="position: relative; width: 100%; height: <?= max(300, count($rasioTpqSorted) * 28 + 60) ?>px;">
-                                                                <canvas id="chartRasioGuruSantri"></canvas>
-                                                            </div>
-                                                        </div>
-                                                        <div class="col-lg-5">
-                                                            <div class="table-responsive border" style="border-radius: 12px; max-height: <?= max(300, count($rasioTpqSorted) * 28 + 60) ?>px; overflow-y: auto;">
-                                                                <table class="table table-sm table-hover mb-0" id="tableListRasioTpq">
-                                                                    <thead class="thead-light sticky-top" style="position: sticky; top: 0; z-index: 1;">
+                                                <div class="col-lg-4">
+                                                    <div class="table-responsive border" style="border-radius: 12px; overflow: hidden; background: #ffffff;">
+                                                        <table class="table table-sm table-striped table-hover mb-0" id="tableRingkasSantriKelas">
+                                                            <thead class="thead-light">
+                                                                <tr>
+                                                                    <th style="padding-left: 12px;">Tingkat Kelas</th>
+                                                                    <th class="text-center text-info">L</th>
+                                                                    <th class="text-center" style="color: #ec4899;">P</th>
+                                                                    <th class="text-center font-weight-bold">Total</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody id="tbodyRingkasSantriKelas">
+                                                                <?php if (!empty($santriPerKelas['items'])): ?>
+                                                                    <?php foreach ($santriPerKelas['items'] as $k): ?>
                                                                         <tr>
-                                                                            <th>Lembaga TPQ</th>
-                                                                            <th class="text-center">Guru</th>
-                                                                            <th class="text-center">Santri</th>
-                                                                            <th class="text-center">Rasio</th>
-                                                                        </tr>
-                                                                    </thead>
-                                                                    <tbody>
-                                                                        <?php foreach ($rasioTpqSorted as $r): ?>
-                                                                            <tr class="row-rasio-tpq">
-                                                                                <td>
-                                                                                    <div class="font-weight-bold text-dark"><?= esc($r['NamaTpq']) ?></div>
-                                                                                    <small class="text-muted"><?= esc($r['KelurahanDesa']) ?></small>
-                                                                                </td>
-                                                                                <td class="text-center font-weight-bold text-success align-middle">
-                                                                                    <?= number_format($r['TotalGuru']) ?>
-                                                                                </td>
-                                                                                <td class="text-center font-weight-bold text-primary align-middle">
-                                                                                    <?= number_format($r['TotalSantri']) ?>
-                                                                                </td>
-                                                                                <td class="text-center align-middle">
-                                                                                    <span class="badge badge-<?= esc($r['BadgeColor']) ?> px-2 py-1 font-weight-bold">
-                                                                                        <?= esc($r['Rasio']) ?>
-                                                                                    </span>
-                                                                                </td>
-                                                                            </tr>
-                                                                        <?php endforeach; ?>
-                                                                    </tbody>
-                                                                </table>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <!-- TAB 4: Matriks Detail (TPQ x Kelas) -->
-                                                <div class="tab-pane fade" id="tab-matriks-kelas" role="tabpanel">
-                                                    <?php if (!empty($StatistikSantriPerTpqPerKelas) && !empty($StatistikSantriPerTpqPerKelas['data'])): ?>
-                                                        <div class="table-responsive border" style="border-radius: 12px; background: #ffffff;">
-                                                            <table id="tblStatistikSantriPerTpqPerKelas" class="table table-bordered table-striped table-hover table-sm mb-0 text-nowrap" style="width: 100%; font-size: 0.9rem;">
-                                                                <thead class="thead-light">
-                                                                    <tr>
-                                                                        <th class="align-middle text-left" style="min-width: 180px;">Nama TPQ</th>
-                                                                        <th class="align-middle text-left" style="min-width: 140px;">Kelurahan/Desa</th>
-                                                                        <?php foreach ($StatistikSantriPerTpqPerKelas['kelasList'] as $kelas): ?>
-                                                                            <th class="text-center align-middle" style="min-width: 75px;"><?= esc($kelas['NamaKelas']) ?></th>
-                                                                        <?php endforeach; ?>
-                                                                        <th class="align-middle text-center bg-info text-white" style="min-width: 85px;">Total</th>
-                                                                    </tr>
-                                                                </thead>
-                                                                <tbody>
-                                                                    <?php foreach ($StatistikSantriPerTpqPerKelas['data'] as $tpq): ?>
-                                                                        <tr>
-                                                                            <td class="text-left font-weight-bold align-middle"><?= esc($tpq['NamaTpq']) ?></td>
-                                                                            <td class="text-left align-middle"><?= esc($tpq['KelurahanDesa']) ?></td>
-                                                                            <?php foreach ($StatistikSantriPerTpqPerKelas['kelasList'] as $kelas): ?>
-                                                                                <?php $jumlah = $tpq['Kelas'][$kelas['IdKelas']]['Jumlah'] ?? 0; ?>
-                                                                                <td class="text-center align-middle"><?= $jumlah > 0 ? number_format($jumlah) : '-' ?></td>
-                                                                            <?php endforeach; ?>
-                                                                            <td class="text-center bg-light font-weight-bold align-middle"><?= number_format($tpq['Total']) ?></td>
+                                                                            <td class="font-weight-bold text-dark" style="padding-left: 12px;"><?= esc($k['NamaKelas']) ?></td>
+                                                                            <td class="text-center text-info font-weight-bold"><?= number_format($k['LakiLaki']) ?></td>
+                                                                            <td class="text-center font-weight-bold" style="color: #ec4899;"><?= number_format($k['Perempuan']) ?></td>
+                                                                            <td class="text-center font-weight-bold text-dark"><?= number_format($k['Total']) ?></td>
                                                                         </tr>
                                                                     <?php endforeach; ?>
-                                                                </tbody>
-                                                                <tfoot class="thead-light">
-                                                                    <tr>
-                                                                        <th class="bg-primary text-white text-left font-weight-bold align-middle">Total</th>
-                                                                        <th class="bg-primary text-white align-middle"></th>
-                                                                        <?php foreach ($StatistikSantriPerTpqPerKelas['kelasList'] as $kelas): ?>
-                                                                            <th class="text-center bg-primary text-white font-weight-bold align-middle"><?= number_format($StatistikSantriPerTpqPerKelas['totalPerKelas'][$kelas['IdKelas']] ?? 0) ?></th>
-                                                                        <?php endforeach; ?>
-                                                                        <th class="text-center bg-primary text-white font-weight-bold align-middle"><?= number_format($StatistikSantriPerTpqPerKelas['grandTotal'] ?? 0) ?></th>
-                                                                    </tr>
-                                                                </tfoot>
-                                                            </table>
+                                                                <?php else: ?>
+                                                                    <tr><td colspan="4" class="text-center py-2 text-muted">Tidak ada data kelas</td></tr>
+                                                                <?php endif; ?>
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- 2. SEBARAN SANTRI PER TPQ -->
+                                            <div class="infografis-section-head mt-4">
+                                                <div class="infografis-section-badge" style="background: #0284c7;">2</div>
+                                                <h3 class="infografis-section-title">Data Sebaran Santri Per TPQ</h3>
+                                                <div class="infografis-section-divider">
+                                                    <div class="line" style="background: #0284c7;"></div>
+                                                    <div class="dots"><div class="dot" style="background: #0284c7;"></div><div class="dot" style="background: #c59b27;"></div></div>
+                                                </div>
+                                            </div>
+
+                                            <div class="d-flex align-items-center justify-content-between flex-wrap mb-3">
+                                                <div class="d-flex align-items-center flex-wrap" style="gap: 8px;">
+                                                    <span class="badge badge-light border text-dark px-3 py-2 font-weight-bold" style="font-size: 0.9rem; border-radius: 8px;">
+                                                        <i class="fas fa-mosque text-primary mr-1"></i> <strong id="txtTpqCountSantri"><?= count($santriPerTpq['labels'] ?? []) ?></strong> TPQ Terdata
+                                                    </span>
+                                                    <span class="badge badge-light border text-dark px-3 py-2 font-weight-bold" style="font-size: 0.9rem; border-radius: 8px;">
+                                                        <i class="fas fa-trophy text-warning mr-1"></i> Santri Terbanyak: <strong id="txtTopTpqNameSantri"><?= esc($santriPerTpq['top_tpq_nama'] ?? '-') ?></strong> (<span id="txtTopTpqCountSantri"><?= number_format($santriPerTpq['top_tpq_count'] ?? 0) ?></span> Santri)
+                                                    </span>
+                                                </div>
+                                                <div class="d-flex align-items-center font-weight-bold mt-2 mt-md-0" style="gap: 16px; font-size: 0.9rem;">
+                                                    <div class="d-flex align-items-center">
+                                                        <span style="display:inline-block; width: 14px; height: 14px; background-color: #0284c7; border-radius: 3px; margin-right: 6px;"></span>
+                                                        Laki-laki
+                                                    </div>
+                                                    <div class="d-flex align-items-center">
+                                                        <span style="display:inline-block; width: 14px; height: 14px; background-color: #ec4899; border-radius: 3px; margin-right: 6px;"></span>
+                                                        Perempuan
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div id="wrapperChartSantriPerTpq" style="position: relative; width: 100%; min-height: 280px; height: <?= max(300, count($santriPerTpq['labels'] ?? []) * 28 + 60) ?>px;">
+                                                <canvas id="chartSantriPerTpq"></canvas>
+                                            </div>
+
+                                            <!-- 3. ANALISIS RASIO GURU : SANTRI PER TPQ -->
+                                            <div class="infografis-section-head mt-4">
+                                                <div class="infografis-section-badge" style="background: #10b981;">3</div>
+                                                <h3 class="infografis-section-title">Analisis Rasio Guru : Santri Per TPQ</h3>
+                                                <div class="infografis-section-divider">
+                                                    <div class="line" style="background: #10b981;"></div>
+                                                    <div class="dots"><div class="dot" style="background: #10b981;"></div><div class="dot" style="background: #c59b27;"></div></div>
+                                                </div>
+                                            </div>
+
+                                            <div class="row mb-3 align-items-center">
+                                                <div class="col-md-8">
+                                                    <div class="p-2 px-3 bg-light border" style="border-radius: 10px; font-size: 0.88rem;">
+                                                        <i class="fas fa-info-circle text-info mr-1"></i>
+                                                        Standar proporsional FKPQ adalah <strong>1 Guru : 9 s/d 11 Santri</strong>. 
+                                                        <span class="badge badge-success px-2 py-1 mx-1 font-weight-bold">Hijau (1:9 - 1:11) Ideal</span>
+                                                        <span class="badge badge-info px-2 py-1 mx-1 font-weight-bold">Biru (> 1:11) Padat / Butuh Guru</span>
+                                                        <span class="badge badge-danger px-2 py-1 mx-1 font-weight-bold">Merah (< 1:9) Rendah</span>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4 text-md-right mt-2 mt-md-0">
+                                                    <div class="input-group input-group-sm">
+                                                        <div class="input-group-prepend">
+                                                            <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
                                                         </div>
-                                                    <?php else: ?>
-                                                        <div class="text-center py-4 text-muted">Data matriks santri per kelas belum tersedia</div>
-                                                    <?php endif; ?>
+                                                        <input type="text" id="inputSearchTpqRasio" class="form-control form-control-sm" placeholder="Cari TPQ / Wilayah..." style="border-radius: 0 8px 8px 0;">
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="row">
+                                                <div class="col-lg-7 mb-4 mb-lg-0">
+                                                    <div id="wrapperChartRasioGuruSantri" style="position: relative; width: 100%; min-height: 280px; height: <?= max(300, count($rasioSantri['labels'] ?? []) * 28 + 60) ?>px;">
+                                                        <canvas id="chartRasioGuruSantri"></canvas>
+                                                    </div>
+                                                </div>
+                                                <div class="col-lg-5">
+                                                    <div class="table-responsive border" style="border-radius: 12px; max-height: <?= max(300, count($rasioSantri['labels'] ?? []) * 28 + 60) ?>px; overflow-y: auto; background: #ffffff;">
+                                                        <table class="table table-sm table-hover mb-0" id="tableListRasioTpq">
+                                                            <thead class="thead-light sticky-top" style="position: sticky; top: 0; z-index: 2;">
+                                                                <tr>
+                                                                    <th style="padding-left: 12px;">Lembaga TPQ</th>
+                                                                    <th class="text-center">Guru</th>
+                                                                    <th class="text-center">Santri</th>
+                                                                    <th class="text-center">Rasio</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody id="tbodyListRasioTpq">
+                                                                <?php if (!empty($rasioSantri['items'])): ?>
+                                                                    <?php foreach ($rasioSantri['items'] as $r): ?>
+                                                                        <tr class="row-rasio-tpq">
+                                                                            <td style="padding-left: 12px;">
+                                                                                <div class="font-weight-bold text-dark"><?= esc($r['NamaTpq']) ?></div>
+                                                                                <small class="text-muted"><i class="fas fa-map-marker-alt text-muted mr-1"></i><?= esc($r['KelurahanDesa']) ?></small>
+                                                                            </td>
+                                                                            <td class="text-center font-weight-bold text-success align-middle">
+                                                                                <?= number_format($r['TotalGuru']) ?>
+                                                                            </td>
+                                                                            <td class="text-center font-weight-bold text-primary align-middle">
+                                                                                <?= number_format($r['TotalSantri']) ?>
+                                                                            </td>
+                                                                            <td class="text-center align-middle">
+                                                                                <span class="badge badge-<?= esc($r['BadgeColor']) ?> px-2 py-1 font-weight-bold">
+                                                                                    <?= esc($r['Rasio']) ?>
+                                                                                </span>
+                                                                            </td>
+                                                                        </tr>
+                                                                    <?php endforeach; ?>
+                                                                <?php else: ?>
+                                                                    <tr><td colspan="4" class="text-center py-3 text-muted">Data rasio tidak ditemukan</td></tr>
+                                                                <?php endif; ?>
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- 4. MATRIKS DETAIL SEBARAN SANTRI PER KELAS -->
+                                            <div class="infografis-section-head mt-4">
+                                                <div class="infografis-section-badge" style="background: #6366f1;">4</div>
+                                                <h3 class="infografis-section-title">Matriks Detail Sebaran Santri Per TPQ & Per Kelas</h3>
+                                                <div class="infografis-section-divider">
+                                                    <div class="line" style="background: #6366f1;"></div>
+                                                    <div class="dots"><div class="dot" style="background: #6366f1;"></div><div class="dot" style="background: #c59b27;"></div></div>
+                                                </div>
+                                            </div>
+
+                                            <div class="table-responsive border" style="border-radius: 12px; background: #ffffff; overflow-x: auto;">
+                                                <table id="tblStatistikSantriPerTpqPerKelas" class="table table-bordered table-striped table-hover table-sm mb-0 text-nowrap" style="width: 100%; font-size: 0.9rem;">
+                                                    <thead class="thead-light">
+                                                        <tr>
+                                                            <th class="align-middle text-left" style="min-width: 190px; padding-left: 12px;">Nama TPQ</th>
+                                                            <th class="align-middle text-left" style="min-width: 140px;">Kelurahan/Desa</th>
+                                                            <?php if (!empty($matriksSantri['kelasList'])): ?>
+                                                                <?php foreach ($matriksSantri['kelasList'] as $kelas): ?>
+                                                                    <th class="text-center align-middle" style="min-width: 75px;"><?= esc($kelas['NamaKelas']) ?></th>
+                                                                <?php endforeach; ?>
+                                                            <?php endif; ?>
+                                                            <th class="align-middle text-center bg-info text-white font-weight-bold" style="min-width: 85px;">Total</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody id="tbodyMatriksSantri">
+                                                        <?php if (!empty($matriksSantri['data'])): ?>
+                                                            <?php foreach ($matriksSantri['data'] as $tpq): ?>
+                                                                <tr>
+                                                                    <td class="text-left font-weight-bold align-middle" style="padding-left: 12px;"><?= esc($tpq['NamaTpq']) ?></td>
+                                                                    <td class="text-left align-middle"><?= esc($tpq['KelurahanDesa']) ?></td>
+                                                                    <?php if (!empty($matriksSantri['kelasList'])): ?>
+                                                                        <?php foreach ($matriksSantri['kelasList'] as $kelas): ?>
+                                                                            <?php $jumlah = $tpq['Kelas'][$kelas['IdKelas']]['Jumlah'] ?? 0; ?>
+                                                                            <td class="text-center align-middle"><?= $jumlah > 0 ? number_format($jumlah) : '-' ?></td>
+                                                                        <?php endforeach; ?>
+                                                                    <?php endif; ?>
+                                                                    <td class="text-center bg-light font-weight-bold align-middle"><?= number_format($tpq['Total']) ?></td>
+                                                                </tr>
+                                                            <?php endforeach; ?>
+                                                        <?php else: ?>
+                                                            <tr>
+                                                                <td colspan="<?= 3 + count($matriksSantri['kelasList'] ?? []) ?>" class="text-center py-3 text-muted">Data matriks santri per kelas belum tersedia</td>
+                                                            </tr>
+                                                        <?php endif; ?>
+                                                    </tbody>
+                                                    <tfoot id="tfootMatriksSantri" class="thead-light">
+                                                        <tr>
+                                                            <th class="bg-primary text-white text-left font-weight-bold align-middle" style="padding-left: 12px;">Total</th>
+                                                            <th class="bg-primary text-white align-middle"></th>
+                                                            <?php if (!empty($matriksSantri['kelasList'])): ?>
+                                                                <?php foreach ($matriksSantri['kelasList'] as $kelas): ?>
+                                                                    <th class="text-center bg-primary text-white font-weight-bold align-middle"><?= number_format($matriksSantri['totalPerKelas'][$kelas['IdKelas']] ?? 0) ?></th>
+                                                                <?php endforeach; ?>
+                                                            <?php endif; ?>
+                                                            <th class="text-center bg-primary text-white font-weight-bold align-middle"><?= number_format($matriksSantri['grandTotal'] ?? 0) ?></th>
+                                                        </tr>
+                                                    </tfoot>
+                                                </table>
+                                            </div>
+
+                                            <!-- 5. FOOTER INFOGRAFIS -->
+                                            <div class="infografis-footer">
+                                                <div class="infografis-footer-logo">
+                                                    <i class="fas fa-award text-warning"></i> FKPQ &bull; TPQ SMART
+                                                </div>
+                                                <div class="infografis-footer-period" id="txtFooterPeriodeSantri">
+                                                    <?= esc($periodeTextSantri) ?>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                        <?php endif; ?>
+                        </div>
 
                         <!-- Statistik Progress Penilaian per TPQ -->
                         <?php if (!empty($StatistikProgressNilaiPerTpq) && ($IsAdmin ?? false)): ?>
@@ -3333,144 +3467,45 @@
             }, 200);
         });
 
-        // ==================== CHARTS SUITE: SANTRI PER TPQ, PER KELAS & RASIO ====================
+        // ==================== INFOGRAFIS STATISTIK SANTRI & RASIO GURU:SANTRI ====================
         var chartSantriPerTpqInstance = null;
         var chartSantriPerKelasInstance = null;
         var chartRasioGuruSantriInstance = null;
+        var currentSantriFilterStatus = 'all';
 
+        <?php
+        $initSpk = $santriPerKelas ?? [];
+        $initSpt = $santriPerTpq ?? [];
+        $initRgs = $rasioSantri ?? [];
+        ?>
         var dataSantriPerTpq = {
-            labels: <?= json_encode($labelsSantriTpq ?? []) ?>,
-            totals: <?= json_encode($totalsSantriTpq ?? []) ?>,
-            laki: <?= json_encode($lakiSantriTpq ?? []) ?>,
-            perempuan: <?= json_encode($perempuanSantriTpq ?? []) ?>
+            labels: <?= json_encode($initSpt['labels'] ?? []) ?>,
+            totals: <?= json_encode($initSpt['totals'] ?? []) ?>,
+            laki: <?= json_encode($initSpt['laki'] ?? []) ?>,
+            perempuan: <?= json_encode($initSpt['perempuan'] ?? []) ?>
         };
 
         var dataSantriPerKelas = {
-            labels: <?= json_encode($labelsSantriKelas ?? []) ?>,
-            totals: <?= json_encode($totalsSantriKelas ?? []) ?>,
-            laki: <?= json_encode($lakiSantriKelas ?? []) ?>,
-            perempuan: <?= json_encode($perempuanSantriKelas ?? []) ?>
+            labels: <?= json_encode($initSpk['labels'] ?? []) ?>,
+            totals: <?= json_encode($initSpk['totals'] ?? []) ?>,
+            laki: <?= json_encode($initSpk['laki'] ?? []) ?>,
+            perempuan: <?= json_encode($initSpk['perempuan'] ?? []) ?>
         };
 
         var dataRasioTpq = {
-            labels: <?= json_encode(array_column($rasioTpqSorted ?? [], 'NamaTpq')) ?>,
-            ratios: <?= json_encode(array_column($rasioTpqSorted ?? [], 'RasioCeil')) ?>,
-            ratioNumeric: <?= json_encode(array_column($rasioTpqSorted ?? [], 'RasioNumeric')) ?>,
-            ratioLabels: <?= json_encode(array_column($rasioTpqSorted ?? [], 'Rasio')) ?>,
-            santri: <?= json_encode(array_column($rasioTpqSorted ?? [], 'TotalSantri')) ?>,
-            guru: <?= json_encode(array_column($rasioTpqSorted ?? [], 'TotalGuru')) ?>,
-            colors: <?= json_encode(array_map(function($r) {
-                $c = $r['BadgeColor'] ?? 'secondary';
-                if ($c === 'success') return '#10b981';
-                if ($c === 'info') return '#0284c7';
-                if ($c === 'danger') return '#ef4444';
-                return '#94a3b8';
-            }, $rasioTpqSorted ?? [])) ?>
+            labels: <?= json_encode($initRgs['labels'] ?? []) ?>,
+            ratios: <?= json_encode($initRgs['ratios'] ?? []) ?>,
+            ratioLabels: <?= json_encode($initRgs['ratio_labels'] ?? []) ?>,
+            colors: <?= json_encode($initRgs['colors'] ?? []) ?>,
+            santri: <?= json_encode($initRgs['santri'] ?? []) ?>,
+            guru: <?= json_encode($initRgs['guru'] ?? []) ?>
         };
 
         function renderSantriAndRasioCharts() {
             if (typeof Chart === 'undefined') return;
             var isV3V4 = typeof Chart.version !== 'undefined' && parseInt(Chart.version) >= 3;
 
-            // 1. Chart Santri Per TPQ (Horizontal Stacked Bar)
-            var ctxSantriTpq = document.getElementById('chartSantriPerTpq');
-            if (ctxSantriTpq) {
-                if (chartSantriPerTpqInstance) {
-                    chartSantriPerTpqInstance.destroy();
-                    chartSantriPerTpqInstance = null;
-                }
-
-                var maxValSantri = dataSantriPerTpq.totals.length > 0 ? Math.max.apply(null, dataSantriPerTpq.totals) : 10;
-                var pluginTotalsSantri = {
-                    id: 'santriTotalsPlugin',
-                    afterDatasetsDraw: function(chart) {
-                        try {
-                            var ctx = chart.ctx;
-                            var metaP = chart.getDatasetMeta(1);
-                            var metaL = chart.getDatasetMeta(0);
-                            dataSantriPerTpq.labels.forEach(function(lbl, index) {
-                                var tot = dataSantriPerTpq.totals[index] || 0;
-                                if (tot > 0) {
-                                    var lastBar = (metaP && metaP.data && metaP.data[index]) ? metaP.data[index] : (metaL && metaL.data ? metaL.data[index] : null);
-                                    if (lastBar) {
-                                        var x = (typeof lastBar.x !== 'undefined') ? lastBar.x : (lastBar._model ? lastBar._model.x : null);
-                                        var y = (typeof lastBar.y !== 'undefined') ? lastBar.y : (lastBar._model ? lastBar._model.y : null);
-                                        if (x !== null && y !== null && !isNaN(x) && !isNaN(y)) {
-                                            ctx.save();
-                                            ctx.fillStyle = '#0f172a';
-                                            ctx.font = 'bold 11px sans-serif';
-                                            ctx.textAlign = 'left';
-                                            ctx.textBaseline = 'middle';
-                                            ctx.fillText(tot + ' Santri', x + 8, y);
-                                            ctx.restore();
-                                        }
-                                    }
-                                }
-                            });
-                        } catch(e) {}
-                    }
-                };
-
-                chartSantriPerTpqInstance = new Chart(ctxSantriTpq, {
-                    type: isV3V4 ? 'bar' : 'horizontalBar',
-                    data: {
-                        labels: dataSantriPerTpq.labels,
-                        datasets: [
-                            {
-                                label: 'Laki-Laki',
-                                data: dataSantriPerTpq.laki,
-                                backgroundColor: '#0284c7',
-                                hoverBackgroundColor: '#0369a1',
-                                borderRadius: 4,
-                                barPercentage: 0.72,
-                                categoryPercentage: 0.85
-                            },
-                            {
-                                label: 'Perempuan',
-                                data: dataSantriPerTpq.perempuan,
-                                backgroundColor: '#ec4899',
-                                hoverBackgroundColor: '#db2777',
-                                borderRadius: 4,
-                                barPercentage: 0.72,
-                                categoryPercentage: 0.85
-                            }
-                        ]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        indexAxis: 'y',
-                        layout: { padding: { right: 65, top: 10, bottom: 10 } },
-                        plugins: {
-                            legend: { display: false },
-                            tooltip: {
-                                callbacks: {
-                                    label: function(ctx) {
-                                        var ds = ctx.dataset ? (ctx.dataset.label || '') : '';
-                                        var v = ctx.parsed ? (ctx.parsed.x || ctx.parsed) : (ctx.xLabel || 0);
-                                        return ds + ': ' + v + ' Santri';
-                                    },
-                                    afterBody: function(items) {
-                                        if (!items || items.length === 0) return '';
-                                        var idx = items[0].dataIndex;
-                                        return 'Total: ' + (dataSantriPerTpq.totals[idx] || 0) + ' Santri';
-                                    }
-                                }
-                            }
-                        },
-                        scales: isV3V4 ? {
-                            x: { stacked: true, beginAtZero: true, max: Math.round(maxValSantri * 1.25) + 2, grid: { color: '#f1f5f9' } },
-                            y: { stacked: true, grid: { display: false }, ticks: { font: { weight: '700', size: 11 }, color: '#1e293b' } }
-                        } : {
-                            xAxes: [{ stacked: true, ticks: { beginAtZero: true, suggestedMax: Math.round(maxValSantri * 1.25) + 2 }, gridLines: { color: '#f1f5f9' } }],
-                            yAxes: [{ stacked: true, gridLines: { display: false } }]
-                        }
-                    },
-                    plugins: [pluginTotalsSantri]
-                });
-            }
-
-            // 2. Chart Santri Per Kelas (Grouped Bar Chart)
+            // 1. Chart Santri Per Kelas (Grouped Bar Chart)
             var ctxSantriKelas = document.getElementById('chartSantriPerKelas');
             if (ctxSantriKelas) {
                 if (chartSantriPerKelasInstance) {
@@ -3514,19 +3549,117 @@
                                     label: function(ctx) {
                                         var ds = ctx.dataset ? (ctx.dataset.label || '') : '';
                                         var v = ctx.parsed ? (ctx.parsed.y || ctx.parsed) : (ctx.yLabel || 0);
-                                        return ds + ': ' + v + ' Santri';
+                                        return ds + ': ' + Number(v).toLocaleString() + ' Santri';
                                     }
                                 }
                             }
                         },
                         scales: isV3V4 ? {
-                            x: { grid: { display: false }, ticks: { font: { weight: '600' } } },
-                            y: { beginAtZero: true, grid: { color: '#f1f5f9' } }
+                            x: { grid: { display: false }, ticks: { font: { weight: '700', size: 11 }, color: '#1e293b' } },
+                            y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { precision: 0 } }
                         } : {
                             xAxes: [{ gridLines: { display: false } }],
-                            yAxes: [{ ticks: { beginAtZero: true } }]
+                            yAxes: [{ ticks: { beginAtZero: true, precision: 0 } }]
                         }
                     }
+                });
+            }
+
+            // 2. Chart Santri Per TPQ (Horizontal Stacked Bar)
+            var ctxSantriTpq = document.getElementById('chartSantriPerTpq');
+            if (ctxSantriTpq) {
+                if (chartSantriPerTpqInstance) {
+                    chartSantriPerTpqInstance.destroy();
+                    chartSantriPerTpqInstance = null;
+                }
+
+                var maxValSantri = dataSantriPerTpq.totals.length > 0 ? Math.max.apply(null, dataSantriPerTpq.totals) : 10;
+                var pluginTotalsSantri = {
+                    id: 'santriTotalsPlugin',
+                    afterDatasetsDraw: function(chart) {
+                        try {
+                            var ctx = chart.ctx;
+                            var metaP = chart.getDatasetMeta(1);
+                            var metaL = chart.getDatasetMeta(0);
+                            dataSantriPerTpq.labels.forEach(function(lbl, index) {
+                                var tot = dataSantriPerTpq.totals[index] || 0;
+                                if (tot > 0) {
+                                    var lastBar = (metaP && metaP.data && metaP.data[index]) ? metaP.data[index] : (metaL && metaL.data ? metaL.data[index] : null);
+                                    if (lastBar) {
+                                        var x = (typeof lastBar.x !== 'undefined') ? lastBar.x : (lastBar._model ? lastBar._model.x : null);
+                                        var y = (typeof lastBar.y !== 'undefined') ? lastBar.y : (lastBar._model ? lastBar._model.y : null);
+                                        if (x !== null && y !== null && !isNaN(x) && !isNaN(y)) {
+                                            ctx.save();
+                                            ctx.fillStyle = '#0f172a';
+                                            ctx.font = 'bold 11px sans-serif';
+                                            ctx.textAlign = 'left';
+                                            ctx.textBaseline = 'middle';
+                                            ctx.fillText(Number(tot).toLocaleString() + ' Santri', x + 8, y);
+                                            ctx.restore();
+                                        }
+                                    }
+                                }
+                            });
+                        } catch(e) {}
+                    }
+                };
+
+                chartSantriPerTpqInstance = new Chart(ctxSantriTpq, {
+                    type: isV3V4 ? 'bar' : 'horizontalBar',
+                    data: {
+                        labels: dataSantriPerTpq.labels,
+                        datasets: [
+                            {
+                                label: 'Laki-Laki',
+                                data: dataSantriPerTpq.laki,
+                                backgroundColor: '#0284c7',
+                                hoverBackgroundColor: '#0369a1',
+                                borderRadius: 4,
+                                barPercentage: 0.72,
+                                categoryPercentage: 0.85
+                            },
+                            {
+                                label: 'Perempuan',
+                                data: dataSantriPerTpq.perempuan,
+                                backgroundColor: '#ec4899',
+                                hoverBackgroundColor: '#db2777',
+                                borderRadius: 4,
+                                barPercentage: 0.72,
+                                categoryPercentage: 0.85
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        indexAxis: 'y',
+                        layout: { padding: { right: 75, top: 10, bottom: 10 } },
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(ctx) {
+                                        var ds = ctx.dataset ? (ctx.dataset.label || '') : '';
+                                        var v = ctx.parsed ? (ctx.parsed.x || ctx.parsed) : (ctx.xLabel || 0);
+                                        return ds + ': ' + Number(v).toLocaleString() + ' Santri';
+                                    },
+                                    afterBody: function(items) {
+                                        if (!items || items.length === 0) return '';
+                                        var idx = items[0].dataIndex;
+                                        return 'Total: ' + Number(dataSantriPerTpq.totals[idx] || 0).toLocaleString() + ' Santri';
+                                    }
+                                }
+                            }
+                        },
+                        scales: isV3V4 ? {
+                            x: { stacked: true, beginAtZero: true, max: Math.round(maxValSantri * 1.25) + 2, grid: { color: '#f1f5f9' } },
+                            y: { stacked: true, grid: { display: false }, ticks: { font: { weight: '700', size: 11 }, color: '#1e293b' } }
+                        } : {
+                            xAxes: [{ stacked: true, ticks: { beginAtZero: true, suggestedMax: Math.round(maxValSantri * 1.25) + 2 }, gridLines: { color: '#f1f5f9' } }],
+                            yAxes: [{ stacked: true, gridLines: { display: false } }]
+                        }
+                    },
+                    plugins: [pluginTotalsSantri]
                 });
             }
 
@@ -3620,13 +3753,223 @@
             });
         });
 
-        // Resize charts on Bootstrap Tab shown
-        $('a[data-toggle="pill"]').on('shown.bs.tab', function(e) {
+        // Trigger chart resize if Santri card is expanded or maximized
+        $('#infografis-santri-card-print').closest('.card').on('expanded.lte.cardwidget maximized.lte.cardwidget', function() {
             setTimeout(function() {
-                if (chartSantriPerTpqInstance) chartSantriPerTpqInstance.resize();
                 if (chartSantriPerKelasInstance) chartSantriPerKelasInstance.resize();
+                if (chartSantriPerTpqInstance) chartSantriPerTpqInstance.resize();
                 if (chartRasioGuruSantriInstance) chartRasioGuruSantriInstance.resize();
-            }, 120);
+            }, 200);
+        });
+
+        // Fungsi Update DOM Infografis Santri
+        function updateSantriInfografisDOM(d) {
+            if (!d) return;
+
+            // Header total valid & badges
+            $('#txtTotalValidSantri').text(Number(d.total_valid || 0).toLocaleString());
+            var tpqText = (d.nama_tpq && d.nama_tpq !== 'SEMUA TPQ') ? d.nama_tpq : '';
+            var kelText = d.filter_kelurahan ? ('Wilayah ' + d.filter_kelurahan) : '';
+            var stText = (d.filter_status === '1') ? 'Aktif' : ((d.filter_status === '0') ? 'Non-Aktif' : '');
+            var badgeFilterParts = [];
+            if (tpqText) badgeFilterParts.push(tpqText);
+            if (kelText) badgeFilterParts.push(kelText);
+            if (stText) badgeFilterParts.push('Status: ' + stText);
+            $('#txtFilterBadgeSantri').html('<i class="fas fa-filter text-muted mr-1"></i>' + (badgeFilterParts.length > 0 ? badgeFilterParts.join(' &bull; ') : 'Semua Wilayah & TPQ'));
+
+            // Top KPI Mini Cards
+            var kpi = d.kpi || {};
+            var gen = d.komposisi_gender || {};
+            $('#kpiSantriTotalVal').text(Number(d.total_valid || 0).toLocaleString());
+            var tpqCount = (d.santri_per_tpq && d.santri_per_tpq.labels) ? d.santri_per_tpq.labels.length : 0;
+            $('#kpiSantriTotalTpqVal').text('Dari ' + tpqCount + ' TPQ Terdata');
+
+            $('#kpiSantriGenderLakiVal').text(Number(gen.laki_laki || 0).toLocaleString() + ' L');
+            $('#kpiSantriGenderPerempuanVal').text(Number(gen.perempuan || 0).toLocaleString() + ' P');
+            $('#kpiSantriGenderPctVal').text((gen.pct_laki || 0) + '% Laki \u2022 ' + (gen.pct_perempuan || 0) + '% Perempuan');
+
+            $('#kpiSantriAvgRasioVal').text('1 : ' + (kpi.avg_rasio_ceil || 0));
+            $('#kpiSantriAvgRasioSub').text('1 Guru : ' + (kpi.avg_rasio || 0) + ' Santri');
+
+            $('#kpiSantriCountIdealVal').text((kpi.count_ideal || 0) + ' Ideal');
+            $('#kpiSantriCountPadatVal').text((kpi.count_padat || 0) + ' Padat');
+            $('#kpiSantriCountRendahVal').text((kpi.count_rendah || 0) + ' Rendah');
+
+            // Section 1: Santri Per Kelas
+            var spk = d.santri_per_kelas || {};
+            $('#txtKelasCountSantri').text((spk.labels || []).length);
+            var tbodyKelasHtml = '';
+            if (spk.items && spk.items.length > 0) {
+                spk.items.forEach(function(item) {
+                    tbodyKelasHtml += '<tr>' +
+                        '<td class="font-weight-bold text-dark" style="padding-left: 12px;">' + (item.NamaKelas || '') + '</td>' +
+                        '<td class="text-center text-info font-weight-bold">' + Number(item.LakiLaki || 0).toLocaleString() + '</td>' +
+                        '<td class="text-center font-weight-bold" style="color: #ec4899;">' + Number(item.Perempuan || 0).toLocaleString() + '</td>' +
+                        '<td class="text-center font-weight-bold text-dark">' + Number(item.Total || 0).toLocaleString() + '</td>' +
+                        '</tr>';
+                });
+            } else {
+                tbodyKelasHtml = '<tr><td colspan="4" class="text-center py-2 text-muted">Tidak ada data kelas</td></tr>';
+            }
+            $('#tbodyRingkasSantriKelas').html(tbodyKelasHtml);
+
+            // Section 2: Santri Per TPQ info
+            var spt = d.santri_per_tpq || {};
+            $('#txtTpqCountSantri').text((spt.labels || []).length);
+            $('#txtTopTpqNameSantri').text(spt.top_tpq_nama || '-');
+            $('#txtTopTpqCountSantri').text(Number(spt.top_tpq_count || 0).toLocaleString());
+
+            var tpqHeight = Math.max(300, (spt.labels || []).length * 28 + 60);
+            $('#wrapperChartSantriPerTpq').css('height', tpqHeight + 'px');
+
+            // Section 3: Rasio Guru : Santri Per TPQ
+            var rgs = d.rasio_guru_santri || {};
+            var rasioHeight = Math.max(300, (rgs.labels || []).length * 28 + 60);
+            $('#wrapperChartRasioGuruSantri').css('height', rasioHeight + 'px');
+            $('#tableListRasioTpq').closest('.table-responsive').css('max-height', rasioHeight + 'px');
+
+            var tbodyRasioHtml = '';
+            if (rgs.items && rgs.items.length > 0) {
+                rgs.items.forEach(function(r) {
+                    tbodyRasioHtml += '<tr class="row-rasio-tpq">' +
+                        '<td style="padding-left: 12px;">' +
+                            '<div class="font-weight-bold text-dark">' + (r.NamaTpq || '') + '</div>' +
+                            '<small class="text-muted"><i class="fas fa-map-marker-alt text-muted mr-1"></i>' + (r.KelurahanDesa || '') + '</small>' +
+                        '</td>' +
+                        '<td class="text-center font-weight-bold text-success align-middle">' + Number(r.TotalGuru || 0).toLocaleString() + '</td>' +
+                        '<td class="text-center font-weight-bold text-primary align-middle">' + Number(r.TotalSantri || 0).toLocaleString() + '</td>' +
+                        '<td class="text-center align-middle">' +
+                            '<span class="badge badge-' + (r.BadgeColor || 'secondary') + ' px-2 py-1 font-weight-bold">' + (r.Rasio || '-') + '</span>' +
+                        '</td>' +
+                        '</tr>';
+                });
+            } else {
+                tbodyRasioHtml = '<tr><td colspan="4" class="text-center py-3 text-muted">Data rasio tidak ditemukan</td></tr>';
+            }
+            $('#tbodyListRasioTpq').html(tbodyRasioHtml);
+
+            // Section 4: Matriks Detail
+            var mtx = d.matriks_detail || {};
+            var tbodyMatriksHtml = '';
+            if (mtx.data && mtx.data.length > 0) {
+                mtx.data.forEach(function(tpq) {
+                    tbodyMatriksHtml += '<tr>' +
+                        '<td class="text-left font-weight-bold align-middle" style="padding-left: 12px;">' + (tpq.NamaTpq || '') + '</td>' +
+                        '<td class="text-left align-middle">' + (tpq.KelurahanDesa || '') + '</td>';
+                    if (mtx.kelasList && mtx.kelasList.length > 0) {
+                        mtx.kelasList.forEach(function(k) {
+                            var j = (tpq.Kelas && tpq.Kelas[k.IdKelas]) ? (tpq.Kelas[k.IdKelas].Jumlah || 0) : 0;
+                            tbodyMatriksHtml += '<td class="text-center align-middle">' + (j > 0 ? Number(j).toLocaleString() : '-') + '</td>';
+                        });
+                    }
+                    tbodyMatriksHtml += '<td class="text-center bg-light font-weight-bold align-middle">' + Number(tpq.Total || 0).toLocaleString() + '</td>' +
+                        '</tr>';
+                });
+            } else {
+                var colSpan = 3 + ((mtx.kelasList && mtx.kelasList.length) || 0);
+                tbodyMatriksHtml = '<tr><td colspan="' + colSpan + '" class="text-center py-3 text-muted">Data matriks santri per kelas belum tersedia</td></tr>';
+            }
+            $('#tbodyMatriksSantri').html(tbodyMatriksHtml);
+
+            // Footer Matriks
+            var tfootMatriksHtml = '<tr>' +
+                '<th class="bg-primary text-white text-left font-weight-bold align-middle" style="padding-left: 12px;">Total</th>' +
+                '<th class="bg-primary text-white align-middle"></th>';
+            if (mtx.kelasList && mtx.kelasList.length > 0) {
+                mtx.kelasList.forEach(function(k) {
+                    var totK = (mtx.totalPerKelas && mtx.totalPerKelas[k.IdKelas]) ? mtx.totalPerKelas[k.IdKelas] : 0;
+                    tfootMatriksHtml += '<th class="text-center bg-primary text-white font-weight-bold align-middle">' + Number(totK).toLocaleString() + '</th>';
+                });
+            }
+            tfootMatriksHtml += '<th class="text-center bg-primary text-white font-weight-bold align-middle">' + Number(mtx.grandTotal || 0).toLocaleString() + '</th>' +
+                '</tr>';
+            $('#tfootMatriksSantri').html(tfootMatriksHtml);
+
+            // Periode Footer
+            if (d.periode_text) {
+                $('#txtFooterPeriodeSantri').html(d.periode_text);
+            }
+
+            // Update chart data
+            dataSantriPerTpq = {
+                labels: spt.labels || [],
+                totals: spt.totals || [],
+                laki: spt.laki || [],
+                perempuan: spt.perempuan || []
+            };
+            dataSantriPerKelas = {
+                labels: spk.labels || [],
+                totals: spk.totals || [],
+                laki: spk.laki || [],
+                perempuan: spk.perempuan || []
+            };
+            dataRasioTpq = {
+                labels: rgs.labels || [],
+                ratios: rgs.ratios || [],
+                ratioLabels: rgs.ratio_labels || [],
+                colors: rgs.colors || [],
+                santri: rgs.santri || [],
+                guru: rgs.guru || []
+            };
+
+            renderSantriAndRasioCharts();
+        }
+
+        // Fetch Filtered Santri Stats via AJAX
+        function fetchFilteredSantriStats() {
+            var idTpq = $('#selectFilterTpqSantri').val() || 0;
+            var kelurahan = $('#selectFilterKelurahanSantri').val() || '';
+            var status = currentSantriFilterStatus;
+
+            $('#txtTotalValidSantri').html('<i class="fas fa-spinner fa-spin"></i>');
+
+            $.ajax({
+                url: '<?= base_url('backend/dashboard/getStatistikSantriAjax') ?>',
+                method: 'GET',
+                data: {
+                    id_tpq: idTpq,
+                    kelurahan: kelurahan,
+                    status: status
+                },
+                dataType: 'json',
+                success: function(response) {
+                    if (response.status === 'success' && response.data) {
+                        updateSantriInfografisDOM(response.data);
+                    }
+                },
+                error: function(xhr) {
+                    console.error('Gagal mengambil statistik santri:', xhr);
+                    if (typeof toastr !== 'undefined') {
+                        toastr.error('Gagal memuat filter statistik santri');
+                    }
+                }
+            });
+        }
+
+        // Filter events Santri
+        $('#selectFilterTpqSantri').on('change', function() {
+            fetchFilteredSantriStats();
+        });
+
+        $('#selectFilterKelurahanSantri').on('change', function() {
+            fetchFilteredSantriStats();
+        });
+
+        $('.btn-toggle-santri-status').on('click', function(e) {
+            e.preventDefault();
+            var selectedStatus = $(this).data('status');
+            currentSantriFilterStatus = String(selectedStatus);
+
+            $('.btn-toggle-santri-status').removeClass('active btn-info btn-secondary').addClass('btn-outline-info');
+            $('.btn-toggle-santri-status[data-status="0"]').removeClass('btn-outline-info').addClass('btn-outline-secondary');
+
+            if (selectedStatus === 'all' || selectedStatus === '1') {
+                $(this).removeClass('btn-outline-info').addClass('btn-info active');
+            } else {
+                $(this).removeClass('btn-outline-secondary').addClass('btn-secondary active');
+            }
+
+            fetchFilteredSantriStats();
         });
 
         setTimeout(function() {
@@ -3907,10 +4250,261 @@
         });
     }
 
-    function triggerDownloadCanvasPNG(canvas) {
+    // ==================== CETAK & EXPORT INFOGRAFIS SANTRI ====================
+    function printSantriInfographic() {
+        var $printContent = $('#infografis-santri-card-print').clone();
+
+        // Konversi 3 canvas Chart.js ke gambar PNG high-res agar tidak hilang saat print PDF
+        var canvasKelas = document.getElementById('chartSantriPerKelas');
+        if (canvasKelas) {
+            try {
+                var imgKelas = document.createElement('img');
+                imgKelas.src = canvasKelas.toDataURL('image/png', 1.0);
+                imgKelas.style.width = '100%';
+                imgKelas.style.height = 'auto';
+                imgKelas.style.maxHeight = '320px';
+                imgKelas.style.display = 'block';
+                $printContent.find('#chartSantriPerKelas').replaceWith(imgKelas);
+            } catch (e) {
+                console.error('Error converting santri kelas canvas:', e);
+            }
+        }
+
+        var canvasTpq = document.getElementById('chartSantriPerTpq');
+        if (canvasTpq) {
+            try {
+                var imgTpq = document.createElement('img');
+                imgTpq.src = canvasTpq.toDataURL('image/png', 1.0);
+                imgTpq.style.width = '100%';
+                imgTpq.style.height = 'auto';
+                imgTpq.style.display = 'block';
+                $printContent.find('#chartSantriPerTpq').replaceWith(imgTpq);
+            } catch (e) {
+                console.error('Error converting santri tpq canvas:', e);
+            }
+        }
+
+        var canvasRasio = document.getElementById('chartRasioGuruSantri');
+        if (canvasRasio) {
+            try {
+                var imgRasio = document.createElement('img');
+                imgRasio.src = canvasRasio.toDataURL('image/png', 1.0);
+                imgRasio.style.width = '100%';
+                imgRasio.style.height = 'auto';
+                imgRasio.style.display = 'block';
+                $printContent.find('#chartRasioGuruSantri').replaceWith(imgRasio);
+            } catch (e) {
+                console.error('Error converting rasio canvas:', e);
+            }
+        }
+
+        $('#printSantriIframe').remove();
+
+        var iframe = document.createElement('iframe');
+        iframe.id = 'printSantriIframe';
+        iframe.style.position = 'fixed';
+        iframe.style.right = '0';
+        iframe.style.bottom = '0';
+        iframe.style.width = '0';
+        iframe.style.height = '0';
+        iframe.style.border = '0';
+        document.body.appendChild(iframe);
+
+        var iframeDoc = iframe.contentWindow || iframe.contentDocument;
+        if (iframeDoc.document) iframeDoc = iframeDoc.document;
+
+        var stylesCss = $('#infografis-styles-tag').text();
+
+        var printHtml = '<!DOCTYPE html>' +
+            '<html>' +
+            '<head>' +
+            '<title>Infografis Statistik Santri TPQ & Rasio Guru</title>' +
+            '<meta charset="utf-8">' +
+            '<meta name="viewport" content="width=device-width, initial-scale=1">' +
+            '<link rel="stylesheet" href="<?= base_url('plugins/fontawesome-free/css/all.min.css') ?>">' +
+            '<link rel="stylesheet" href="<?= base_url('template/backend/dist/css/adminlte.min.css') ?>">' +
+            '<style>' +
+            '@page { size: A4 portrait; margin: 8mm 10mm; }' +
+            '* { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }' +
+            'body { background: #ffffff !important; margin: 0; padding: 10px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }' +
+            stylesCss +
+            '</style>' +
+            '</head>' +
+            '<body>' +
+            '<div class="container-fluid p-0">' +
+            $printContent.prop('outerHTML') +
+            '</div>' +
+            '</body>' +
+            '</html>';
+
+        iframeDoc.open();
+        iframeDoc.write(printHtml);
+        iframeDoc.close();
+
+        setTimeout(function() {
+            iframe.contentWindow.focus();
+            iframe.contentWindow.print();
+        }, 500);
+    }
+
+    // Salin Gambar PNG Santri ke Clipboard
+    function copySantriInfographicPNG() {
+        var $btn = $('#btnCopySantriInfographic');
+        var originalHtml = $btn.html();
+        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-1"></i> Menyalin...');
+
+        ensureHtml2Canvas(function() {
+            var targetEl = document.getElementById('infografis-santri-card-print');
+            if (!targetEl) {
+                $btn.prop('disabled', false).html(originalHtml);
+                return;
+            }
+
+            var captureOptions = {
+                scale: 2,
+                useCORS: true,
+                backgroundColor: '#ffffff',
+                logging: false,
+                scrollX: 0,
+                scrollY: 0,
+                onclone: function(clonedDoc) {
+                    var origCard = document.getElementById('infografis-santri-card-print');
+                    var clonedCard = clonedDoc.getElementById('infografis-santri-card-print');
+                    if (origCard && clonedCard) {
+                        var origCanvases = origCard.querySelectorAll('canvas');
+                        var clonedCanvases = clonedCard.querySelectorAll('canvas');
+                        for (var i = 0; i < origCanvases.length; i++) {
+                            if (clonedCanvases[i]) {
+                                var ctx = clonedCanvases[i].getContext('2d');
+                                if (ctx) {
+                                    ctx.drawImage(origCanvases[i], 0, 0);
+                                }
+                            }
+                        }
+                    }
+                }
+            };
+
+            html2canvas(targetEl, captureOptions).then(function(canvas) {
+                canvas.toBlob(function(blob) {
+                    if (!blob) {
+                        $btn.prop('disabled', false).html(originalHtml);
+                        if (typeof toastr !== 'undefined') toastr.error('Gagal membuat gambar PNG.');
+                        return;
+                    }
+
+                    if (navigator.clipboard && window.ClipboardItem && navigator.clipboard.write) {
+                        var item = new ClipboardItem({ 'image/png': blob });
+                        navigator.clipboard.write([item]).then(function() {
+                            $btn.prop('disabled', false).html('<i class="fas fa-check mr-1"></i> Tersalin!');
+                            setTimeout(function() { $btn.html(originalHtml); }, 2500);
+
+                            if (typeof Swal !== 'undefined') {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Gambar Berhasil Disalin!',
+                                    text: 'Infografis santri telah disalin ke clipboard sebagai PNG. Anda dapat langsung menempelkannya (Ctrl + V) ke WhatsApp, Word, dll.',
+                                    timer: 3500,
+                                    showConfirmButton: false
+                                });
+                            } else if (typeof toastr !== 'undefined') {
+                                toastr.success('Gambar PNG berhasil disalin ke clipboard! (Ctrl + V)');
+                            }
+                        }).catch(function(err) {
+                            console.warn('Clipboard write gagal, fallback download:', err);
+                            triggerDownloadCanvasPNG(canvas, 'Infografis-Statistik-Santri-TPQ-' + new Date().toISOString().slice(0, 10) + '.png');
+                            $btn.prop('disabled', false).html(originalHtml);
+                            if (typeof Swal !== 'undefined') {
+                                Swal.fire({
+                                    icon: 'info',
+                                    title: 'Clipboard Dibatasi Browser',
+                                    text: 'Direct clipboard copy dibatasi oleh browser/koneksi non-HTTPS. File gambar PNG telah otomatis diunduh ke komputer Anda!',
+                                    timer: 4500,
+                                    showConfirmButton: true
+                                });
+                            } else if (typeof toastr !== 'undefined') {
+                                toastr.info('Clipboard dibatasi browser. Gambar PNG otomatis diunduh.');
+                            }
+                        });
+                    } else {
+                        triggerDownloadCanvasPNG(canvas, 'Infografis-Statistik-Santri-TPQ-' + new Date().toISOString().slice(0, 10) + '.png');
+                        $btn.prop('disabled', false).html(originalHtml);
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                icon: 'info',
+                                title: 'Gambar Telah Diunduh',
+                                text: 'Browser belum mendukung direct clipboard copy. File gambar PNG telah otomatis diunduh ke komputer Anda!',
+                                timer: 4500,
+                                showConfirmButton: true
+                            });
+                        } else if (typeof toastr !== 'undefined') {
+                            toastr.info('Direct clipboard tidak didukung. File PNG telah diunduh.');
+                        }
+                    }
+                }, 'image/png');
+            }).catch(function(err) {
+                console.error('Error html2canvas capture:', err);
+                $btn.prop('disabled', false).html(originalHtml);
+                if (typeof toastr !== 'undefined') toastr.error('Terjadi kesalahan saat capture infografis santri.');
+            });
+        });
+    }
+
+    // Unduh File Gambar PNG Santri
+    function downloadSantriInfographicPNG() {
+        var $btn = $('#btnDownloadSantriInfographic');
+        var originalHtml = $btn.html();
+        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-1"></i> Memproses...');
+
+        ensureHtml2Canvas(function() {
+            var targetEl = document.getElementById('infografis-santri-card-print');
+            if (!targetEl) {
+                $btn.prop('disabled', false).html(originalHtml);
+                return;
+            }
+
+            var captureOptions = {
+                scale: 2,
+                useCORS: true,
+                backgroundColor: '#ffffff',
+                logging: false,
+                scrollX: 0,
+                scrollY: 0,
+                onclone: function(clonedDoc) {
+                    var origCard = document.getElementById('infografis-santri-card-print');
+                    var clonedCard = clonedDoc.getElementById('infografis-santri-card-print');
+                    if (origCard && clonedCard) {
+                        var origCanvases = origCard.querySelectorAll('canvas');
+                        var clonedCanvases = clonedCard.querySelectorAll('canvas');
+                        for (var i = 0; i < origCanvases.length; i++) {
+                            if (clonedCanvases[i]) {
+                                var ctx = clonedCanvases[i].getContext('2d');
+                                if (ctx) {
+                                    ctx.drawImage(origCanvases[i], 0, 0);
+                                }
+                            }
+                        }
+                    }
+                }
+            };
+
+            html2canvas(targetEl, captureOptions).then(function(canvas) {
+                var fileName = 'Infografis-Statistik-Santri-TPQ-' + new Date().toISOString().slice(0, 10) + '.png';
+                triggerDownloadCanvasPNG(canvas, fileName);
+                $btn.prop('disabled', false).html('<i class="fas fa-check mr-1"></i> Terunduh!');
+                setTimeout(function() { $btn.html(originalHtml); }, 2500);
+            }).catch(function(err) {
+                console.error('Error html2canvas capture:', err);
+                $btn.prop('disabled', false).html(originalHtml);
+                if (typeof toastr !== 'undefined') toastr.error('Gagal mengunduh gambar infografis santri.');
+            });
+        });
+    }
+
+    function triggerDownloadCanvasPNG(canvas, customFilename) {
         var link = document.createElement('a');
         var dateStr = new Date().toISOString().slice(0, 10);
-        link.download = 'Infografis-Statistik-Guru-TPQ-' + dateStr + '.png';
+        link.download = customFilename || ('Infografis-Statistik-Guru-TPQ-' + dateStr + '.png');
         link.href = canvas.toDataURL('image/png', 1.0);
         link.click();
         if (typeof toastr !== 'undefined') {
