@@ -62,6 +62,14 @@
 
 <!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+    if (typeof Chart === 'undefined') {
+        document.write('<script src="<?php echo base_url('/plugins/chart.js/Chart.bundle.min.js') ?>"><\/script>');
+    }
+</script>
 
 <!-- Cropper.js JS -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+<!-- html2canvas -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>

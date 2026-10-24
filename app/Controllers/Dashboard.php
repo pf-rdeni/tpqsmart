@@ -276,6 +276,8 @@ class Dashboard extends BaseController
             'StatistikTpqDenganRasio' => $statistikTpqDenganRasio,
             'StatistikSantriPerTpqPerKelas' => $statistikSantriPerTpqPerKelas,
             'StatistikProgressNilaiPerTpq' => $statistikProgressNilaiPerTpq,
+            'RingkasanStatistikGuru' => $this->getRingkasanStatistikGuru($idTpqForQuery),
+            'ListTpq' => $this->helpFunctionModel->getDataTpq(),
         ];
     }
 
@@ -2722,6 +2724,279 @@ class Dashboard extends BaseController
                 'message' => 'Terjadi kesalahan saat mengambil data materi'
             ])->setStatusCode(500);
         }
+    }
+
+    /**
+     * Mengambil ringkasan statistik guru lengkap untuk infografis dashboard admin
+     *
+     * @param int|string $idTpq 0 untuk semua TPQ, atau ID TPQ spesifik
+     * @return array
+     */
+    /**
+     * Mengambil ringkasan statistik guru lengkap untuk infografis dashboard admin
+     *
+     * @param int|string $idTpq 0 untuk semua TPQ, atau ID TPQ spesifik
+     * @param string $kelurahan Nama kelurahan/desa atau kosong untuk semua
+     * @param string $status 'all', '1' (aktif), atau '0' (non-aktif)
+     * @return array
+     */
+    public function getRingkasanStatistikGuru($idTpq = 0, $kelurahan = '', $status = 'all')
+    {
+        // 1. Ambil list semua kelurahan/desa unik untuk pilihan filter (selalu komprehensif)
+        $listKelurahan = [];
+        $kelRows = $this->db->table('tbl_guru')
+            ->select('KelurahanDesa')
+            ->where('KelurahanDesa IS NOT NULL')
+            ->where("TRIM(KelurahanDesa) != ''")
+            ->groupBy('KelurahanDesa')
+            ->orderBy('KelurahanDesa', 'ASC')
+            ->get()
+            ->getResultArray();
+
+        foreach ($kelRows as $kr) {
+            $kName = ucwords(strtolower(trim($kr['KelurahanDesa'] ?? '')));
+            if (!empty($kName) && !in_array($kName, $listKelurahan)) {
+                $listKelurahan[] = $kName;
+            }
+        }
+        sort($listKelurahan);
+
+        // 2. Query data guru sesuai kriteria filter
+        $builder = $this->db->table('tbl_guru g');
+        $builder->select('g.*, t.NamaTpq')
+            ->join('tbl_tpq t', 't.IdTpq = g.IdTpq', 'left');
+
+        $idTpqForQuery = (empty($idTpq) || $idTpq == '0' || $idTpq == 0) ? 0 : $idTpq;
+        if ($idTpqForQuery != 0) {
+            $builder->where('g.IdTpq', $idTpqForQuery);
+        }
+
+        $kelurahanFilter = trim((string)($kelurahan ?? ''));
+        if (!empty($kelurahanFilter) && $kelurahanFilter !== 'all') {
+            $builder->where('LOWER(TRIM(g.KelurahanDesa))', strtolower($kelurahanFilter));
+        }
+
+        $statusFilter = strtolower(trim((string)($status ?? 'all')));
+        if ($statusFilter === '1' || $statusFilter === 'aktif') {
+            $builder->where('g.Status', '1');
+        } elseif ($statusFilter === '0' || $statusFilter === 'non_aktif' || $statusFilter === 'nonaktif') {
+            $builder->groupStart()
+                ->where('g.Status !=', '1')
+                ->orWhere('g.Status IS NULL')
+                ->groupEnd();
+        }
+
+        $allGuru = $builder->get()->getResultArray();
+
+        $totalValid = count($allGuru);
+        $validAgeCount = 0;
+        $ages = [];
+        $genderCounts = ['Laki-laki' => 0, 'Perempuan' => 0];
+        $statusCounts = ['aktif' => 0, 'non_aktif' => 0];
+        $kelurahanCounts = [];
+        $guruPerTpq = [];
+
+        $ageBrackets = [
+            '16-20' => 0,
+            '21-25' => 0,
+            '26-30' => 0,
+            '31-35' => 0,
+            '36-40' => 0,
+            '41-45' => 0,
+            '46-50' => 0,
+            '51-55' => 0,
+            '56-60' => 0,
+            '61-65' => 0,
+            '66-70' => 0,
+        ];
+
+        $now = new \DateTime();
+
+        foreach ($allGuru as $g) {
+            // Jenis Kelamin
+            $jk = strtoupper(trim($g['JenisKelamin'] ?? ''));
+            $isLaki = (strpos($jk, 'LAKI') !== false);
+            if ($isLaki) {
+                $genderCounts['Laki-laki']++;
+            } else {
+                $genderCounts['Perempuan']++;
+            }
+
+            // Status: 1 = Aktif, selain 1 = Non Aktif
+            $st = trim((string)($g['Status'] ?? ''));
+            $isAktif = ($st === '1');
+            if ($isAktif) {
+                $statusCounts['aktif']++;
+            } else {
+                $statusCounts['non_aktif']++;
+            }
+
+            // Statistik per TPQ
+            $tpqName = !empty($g['NamaTpq']) ? trim($g['NamaTpq']) : 'Lainnya';
+            if (!isset($guruPerTpq[$tpqName])) {
+                $guruPerTpq[$tpqName] = [
+                    'nama' => $tpqName,
+                    'total' => 0,
+                    'laki_laki' => 0,
+                    'perempuan' => 0,
+                    'aktif' => 0,
+                    'non_aktif' => 0,
+                ];
+            }
+            $guruPerTpq[$tpqName]['total']++;
+            if ($isLaki) {
+                $guruPerTpq[$tpqName]['laki_laki']++;
+            } else {
+                $guruPerTpq[$tpqName]['perempuan']++;
+            }
+            if ($isAktif) {
+                $guruPerTpq[$tpqName]['aktif']++;
+            } else {
+                $guruPerTpq[$tpqName]['non_aktif']++;
+            }
+
+            // Usia
+            if (!empty($g['TanggalLahir']) && $g['TanggalLahir'] != '0000-00-00') {
+                try {
+                    $birthDate = new \DateTime($g['TanggalLahir']);
+                    $age = $now->diff($birthDate)->y;
+                    if ($age >= 15 && $age <= 100) {
+                        $validAgeCount++;
+                        $ages[] = $age;
+
+                        if ($age >= 16 && $age <= 20) $ageBrackets['16-20']++;
+                        elseif ($age >= 21 && $age <= 25) $ageBrackets['21-25']++;
+                        elseif ($age >= 26 && $age <= 30) $ageBrackets['26-30']++;
+                        elseif ($age >= 31 && $age <= 35) $ageBrackets['31-35']++;
+                        elseif ($age >= 36 && $age <= 40) $ageBrackets['36-40']++;
+                        elseif ($age >= 41 && $age <= 45) $ageBrackets['41-45']++;
+                        elseif ($age >= 46 && $age <= 50) $ageBrackets['46-50']++;
+                        elseif ($age >= 51 && $age <= 55) $ageBrackets['51-55']++;
+                        elseif ($age >= 56 && $age <= 60) $ageBrackets['56-60']++;
+                        elseif ($age >= 61 && $age <= 65) $ageBrackets['61-65']++;
+                        elseif ($age >= 66 && $age <= 70) $ageBrackets['66-70']++;
+                    }
+                } catch (\Exception $e) {}
+            }
+
+            // Kelurahan / Desa
+            $kel = trim($g['KelurahanDesa'] ?? '');
+            if (!empty($kel)) {
+                $kelFormatted = ucwords(strtolower($kel));
+                $kelurahanCounts[$kelFormatted] = ($kelurahanCounts[$kelFormatted] ?? 0) + 1;
+            }
+        }
+
+        arsort($kelurahanCounts);
+
+        uasort($guruPerTpq, function ($a, $b) {
+            return $b['total'] <=> $a['total'];
+        });
+
+        $tpqLabels = [];
+        $tpqTotals = [];
+        $tpqLaki = [];
+        $tpqPerempuan = [];
+        $tpqAktif = [];
+        $tpqNonAktif = [];
+        foreach ($guruPerTpq as $tpq) {
+            $tpqLabels[] = $tpq['nama'];
+            $tpqTotals[] = (int)$tpq['total'];
+            $tpqLaki[] = (int)$tpq['laki_laki'];
+            $tpqPerempuan[] = (int)$tpq['perempuan'];
+            $tpqAktif[] = (int)$tpq['aktif'];
+            $tpqNonAktif[] = (int)$tpq['non_aktif'];
+        }
+
+        $avgAge = !empty($ages) ? round(array_sum($ages) / count($ages), 1) : 0;
+        $minAge = !empty($ages) ? min($ages) : 0;
+        $maxAge = !empty($ages) ? max($ages) : 0;
+
+        $pctLaki = $totalValid > 0 ? round(($genderCounts['Laki-laki'] / $totalValid) * 100, 2) : 0;
+        $pctPerempuan = $totalValid > 0 ? round(($genderCounts['Perempuan'] / $totalValid) * 100, 2) : 0;
+
+        $pctAktif = $totalValid > 0 ? round(($statusCounts['aktif'] / $totalValid) * 100, 2) : 0;
+        $pctNonAktif = $totalValid > 0 ? round(($statusCounts['non_aktif'] / $totalValid) * 100, 2) : 0;
+
+        $bulanIndo = [
+            1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April', 5 => 'Mei', 6 => 'Juni',
+            7 => 'Juli', 8 => 'Agustus', 9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+        ];
+        $periodeText = 'Data per ' . ($bulanIndo[(int)date('n')] ?? date('F')) . ' ' . date('Y');
+
+        // Nama TPQ jika difilter
+        $namaTpq = 'SEMUA TPQ';
+        if ($idTpqForQuery != 0) {
+            $tpqRow = $this->db->table('tbl_tpq')->select('NamaTpq')->where('IdTpq', $idTpqForQuery)->get()->getRowArray();
+            if (!empty($tpqRow['NamaTpq'])) {
+                $namaTpq = $tpqRow['NamaTpq'];
+            }
+        }
+
+        return [
+            'total_valid' => $totalValid,
+            'valid_age_count' => $validAgeCount,
+            'nama_tpq' => $namaTpq,
+            'id_tpq' => $idTpqForQuery,
+            'filter_kelurahan' => $kelurahanFilter,
+            'filter_status' => $statusFilter,
+            'list_kelurahan' => $listKelurahan,
+            'demografi_usia' => [
+                'labels' => array_keys($ageBrackets),
+                'counts' => array_values($ageBrackets),
+                'avg_age' => $avgAge,
+                'min_age' => $minAge,
+                'max_age' => $maxAge,
+            ],
+            'jenis_kelamin' => [
+                'laki_laki' => $genderCounts['Laki-laki'],
+                'perempuan' => $genderCounts['Perempuan'],
+                'pct_laki' => $pctLaki,
+                'pct_perempuan' => $pctPerempuan,
+            ],
+            'status_aktif' => [
+                'aktif' => $statusCounts['aktif'],
+                'non_aktif' => $statusCounts['non_aktif'],
+                'pct_aktif' => $pctAktif,
+                'pct_non_aktif' => $pctNonAktif,
+            ],
+            'sebaran_wilayah' => $kelurahanCounts,
+            'guru_per_tpq' => [
+                'labels' => $tpqLabels,
+                'totals' => $tpqTotals,
+                'laki_laki' => $tpqLaki,
+                'perempuan' => $tpqPerempuan,
+                'aktif' => $tpqAktif,
+                'non_aktif' => $tpqNonAktif,
+                'items' => array_values($guruPerTpq),
+                'total_tpq' => count($guruPerTpq),
+            ],
+            'periode_text' => $periodeText,
+        ];
+    }
+
+    /**
+     * AJAX endpoint untuk filter ringkasan statistik guru admin dashboard
+     */
+    public function getStatistikGuruAjax()
+    {
+        if (!in_groups('Admin')) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Akses khusus administrator'
+            ])->setStatusCode(403);
+        }
+
+        $idTpq = $this->request->getGet('id_tpq') ?? 0;
+        $kelurahan = $this->request->getGet('kelurahan') ?? '';
+        $status = $this->request->getGet('status') ?? 'all';
+
+        $data = $this->getRingkasanStatistikGuru($idTpq, $kelurahan, $status);
+
+        return $this->response->setJSON([
+            'status' => 'success',
+            'data' => $data
+        ]);
     }
 }
 

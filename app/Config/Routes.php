@@ -46,6 +46,7 @@ $routes->get('backend/dashboard/kepala-tpq', 'Dashboard::dashboardKepalaTpq');
 $routes->get('backend/dashboard/admin', 'Dashboard::dashboardAdmin');
 $routes->get('backend/dashboard/santri', 'Dashboard::dashboardSantri');
 $routes->get('backend/dashboard/getMateriPerSantri', 'Dashboard::getMateriPerSantri');
+$routes->get('backend/dashboard/getStatistikGuruAjax', 'Dashboard::getStatistikGuruAjax');
 $routes->post('dashboard/updateTahunAjaranDanKelas', 'Dashboard::updateTahunAjaranDanKelas');
 //$routes->get('/', 'Backend\Pages::index');
 //$routes->get('/', 'Frontend\Home::index');
