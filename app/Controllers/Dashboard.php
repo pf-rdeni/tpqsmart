@@ -3011,7 +3011,7 @@ class Dashboard extends BaseController
      * @param string|null $idTahunAjaran
      * @return array
      */
-    public function getRingkasanStatistikSantri($idTpq = 0, $kelurahan = '', $status = 'all', $idTahunAjaran = null)
+    public function getRingkasanStatistikSantri($idTpq = 0, $kelurahan = '', $status = '1', $idTahunAjaran = null)
     {
         if (empty($idTahunAjaran)) {
             $idTahunAjaran = session()->get('IdTahunAjaran') ?? $this->helpFunctionModel->getTahunAjaranSaatIni();
@@ -3427,7 +3427,7 @@ class Dashboard extends BaseController
 
         $idTpq = $this->request->getGet('id_tpq') ?? 0;
         $kelurahan = $this->request->getGet('kelurahan') ?? '';
-        $status = $this->request->getGet('status') ?? 'all';
+        $status = $this->request->getGet('status') ?? '1';
 
         $data = $this->getRingkasanStatistikSantri($idTpq, $kelurahan, $status);
 

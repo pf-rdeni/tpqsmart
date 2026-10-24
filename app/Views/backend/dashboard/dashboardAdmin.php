@@ -1006,8 +1006,8 @@
                                             <div class="d-flex align-items-center">
                                                 <label class="mb-0 mr-1 font-weight-bold text-muted small"><i class="fas fa-toggle-on mr-1"></i>Status:</label>
                                                 <div class="btn-group btn-group-sm santri-status-toggle" role="group">
-                                                    <button type="button" class="btn btn-sm btn-info active btn-toggle-santri-status" data-status="all" style="border-radius: 8px 0 0 8px; font-weight: 600;">Semua</button>
-                                                    <button type="button" class="btn btn-sm btn-outline-info btn-toggle-santri-status" data-status="1" style="font-weight: 600;">Aktif</button>
+                                                    <button type="button" class="btn btn-sm btn-outline-info btn-toggle-santri-status" data-status="all" style="border-radius: 8px 0 0 8px; font-weight: 600;">Semua</button>
+                                                    <button type="button" class="btn btn-sm btn-info active btn-toggle-santri-status" data-status="1" style="font-weight: 600;">Aktif</button>
                                                     <button type="button" class="btn btn-sm btn-outline-warning btn-toggle-santri-status" data-status="0" style="font-weight: 600;">Baru</button>
                                                     <button type="button" class="btn btn-sm btn-outline-secondary btn-toggle-santri-status" data-status="2" style="border-radius: 0 8px 8px 0; font-weight: 600;">Non-Aktif</button>
                                                 </div>
@@ -3471,7 +3471,7 @@
         var chartSantriPerTpqInstance = null;
         var chartSantriPerKelasInstance = null;
         var chartRasioGuruSantriInstance = null;
-        var currentSantriFilterStatus = 'all';
+        var currentSantriFilterStatus = '1';
 
         <?php
         $initSpk = $santriPerKelas ?? [];

@@ -731,7 +731,11 @@ class HelpFunctionModel extends Model
         if (!empty($IdTahunAjaran)) {
             $builder = $this->db->table('tbl_kelas_santri ks');
             $builder->select('COUNT(DISTINCT ks.IdSantri) as total');
-            $builder->join('tbl_santri_baru s', 's.IdSantri = ks.IdSantri');
+            $builder->join('tbl_santri_baru s', 's.IdSantri = ks.IdSantri', 'inner');
+            $builder->join('tbl_tpq t', 't.IdTpq = ks.IdTpq', 'inner');
+            $builder->join('tbl_kelas k', 'k.IdKelas = ks.IdKelas', 'inner');
+            $builder->where('ks.Status', 1);
+            $builder->whereNotIn('k.NamaKelas', ['ALUMNI', 'Alumni', 'alumni']);
             if ($idTpqForQuery != 0) {
                 $builder->where('ks.IdTpq', $idTpqForQuery);
             }
