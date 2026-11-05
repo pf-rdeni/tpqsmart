@@ -48,11 +48,26 @@
                         $kelasList[$row->IdKelas] = [
                             'IdKelas' => $row->IdKelas,
                             'NamaKelas' => $row->NamaKelas,
-                            'IdTahunAjaran' => $row->IdTahunAjaran
+                            'IdTahunAjaran' => $row->IdTahunAjaran,
+                            'total_santri' => 0,
+                            'total_laki' => 0,
+                            'total_perempuan' => 0
                         ];
+                    }
+                    $kelasList[$row->IdKelas]['total_santri']++;
+                    $jk = strtolower(trim($row->JenisKelamin ?? ''));
+                    if ($jk === 'l' || stripos($jk, 'laki') !== false) {
+                        $kelasList[$row->IdKelas]['total_laki']++;
+                    } elseif ($jk === 'p' || stripos($jk, 'perempuan') !== false) {
+                        $kelasList[$row->IdKelas]['total_perempuan']++;
                     }
                 }
             }
+
+            // Hitung total keseluruhan santri jika belum dihitung dari controller
+            $totalSantriSemua = isset($total_santri_semua) ? $total_santri_semua : array_sum(array_column($kelasList, 'total_santri'));
+            $totalLakiSemua = isset($total_laki_semua) ? $total_laki_semua : array_sum(array_column($kelasList, 'total_laki'));
+            $totalPerempuanSemua = isset($total_perempuan_semua) ? $total_perempuan_semua : array_sum(array_column($kelasList, 'total_perempuan'));
 
             // Kelompokkan santri berdasarkan kelas
             $santriByKelas = [];
@@ -60,11 +75,85 @@
                 $santriByKelas[$row->NamaKelas][] = $row;
             }
 
-
-
-            // Tampilkan tab kelas meskipun semua santri sudah diabsen
+            // Tampilkan ringkasan total santri per kelas di bagian atas
             if (!empty($kelasList)) {
             ?>
+                <!-- ========================================================= -->
+                <!-- RINGKASAN TOTAL SANTRI PER KELAS (DITEMPATKAN DI ATAS)    -->
+                <!-- ========================================================= -->
+                <div class="card card-outline card-primary shadow-sm mb-3" id="ringkasan-total-santri">
+                    <div class="card-header py-2 bg-light d-flex flex-wrap justify-content-between align-items-center">
+                        <div class="d-flex align-items-center">
+                            <span class="badge badge-primary mr-2" style="font-size: 0.95rem; padding: 6px 9px;">
+                                <i class="fas fa-users"></i>
+                            </span>
+                            <div>
+                                <h3 class="card-title font-weight-bold text-dark mb-0" style="font-size: 1rem;">
+                                    Total Santri per Kelas
+                                </h3>
+                                <small class="text-muted d-block d-sm-inline" style="font-size: 0.78rem;">
+                                    Klik salah satu kotak kelas untuk langsung membuka daftar absensinya
+                                </small>
+                            </div>
+                        </div>
+                        <div class="card-tools d-flex flex-wrap align-items-center mt-2 mt-sm-0">
+                            <span class="badge badge-primary px-2 py-1 mr-1" style="font-size: 0.85rem;" title="Total Semua Santri">
+                                <i class="fas fa-user-graduate mr-1"></i> Total Semua: <strong><?= number_format($totalSantriSemua, 0, ',', '.') ?></strong> Santri
+                            </span>
+                            <span class="badge badge-secondary px-2 py-1" style="font-size: 0.8rem;" title="Komposisi Gender Keseluruhan">
+                                <span class="text-white"><i class="fas fa-mars text-lightblue"></i> <?= $totalLakiSemua ?> L</span>
+                                <span class="mx-1">·</span>
+                                <span class="text-white"><i class="fas fa-venus text-pink"></i> <?= $totalPerempuanSemua ?> P</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="card-body p-2 p-md-3 bg-light">
+                        <div class="row">
+                            <?php
+                            $firstTab = true;
+                            foreach ($kelasList as $kelas):
+                                $jml = (int)($kelas['total_santri'] ?? 0);
+                                $jmlL = (int)($kelas['total_laki'] ?? 0);
+                                $jmlP = (int)($kelas['total_perempuan'] ?? 0);
+                            ?>
+                                <div class="col-6 col-sm-4 col-md-3 col-lg-2 mb-2">
+                                    <div class="card class-summary-card h-100 mb-0 shadow-sm <?= $firstTab ? 'active-summary-card' : '' ?>"
+                                         data-kelas-id="<?= $kelas['IdKelas'] ?>"
+                                         role="button"
+                                         tabindex="0"
+                                         title="Klik untuk membuka absensi kelas <?= esc($kelas['NamaKelas']) ?>">
+                                        <div class="card-body p-2 text-center d-flex flex-column justify-content-between">
+                                            <div class="class-summary-title font-weight-bold text-truncate mb-1" title="<?= esc($kelas['NamaKelas']) ?>">
+                                                <?= esc($kelas['NamaKelas']) ?>
+                                            </div>
+                                            <div class="my-1">
+                                                <div class="class-total-number <?= $jml > 0 ? 'text-primary' : 'text-muted' ?>">
+                                                    <?= number_format($jml, 0, ',', '.') ?>
+                                                </div>
+                                                <span class="badge badge-pill <?= $jml > 0 ? 'badge-light text-muted border' : 'badge-danger' ?>" style="font-size: 0.72rem;">
+                                                    <?= $jml > 0 ? 'Santri' : '0 Santri' ?>
+                                                </span>
+                                            </div>
+                                            <div class="class-gender-info text-muted border-top pt-1 mt-1 d-flex justify-content-around">
+                                                <span title="Laki-laki" class="text-info font-weight-500">
+                                                    <i class="fas fa-mars"></i> <?= $jmlL ?>
+                                                </span>
+                                                <span class="text-muted">·</span>
+                                                <span title="Perempuan" class="text-danger font-weight-500">
+                                                    <i class="fas fa-venus"></i> <?= $jmlP ?>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php
+                                $firstTab = false;
+                            endforeach;
+                            ?>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="card card-primary card-tabs">
                     <div class="card-header p-0 pt-1">
                         <ul class="nav nav-tabs flex-wrap justify-content-start justify-content-md-between" id="custom-tabs-one-tab" role="tablist">
@@ -80,6 +169,9 @@
                                         aria-controls="custom-tabs-one-kelas-<?= $kelas['IdKelas'] ?>"
                                         aria-selected="<?= $firstTab ? 'true' : 'false' ?>">
                                         <?= htmlspecialchars($kelas['NamaKelas']) ?>
+                                        <span class="badge badge-pill <?= $firstTab ? 'badge-primary' : 'badge-light border' ?> ml-1 tab-santri-badge" id="tab-badge-<?= $kelas['IdKelas'] ?>" title="<?= (int)($kelas['total_santri'] ?? 0) ?> Santri">
+                                            <?= (int)($kelas['total_santri'] ?? 0) ?>
+                                        </span>
                                     </a>
                                 </li>
                             <?php
@@ -116,14 +208,22 @@
                                                 required>
                                         </div>
 
-                                        <!-- Quick Action: Set All Hadir -->
-                                        <div class="mb-3">
-                                            <button type="button" class="btn btn-success btn-sm" onclick="setAllHadir(<?= $kelas['IdKelas'] ?>)">
-                                                <i class="fas fa-check-double"></i> Set Semua Hadir
-                                            </button>
-                                            <small class="text-muted ml-2">
-                                                <i class="fas fa-info-circle"></i> Default: Semua santri di-set sebagai Hadir
-                                            </small>
+                                        <!-- Quick Action: Set All Hadir & Info Santri Kelas -->
+                                        <div class="mb-3 d-flex flex-wrap justify-content-between align-items-center">
+                                            <div class="d-flex align-items-center flex-wrap">
+                                                <button type="button" class="btn btn-success btn-sm" onclick="setAllHadir(<?= $kelas['IdKelas'] ?>)">
+                                                    <i class="fas fa-check-double"></i> Set Semua Hadir
+                                                </button>
+                                                <small class="text-muted ml-2">
+                                                    <i class="fas fa-info-circle"></i> Default: Semua santri di-set sebagai Hadir
+                                                </small>
+                                            </div>
+                                            <div class="mt-2 mt-sm-0">
+                                                <span class="badge badge-light border px-2 py-1 text-dark" style="font-size: 0.85rem;" id="badge-total-kelas-<?= $kelas['IdKelas'] ?>">
+                                                    <i class="fas fa-users text-primary mr-1"></i> Total Santri: <strong><?= (int)($kelas['total_santri'] ?? 0) ?></strong>
+                                                    <span class="text-muted ml-1">(<?= (int)($kelas['total_laki'] ?? 0) ?> L, <?= (int)($kelas['total_perempuan'] ?? 0) ?> P)</span>
+                                                </span>
+                                            </div>
                                         </div>
 
                                         <!-- Tambahkan hidden input untuk menyimpan IdKelas, IdGuru, IdTahunAjaran -->
@@ -133,9 +233,13 @@
 
                                         <!-- Cards View untuk semua ukuran layar -->
                                         <div id="cards-container-<?= $kelas['IdKelas'] ?>" class="cards-container">
-                                            <?php if (empty($santriList)): ?>
+                                            <?php if ((int)($kelas['total_santri'] ?? 0) === 0): ?>
+                                                <div class="alert alert-warning">
+                                                    <i class="fas fa-exclamation-triangle"></i> Belum ada santri terdaftar di kelas <?= esc($kelas['NamaKelas']) ?> pada tahun ajaran ini.
+                                                </div>
+                                            <?php elseif (empty($santriList)): ?>
                                                 <div class="alert alert-info">
-                                                    <i class="fas fa-info-circle"></i> Semua santri di kelas <?= esc($kelas['NamaKelas']) ?> sudah diabsen pada tanggal <?= date('d-m-Y', strtotime($tanggalDipilih)) ?>.
+                                                    <i class="fas fa-info-circle"></i> Semua santri di kelas <?= esc($kelas['NamaKelas']) ?> (Total: <strong><?= (int)($kelas['total_santri'] ?? 0) ?></strong> santri) sudah diabsen pada tanggal <?= date('d-m-Y', strtotime($tanggalDipilih)) ?>.
                                                     <?php
                                                     // Tampilkan nama guru yang mengabsen jika ada
                                                     if (isset($guru_absensi[$kelas['IdKelas']])) {
@@ -249,6 +353,60 @@
 
 <?= $this->section('styles'); ?>
 <style>
+    /* Ringkasan Total Santri per Kelas di bagian atas */
+    .class-summary-card {
+        cursor: pointer;
+        transition: all 0.2s ease-in-out;
+        border-radius: 8px !important;
+        background-color: #ffffff;
+        border: 2px solid #dee2e6 !important;
+        border-left: 2px solid #dee2e6 !important;
+        margin-bottom: 0 !important;
+    }
+
+    .class-summary-card .card-body {
+        padding: 0.6rem 0.5rem !important;
+    }
+
+    .class-summary-card:hover {
+        transform: translateY(-2px);
+        border-color: #007bff !important;
+        border-left-color: #007bff !important;
+        box-shadow: 0 4px 12px rgba(0, 123, 255, 0.15) !important;
+    }
+
+    .class-summary-card.active-summary-card {
+        border-color: #007bff !important;
+        border-left-color: #007bff !important;
+        background-color: #f4f8ff;
+        box-shadow: 0 3px 8px rgba(0, 123, 255, 0.2) !important;
+    }
+
+    .class-summary-card.active-summary-card .class-summary-title {
+        color: #007bff;
+    }
+
+    .class-summary-card .class-total-number {
+        font-size: 1.55rem;
+        line-height: 1.1;
+        font-weight: 700;
+    }
+
+    .class-summary-card .class-summary-title {
+        font-size: 0.84rem;
+        color: #495057;
+    }
+
+    .class-summary-card .class-gender-info {
+        font-size: 0.72rem;
+    }
+
+    .tab-santri-badge {
+        font-size: 0.75rem;
+        padding: 0.25em 0.55em;
+        vertical-align: middle;
+    }
+
     /* Mobile-friendly styles */
     .absensi-btn {
         min-width: 80px;
@@ -590,6 +748,32 @@
 
     // Initialize
     $(document).ready(function() {
+        // Klik kartu ringkasan kelas di bagian atas untuk membuka tab kelas
+        $(document).on('click', '.class-summary-card', function() {
+            var idKelas = $(this).data('kelas-id');
+            if (idKelas) {
+                var targetTab = $('#custom-tabs-one-kelas-' + idKelas + '-tab');
+                if (targetTab.length) {
+                    targetTab.tab('show');
+                }
+            }
+        });
+
+        // Sinkronkan highlight kartu ringkasan dan badge tab saat tab berubah
+        $(document).on('shown.bs.tab', '#custom-tabs-one-tab a[data-toggle="pill"]', function(e) {
+            var targetId = $(e.target).attr('id') || '';
+            var match = targetId.match(/custom-tabs-one-kelas-(\d+)-tab/);
+            if (match) {
+                var idKelas = match[1];
+                $('.class-summary-card').removeClass('active-summary-card');
+                $('.class-summary-card[data-kelas-id="' + idKelas + '"]').addClass('active-summary-card');
+
+                // Update badge styling inside tabs
+                $('.tab-santri-badge').removeClass('badge-primary').addClass('badge-light border');
+                $('#tab-badge-' + idKelas).removeClass('badge-light border').addClass('badge-primary');
+            }
+        });
+
         // Buka tab kelas berdasarkan parameter IdKelas dari URL
         const urlParams = new URLSearchParams(window.location.search);
         const idKelasParam = urlParams.get('IdKelas');
@@ -611,6 +795,12 @@
                     
                     // Aktifkan tab pane
                     tabPane.addClass('show active');
+
+                    // Highlight kartu ringkasan kelas
+                    $('.class-summary-card').removeClass('active-summary-card');
+                    $('.class-summary-card[data-kelas-id="' + idKelasParam + '"]').addClass('active-summary-card');
+                    $('.tab-santri-badge').removeClass('badge-primary').addClass('badge-light border');
+                    $('#tab-badge-' + idKelasParam).removeClass('badge-light border').addClass('badge-primary');
                     
                     // Scroll ke tab yang dipilih
                     setTimeout(function() {
@@ -882,7 +1072,7 @@
                         console.log('[DEBUG] Response success, updating list with', response.count, 'santri');
                         console.log('[DEBUG] Nama guru:', response.nama_guru || 'Tidak ada');
                         // Update tampilan dengan data baru (fungsi ini juga akan handle show/hide tombol submit)
-                        updateSantriList(cardsContainer, response.santri, idKelas, tanggal, response.nama_guru);
+                        updateSantriList(cardsContainer, response.santri, idKelas, tanggal, response.nama_guru, response.total_santri);
                     } else {
                         console.error('[DEBUG] Response success but data failed:', response.message);
                         cardsContainer.html('<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> ' + (response.message || 'Gagal memuat data') + '</div>');
@@ -918,13 +1108,14 @@
         });
 
         // Fungsi untuk update tampilan list santri
-        function updateSantriList(container, santriList, idKelas, tanggal, namaGuru) {
+        function updateSantriList(container, santriList, idKelas, tanggal, namaGuru, totalSantri) {
             console.log('[DEBUG] updateSantriList called');
             console.log('[DEBUG] Container:', container.length > 0 ? 'Found' : 'NOT FOUND');
             console.log('[DEBUG] Santri list count:', santriList.length);
             console.log('[DEBUG] IdKelas:', idKelas);
             console.log('[DEBUG] Tanggal:', tanggal);
             console.log('[DEBUG] Nama Guru:', namaGuru || 'Tidak ada');
+            console.log('[DEBUG] Total Santri:', totalSantri);
 
             if (container.length === 0) {
                 console.error('[DEBUG] Container is empty! Cannot update list.');
@@ -953,7 +1144,15 @@
                 if (namaGuru && namaGuru !== null && namaGuru !== '') {
                     namaGuruText = ' <strong>Oleh: ' + namaGuru + '</strong>';
                 }
-                var message = '<div class="alert alert-info"><i class="fas fa-info-circle"></i> Semua santri sudah diabsen pada tanggal ' + tanggalFormatted + '.' + namaGuruText + '</div>';
+
+                var totalCount = (typeof totalSantri !== 'undefined' && totalSantri !== null) ? totalSantri : null;
+                var message = '';
+                if (totalCount === 0) {
+                    message = '<div class="alert alert-warning"><i class="fas fa-exclamation-triangle"></i> Belum ada santri terdaftar di kelas ini pada tahun ajaran ini.</div>';
+                } else {
+                    var totalText = totalCount !== null ? ' (Total: <strong>' + totalCount + '</strong> santri)' : '';
+                    message = '<div class="alert alert-info"><i class="fas fa-info-circle"></i> Semua santri di kelas ini' + totalText + ' sudah diabsen pada tanggal ' + tanggalFormatted + '.' + namaGuruText + '</div>';
+                }
 
                 container.html(message);
 

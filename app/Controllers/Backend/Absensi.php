@@ -37,10 +37,43 @@ class Absensi extends BaseController
         // Ambil data santri berdasarkan kelas
         $santriList = $santriModel->GetDataSantriPerKelas($IdTpq, $IdTahunAjaran, $IdKelas, $IdGuru);
 
-        // Buat daftar kelas dari semua santri (sebelum filter absensi) untuk menampilkan tab
+        // Ambil daftar kelas lengkap untuk memastikan semua kelas terdata (meskipun ada kelas dengan 0 santri)
+        $isOperator = session()->get('role') === 'Operator' || session()->get('role') === 'Admin';
+        $daftarKelasLengkap = $this->helpFunction->getListKelas($IdTpq, $IdTahunAjaran, $IdKelas, $IdGuru, $isOperator);
+
+        // Buat daftar kelas dan hitung total santri per kelas dari semua santri (sebelum filter absensi)
         $kelasListAll = [];
+        if (!empty($daftarKelasLengkap)) {
+            foreach ($daftarKelasLengkap as $kObj) {
+                $idK = is_object($kObj) ? $kObj->IdKelas : $kObj['IdKelas'];
+                $namaK = is_object($kObj) ? $kObj->NamaKelas : $kObj['NamaKelas'];
+                $idTa = is_object($kObj) ? ($kObj->IdTahunAjaran ?? $IdTahunAjaran) : ($kObj['IdTahunAjaran'] ?? $IdTahunAjaran);
+
+                $namaKelasOriginal = $namaK ?? '';
+                $mdaCheckResult = $this->helpFunction->checkMdaKelasMapping($IdTpq, $namaKelasOriginal);
+                $namaKelasMapped = $this->helpFunction->convertKelasToMda(
+                    $namaKelasOriginal,
+                    $mdaCheckResult['mappedMdaKelas']
+                );
+
+                $kelasListAll[$idK] = [
+                    'IdKelas' => $idK,
+                    'NamaKelas' => $namaKelasMapped,
+                    'IdTahunAjaran' => $idTa,
+                    'total_santri' => 0,
+                    'total_laki' => 0,
+                    'total_perempuan' => 0
+                ];
+            }
+        }
+
+        $totalSantriSemua = 0;
+        $totalLakiSemua = 0;
+        $totalPerempuanSemua = 0;
+
         foreach ($santriList as $santriObj) {
-            if (!isset($kelasListAll[$santriObj->IdKelas])) {
+            $idKelasSantri = $santriObj->IdKelas;
+            if (!isset($kelasListAll[$idKelasSantri])) {
                 // Konversi nama kelas menjadi MDA jika sesuai dengan mapping
                 $namaKelasOriginal = $santriObj->NamaKelas ?? '';
                 $mdaCheckResult = $this->helpFunction->checkMdaKelasMapping($IdTpq, $namaKelasOriginal);
@@ -49,11 +82,26 @@ class Absensi extends BaseController
                     $mdaCheckResult['mappedMdaKelas']
                 );
 
-                $kelasListAll[$santriObj->IdKelas] = [
-                    'IdKelas' => $santriObj->IdKelas,
+                $kelasListAll[$idKelasSantri] = [
+                    'IdKelas' => $idKelasSantri,
                     'NamaKelas' => $namaKelasMapped,
-                    'IdTahunAjaran' => $santriObj->IdTahunAjaran
+                    'IdTahunAjaran' => $santriObj->IdTahunAjaran,
+                    'total_santri' => 0,
+                    'total_laki' => 0,
+                    'total_perempuan' => 0
                 ];
+            }
+
+            $kelasListAll[$idKelasSantri]['total_santri']++;
+            $totalSantriSemua++;
+
+            $jk = strtolower(trim($santriObj->JenisKelamin ?? ''));
+            if ($jk === 'l' || stripos($jk, 'laki') !== false) {
+                $kelasListAll[$idKelasSantri]['total_laki']++;
+                $totalLakiSemua++;
+            } elseif ($jk === 'p' || stripos($jk, 'perempuan') !== false) {
+                $kelasListAll[$idKelasSantri]['total_perempuan']++;
+                $totalPerempuanSemua++;
             }
         }
 
@@ -131,7 +179,10 @@ class Absensi extends BaseController
             'tanggal_dipilih' => $tanggal,
             'tanggal_hari_ini' => $tanggalHariIni,
             'kelas_list_all' => $kelasListAll, // Kirim semua kelas untuk menampilkan tab
-            'guru_absensi' => $guruAbsensi // Kirim data guru yang mengabsen
+            'guru_absensi' => $guruAbsensi, // Kirim data guru yang mengabsen
+            'total_santri_semua' => $totalSantriSemua,
+            'total_laki_semua' => $totalLakiSemua,
+            'total_perempuan_semua' => $totalPerempuanSemua
         ];
 
         // Menggunakan view 'backend/absensi/absensiSantri'
@@ -519,10 +570,17 @@ class Absensi extends BaseController
             ];
         }
 
+        $totalSantriKelas = count($santriList);
+        $totalBelumAbsen = count($santriData);
+        $totalSudahAbsen = $totalSantriKelas - $totalBelumAbsen;
+
         $response = [
             'success' => true,
             'santri' => $santriData,
             'count' => count($santriData),
+            'total_santri' => $totalSantriKelas,
+            'belum_absen' => $totalBelumAbsen,
+            'sudah_absen' => $totalSudahAbsen,
             'tanggal' => $tanggal,
             'IdKelas' => $IdKelas,
             'nama_guru' => $namaGuru // Tambahkan nama guru
