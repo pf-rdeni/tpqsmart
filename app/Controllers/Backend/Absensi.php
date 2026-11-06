@@ -264,65 +264,7 @@ class Absensi extends BaseController
 
     public function statistikKehadiran()
     {
-        $santriModel = new SantriBaruModel();
-        $absensiModel = new AbsensiModel();
-
-        // Ambil data session
-        $IdTpq = session()->get('IdTpq');
-        $IdGuru = session()->get('IdGuru');
-        $IdTahunAjaran = session()->get('IdTahunAjaran');
-
-        // Ambil data santri berdasarkan kelas untuk mendapatkan daftar kelas
-        $santriList = $santriModel->GetDataSantriPerKelas($IdTpq, $IdTahunAjaran, 0, $IdGuru);
-
-        // Buat daftar kelas dari semua santri
-        $kelasListAll = [];
-        foreach ($santriList as $santriObj) {
-            if (!isset($kelasListAll[$santriObj->IdKelas])) {
-                // Konversi nama kelas menjadi MDA jika sesuai dengan mapping
-                $namaKelasOriginal = $santriObj->NamaKelas ?? '';
-                $mdaCheckResult = $this->helpFunction->checkMdaKelasMapping($IdTpq, $namaKelasOriginal);
-                $namaKelasMapped = $this->helpFunction->convertKelasToMda(
-                    $namaKelasOriginal,
-                    $mdaCheckResult['mappedMdaKelas']
-                );
-
-                $kelasListAll[$santriObj->IdKelas] = [
-                    'IdKelas' => $santriObj->IdKelas,
-                    'NamaKelas' => $namaKelasMapped,
-                    'IdTahunAjaran' => $santriObj->IdTahunAjaran
-                ];
-            }
-        }
-
-        // Hitung periode minggu saat ini (Senin - Minggu)
-        // Minggu pertama dimulai dari 1 Januari
-        $today = date('Y-m-d');
-        $year = date('Y');
-        $januaryFirst = $year . '-01-01';
-        $dayOfWeekJan = date('w', strtotime($januaryFirst)); // 0 = Minggu, 1 = Senin, dst
-        $mondayOffsetJan = ($dayOfWeekJan == 0) ? -6 : (1 - $dayOfWeekJan);
-        $firstMondayOfYear = date('Y-m-d', strtotime($januaryFirst . ' ' . $mondayOffsetJan . ' days'));
-
-        // Hitung minggu ke berapa dari tahun ini
-        $daysDiff = (strtotime($today) - strtotime($firstMondayOfYear)) / (60 * 60 * 24);
-        $weekNumber = floor($daysDiff / 7);
-
-        // Hitung Senin dari minggu ini
-        $currentMonday = date('Y-m-d', strtotime($firstMondayOfYear . ' +' . ($weekNumber * 7) . ' days'));
-        $startOfWeek = $currentMonday;
-        $endOfWeek = date('Y-m-d', strtotime($startOfWeek . ' +6 days'));
-
-        // Data yang akan dikirim ke view
-        $data = [
-            'page_title' => 'Statistik Kehadiran',
-            'kelas_list_all' => $kelasListAll,
-            'start_of_week' => $startOfWeek,
-            'end_of_week' => $endOfWeek,
-            'IdTahunAjaran' => $IdTahunAjaran
-        ];
-
-        return view('backend/absensi/statistikKehadiran', $data);
+        return redirect()->to(base_url('backend/santri/statistikAbsensi'));
     }
 
     /**

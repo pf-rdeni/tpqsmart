@@ -936,7 +936,7 @@ class Search extends BaseController
             ];
             $menus[] = [
                 'title' => 'Statistik Kehadiran',
-                'url' => base_url('backend/absensi/statistikKehadiran'),
+                'url' => base_url('backend/santri/statistikAbsensi'),
                 'icon' => 'fas fa-chart-bar',
                 'category' => 'Absensi',
                 'description' => 'Statistik kehadiran santri',

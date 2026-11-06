@@ -1538,7 +1538,7 @@
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a href=<?php echo base_url('backend/absensi/statistikKehadiran') ?> class="nav-link">
+                                <a href=<?php echo base_url('backend/santri/statistikAbsensi') ?> class="nav-link">
                                     <i class="fas fa-chart-pie nav-icon text-warning"></i>
                                     <p>Statistik</p>
                                 </a>

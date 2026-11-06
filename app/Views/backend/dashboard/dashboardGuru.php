@@ -203,7 +203,7 @@ function render_progress_bar($persentase, $height = 25)
                                             <i class="fas fa-chart-bar"></i> Kehadiran Per Minggu
                                         </h3>
                                         <div class="card-tools">
-                                            <a href="<?= base_url('backend/absensi/statistikKehadiran') ?>" class="btn btn-primary btn-sm mr-2">
+                                            <a href="<?= base_url('backend/santri/statistikAbsensi') ?>" class="btn btn-primary btn-sm mr-2">
                                                 <i class="fas fa-info-circle"></i> <span class="d-none d-sm-inline">Detail</span>
                                             </a>
                                             <button type="button" class="btn btn-primary btn-sm" data-card-widget="collapse">

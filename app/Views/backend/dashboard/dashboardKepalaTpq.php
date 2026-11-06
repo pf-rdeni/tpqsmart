@@ -125,7 +125,7 @@ function render_progress_bar($persentase, $height = 25)
                                             <i class="fas fa-chart-line"></i> Fluktuasi Kehadiran Per Kelas (2 Minggu)
                                         </h3>
                                         <div class="card-tools">
-                                            <a href="<?= base_url('backend/absensi/statistikKehadiran') ?>" class="btn btn-success btn-sm mr-2">
+                                            <a href="<?= base_url('backend/santri/statistikAbsensi') ?>" class="btn btn-success btn-sm mr-2">
                                                 <i class="fas fa-chart-bar"></i> <span class="d-none d-sm-inline">Detail Statistik</span>
                                             </a>
                                             <button type="button" class="btn btn-success btn-sm" data-card-widget="collapse">

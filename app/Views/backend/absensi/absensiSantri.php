@@ -7,7 +7,7 @@
                 <i class="fas fa-clipboard-check"></i> Absensi Santri
             </h3>
             <div class="card-tools">
-                <a href="<?= base_url('backend/absensi/statistikKehadiran') ?>" class="btn btn-light btn-sm">
+                <a href="<?= base_url('backend/santri/statistikAbsensi') ?>" class="btn btn-light btn-sm">
                     <i class="fas fa-chart-bar"></i> <span class="d-none d-sm-inline">Detail Statistik</span>
                 </a>
             </div>
