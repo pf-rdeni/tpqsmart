@@ -221,6 +221,82 @@
         </div>
     </div>
 
+    <?php if ($isAdmin): ?>
+    <!-- ROW ADMIN: KOMPARASI KEHADIRAN & KERAJINAN PRESENSI ANTAR-TPQ -->
+    <div class="card card-outline card-primary shadow-sm mb-3">
+        <div class="card-header py-2 d-flex justify-content-between align-items-center flex-wrap">
+            <div class="d-flex align-items-center">
+                <h3 class="card-title font-weight-bold text-dark mb-0 mr-2">
+                    <i class="fas fa-mosque text-primary mr-1"></i> Perbandingan Kehadiran & Kerajinan Absensi Antar-TPQ
+                </h3>
+                <span class="badge badge-info d-none d-sm-inline">Khusus Admin</span>
+            </div>
+            <div class="card-tools d-flex align-items-center mt-2 mt-md-0">
+                <!-- Filter Pills Status TPQ -->
+                <div class="btn-group btn-group-sm mr-2" role="group" id="btnGroupFilterTpq">
+                    <button type="button" class="btn btn-primary active" data-filter="semua">Semua (<span id="countSemuaTpq">0</span>)</button>
+                    <button type="button" class="btn btn-outline-success" data-filter="rajin">
+                        <i class="fas fa-check-circle mr-1"></i>Rajin (<span id="countRajinTpq">0</span>)
+                    </button>
+                    <button type="button" class="btn btn-outline-warning" data-filter="cukup">
+                        <i class="fas fa-exclamation-circle mr-1"></i>Cukup (<span id="countCukupTpq">0</span>)
+                    </button>
+                    <button type="button" class="btn btn-outline-danger" data-filter="jarang">
+                        <i class="fas fa-times-circle mr-1"></i>Jarang (<span id="countJarangTpq">0</span>)
+                    </button>
+                    <button type="button" class="btn btn-outline-dark" data-filter="tidak_aktif">
+                        <i class="fas fa-ban mr-1"></i>Tidak Aktif (<span id="countTidakAktifTpq">0</span>)
+                    </button>
+                </div>
+                <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                    <i class="fas fa-minus"></i>
+                </button>
+            </div>
+        </div>
+        <div class="card-body p-3">
+            <div class="row">
+                <!-- Kolom Kiri: Stacked Bar Chart Status Kehadiran per TPQ (Satu Batang Komparasi) -->
+                <div class="col-lg-7 col-12 mb-3 mb-lg-0 border-right">
+                    <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap">
+                        <span class="font-weight-bold text-muted text-sm">
+                            <i class="fas fa-chart-bar mr-1"></i> Grafik Batang Status Kehadiran Santri per TPQ (Satu Batang Status)
+                        </span>
+                        <div class="btn-group btn-group-xs" role="group">
+                            <button type="button" class="btn btn-xs btn-outline-secondary active" id="btnTpqChartStackedVal">Jumlah Santri</button>
+                            <button type="button" class="btn btn-xs btn-outline-secondary" id="btnTpqChartStackedPct">Persentase (100%)</button>
+                        </div>
+                    </div>
+                    <div style="position: relative; height: 330px;">
+                        <canvas id="chartTpqStacked"></canvas>
+                    </div>
+                    <div class="d-flex justify-content-center align-items-center text-xs text-muted mt-2 flex-wrap">
+                        <span class="mr-3"><i class="fas fa-square text-success mr-1"></i> Hadir</span>
+                        <span class="mr-3"><i class="fas fa-square text-info mr-1"></i> Sakit</span>
+                        <span class="mr-3"><i class="fas fa-square text-warning mr-1"></i> Izin</span>
+                        <span class="mr-3"><i class="fas fa-square text-danger mr-1"></i> Alpa</span>
+                        <span><i class="fas fa-circle text-secondary mr-1"></i> Nilai 0 = Belum Menjalankan Absensi</span>
+                    </div>
+                </div>
+
+                <!-- Kolom Kanan: Leaderboard Keaktifan & Kerajinan TPQ -->
+                <div class="col-lg-5 col-12">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="font-weight-bold text-muted text-sm">
+                            <i class="fas fa-clipboard-list mr-1"></i> Keaktifan Input Presensi Lembaga
+                        </span>
+                        <small class="text-muted" id="labelTpqMaxHari">Max: 0 Hari</small>
+                    </div>
+                    <div id="listKerajinanTpq" style="max-height: 330px; overflow-y: auto; padding-right: 4px;">
+                        <div class="text-center text-muted py-4">
+                            <i class="fas fa-spinner fa-spin mr-1"></i> Memuat data perbandingan TPQ...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
+
     <!-- ROW 3: ANALISIS KELAS (Fluktuasi Per Kelas & Ranking Kelas) -->
     <div class="row">
         <div class="col-lg-8 col-12">
@@ -556,6 +632,10 @@ document.addEventListener('DOMContentLoaded', function() {
     let chartKerajinan = null;
     let currentKerajinanData = [];
     let currentKerajinanFilter = 'semua';
+    let chartTpq = null;
+    let currentTpqData = [];
+    let currentTpqFilter = 'semua';
+    let currentTpqChartMode = 'val';
     let dataTableInstance = null;
 
     // Palette warna kelas
@@ -715,6 +795,9 @@ document.addEventListener('DOMContentLoaded', function() {
             renderKPI(data.kpi);
             renderChartTrend(data.trend_harian);
             renderChartDonut(data.kpi);
+            if (data.analitik_tpq) {
+                renderAnalitikTpq(data.analitik_tpq, data.summary_tpq);
+            }
             renderChartFluktuasi(data.fluktuasi_kelas);
             renderChartRanking(data.ranking_kelas);
             renderKerajinanKelas(data.kerajinan_kelas, data.summary_kerajinan);
@@ -825,25 +908,86 @@ document.addEventListener('DOMContentLoaded', function() {
         const sakit = parseInt(kpi.total_sakit) || 0;
         const izin = parseInt(kpi.total_izin) || 0;
         const alpa = parseInt(kpi.total_alpa) || 0;
+        const total = hadir + sakit + izin + alpa;
+
+        const pctHadir = total > 0 ? ((hadir / total) * 100).toFixed(1) : '0';
+        const pctSakit = total > 0 ? ((sakit / total) * 100).toFixed(1) : '0';
+        const pctIzin = total > 0 ? ((izin / total) * 100).toFixed(1) : '0';
+        const pctAlpa = total > 0 ? ((alpa / total) * 100).toFixed(1) : '0';
+
+        const labels = [
+            `Hadir (${pctHadir}%)`,
+            `Sakit (${pctSakit}%)`,
+            `Izin (${pctIzin}%)`,
+            `Alpa (${pctAlpa}%)`
+        ];
 
         if (chartDonut) chartDonut.destroy();
+
+        // Plugin teks persentase kehadiran utama di tengah lubang donat
+        const centerDoughnutTextPlugin = {
+            id: 'centerDoughnutText',
+            afterDraw: function(chart) {
+                if (chart.config.type !== 'doughnut') return;
+                const { ctx, chartArea } = chart;
+                if (!chartArea) return;
+                const centerX = (chartArea.left + chartArea.right) / 2;
+                const centerY = (chartArea.top + chartArea.bottom) / 2;
+
+                ctx.save();
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+
+                // Nilai persentase kehadiran
+                ctx.font = 'bold 24px sans-serif';
+                ctx.fillStyle = '#28a745';
+                ctx.fillText(pctHadir + '%', centerX, centerY - 8);
+
+                // Label subtext
+                ctx.font = '12px sans-serif';
+                ctx.fillStyle = '#6c757d';
+                ctx.fillText('Hadir', centerX, centerY + 14);
+
+                ctx.restore();
+            }
+        };
 
         chartDonut = new Chart(ctx, {
             type: 'doughnut',
             data: {
-                labels: ['Hadir', 'Sakit', 'Izin', 'Alpa'],
+                labels: labels,
                 datasets: [{
                     data: [hadir, sakit, izin, alpa],
-                    backgroundColor: ['#28a745', '#17a2b8', '#ffc107', '#dc3545']
+                    backgroundColor: ['#28a745', '#17a2b8', '#ffc107', '#dc3545'],
+                    borderWidth: 2
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                cutout: '70%',
                 plugins: {
-                    legend: { position: 'bottom' }
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            boxWidth: 14,
+                            padding: 12,
+                            font: { size: 12 }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const val = context.parsed || 0;
+                                const pct = total > 0 ? ((val / total) * 100).toFixed(1) : 0;
+                                const statusName = context.label.split(' ')[0];
+                                return ` ${statusName}: ${val.toLocaleString()} presensi (${pct}%)`;
+                            }
+                        }
+                    }
                 }
-            }
+            },
+            plugins: [centerDoughnutTextPlugin]
         });
     }
 
@@ -1129,6 +1273,211 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         applyKerajinanFilter(filter);
+    });
+
+    // 5c. Render Analisis Kehadiran & Kerajinan Antar-TPQ (Khusus Admin)
+    function renderAnalitikTpq(tpqData, summaryTpq) {
+        currentTpqData = tpqData || [];
+        summaryTpq = summaryTpq || {};
+
+        // Update Summary Counter Badges
+        $('#countSemuaTpq').text(summaryTpq.total_tpq || 0);
+        $('#countRajinTpq').text(summaryTpq.total_rajin || 0);
+        $('#countCukupTpq').text(summaryTpq.total_cukup || 0);
+        $('#countJarangTpq').text(summaryTpq.total_jarang || 0);
+        $('#countTidakAktifTpq').text(summaryTpq.total_tidak_aktif || 0);
+        $('#labelTpqMaxHari').text(`Max Periode: ${summaryTpq.max_hari_periode || 0} Hari`);
+
+        // Render Stacked Bar Chart Status Kehadiran Antar-TPQ
+        renderChartTpqStacked();
+
+        // Render Leaderboard List TPQ
+        applyTpqFilter(currentTpqFilter);
+    }
+
+    function renderChartTpqStacked() {
+        const ctx = document.getElementById('chartTpqStacked');
+        if (!ctx) return;
+
+        const labels = currentTpqData.map(t => t.NamaTpq);
+        const hadirData = [];
+        const sakitData = [];
+        const izinData = [];
+        const alpaData = [];
+
+        currentTpqData.forEach(t => {
+            const h = parseInt(t.hadir) || 0;
+            const s = parseInt(t.sakit) || 0;
+            const i = parseInt(t.izin) || 0;
+            const a = parseInt(t.alpa) || 0;
+            const tot = h + s + i + a;
+
+            if (currentTpqChartMode === 'pct') {
+                hadirData.push(tot > 0 ? parseFloat(((h / tot) * 100).toFixed(1)) : 0);
+                sakitData.push(tot > 0 ? parseFloat(((s / tot) * 100).toFixed(1)) : 0);
+                izinData.push(tot > 0 ? parseFloat(((i / tot) * 100).toFixed(1)) : 0);
+                alpaData.push(tot > 0 ? parseFloat(((a / tot) * 100).toFixed(1)) : 0);
+            } else {
+                hadirData.push(h);
+                sakitData.push(s);
+                izinData.push(i);
+                alpaData.push(a);
+            }
+        });
+
+        if (chartTpq) chartTpq.destroy();
+
+        chartTpq = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    { label: 'Hadir', data: hadirData, backgroundColor: '#28a745', borderRadius: 2 },
+                    { label: 'Sakit', data: sakitData, backgroundColor: '#17a2b8', borderRadius: 2 },
+                    { label: 'Izin', data: izinData, backgroundColor: '#ffc107', borderRadius: 2 },
+                    { label: 'Alpa', data: alpaData, backgroundColor: '#dc3545', borderRadius: 2 }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'top', labels: { boxWidth: 12 } },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            afterTitle: function(context) {
+                                const t = currentTpqData[context[0].dataIndex];
+                                return `Status: ${t.label_status} | Hari Aktif: ${t.jumlah_hari_aktif}/${t.max_hari_periode} Hari`;
+                            },
+                            label: function(context) {
+                                const unit = currentTpqChartMode === 'pct' ? '%' : ' santri';
+                                return ` ${context.dataset.label}: ${context.parsed.y}${unit}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        stacked: true,
+                        ticks: { autoSkip: false, maxRotation: 45, minRotation: 0 }
+                    },
+                    y: {
+                        stacked: true,
+                        beginAtZero: true,
+                        max: currentTpqChartMode === 'pct' ? 100 : undefined,
+                        ticks: {
+                            callback: function(val) {
+                                return currentTpqChartMode === 'pct' ? val + '%' : val;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function applyTpqFilter(filter) {
+        currentTpqFilter = filter;
+        const container = document.getElementById('listKerajinanTpq');
+        if (!container) return;
+
+        let filtered = currentTpqData;
+        if (filter !== 'semua') {
+            filtered = currentTpqData.filter(t => t.status_keaktifan === filter);
+        }
+
+        if (filtered.length === 0) {
+            container.innerHTML = `
+                <div class="text-center text-muted py-4">
+                    <i class="fas fa-info-circle fa-2x mb-2 text-secondary"></i>
+                    <p class="mb-0 text-sm">Tidak ada TPQ dengan kategori ini.</p>
+                </div>
+            `;
+            return;
+        }
+
+        let html = '';
+        filtered.forEach(item => {
+            const tglFormatted = item.terakhir_absen ? formatTglIndo(item.terakhir_absen) : '<span class="text-muted font-italic">Belum ada absen</span>';
+            const infoKehadiran = item.total_presensi > 0 
+                ? `H: <strong class="text-success">${item.hadir}</strong> | S: <strong class="text-info">${item.sakit}</strong> | I: <strong class="text-warning">${item.izin}</strong> | A: <strong class="text-danger">${item.alpa}</strong> (${item.persentase_hadir}% Hadir)`
+                : `<span class="text-danger font-weight-bold"><i class="fas fa-exclamation-circle mr-1"></i>Belum menjalankan absensi</span>`;
+
+            html += `
+                <div class="p-2 mb-2 rounded border bg-light d-flex flex-column shadow-xs" style="border-left: 4px solid ${item.color_hex} !important;">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="font-weight-bold text-dark text-sm">
+                            <i class="fas fa-mosque mr-1 text-secondary"></i> ${item.NamaTpq}
+                        </span>
+                        <span class="badge ${item.badge_class}">${item.label_status}</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center text-xs text-muted mb-1 flex-wrap">
+                        <span>Hari Aktif: <strong>${item.jumlah_hari_aktif} / ${item.max_hari_periode} Hari</strong> (${item.rasio_keaktifan}%)</span>
+                        <span>Terakhir: ${tglFormatted}</span>
+                    </div>
+                    <div class="progress mb-1" style="height: 6px;">
+                        <div class="progress-bar" style="width: ${Math.min(100, item.rasio_keaktifan)}%; background-color: ${item.color_hex};"></div>
+                    </div>
+                    <div class="text-xs text-muted mt-1">
+                        ${infoKehadiran}
+                    </div>
+                </div>
+            `;
+        });
+
+        container.innerHTML = html;
+    }
+
+    // Toggle mode Stacked Bar Chart TPQ (Nilai Absolut vs Persentase 100%)
+    $(document).on('click', '#btnTpqChartStackedVal', function() {
+        $('#btnTpqChartStackedPct').removeClass('active');
+        $(this).addClass('active');
+        currentTpqChartMode = 'val';
+        renderChartTpqStacked();
+    });
+
+    $(document).on('click', '#btnTpqChartStackedPct', function() {
+        $('#btnTpqChartStackedVal').removeClass('active');
+        $(this).addClass('active');
+        currentTpqChartMode = 'pct';
+        renderChartTpqStacked();
+    });
+
+    // Event listener filter pills TPQ
+    $(document).on('click', '#btnGroupFilterTpq button', function() {
+        const filter = $(this).data('filter');
+        $('#btnGroupFilterTpq button').removeClass('active');
+        $(this).addClass('active');
+
+        const activeTpqCls = {
+            semua: 'btn-primary',
+            rajin: 'btn-success',
+            cukup: 'btn-warning',
+            jarang: 'btn-danger',
+            tidak_aktif: 'btn-dark'
+        };
+        const outlineTpqCls = {
+            semua: 'btn-outline-primary',
+            rajin: 'btn-outline-success',
+            cukup: 'btn-outline-warning',
+            jarang: 'btn-outline-danger',
+            tidak_aktif: 'btn-outline-dark'
+        };
+
+        $('#btnGroupFilterTpq button').each(function() {
+            const f = $(this).data('filter');
+            const act = activeTpqCls[f] || 'btn-primary';
+            const out = outlineTpqCls[f] || 'btn-outline-primary';
+            if (f === filter) {
+                $(this).addClass(act).removeClass(out);
+            } else {
+                $(this).removeClass(act).addClass(out);
+            }
+        });
+
+        applyTpqFilter(filter);
     });
 
     // 6. Render Santri At-Risk (Early Warning Radar)

@@ -662,6 +662,149 @@ class AbsensiModel extends Model
             'max_hari_periode' => $maxHariAbsen
         ];
 
+        // 4c. Analitik & Kerajinan Berdasarkan TPQ (Khusus Admin / Komparasi Antar-TPQ)
+        $builderAllTpq = $this->db->table('tbl_tpq')
+            ->select('IdTpq, NamaTpq')
+            ->orderBy('NamaTpq', 'ASC');
+        if (!empty($IdTpq) && $IdTpq != 0) {
+            $builderAllTpq->where('IdTpq', $IdTpq);
+        }
+        $masterTpqList = $builderAllTpq->get()->getResultArray();
+
+        $builderAbsensiTpq = $this->db->table('tbl_absensi_santri a')
+            ->select("
+                a.IdTpq,
+                t.NamaTpq,
+                COUNT(*) as total_presensi,
+                COUNT(DISTINCT a.Tanggal) as jumlah_hari_aktif,
+                MAX(a.Tanggal) as terakhir_absen,
+                SUM(CASE WHEN a.Kehadiran = 'Hadir' THEN 1 ELSE 0 END) as hadir,
+                SUM(CASE WHEN a.Kehadiran = 'Sakit' THEN 1 ELSE 0 END) as sakit,
+                SUM(CASE WHEN a.Kehadiran = 'Izin' THEN 1 ELSE 0 END) as izin,
+                SUM(CASE WHEN a.Kehadiran = 'Alpa' THEN 1 ELSE 0 END) as alpa,
+                ROUND((SUM(CASE WHEN a.Kehadiran = 'Hadir' THEN 1 ELSE 0 END) / COUNT(*)) * 100, 1) as persentase_hadir
+            ")
+            ->join('tbl_tpq t', 'a.IdTpq = t.IdTpq', 'left')
+            ->where('a.IdKelas !=', 10);
+
+        if (!empty($IdTpq) && $IdTpq != 0) {
+            $builderAbsensiTpq->where('a.IdTpq', $IdTpq);
+        }
+        if (!empty($IdKelas)) {
+            if (is_array($IdKelas)) {
+                $builderAbsensiTpq->whereIn('a.IdKelas', $IdKelas);
+            } else {
+                $builderAbsensiTpq->where('a.IdKelas', $IdKelas);
+            }
+        }
+        if (!empty($startDate)) {
+            $builderAbsensiTpq->where('a.Tanggal >=', $startDate);
+        }
+        if (!empty($endDate)) {
+            $builderAbsensiTpq->where('a.Tanggal <=', $endDate);
+        }
+        if (!empty($IdTahunAjaran)) {
+            $builderAbsensiTpq->where('a.IdTahunAjaran', $IdTahunAjaran);
+        }
+        if (!empty($statusKehadiran)) {
+            $builderAbsensiTpq->where('a.Kehadiran', $statusKehadiran);
+        }
+
+        $absensiTpqRaw = $builderAbsensiTpq->groupBy('a.IdTpq')->get()->getResultArray();
+        $absensiTpqMap = [];
+        $maxHariTpq = 0;
+        foreach ($absensiTpqRaw as $tpqRow) {
+            $absensiTpqMap[$tpqRow['IdTpq']] = $tpqRow;
+            $hari = (int)($tpqRow['jumlah_hari_aktif'] ?? 0);
+            if ($hari > $maxHariTpq) {
+                $maxHariTpq = $hari;
+            }
+        }
+
+        $dataTpqAnalitik = [];
+        $totalTpqRajin = 0;
+        $totalTpqCukup = 0;
+        $totalTpqJarang = 0;
+        $totalTpqTidakAktif = 0;
+
+        foreach ($masterTpqList as $tpq) {
+            $idT = $tpq['IdTpq'];
+            $absen = $absensiTpqMap[$idT] ?? null;
+
+            $jmlHari = $absen ? (int)$absen['jumlah_hari_aktif'] : 0;
+            $total = $absen ? (int)$absen['total_presensi'] : 0;
+            $hadir = $absen ? (int)$absen['hadir'] : 0;
+            $sakit = $absen ? (int)$absen['sakit'] : 0;
+            $izin = $absen ? (int)$absen['izin'] : 0;
+            $alpa = $absen ? (int)$absen['alpa'] : 0;
+            $pctHadir = $absen ? (float)$absen['persentase_hadir'] : 0;
+            $terakhir = $absen ? $absen['terakhir_absen'] : null;
+
+            $rasio = ($maxHariTpq > 0) ? round(($jmlHari / $maxHariTpq) * 100, 1) : ($jmlHari > 0 ? 100 : 0);
+
+            if ($jmlHari == 0) {
+                $status = 'tidak_aktif';
+                $labelStatus = 'Tidak Menjalankan Absensi';
+                $badgeClass = 'badge-dark';
+                $colorHex = '#6c757d';
+                $totalTpqTidakAktif++;
+            } elseif ($rasio >= 80) {
+                $status = 'rajin';
+                $labelStatus = 'Sangat Rajin / Disiplin';
+                $badgeClass = 'badge-success';
+                $colorHex = '#28a745';
+                $totalTpqRajin++;
+            } elseif ($rasio >= 50) {
+                $status = 'cukup';
+                $labelStatus = 'Cukup Rajin';
+                $badgeClass = 'badge-warning';
+                $colorHex = '#ffc107';
+                $totalTpqCukup++;
+            } else {
+                $status = 'jarang';
+                $labelStatus = 'Jarang Absen / Perlu Evaluasi';
+                $badgeClass = 'badge-danger';
+                $colorHex = '#dc3545';
+                $totalTpqJarang++;
+            }
+
+            $dataTpqAnalitik[] = [
+                'IdTpq' => $idT,
+                'NamaTpq' => $tpq['NamaTpq'],
+                'jumlah_hari_aktif' => $jmlHari,
+                'max_hari_periode' => $maxHariTpq,
+                'total_presensi' => $total,
+                'hadir' => $hadir,
+                'sakit' => $sakit,
+                'izin' => $izin,
+                'alpa' => $alpa,
+                'persentase_hadir' => $pctHadir,
+                'rasio_keaktifan' => $rasio,
+                'status_keaktifan' => $status,
+                'label_status' => $labelStatus,
+                'badge_class' => $badgeClass,
+                'color_hex' => $colorHex,
+                'terakhir_absen' => $terakhir
+            ];
+        }
+
+        // Urutkan TPQ: yang aktif (hari terbanyak) di atas, yang tidak aktif di bawah
+        usort($dataTpqAnalitik, function ($a, $b) {
+            if ($b['jumlah_hari_aktif'] != $a['jumlah_hari_aktif']) {
+                return ($b['jumlah_hari_aktif'] <=> $a['jumlah_hari_aktif']);
+            }
+            return ($b['total_presensi'] <=> $a['total_presensi']);
+        });
+
+        $summaryTpq = [
+            'total_tpq' => count($dataTpqAnalitik),
+            'total_rajin' => $totalTpqRajin,
+            'total_cukup' => $totalTpqCukup,
+            'total_jarang' => $totalTpqJarang,
+            'total_tidak_aktif' => $totalTpqTidakAktif,
+            'max_hari_periode' => $maxHariTpq
+        ];
+
         // 5. Matriks Presensi Per Santri
         $statusAbsenFilterSql = !empty($statusKehadiran) ? " AND a.Kehadiran = '{$statusKehadiran}'" : "";
         $builderSantri = $this->db->table('tbl_santri_baru s')
@@ -718,6 +861,8 @@ class AbsensiModel extends Model
             'ranking_kelas' => $rankingKelas,
             'kerajinan_kelas' => $kerajinanKelas,
             'summary_kerajinan' => $summaryKerajinan,
+            'analitik_tpq' => $dataTpqAnalitik,
+            'summary_tpq' => $summaryTpq,
             'santri_recap' => $santriRecap
         ];
     }
