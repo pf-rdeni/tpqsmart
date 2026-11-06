@@ -10,6 +10,9 @@
                     <i class="fas fa-filter text-primary mr-1"></i> Filter & Kontrol Periode Presensi
                 </h3>
                 <div class="card-tools">
+                    <a href="<?= base_url('backend/absensi') ?>" class="btn btn-sm btn-primary mr-2" title="Kelola / Edit Data Absensi Santri">
+                        <i class="fas fa-edit mr-1"></i> <span class="d-none d-sm-inline">Edit Absensi</span>
+                    </a>
                     <button type="button" class="btn btn-sm btn-outline-secondary mr-2" data-toggle="modal" data-target="#modalThresholdSetting" title="Konfigurasi Ambang Batas Santri At-Risk">
                         <i class="fas fa-sliders-h text-warning mr-1"></i> <span class="d-none d-sm-inline">Atur Batas Warning</span>
                     </button>
@@ -340,6 +343,9 @@
             </h3>
             <div class="card-tools d-flex align-items-center">
                 <span class="badge badge-danger mr-2" id="badgeTotalAtRisk">0 Santri</span>
+                <a href="<?= base_url('backend/absensi') ?>" class="btn btn-xs btn-outline-danger mr-2" title="Buka Halaman Edit Absensi">
+                    <i class="fas fa-edit mr-1"></i> Edit Absensi
+                </a>
                 <button type="button" class="btn btn-tool" data-card-widget="collapse">
                     <i class="fas fa-minus"></i>
                 </button>
@@ -511,7 +517,10 @@
                     </table>
                 </div>
             </div>
-            <div class="modal-footer py-2">
+            <div class="modal-footer py-2 d-flex justify-content-between">
+                <a href="<?= base_url('backend/absensi') ?>" class="btn btn-primary btn-sm" title="Edit Data Absensi di Halaman Absensi">
+                    <i class="fas fa-edit mr-1"></i> Edit Absensi
+                </a>
                 <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Tutup</button>
             </div>
         </div>
