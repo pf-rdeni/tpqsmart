@@ -886,6 +886,12 @@
                                     <p>Santri Per Kelas</p>
                                 </a>
                             </li>
+                            <li class="nav-item">
+                                <a href=<?php echo base_url('backend/santri/statistikAbsensi') ?> class="nav-link">
+                                    <i class="fas fa-chart-line nav-icon text-warning"></i>
+                                    <p>Statistik Presensi</p>
+                                </a>
+                            </li>
                             <?php if (in_groups('Admin') || $isActiveOperator): ?>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/kelas/showListSantriPerKelas') ?> class="nav-link">

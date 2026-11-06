@@ -275,4 +275,245 @@ class AbsensiModel extends Model
         return $formattedData;
     }
 
+    /**
+     * Get data analitik statistik presensi komprehensif
+     * Mendukung filter role: Admin (semua TPQ), Kepala TPQ/Operator (1 TPQ), Guru (kelas ampunya)
+     * Ditambah filter status kehadiran (Hadir, Sakit, Izin, Alpa) jika dipilih
+     */
+    public function getAnalitikPresensi($IdTpq = null, $IdKelas = null, $startDate = null, $endDate = null, $IdTahunAjaran = null, $statusKehadiran = null)
+    {
+        // 1. KPI & Komposisi Keseluruhan
+        $builderKpi = $this->db->table('tbl_absensi_santri a')
+            ->select("
+                COUNT(*) as total_record,
+                SUM(CASE WHEN a.Kehadiran = 'Hadir' THEN 1 ELSE 0 END) as total_hadir,
+                SUM(CASE WHEN a.Kehadiran = 'Sakit' THEN 1 ELSE 0 END) as total_sakit,
+                SUM(CASE WHEN a.Kehadiran = 'Izin' THEN 1 ELSE 0 END) as total_izin,
+                SUM(CASE WHEN a.Kehadiran = 'Alpa' THEN 1 ELSE 0 END) as total_alpa
+            ");
+
+        if (!empty($IdTpq) && $IdTpq != 0) {
+            $builderKpi->where('a.IdTpq', $IdTpq);
+        }
+        if (!empty($IdKelas)) {
+            if (is_array($IdKelas)) {
+                $builderKpi->whereIn('a.IdKelas', $IdKelas);
+            } else {
+                $builderKpi->where('a.IdKelas', $IdKelas);
+            }
+        }
+        if (!empty($startDate)) {
+            $builderKpi->where('a.Tanggal >=', $startDate);
+        }
+        if (!empty($endDate)) {
+            $builderKpi->where('a.Tanggal <=', $endDate);
+        }
+        if (!empty($IdTahunAjaran)) {
+            $builderKpi->where('a.IdTahunAjaran', $IdTahunAjaran);
+        }
+        if (!empty($statusKehadiran)) {
+            $builderKpi->where('a.Kehadiran', $statusKehadiran);
+        }
+
+        $kpi = $builderKpi->get()->getRowArray() ?: [
+            'total_record' => 0, 'total_hadir' => 0, 'total_sakit' => 0, 'total_izin' => 0, 'total_alpa' => 0
+        ];
+
+        // 2. Tren Kehadiran Time-Series (Per Tanggal)
+        $builderTrend = $this->db->table('tbl_absensi_santri a')
+            ->select("
+                a.Tanggal,
+                SUM(CASE WHEN a.Kehadiran = 'Hadir' THEN 1 ELSE 0 END) as hadir,
+                SUM(CASE WHEN a.Kehadiran = 'Sakit' THEN 1 ELSE 0 END) as sakit,
+                SUM(CASE WHEN a.Kehadiran = 'Izin' THEN 1 ELSE 0 END) as izin,
+                SUM(CASE WHEN a.Kehadiran = 'Alpa' THEN 1 ELSE 0 END) as alpa,
+                COUNT(*) as total
+            ");
+
+        if (!empty($IdTpq) && $IdTpq != 0) {
+            $builderTrend->where('a.IdTpq', $IdTpq);
+        }
+        if (!empty($IdKelas)) {
+            if (is_array($IdKelas)) {
+                $builderTrend->whereIn('a.IdKelas', $IdKelas);
+            } else {
+                $builderTrend->where('a.IdKelas', $IdKelas);
+            }
+        }
+        if (!empty($startDate)) {
+            $builderTrend->where('a.Tanggal >=', $startDate);
+        }
+        if (!empty($endDate)) {
+            $builderTrend->where('a.Tanggal <=', $endDate);
+        }
+        if (!empty($IdTahunAjaran)) {
+            $builderTrend->where('a.IdTahunAjaran', $IdTahunAjaran);
+        }
+        if (!empty($statusKehadiran)) {
+            $builderTrend->where('a.Kehadiran', $statusKehadiran);
+        }
+
+        $trendHarian = $builderTrend->groupBy('a.Tanggal')->orderBy('a.Tanggal', 'ASC')->get()->getResultArray();
+
+        // 3. Fluktuasi Kehadiran Per Kelas Time-Series (Tanggal & Kelas)
+        $builderFluktuasi = $this->db->table('tbl_absensi_santri a')
+            ->select("
+                a.Tanggal,
+                a.IdKelas,
+                k.NamaKelas,
+                SUM(CASE WHEN a.Kehadiran = 'Hadir' THEN 1 ELSE 0 END) as hadir,
+                COUNT(*) as total
+            ")
+            ->join('tbl_kelas k', 'a.IdKelas = k.IdKelas', 'left');
+
+        if (!empty($IdTpq) && $IdTpq != 0) {
+            $builderFluktuasi->where('a.IdTpq', $IdTpq);
+        }
+        if (!empty($IdKelas)) {
+            if (is_array($IdKelas)) {
+                $builderFluktuasi->whereIn('a.IdKelas', $IdKelas);
+            } else {
+                $builderFluktuasi->where('a.IdKelas', $IdKelas);
+            }
+        }
+        if (!empty($startDate)) {
+            $builderFluktuasi->where('a.Tanggal >=', $startDate);
+        }
+        if (!empty($endDate)) {
+            $builderFluktuasi->where('a.Tanggal <=', $endDate);
+        }
+        if (!empty($IdTahunAjaran)) {
+            $builderFluktuasi->where('a.IdTahunAjaran', $IdTahunAjaran);
+        }
+        if (!empty($statusKehadiran)) {
+            $builderFluktuasi->where('a.Kehadiran', $statusKehadiran);
+        }
+
+        $fluktuasiRaw = $builderFluktuasi->groupBy('a.Tanggal, a.IdKelas')
+            ->orderBy('a.Tanggal', 'ASC')
+            ->orderBy('a.IdKelas', 'ASC')
+            ->get()->getResultArray();
+
+        // 4. Ranking dan Perbandingan Total per Kelas
+        $builderRanking = $this->db->table('tbl_absensi_santri a')
+            ->select("
+                a.IdKelas,
+                k.NamaKelas,
+                COUNT(*) as total,
+                SUM(CASE WHEN a.Kehadiran = 'Hadir' THEN 1 ELSE 0 END) as hadir,
+                SUM(CASE WHEN a.Kehadiran = 'Sakit' THEN 1 ELSE 0 END) as sakit,
+                SUM(CASE WHEN a.Kehadiran = 'Izin' THEN 1 ELSE 0 END) as izin,
+                SUM(CASE WHEN a.Kehadiran = 'Alpa' THEN 1 ELSE 0 END) as alpa,
+                ROUND((SUM(CASE WHEN a.Kehadiran = 'Hadir' THEN 1 ELSE 0 END) / COUNT(*)) * 100, 1) as persentase_hadir
+            ")
+            ->join('tbl_kelas k', 'a.IdKelas = k.IdKelas', 'left');
+
+        if (!empty($IdTpq) && $IdTpq != 0) {
+            $builderRanking->where('a.IdTpq', $IdTpq);
+        }
+        if (!empty($IdKelas)) {
+            if (is_array($IdKelas)) {
+                $builderRanking->whereIn('a.IdKelas', $IdKelas);
+            } else {
+                $builderRanking->where('a.IdKelas', $IdKelas);
+            }
+        }
+        if (!empty($startDate)) {
+            $builderRanking->where('a.Tanggal >=', $startDate);
+        }
+        if (!empty($endDate)) {
+            $builderRanking->where('a.Tanggal <=', $endDate);
+        }
+        if (!empty($IdTahunAjaran)) {
+            $builderRanking->where('a.IdTahunAjaran', $IdTahunAjaran);
+        }
+        if (!empty($statusKehadiran)) {
+            $builderRanking->where('a.Kehadiran', $statusKehadiran);
+        }
+
+        $rankingKelas = $builderRanking->groupBy('a.IdKelas')
+            ->orderBy('persentase_hadir', 'DESC')
+            ->get()->getResultArray();
+
+        // 5. Matriks Presensi Per Santri
+        $statusAbsenFilterSql = !empty($statusKehadiran) ? " AND a.Kehadiran = '{$statusKehadiran}'" : "";
+        $builderSantri = $this->db->table('tbl_santri_baru s')
+            ->select("
+                s.IdSantri,
+                s.NamaSantri,
+                COALESCE(NULLIF(s.NoHpAyah, ''), NULLIF(s.NoHpIbu, ''), NULLIF(s.NoHpWali, ''), NULLIF(s.NoHpSantri, ''), '') as NoHpOrtu,
+                s.Active,
+                COALESCE(k.NamaKelas, 'Tanpa Kelas') as NamaKelas,
+                t.NamaTpq,
+                COUNT(a.Id) as total_absen,
+                SUM(CASE WHEN a.Kehadiran = 'Hadir' THEN 1 ELSE 0 END) as total_hadir,
+                SUM(CASE WHEN a.Kehadiran = 'Sakit' THEN 1 ELSE 0 END) as total_sakit,
+                SUM(CASE WHEN a.Kehadiran = 'Izin' THEN 1 ELSE 0 END) as total_izin,
+                SUM(CASE WHEN a.Kehadiran = 'Alpa' THEN 1 ELSE 0 END) as total_alpa
+            ")
+            ->join('tbl_absensi_santri a', 's.IdSantri = a.IdSantri' . 
+                (!empty($startDate) ? " AND a.Tanggal >= '{$startDate}'" : "") .
+                (!empty($endDate) ? " AND a.Tanggal <= '{$endDate}'" : "") .
+                (!empty($IdTahunAjaran) ? " AND a.IdTahunAjaran = '{$IdTahunAjaran}'" : "") .
+                $statusAbsenFilterSql, 
+                'inner')
+            ->join('tbl_kelas k', 'a.IdKelas = k.IdKelas', 'left')
+            ->join('tbl_tpq t', 's.IdTpq = t.IdTpq', 'left')
+            ->where('s.Active', 1);
+
+        if (!empty($IdTpq) && $IdTpq != 0) {
+            $builderSantri->where('s.IdTpq', $IdTpq);
+        }
+        if (!empty($IdKelas)) {
+            if (is_array($IdKelas)) {
+                $builderSantri->whereIn('a.IdKelas', $IdKelas);
+            } else {
+                $builderSantri->where('a.IdKelas', $IdKelas);
+            }
+        }
+
+        $santriRecap = $builderSantri->groupBy('s.IdSantri, a.IdKelas')
+            ->orderBy('k.IdKelas', 'ASC')
+            ->orderBy('s.NamaSantri', 'ASC')
+            ->get()->getResultArray();
+
+        foreach ($santriRecap as &$item) {
+            $totalAbsen = (int)$item['total_absen'];
+            $hadir = (int)$item['total_hadir'];
+            $item['persentase_hadir'] = $totalAbsen > 0 ? round(($hadir / $totalAbsen) * 100, 1) : 0;
+        }
+
+        return [
+            'kpi' => $kpi,
+            'trend_harian' => $trendHarian,
+            'fluktuasi_kelas' => $fluktuasiRaw,
+            'ranking_kelas' => $rankingKelas,
+            'santri_recap' => $santriRecap
+        ];
+    }
+
+    /**
+     * Get detail riwayat absensi seorang santri
+     */
+    public function getRiwayatSantri($idSantri, $startDate = null, $endDate = null, $idTahunAjaran = null)
+    {
+        $builder = $this->db->table('tbl_absensi_santri a')
+            ->select('a.*, k.NamaKelas, g.Nama as NamaGuru')
+            ->join('tbl_kelas k', 'a.IdKelas = k.IdKelas', 'left')
+            ->join('tbl_guru g', 'a.IdGuru = g.IdGuru', 'left')
+            ->where('a.IdSantri', $idSantri);
+
+        if (!empty($startDate)) {
+            $builder->where('a.Tanggal >=', $startDate);
+        }
+        if (!empty($endDate)) {
+            $builder->where('a.Tanggal <=', $endDate);
+        }
+        if (!empty($idTahunAjaran)) {
+            $builder->where('a.IdTahunAjaran', $idTahunAjaran);
+        }
+
+        return $builder->orderBy('a.Tanggal', 'DESC')->get()->getResultArray();
+    }
+
 }

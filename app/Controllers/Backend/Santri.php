@@ -4668,4 +4668,186 @@ class Santri extends BaseController
 
         return $this->response->setJSON(['isUnique' => true]);
     }
+
+    /**
+     * Halaman Analitik & Statistik Presensi Santri (Powerful Dashboard)
+     */
+    public function statistikAbsensi()
+    {
+        helper('nilai');
+
+        $activeRole = session()->get('active_role');
+        $hasAdminGroup = in_groups('Admin');
+        $hasOperatorGroup = in_groups('Operator');
+        $hasGuruGroup = in_groups('Guru');
+        $hasKepalaTpqGroup = in_groups('Kepala TPQ');
+
+        $isUsingGuruRole = in_array($activeRole, ['guru', 'wali_kelas']);
+        $isUsingAdminRole = ($activeRole === 'admin' && $hasAdminGroup);
+        $isUsingOperatorRole = ($activeRole === 'operator' && $hasOperatorGroup);
+        $isUsingKepalaTpqRole = ($activeRole === 'kepala_tpq' && $hasKepalaTpqGroup);
+
+        if (empty($activeRole) || (!in_array($activeRole, ['admin', 'operator', 'kepala_tpq', 'guru', 'wali_kelas']))) {
+            if ($hasGuruGroup) {
+                $isUsingGuruRole = true;
+            } elseif ($hasAdminGroup) {
+                $isUsingAdminRole = true;
+            } elseif ($hasOperatorGroup) {
+                $isUsingOperatorRole = true;
+            } elseif ($hasKepalaTpqGroup) {
+                $isUsingKepalaTpqRole = true;
+            }
+        }
+
+        $isAdmin = $isUsingAdminRole;
+        $isGuru = $isUsingGuruRole;
+        $isOperator = $isUsingOperatorRole;
+        $isKepalaTpq = $isUsingKepalaTpqRole;
+
+        $sessionIdTpq = session()->get('IdTpq');
+        $sessionIdKelas = session()->get('IdKelas');
+        $IdTahunAjaran = session()->get('IdTahunAjaran') ?: $this->helpFunction->getTahunAjaranSaatIni();
+
+        // Ambil data TPQ
+        $dataTpq = $this->helpFunction->getDataTpq();
+        usort($dataTpq, function ($a, $b) {
+            return strcmp($a['NamaTpq'], $b['NamaTpq']);
+        });
+
+        // Ambil data Kelas sesuai hak akses role
+        $dataKelas = [];
+        if ($isGuru) {
+            // Guru HANYA melihat kelas yang diajar
+            if (!empty($sessionIdKelas) && is_array($sessionIdKelas)) {
+                $allKelas = $this->helpFunction->getDataKelas();
+                $dataKelas = array_filter($allKelas, function ($k) use ($sessionIdKelas) {
+                    return in_array($k['IdKelas'], $sessionIdKelas);
+                });
+                $dataKelas = array_values($dataKelas);
+            }
+        } else {
+            $dataKelas = $this->helpFunction->getDataKelas();
+        }
+
+        // Terapkan MDA mapping jika relevan
+        $defaultTpq = $isAdmin ? ($dataTpq[0]['IdTpq'] ?? 0) : $sessionIdTpq;
+        if (!empty($dataKelas) && !empty($defaultTpq)) {
+            foreach ($dataKelas as $key => $kelas) {
+                if (isset($kelas['NamaKelas']) && !empty($kelas['NamaKelas'])) {
+                    $namaKelasOriginal = $kelas['NamaKelas'];
+                    $mdaCheckResult = $this->helpFunction->checkMdaKelasMapping($defaultTpq, $namaKelasOriginal);
+                    $dataKelas[$key]['NamaKelas'] = $this->helpFunction->convertKelasToMda(
+                        $namaKelasOriginal,
+                        $mdaCheckResult['mappedMdaKelas']
+                    );
+                }
+            }
+        }
+
+        // Ambil daftar Tahun Ajaran dari session atau kalkulasi
+        $tahunAjaranList = session()->get('IdTahunAjaranList') ?: [];
+        if (!in_array($IdTahunAjaran, $tahunAjaranList)) {
+            $tahunAjaranList[] = $IdTahunAjaran;
+        }
+        rsort($tahunAjaranList);
+
+        $data = [
+            'page_title' => 'Statistik Presensi Santri',
+            'dataTpq' => $dataTpq,
+            'dataKelas' => $dataKelas,
+            'tahunAjaranList' => $tahunAjaranList,
+            'currentIdTpq' => $sessionIdTpq,
+            'currentIdTahunAjaran' => $IdTahunAjaran,
+            'isAdmin' => $isAdmin,
+            'isGuru' => $isGuru,
+            'isOperator' => $isOperator,
+            'isKepalaTpq' => $isKepalaTpq,
+            'teacherClasses' => is_array($sessionIdKelas) ? $sessionIdKelas : ($sessionIdKelas ? [$sessionIdKelas] : [])
+        ];
+
+        return view('backend/santri/statistikAbsensi', $data);
+    }
+
+    /**
+     * Endpoint AJAX untuk mengambil data analitik presensi
+     */
+    public function getStatistikAbsensiAjax()
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setStatusCode(403)->setJSON(['success' => false, 'message' => 'Access Denied']);
+        }
+
+        $activeRole = session()->get('active_role');
+        $hasAdminGroup = in_groups('Admin');
+        $isGuru = in_array($activeRole, ['guru', 'wali_kelas']) || (empty($activeRole) && in_groups('Guru'));
+        $isAdmin = ($activeRole === 'admin' && $hasAdminGroup) || (empty($activeRole) && $hasAdminGroup);
+
+        $sessionIdTpq = session()->get('IdTpq');
+        $sessionIdKelas = session()->get('IdKelas');
+
+        // Parameter filter dari GET
+        $reqTpq = $this->request->getGet('id_tpq');
+        $reqStatusKehadiran = $this->request->getGet('status_kehadiran');
+        $reqKelas = $this->request->getGet('id_kelas');
+        $reqStartDate = $this->request->getGet('start_date');
+        $reqEndDate = $this->request->getGet('end_date');
+        $reqTahunAjaran = $this->request->getGet('id_tahun_ajaran') ?: session()->get('IdTahunAjaran');
+
+        // Tentukan IdTpq berdasarkan role
+        $idTpq = $isAdmin ? ($reqTpq ?: null) : $sessionIdTpq;
+
+        // Tentukan IdKelas berdasarkan role
+        $idKelas = null;
+        if ($isGuru) {
+            // Guru terikat pada kelas miliknya
+            $allowedKelas = is_array($sessionIdKelas) ? $sessionIdKelas : ($sessionIdKelas ? [$sessionIdKelas] : []);
+            if (!empty($reqKelas)) {
+                $requestedArr = is_array($reqKelas) ? $reqKelas : explode(',', $reqKelas);
+                $idKelas = array_intersect($requestedArr, $allowedKelas);
+                if (empty($idKelas)) {
+                    $idKelas = $allowedKelas;
+                }
+            } else {
+                $idKelas = $allowedKelas;
+            }
+        } else {
+            if (!empty($reqKelas)) {
+                $idKelas = is_array($reqKelas) ? $reqKelas : explode(',', $reqKelas);
+            }
+        }
+
+        $absensiModel = new \App\Models\AbsensiModel();
+        $analytics = $absensiModel->getAnalitikPresensi($idTpq, $idKelas, $reqStartDate, $reqEndDate, $reqTahunAjaran, $reqStatusKehadiran);
+
+        return $this->response->setJSON([
+            'success' => true,
+            'data' => $analytics
+        ]);
+    }
+
+    /**
+     * Endpoint AJAX untuk mengambil riwayat absensi santri spesifik
+     */
+    public function getRiwayatSantriAbsensiAjax($idSantri)
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setStatusCode(403)->setJSON(['success' => false, 'message' => 'Access Denied']);
+        }
+
+        $startDate = $this->request->getGet('start_date');
+        $endDate = $this->request->getGet('end_date');
+        $idTahunAjaran = $this->request->getGet('id_tahun_ajaran');
+
+        $absensiModel = new \App\Models\AbsensiModel();
+        $riwayat = $absensiModel->getRiwayatSantri($idSantri, $startDate, $endDate, $idTahunAjaran);
+
+        // Ambil info nama santri
+        $santri = $this->DataSantriBaru->where('IdSantri', $idSantri)->first();
+
+        return $this->response->setJSON([
+            'success' => true,
+            'santri' => $santri,
+            'riwayat' => $riwayat
+        ]);
+    }
 }
