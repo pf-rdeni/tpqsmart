@@ -414,11 +414,15 @@ class SantriBaruModel extends Model
 
         $builder = $this->db->table('tbl_santri_baru');
         
+        // Filter santri aktif (Active = 1) agar sinkron dengan absensi
+        $builder->where('tbl_santri_baru.Active', 1);
+
         if (!empty($IdTahunAjaran)) {
+            $builder->where('ks.Status', 1);
             $builder->select('tbl_santri_baru.*, ks.IdKelas as IdKelas, ks.IdTahunAjaran, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq, tbl_tpq.KelurahanDesa')
                 ->join('tbl_kelas_santri ks', 'ks.IdSantri = tbl_santri_baru.IdSantri AND ks.IdTahunAjaran = "' . $IdTahunAjaran . '"', 'inner')
                 ->join('tbl_kelas', 'tbl_kelas.IdKelas = ks.IdKelas')
-                ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq');
+                ->join('tbl_tpq', 'tbl_tpq.IdTpq = ks.IdTpq');
         } else {
             // Fallback ke perilaku lama jika tidak ada tahun ajaran terpilih
             $builder->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq, tbl_tpq.KelurahanDesa, NULL as IdTahunAjaran')
@@ -431,8 +435,12 @@ class SantriBaruModel extends Model
             $builder->orderBy('tbl_santri_baru.Status', 'DESC')
                 ->orderBy('tbl_santri_baru.updated_at', 'DESC');
         } else {
-            // Filter berdasarkan TPQ
-            $builder->where('tbl_santri_baru.IdTpq', $IdTpq);
+            // Filter berdasarkan TPQ (gunakan ks.IdTpq jika ada tahun ajaran agar konsisten)
+            if (!empty($IdTahunAjaran)) {
+                $builder->where('ks.IdTpq', $IdTpq);
+            } else {
+                $builder->where('tbl_santri_baru.IdTpq', $IdTpq);
+            }
 
             // Filter berdasarkan kelas
             if (!empty($IdTahunAjaran)) {

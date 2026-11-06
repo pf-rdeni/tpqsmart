@@ -3160,7 +3160,7 @@ class Santri extends BaseController
                 ]);
             }
 
-            // Update status
+            // Update status santri
             $result = $this->DataSantriBaru
                 ->where('id', $id)
                 ->set(['Active' => $active])
@@ -3172,6 +3172,29 @@ class Santri extends BaseController
                     'success' => false,
                     'message' => 'Gagal memperbarui status'
                 ]);
+            }
+
+            // Sinkronisasi status kelas di tbl_kelas_santri
+            $idSantri = $santri['IdSantri'] ?? null;
+            if (!empty($idSantri)) {
+                $db = \Config\Database::connect();
+                $idTahunAjaranAktif = session()->get('IdTahunAjaran') ?: $this->helpFunction->getTahunAjaranSaatIni();
+
+                if ($active == 2) {
+                    // Jika dinonaktifkan / alumni, non-aktifkan kelasnya di tbl_kelas_santri
+                    $db->table('tbl_kelas_santri')
+                        ->where('IdSantri', $idSantri)
+                        ->where('IdTahunAjaran', $idTahunAjaranAktif)
+                        ->update(['Status' => 0]);
+                    log_message('info', "Santri: updateStatusActive - Menyetel Status=0 di tbl_kelas_santri untuk IdSantri {$idSantri} pada TA {$idTahunAjaranAktif}");
+                } elseif ($active == 1) {
+                    // Jika diaktifkan kembali, aktifkan kembali record kelas pada TA berjalan
+                    $db->table('tbl_kelas_santri')
+                        ->where('IdSantri', $idSantri)
+                        ->where('IdTahunAjaran', $idTahunAjaranAktif)
+                        ->update(['Status' => 1]);
+                    log_message('info', "Santri: updateStatusActive - Menyetel Status=1 di tbl_kelas_santri untuk IdSantri {$idSantri} pada TA {$idTahunAjaranAktif}");
+                }
             }
 
             log_message('info', 'Santri: updateStatusActive - Status berhasil diperbarui');

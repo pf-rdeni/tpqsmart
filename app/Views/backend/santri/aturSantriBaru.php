@@ -227,20 +227,25 @@
                                             <i class="fas <?= $statusIcon ?>"></i> <?= $statusText ?>
                                         </button>
                                     <?php else: ?>
-                                        <!-- Operator hanya bisa mengubah status aktif/non-aktif (bukan alumni) -->
-                                        <?php if ($santri['Active'] == 2): ?>
-                                            <!-- Status Alumni/Keluar - Tidak bisa diubah oleh Operator -->
-                                            <span class="badge badge-secondary" title="Santri Alumni/Keluar - Tidak dapat diubah">
-                                                <i class="fas fa-graduation-cap"></i> Alumni
+                                        <!-- Operator bisa mengubah status aktif / non-aktif dengan tombol konfirmasi yang aman -->
+                                        <?php if ($santri['Active'] == 0): ?>
+                                            <span class="badge badge-warning" title="Santri Baru (Belum Masuk Kelas)">
+                                                <i class="fas fa-user-plus"></i> Santri Baru
                                             </span>
+                                        <?php elseif ($santri['Active'] == 1): ?>
+                                            <button type="button" class="btn btn-sm btn-success"
+                                                id="statusBtn<?= $santri['id']; ?>"
+                                                onclick="toggleStatusOperator(<?= $santri['id']; ?>, 1)"
+                                                title="Klik untuk menonaktifkan santri">
+                                                <i class="fas fa-check-circle"></i> Aktif
+                                            </button>
                                         <?php else: ?>
-                                            <!-- Status Aktif/Non-Aktif - Bisa diubah oleh Operator -->
-                                            <div class="form-check form-switch">
-                                                <input type="checkbox" class="form-check-input" id="status<?= $santri['id']; ?>"
-                                                    <?= $santri['Active'] == 1 ? 'checked' : ''; ?>
-                                                    onchange="updateStatus(<?= $santri['id']; ?>, this.checked)"
-                                                    title="<?= $santri['Active'] == 1 ? 'Santri Aktif' : 'Santri Non-Aktif' ?>">
-                                            </div>
+                                            <button type="button" class="btn btn-sm btn-secondary"
+                                                id="statusBtn<?= $santri['id']; ?>"
+                                                onclick="toggleStatusOperator(<?= $santri['id']; ?>, 2)"
+                                                title="Klik untuk mengaktifkan santri kembali">
+                                                <i class="fas fa-times-circle"></i> Non-Aktif
+                                            </button>
                                         <?php endif; ?>
                                     <?php endif; ?>
                                 </td>
@@ -1263,47 +1268,29 @@
         });
     }
 
-    // Fungsi untuk Operator - update status aktif/non-aktif (checkbox)
-    function updateStatus(id, status) {
-        const checkbox = document.getElementById('status' + id);
-        const td = checkbox.closest('td');
-        const originalStatus = !status;
-
-        // Ambil data dari row yang dipilih
-        const row = checkbox.closest('tr');
+    // Fungsi untuk Operator - toggle status aktif/non-aktif aman dengan tombol konfirmasi
+    function toggleStatusOperator(id, currentActive) {
+        const btn = document.getElementById('statusBtn' + id);
+        const td = btn.closest('td');
+        const row = btn.closest('tr');
         const namaSantri = row.querySelector('td[data-column="Nama"]').innerText;
 
-        // Cek apakah santri adalah alumni (Active = 2)
-        const currentActiveValue = parseInt(td.getAttribute('data-order'));
-        if (currentActiveValue === 2) {
-            Swal.fire({
-                title: 'Tidak Dapat Diubah',
-                html: `<div class="text-left">
-                        <p><strong>Santri ini adalah Alumni/Keluar dan tidak dapat diubah statusnya.</strong></p>
-                        <ul class="text-left">
-                            <li><strong>Status:</strong> Alumni/Keluar (Active = 2)</li>
-                            <li><strong>Nama:</strong> ${namaSantri}</li>
-                        </ul>
-                        <p class="mt-3 text-muted">Status alumni tidak dapat diubah untuk menjaga integritas data.</p>
-                       </div>`,
-                icon: 'info',
-                confirmButtonText: 'OK',
-                confirmButtonColor: '#3085d6'
-            });
-            // Kembalikan checkbox ke status asli
-            checkbox.checked = originalStatus;
-            return;
-        }
+        const targetActive = currentActive === 1 ? 2 : 1;
+        const actionText = currentActive === 1 ? 'menonaktifkan' : 'mengaktifkan kembali';
+        const confirmBtnText = currentActive === 1 ? 'Ya, Nonaktifkan' : 'Ya, Aktifkan';
+        const confirmBtnColor = currentActive === 1 ? '#d33' : '#28a745';
+        const noteText = currentActive === 1 
+            ? '<br><small class="text-danger mt-2 d-block"><i class="fas fa-exclamation-triangle"></i> Santri non-aktif tidak akan muncul di daftar absensi dan profil santri aktif.</small>' 
+            : '<br><small class="text-success mt-2 d-block"><i class="fas fa-check-circle"></i> Santri akan kembali muncul aktif di kelas dan absensi tahun ajaran berjalan.</small>';
 
         Swal.fire({
-            title: 'Apakah Anda yakin?',
-            html: `Anda akan ${status ? 'mengaktifkan' : 'menonaktifkan'} santri:<br>
-                  <strong>${namaSantri}</strong>`,
-            icon: 'warning',
+            title: 'Konfirmasi Status Santri',
+            html: `Apakah Anda yakin ingin <strong>${actionText}</strong> santri:<br><strong>${namaSantri}</strong>?${noteText}`,
+            icon: currentActive === 1 ? 'warning' : 'question',
             showCancelButton: true,
-            confirmButtonColor: '#3085d6',
-            cancelButtonColor: '#d33',
-            confirmButtonText: 'Ya, update!',
+            confirmButtonColor: confirmBtnColor,
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: confirmBtnText,
             cancelButtonText: 'Batal'
         }).then((result) => {
             if (result.isConfirmed) {
@@ -1315,65 +1302,52 @@
                     }
                 });
 
-                // Konversi untuk Operator: checked = 1, unchecked = 2 (non-active)
-                const activeValue = status ? 1 : 2;
-
                 fetch('<?= site_url('backend/santri/updateStatusActive'); ?>', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            id: id,
-                            active: activeValue
-                        })
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        id: id,
+                        active: targetActive
                     })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            // Update tampilan checkbox
-                            checkbox.checked = status;
-
-                            // Update data-order untuk sorting
-                            td.setAttribute('data-order', activeValue);
-
-                            // Update label status
-                            const label = checkbox.nextElementSibling;
-                            if (label && label.querySelector('small')) {
-                                label.querySelector('small').textContent = status ? 'Aktif' : 'Non-Aktif';
-                            }
-
-                            // Update title
-                            checkbox.title = status ? 'Santri Aktif' : 'Santri Non-Aktif';
-
-                            Swal.fire({
-                                title: 'Berhasil!',
-                                text: data.message,
-                                icon: 'success',
-                                showConfirmButton: false,
-                                timer: 1000
-                            });
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        td.setAttribute('data-order', targetActive);
+                        if (targetActive === 1) {
+                            btn.className = 'btn btn-sm btn-success';
+                            btn.innerHTML = '<i class="fas fa-check-circle"></i> Aktif';
+                            btn.title = 'Klik untuk menonaktifkan santri';
+                            btn.setAttribute('onclick', `toggleStatusOperator(${id}, 1)`);
                         } else {
-                            throw new Error(data.message);
+                            btn.className = 'btn btn-sm btn-secondary';
+                            btn.innerHTML = '<i class="fas fa-times-circle"></i> Non-Aktif';
+                            btn.title = 'Klik untuk mengaktifkan santri kembali';
+                            btn.setAttribute('onclick', `toggleStatusOperator(${id}, 2)`);
                         }
-                    })
-                    .catch(error => {
+
                         Swal.fire({
-                            title: 'Gagal!',
-                            text: error.message,
-                            icon: 'error',
-                            confirmButtonText: 'OK'
+                            title: 'Berhasil!',
+                            text: data.message,
+                            icon: 'success',
+                            showConfirmButton: false,
+                            timer: 1200
                         });
-                        // Kembalikan ke nilai asli jika gagal
-                        checkbox.checked = originalStatus;
+                    } else {
+                        throw new Error(data.message);
+                    }
+                })
+                .catch(error => {
+                    Swal.fire({
+                        title: 'Gagal!',
+                        text: error.message,
+                        icon: 'error',
+                        confirmButtonText: 'OK'
                     });
-            } else {
-                // Kembalikan ke nilai asli jika dibatalkan
-                checkbox.checked = originalStatus;
+                });
             }
-        }).catch(() => {
-            // Kembalikan ke nilai asli jika terjadi error pada SweetAlert
-            checkbox.checked = originalStatus;
         });
     }
 
