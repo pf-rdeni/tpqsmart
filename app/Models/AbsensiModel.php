@@ -400,6 +400,7 @@ class AbsensiModel extends Model
                 a.IdKelas,
                 k.NamaKelas,
                 COUNT(*) as total,
+                COUNT(DISTINCT a.Tanggal) as jumlah_hari_efektif,
                 SUM(CASE WHEN a.Kehadiran = 'Hadir' THEN 1 ELSE 0 END) as hadir,
                 SUM(CASE WHEN a.Kehadiran = 'Sakit' THEN 1 ELSE 0 END) as sakit,
                 SUM(CASE WHEN a.Kehadiran = 'Izin' THEN 1 ELSE 0 END) as izin,
@@ -431,9 +432,42 @@ class AbsensiModel extends Model
             $builderRanking->where('a.Kehadiran', $statusKehadiran);
         }
 
-        $rankingKelas = $builderRanking->groupBy('a.IdKelas')
-            ->orderBy('persentase_hadir', 'DESC')
+        $rankingKelasRaw = $builderRanking->groupBy('a.IdKelas')
             ->get()->getResultArray();
+
+        // Cari hari efektif maksimal di antara kelas-kelas pada rentang waktu terpilih
+        $maxHariEfektif = 0;
+        foreach ($rankingKelasRaw as $row) {
+            $hari = (int)($row['jumlah_hari_efektif'] ?? 0);
+            if ($hari > $maxHariEfektif) {
+                $maxHariEfektif = $hari;
+            }
+        }
+
+        // Hitung skor performa berbobot: persentase_hadir * (hari_efektif / max_hari_efektif)
+        $rankingKelas = [];
+        foreach ($rankingKelasRaw as $row) {
+            $hari = (int)($row['jumlah_hari_efektif'] ?? 0);
+            $pctHadir = (float)($row['persentase_hadir'] ?? 0);
+            $rasioHari = ($maxHariEfektif > 0) ? ($hari / $maxHariEfektif) : 1;
+            $skorPerforma = round($pctHadir * $rasioHari, 1);
+
+            $row['max_hari_efektif'] = $maxHariEfektif;
+            $row['skor_performa'] = $skorPerforma;
+            $row['rasio_hari'] = round($rasioHari * 100, 1);
+            $rankingKelas[] = $row;
+        }
+
+        // Urutkan ranking berdasarkan skor performa tertinggi, lalu persentase kehadiran, lalu hari efektif
+        usort($rankingKelas, function ($a, $b) {
+            if ($b['skor_performa'] != $a['skor_performa']) {
+                return ($b['skor_performa'] <=> $a['skor_performa']);
+            }
+            if ($b['persentase_hadir'] != $a['persentase_hadir']) {
+                return ($b['persentase_hadir'] <=> $a['persentase_hadir']);
+            }
+            return ($b['jumlah_hari_efektif'] <=> $a['jumlah_hari_efektif']);
+        });
 
         // 5. Matriks Presensi Per Santri
         $statusAbsenFilterSql = !empty($statusKehadiran) ? " AND a.Kehadiran = '{$statusKehadiran}'" : "";

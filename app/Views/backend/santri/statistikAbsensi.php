@@ -246,6 +246,7 @@
                         <i class="fas fa-trophy text-warning mr-1"></i> Ranking Kehadiran Kelas
                     </h3>
                     <div class="card-tools">
+                        <small class="text-muted mr-1 d-none d-sm-inline" title="Skor mempertimbangkan kombinasi persentase kehadiran dan jumlah hari aktif/efektif presensi"><i class="fas fa-info-circle"></i> Berbobot Hari Efektif</small>
                         <button type="button" class="btn btn-tool" data-card-widget="collapse">
                             <i class="fas fa-minus"></i>
                         </button>
@@ -836,8 +837,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const ctx = document.getElementById('chartRankingKelas');
         if (!ctx) return;
 
-        const labels = rankingData.map(r => r.NamaKelas || `Kelas ${r.IdKelas}`);
-        const values = rankingData.map(r => parseFloat(r.persentase_hadir) || 0);
+        // Label kelas disertai jumlah hari efektif presensinya
+        const labels = rankingData.map(r => `${r.NamaKelas || 'Kelas ' + r.IdKelas} (${r.jumlah_hari_efektif || 0} Hari)`);
+        // Nilai bar menggunakan Skor Indeks Performa (berbobot hari efektif)
+        const values = rankingData.map(r => parseFloat(r.skor_performa !== undefined ? r.skor_performa : r.persentase_hadir) || 0);
 
         if (chartRanking) chartRanking.destroy();
 
@@ -846,9 +849,9 @@ document.addEventListener('DOMContentLoaded', function() {
             data: {
                 labels: labels,
                 datasets: [{
-                    label: '% Kehadiran',
+                    label: 'Skor Indeks',
                     data: values,
-                    backgroundColor: values.map(v => v >= 85 ? '#28a745' : (v >= 75 ? '#ffc107' : '#dc3545')),
+                    backgroundColor: values.map(v => v >= 80 ? '#28a745' : (v >= 65 ? '#17a2b8' : (v >= 50 ? '#ffc107' : '#dc3545'))),
                     borderRadius: 4
                 }]
             },
@@ -857,13 +860,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: { display: false }
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const r = rankingData[context.dataIndex];
+                                return [
+                                    ` Skor Indeks: ${r.skor_performa !== undefined ? r.skor_performa : context.parsed.x} Poin`,
+                                    ` % Hadir Murni: ${r.persentase_hadir}% (${r.hadir || 0}/${r.total || 0} presensi)`,
+                                    ` Hari Efektif: ${r.jumlah_hari_efektif || 0} Hari (Max Periode: ${r.max_hari_efektif || '-'} Hari)`
+                                ];
+                            }
+                        }
+                    }
                 },
                 scales: {
                     x: {
                         beginAtZero: true,
                         max: 100,
-                        ticks: { callback: v => v + '%' }
+                        ticks: { callback: v => v + ' Poin' }
                     }
                 }
             }
