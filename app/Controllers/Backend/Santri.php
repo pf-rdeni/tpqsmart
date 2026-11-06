@@ -4714,19 +4714,23 @@ class Santri extends BaseController
             return strcmp($a['NamaTpq'], $b['NamaTpq']);
         });
 
-        // Ambil data Kelas sesuai hak akses role
+        // Ambil data Kelas sesuai hak akses role (Kecualikan Alumni IdKelas = 10)
         $dataKelas = [];
         if ($isGuru) {
             // Guru HANYA melihat kelas yang diajar
             if (!empty($sessionIdKelas) && is_array($sessionIdKelas)) {
                 $allKelas = $this->helpFunction->getDataKelas();
                 $dataKelas = array_filter($allKelas, function ($k) use ($sessionIdKelas) {
-                    return in_array($k['IdKelas'], $sessionIdKelas);
+                    return in_array($k['IdKelas'], $sessionIdKelas) && $k['IdKelas'] != 10 && stripos($k['NamaKelas'], 'alumni') === false;
                 });
                 $dataKelas = array_values($dataKelas);
             }
         } else {
-            $dataKelas = $this->helpFunction->getDataKelas();
+            $allKelas = $this->helpFunction->getDataKelas();
+            $dataKelas = array_filter($allKelas, function ($k) {
+                return $k['IdKelas'] != 10 && stripos($k['NamaKelas'], 'alumni') === false;
+            });
+            $dataKelas = array_values($dataKelas);
         }
 
         // Terapkan MDA mapping jika relevan
@@ -4814,6 +4818,13 @@ class Santri extends BaseController
             if (!empty($reqKelas)) {
                 $idKelas = is_array($reqKelas) ? $reqKelas : explode(',', $reqKelas);
             }
+        }
+
+        // Kecualikan kelas alumni (IdKelas = 10)
+        if (!empty($idKelas) && is_array($idKelas)) {
+            $idKelas = array_values(array_filter($idKelas, function($id) {
+                return $id != 10 && $id != '10';
+            }));
         }
 
         $absensiModel = new \App\Models\AbsensiModel();

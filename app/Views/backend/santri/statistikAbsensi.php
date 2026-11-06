@@ -50,6 +50,7 @@
                     <label class="small font-weight-bold mb-1"><i class="fas fa-chalkboard text-muted"></i> Filter Kelas:</label>
                     <select class="form-control form-control-sm select2" id="filterKelas" multiple data-placeholder="Semua Kelas" style="width: 100%;">
                         <?php foreach ($dataKelas as $kelas): ?>
+                            <?php if ($kelas['IdKelas'] == 10 || stripos($kelas['NamaKelas'], 'alumni') !== false) continue; ?>
                             <option value="<?= $kelas['IdKelas'] ?>">
                                 <?= esc($kelas['NamaKelas']) ?>
                             </option>
@@ -255,6 +256,76 @@
                 <div class="card-body p-3">
                     <div style="position: relative; height: 330px;">
                         <canvas id="chartRankingKelas"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ROW 3.5: MONITORING KERAJINAN INPUT ABSENSI KELAS -->
+    <div class="card card-outline card-primary shadow-sm mb-3">
+        <div class="card-header py-2 d-flex justify-content-between align-items-center flex-wrap">
+            <div class="d-flex align-items-center">
+                <h3 class="card-title font-weight-bold text-dark mb-0 mr-2">
+                    <i class="fas fa-clipboard-check text-primary mr-1"></i> Monitoring Kerajinan Input Absensi Kelas
+                </h3>
+                <small class="text-muted d-none d-md-inline" title="Memonitor keaktifan dan frekuensi hari kelas/guru dalam menginput absensi harian santri">
+                    (Keaktifan Presensi Harian)
+                </small>
+            </div>
+            <div class="card-tools d-flex align-items-center mt-2 mt-md-0">
+                <!-- Filter Pills -->
+                <div class="btn-group btn-group-sm mr-2" role="group" id="btnGroupFilterKerajinan">
+                    <button type="button" class="btn btn-primary active" data-filter="semua">Semua (<span id="countSemuaKelas">0</span>)</button>
+                    <button type="button" class="btn btn-outline-success" data-filter="rajin">
+                        <i class="fas fa-check-circle mr-1"></i>Rajin (<span id="countRajinKelas">0</span>)
+                    </button>
+                    <button type="button" class="btn btn-outline-warning" data-filter="cukup">
+                        <i class="fas fa-exclamation-circle mr-1"></i>Cukup (<span id="countCukupKelas">0</span>)
+                    </button>
+                    <button type="button" class="btn btn-outline-danger" data-filter="jarang">
+                        <i class="fas fa-times-circle mr-1"></i>Jarang Absen (<span id="countJarangKelas">0</span>)
+                    </button>
+                </div>
+                <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                    <i class="fas fa-minus"></i>
+                </button>
+            </div>
+        </div>
+        <div class="card-body p-3">
+            <div class="row">
+                <!-- Kolom Kiri: Visual Chart Hari Keaktifan Presensi -->
+                <div class="col-lg-7 col-12 mb-3 mb-lg-0 border-right">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="font-weight-bold text-muted text-sm">
+                            <i class="fas fa-chart-bar mr-1"></i> Visualisasi Frekuensi Hari Absen per Kelas
+                        </span>
+                        <span class="badge badge-light border text-muted" id="badgeMaxHariPeriode">
+                            Max Periode: 0 Hari
+                        </span>
+                    </div>
+                    <div style="position: relative; height: 320px;">
+                        <canvas id="chartKerajinanKelas"></canvas>
+                    </div>
+                    <div class="d-flex justify-content-center align-items-center text-xs text-muted mt-2 flex-wrap">
+                        <span class="mr-3"><i class="fas fa-square text-success mr-1"></i> Rajin / Disiplin (&ge; 80% Hari)</span>
+                        <span class="mr-3"><i class="fas fa-square text-warning mr-1"></i> Cukup (50% - 79% Hari)</span>
+                        <span><i class="fas fa-square text-danger mr-1"></i> Jarang / Perlu Evaluasi (&lt; 50% Hari)</span>
+                    </div>
+                </div>
+
+                <!-- Kolom Kanan: Leaderboard Status Kelas & Detail Interaktif -->
+                <div class="col-lg-5 col-12">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="font-weight-bold text-muted text-sm">
+                            <i class="fas fa-list-ul mr-1"></i> Status Keaktifan & Terakhir Absen
+                        </span>
+                        <small class="text-muted" id="labelDiligenceSubtext">Urutan terajin</small>
+                    </div>
+                    <div id="listKerajinanKelas" style="max-height: 320px; overflow-y: auto; padding-right: 4px;">
+                        <div class="text-center text-muted py-4">
+                            <i class="fas fa-spinner fa-spin mr-1"></i> Memuat data kerajinan kelas...
+                        </div>
                     </div>
                 </div>
             </div>
@@ -473,6 +544,9 @@ document.addEventListener('DOMContentLoaded', function() {
     let chartDonut = null;
     let chartFluktuasi = null;
     let chartRanking = null;
+    let chartKerajinan = null;
+    let currentKerajinanData = [];
+    let currentKerajinanFilter = 'semua';
     let dataTableInstance = null;
 
     // Palette warna kelas
@@ -487,6 +561,16 @@ document.addEventListener('DOMContentLoaded', function() {
             theme: 'bootstrap4',
             width: '100%'
         });
+    }
+
+    // Helper untuk format tanggal Indonesia ringkas
+    function formatTglIndo(tglStr) {
+        if (!tglStr) return '-';
+        const parts = tglStr.split('-');
+        if (parts.length !== 3) return tglStr;
+        const bulanArr = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+        const b = parseInt(parts[1], 10) - 1;
+        return `${parseInt(parts[2], 10)} ${bulanArr[b] || parts[1]} ${parts[0]}`;
     }
 
     // Helper untuk mendapatkan hari Senin dalam minggu tertentu
@@ -624,6 +708,7 @@ document.addEventListener('DOMContentLoaded', function() {
             renderChartDonut(data.kpi);
             renderChartFluktuasi(data.fluktuasi_kelas);
             renderChartRanking(data.ranking_kelas);
+            renderKerajinanKelas(data.kerajinan_kelas, data.summary_kerajinan);
             renderAtRiskSantri(data.santri_recap);
             renderDataTableSantri(data.santri_recap);
         })
@@ -884,6 +969,158 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    // 5b. Render Monitoring Kerajinan Input Absensi Kelas
+    function renderKerajinanKelas(kerajinanData, summaryData) {
+        currentKerajinanData = kerajinanData || [];
+        summaryData = summaryData || {};
+
+        // Update Counter Badges
+        $('#countSemuaKelas').text(summaryData.total_kelas || 0);
+        $('#countRajinKelas').text(summaryData.total_rajin || 0);
+        $('#countCukupKelas').text(summaryData.total_cukup || 0);
+        $('#countJarangKelas').text(summaryData.total_jarang || 0);
+        $('#badgeMaxHariPeriode').text(`Max Periode: ${summaryData.max_hari_periode || 0} Hari`);
+
+        // Render Chart Keaktifan Presensi
+        renderChartKerajinan(currentKerajinanData);
+
+        // Render List Cards
+        applyKerajinanFilter(currentKerajinanFilter);
+    }
+
+    function renderChartKerajinan(data) {
+        const ctx = document.getElementById('chartKerajinanKelas');
+        if (!ctx) return;
+
+        const labels = data.map(r => r.NamaKelas);
+        const values = data.map(r => parseInt(r.jumlah_hari_absen) || 0);
+        const bgColors = data.map(r => r.color_hex || '#007bff');
+
+        if (chartKerajinan) chartKerajinan.destroy();
+
+        chartKerajinan = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Hari Absen',
+                    data: values,
+                    backgroundColor: bgColors,
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const r = data[context.dataIndex];
+                                return [
+                                    ` Status: ${r.label_status}`,
+                                    ` Hari Absen: ${r.jumlah_hari_absen} dari ${r.max_hari_periode} Hari (${r.rasio_keaktifan}% Aktif)`,
+                                    ` Total Data Presensi: ${r.total_presensi} santri`,
+                                    ` Kehadiran Santri: ${r.persentase_hadir}%`,
+                                    ` Terakhir Absen: ${r.terakhir_absen ? formatTglIndo(r.terakhir_absen) : 'Belum pernah absen'}`
+                                ];
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            precision: 0,
+                            callback: v => v + ' Hari'
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function applyKerajinanFilter(filter) {
+        currentKerajinanFilter = filter;
+        const container = document.getElementById('listKerajinanKelas');
+        if (!container) return;
+
+        let filtered = currentKerajinanData;
+        if (filter !== 'semua') {
+            filtered = currentKerajinanData.filter(r => r.status_kerajinan === filter);
+        }
+
+        if (filtered.length === 0) {
+            container.innerHTML = `
+                <div class="text-center text-muted py-4">
+                    <i class="fas fa-check-circle fa-2x mb-2 text-success"></i>
+                    <p class="mb-0 text-sm">Tidak ada kelas dengan kategori ini.</p>
+                </div>
+            `;
+            return;
+        }
+
+        let html = '';
+        filtered.forEach(item => {
+            const tglFormatted = item.terakhir_absen ? formatTglIndo(item.terakhir_absen) : '<span class="text-danger font-weight-bold">Belum pernah absen</span>';
+            html += `
+                <div class="p-2 mb-2 rounded border bg-light d-flex flex-column shadow-xs" style="border-left: 4px solid ${item.color_hex} !important;">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="font-weight-bold text-dark text-sm">
+                            <i class="fas fa-chalkboard mr-1 text-secondary"></i> ${item.NamaKelas}
+                        </span>
+                        <span class="badge ${item.badge_class}">${item.label_status}</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center text-xs text-muted mb-1">
+                        <span>Keaktifan: <strong>${item.jumlah_hari_absen} / ${item.max_hari_periode} Hari</strong> (${item.rasio_keaktifan}%)</span>
+                        <span>Terakhir: ${tglFormatted}</span>
+                    </div>
+                    <div class="progress" style="height: 6px;">
+                        <div class="progress-bar" style="width: ${Math.min(100, item.rasio_keaktifan)}%; background-color: ${item.color_hex};"></div>
+                    </div>
+                </div>
+            `;
+        });
+
+        container.innerHTML = html;
+    }
+
+    // Event listener untuk filter pills kerajinan kelas
+    $(document).on('click', '#btnGroupFilterKerajinan button', function() {
+        const filter = $(this).data('filter');
+        $('#btnGroupFilterKerajinan button').removeClass('active');
+        $(this).addClass('active');
+
+        const activeClassMap = {
+            semua: 'btn-primary',
+            rajin: 'btn-success',
+            cukup: 'btn-warning',
+            jarang: 'btn-danger'
+        };
+        const outlineClassMap = {
+            semua: 'btn-outline-primary',
+            rajin: 'btn-outline-success',
+            cukup: 'btn-outline-warning',
+            jarang: 'btn-outline-danger'
+        };
+
+        $('#btnGroupFilterKerajinan button').each(function() {
+            const f = $(this).data('filter');
+            const activeCls = activeClassMap[f] || 'btn-primary';
+            const outlineCls = outlineClassMap[f] || 'btn-outline-primary';
+
+            if (f === filter) {
+                $(this).addClass(activeCls).removeClass(outlineCls);
+            } else {
+                $(this).removeClass(activeCls).addClass(outlineCls);
+            }
+        });
+
+        applyKerajinanFilter(filter);
+    });
 
     // 6. Render Santri At-Risk (Early Warning Radar)
     function renderAtRiskSantri(santriList) {

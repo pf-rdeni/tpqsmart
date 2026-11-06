@@ -292,6 +292,7 @@ class AbsensiModel extends Model
                 SUM(CASE WHEN a.Kehadiran = 'Alpa' THEN 1 ELSE 0 END) as total_alpa
             ");
 
+        $builderKpi->where('a.IdKelas !=', 10);
         if (!empty($IdTpq) && $IdTpq != 0) {
             $builderKpi->where('a.IdTpq', $IdTpq);
         }
@@ -328,7 +329,8 @@ class AbsensiModel extends Model
                 SUM(CASE WHEN a.Kehadiran = 'Izin' THEN 1 ELSE 0 END) as izin,
                 SUM(CASE WHEN a.Kehadiran = 'Alpa' THEN 1 ELSE 0 END) as alpa,
                 COUNT(*) as total
-            ");
+            ")
+            ->where('a.IdKelas !=', 10);
 
         if (!empty($IdTpq) && $IdTpq != 0) {
             $builderTrend->where('a.IdTpq', $IdTpq);
@@ -364,7 +366,8 @@ class AbsensiModel extends Model
                 SUM(CASE WHEN a.Kehadiran = 'Hadir' THEN 1 ELSE 0 END) as hadir,
                 COUNT(*) as total
             ")
-            ->join('tbl_kelas k', 'a.IdKelas = k.IdKelas', 'left');
+            ->join('tbl_kelas k', 'a.IdKelas = k.IdKelas', 'left')
+            ->where('a.IdKelas !=', 10);
 
         if (!empty($IdTpq) && $IdTpq != 0) {
             $builderFluktuasi->where('a.IdTpq', $IdTpq);
@@ -407,7 +410,8 @@ class AbsensiModel extends Model
                 SUM(CASE WHEN a.Kehadiran = 'Alpa' THEN 1 ELSE 0 END) as alpa,
                 ROUND((SUM(CASE WHEN a.Kehadiran = 'Hadir' THEN 1 ELSE 0 END) / COUNT(*)) * 100, 1) as persentase_hadir
             ")
-            ->join('tbl_kelas k', 'a.IdKelas = k.IdKelas', 'left');
+            ->join('tbl_kelas k', 'a.IdKelas = k.IdKelas', 'left')
+            ->where('a.IdKelas !=', 10);
 
         if (!empty($IdTpq) && $IdTpq != 0) {
             $builderRanking->where('a.IdTpq', $IdTpq);
@@ -469,6 +473,195 @@ class AbsensiModel extends Model
             return ($b['jumlah_hari_efektif'] <=> $a['jumlah_hari_efektif']);
         });
 
+        // 4b. Statistik Kerajinan / Kepatuhan Input Presensi Per Kelas
+        $builderAllKelas = $this->db->table('tbl_kelas_santri ks')
+            ->select('ks.IdKelas, k.NamaKelas')
+            ->join('tbl_kelas k', 'ks.IdKelas = k.IdKelas', 'left')
+            ->where('ks.Status', 1)
+            ->where('ks.IdKelas !=', 10);
+
+        if (!empty($IdTpq) && $IdTpq != 0) {
+            $builderAllKelas->where('ks.IdTpq', $IdTpq);
+        }
+        if (!empty($IdTahunAjaran)) {
+            $builderAllKelas->where('ks.IdTahunAjaran', $IdTahunAjaran);
+        }
+        if (!empty($IdKelas)) {
+            if (is_array($IdKelas)) {
+                $builderAllKelas->whereIn('ks.IdKelas', $IdKelas);
+            } else {
+                $builderAllKelas->where('ks.IdKelas', $IdKelas);
+            }
+        }
+        $masterKelasList = $builderAllKelas->groupBy('ks.IdKelas')->get()->getResultArray();
+
+        // Jika masterKelasList kosong, fallback ke tbl_kelas biasa (Kecualikan Alumni IdKelas = 10)
+        if (empty($masterKelasList)) {
+            $fallbackBuilder = $this->db->table('tbl_kelas')
+                ->select('IdKelas, NamaKelas')
+                ->where('IdKelas !=', 10);
+            if (!empty($IdKelas)) {
+                if (is_array($IdKelas)) {
+                    $fallbackBuilder->whereIn('IdKelas', $IdKelas);
+                } else {
+                    $fallbackBuilder->where('IdKelas', $IdKelas);
+                }
+            }
+            $masterKelasList = $fallbackBuilder->get()->getResultArray();
+        }
+
+        // Peta data absensi kelas dari rankingKelasRaw (Kecualikan Alumni IdKelas = 10)
+        $absensiKelasMap = [];
+        $maxHariAbsen = 0;
+        foreach ($rankingKelasRaw as $r) {
+            if ((int)$r['IdKelas'] == 10) continue;
+            $absensiKelasMap[$r['IdKelas']] = $r;
+            $hari = (int)($r['jumlah_hari_efektif'] ?? 0);
+            if ($hari > $maxHariAbsen) {
+                $maxHariAbsen = $hari;
+            }
+        }
+
+        // Ambil tanggal terakhir absen per kelas
+        $builderLastDate = $this->db->table('tbl_absensi_santri a')
+            ->select('a.IdKelas, MAX(a.Tanggal) as terakhir_absen')
+            ->where('a.IdKelas !=', 10)
+            ->groupBy('a.IdKelas');
+        if (!empty($IdTpq) && $IdTpq != 0) {
+            $builderLastDate->where('a.IdTpq', $IdTpq);
+        }
+        if (!empty($startDate)) {
+            $builderLastDate->where('a.Tanggal >=', $startDate);
+        }
+        if (!empty($endDate)) {
+            $builderLastDate->where('a.Tanggal <=', $endDate);
+        }
+        if (!empty($IdTahunAjaran)) {
+            $builderLastDate->where('a.IdTahunAjaran', $IdTahunAjaran);
+        }
+        $lastDateMap = [];
+        foreach ($builderLastDate->get()->getResultArray() as $ld) {
+            $lastDateMap[$ld['IdKelas']] = $ld['terakhir_absen'];
+        }
+
+        $kerajinanKelas = [];
+        $totalRajin = 0;
+        $totalCukup = 0;
+        $totalJarang = 0;
+        $processedKelasIds = [];
+
+        foreach ($masterKelasList as $k) {
+            $idK = $k['IdKelas'];
+            $processedKelasIds[] = $idK;
+            $absenData = $absensiKelasMap[$idK] ?? null;
+
+            $jmlHari = $absenData ? (int)$absenData['jumlah_hari_efektif'] : 0;
+            $totalPresensi = $absenData ? (int)$absenData['total'] : 0;
+            $hadir = $absenData ? (int)$absenData['hadir'] : 0;
+            $pctHadir = $absenData ? (float)$absenData['persentase_hadir'] : 0;
+            $terakhirAbsen = $lastDateMap[$idK] ?? null;
+
+            $rasioKeaktifan = ($maxHariAbsen > 0) ? round(($jmlHari / $maxHariAbsen) * 100, 1) : ($jmlHari > 0 ? 100 : 0);
+
+            if ($rasioKeaktifan >= 80 && $jmlHari > 0) {
+                $statusKerajinan = 'rajin';
+                $labelStatus = 'Sangat Rajin / Disiplin';
+                $badgeClass = 'badge-success';
+                $colorHex = '#28a745';
+                $totalRajin++;
+            } elseif ($rasioKeaktifan >= 50 && $jmlHari > 0) {
+                $statusKerajinan = 'cukup';
+                $labelStatus = 'Cukup Rajin';
+                $badgeClass = 'badge-warning';
+                $colorHex = '#ffc107';
+                $totalCukup++;
+            } else {
+                $statusKerajinan = 'jarang';
+                $labelStatus = ($jmlHari == 0) ? 'Belum Pernah Absen' : 'Jarang Absen / Perlu Evaluasi';
+                $badgeClass = 'badge-danger';
+                $colorHex = '#dc3545';
+                $totalJarang++;
+            }
+
+            $kerajinanKelas[] = [
+                'IdKelas' => $idK,
+                'NamaKelas' => $k['NamaKelas'] ?: 'Kelas ' . $idK,
+                'jumlah_hari_absen' => $jmlHari,
+                'max_hari_periode' => $maxHariAbsen,
+                'total_presensi' => $totalPresensi,
+                'persentase_hadir' => $pctHadir,
+                'rasio_keaktifan' => $rasioKeaktifan,
+                'status_kerajinan' => $statusKerajinan,
+                'label_status' => $labelStatus,
+                'badge_class' => $badgeClass,
+                'color_hex' => $colorHex,
+                'terakhir_absen' => $terakhirAbsen
+            ];
+        }
+
+        // Sertakan juga kelas yang ada di log absensi jika belum ada di masterKelasList (Kecualikan Alumni)
+        foreach ($absensiKelasMap as $idK => $absenData) {
+            if ((int)$idK == 10 || in_array($idK, $processedKelasIds)) {
+                continue;
+            }
+            $jmlHari = (int)$absenData['jumlah_hari_efektif'];
+                $totalPresensi = (int)$absenData['total'];
+                $pctHadir = (float)$absenData['persentase_hadir'];
+                $terakhirAbsen = $lastDateMap[$idK] ?? null;
+                $rasioKeaktifan = ($maxHariAbsen > 0) ? round(($jmlHari / $maxHariAbsen) * 100, 1) : 100;
+
+                if ($rasioKeaktifan >= 80 && $jmlHari > 0) {
+                    $statusKerajinan = 'rajin';
+                    $labelStatus = 'Sangat Rajin / Disiplin';
+                    $badgeClass = 'badge-success';
+                    $colorHex = '#28a745';
+                    $totalRajin++;
+                } elseif ($rasioKeaktifan >= 50 && $jmlHari > 0) {
+                    $statusKerajinan = 'cukup';
+                    $labelStatus = 'Cukup Rajin';
+                    $badgeClass = 'badge-warning';
+                    $colorHex = '#ffc107';
+                    $totalCukup++;
+                } else {
+                    $statusKerajinan = 'jarang';
+                    $labelStatus = ($jmlHari == 0) ? 'Belum Pernah Absen' : 'Jarang Absen / Perlu Evaluasi';
+                    $badgeClass = 'badge-danger';
+                    $colorHex = '#dc3545';
+                    $totalJarang++;
+                }
+
+                $kerajinanKelas[] = [
+                    'IdKelas' => $idK,
+                    'NamaKelas' => $absenData['NamaKelas'] ?: 'Kelas ' . $idK,
+                    'jumlah_hari_absen' => $jmlHari,
+                    'max_hari_periode' => $maxHariAbsen,
+                    'total_presensi' => $totalPresensi,
+                    'persentase_hadir' => $pctHadir,
+                    'rasio_keaktifan' => $rasioKeaktifan,
+                    'status_kerajinan' => $statusKerajinan,
+                    'label_status' => $labelStatus,
+                    'badge_class' => $badgeClass,
+                    'color_hex' => $colorHex,
+                    'terakhir_absen' => $terakhirAbsen
+                ];
+        }
+
+        // Urutkan kelas dari yang paling rajin (hari absen terbanyak) ke yang paling jarang
+        usort($kerajinanKelas, function ($a, $b) {
+            if ($b['jumlah_hari_absen'] != $a['jumlah_hari_absen']) {
+                return ($b['jumlah_hari_absen'] <=> $a['jumlah_hari_absen']);
+            }
+            return ($b['rasio_keaktifan'] <=> $a['rasio_keaktifan']);
+        });
+
+        $summaryKerajinan = [
+            'total_kelas' => count($kerajinanKelas),
+            'total_rajin' => $totalRajin,
+            'total_cukup' => $totalCukup,
+            'total_jarang' => $totalJarang,
+            'max_hari_periode' => $maxHariAbsen
+        ];
+
         // 5. Matriks Presensi Per Santri
         $statusAbsenFilterSql = !empty($statusKehadiran) ? " AND a.Kehadiran = '{$statusKehadiran}'" : "";
         $builderSantri = $this->db->table('tbl_santri_baru s')
@@ -493,7 +686,8 @@ class AbsensiModel extends Model
                 'inner')
             ->join('tbl_kelas k', 'a.IdKelas = k.IdKelas', 'left')
             ->join('tbl_tpq t', 's.IdTpq = t.IdTpq', 'left')
-            ->where('s.Active', 1);
+            ->where('s.Active', 1)
+            ->where('a.IdKelas !=', 10);
 
         if (!empty($IdTpq) && $IdTpq != 0) {
             $builderSantri->where('s.IdTpq', $IdTpq);
@@ -522,6 +716,8 @@ class AbsensiModel extends Model
             'trend_harian' => $trendHarian,
             'fluktuasi_kelas' => $fluktuasiRaw,
             'ranking_kelas' => $rankingKelas,
+            'kerajinan_kelas' => $kerajinanKelas,
+            'summary_kerajinan' => $summaryKerajinan,
             'santri_recap' => $santriRecap
         ];
     }
