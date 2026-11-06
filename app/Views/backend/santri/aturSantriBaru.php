@@ -83,7 +83,6 @@
     <?php
     $statTotalSantri = count($dataSantri ?? []);
     $statAktif = 0;
-    $statSantriBaru = 0;
     $statNonAktif = 0;
 
     $statSudahVerif = 0;
@@ -92,12 +91,10 @@
 
     if (!empty($dataSantri)) {
         foreach ($dataSantri as $s) {
-            // Status Active: 1 = Aktif, 0 = Santri Baru, 2 = Non-Aktif
-            $activeVal = isset($s['Active']) ? (int)$s['Active'] : 0;
+            // Status Active: 1 = Aktif, 2 = Non-Aktif
+            $activeVal = isset($s['Active']) ? (int)$s['Active'] : 1;
             if ($activeVal === 1) {
                 $statAktif++;
-            } elseif ($activeVal === 0) {
-                $statSantriBaru++;
             } elseif ($activeVal === 2) {
                 $statNonAktif++;
             }
@@ -115,7 +112,7 @@
     }
     ?>
     <div class="row">
-        <div class="col-xl-3 col-md-6 col-12">
+        <div class="col-md-4 col-12">
             <div class="info-box bg-gradient-info elevation-2">
                 <span class="info-box-icon"><i class="fas fa-users"></i></span>
                 <div class="info-box-content">
@@ -130,7 +127,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-xl-3 col-md-6 col-12">
+        <div class="col-md-4 col-12">
             <div class="info-box bg-gradient-success elevation-2">
                 <span class="info-box-icon"><i class="fas fa-user-check"></i></span>
                 <div class="info-box-content">
@@ -145,22 +142,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-xl-3 col-md-6 col-12">
-            <div class="info-box bg-gradient-warning elevation-2">
-                <span class="info-box-icon text-white"><i class="fas fa-user-plus"></i></span>
-                <div class="info-box-content">
-                    <span class="info-box-text font-weight-bold">Santri Baru</span>
-                    <span class="info-box-number text-white" style="font-size: 1.5rem;"><?= number_format($statSantriBaru) ?></span>
-                    <div class="progress">
-                        <div class="progress-bar bg-white" style="width: <?= $statTotalSantri > 0 ? round(($statSantriBaru / $statTotalSantri) * 100) : 0 ?>%"></div>
-                    </div>
-                    <span class="progress-description text-xs text-white">
-                        <?= $statTotalSantri > 0 ? round(($statSantriBaru / $statTotalSantri) * 100, 1) : 0 ?>% belum masuk kelas
-                    </span>
-                </div>
-            </div>
-        </div>
-        <div class="col-xl-3 col-md-6 col-12">
+        <div class="col-md-4 col-12">
             <div class="info-box bg-gradient-secondary elevation-2">
                 <span class="info-box-icon"><i class="fas fa-user-slash"></i></span>
                 <div class="info-box-content">
@@ -292,7 +274,6 @@
                         <select class="form-control custom-select" id="filterActive" name="filterActive" <?= (isset($isGuru) && $isGuru) ? 'disabled' : '' ?>>
                             <option value="" <?= ($activeValFilter === '') ? 'selected' : '' ?>>Semua Status Active</option>
                             <option value="1" <?= ($activeValFilter === '1') ? 'selected' : '' ?>>Aktif</option>
-                            <option value="0" <?= ($activeValFilter === '0') ? 'selected' : '' ?>>Santri Baru (Belum Masuk Kelas)</option>
                             <option value="2" <?= ($activeValFilter === '2') ? 'selected' : '' ?>>Non-Aktif</option>
                         </select>
                         <?php if (isset($isGuru) && $isGuru): ?>
@@ -347,24 +328,11 @@
                             <?php if (in_groups('Admin') || in_groups('Operator')): ?>
                                 <td data-order="<?= $santri['Active'] ?>">
                                     <?php if (in_groups('Admin')): ?>
-                                        <!-- Admin bisa mengubah status santri (Santri Baru / Aktif / Non-Aktif) -->
+                                        <!-- Admin bisa mengubah status santri (Aktif / Non-Aktif) -->
                                         <?php
-                                        $statusText = '';
-                                        $statusClass = '';
-                                        $statusIcon = '';
-                                        if ($santri['Active'] == 0) {
-                                            $statusText = 'Santri Baru';
-                                            $statusClass = 'btn-warning';
-                                            $statusIcon = 'fa-user-plus';
-                                        } elseif ($santri['Active'] == 1) {
-                                            $statusText = 'Aktif';
-                                            $statusClass = 'btn-success';
-                                            $statusIcon = 'fa-check-circle';
-                                        } elseif ($santri['Active'] == 2) {
-                                            $statusText = 'Non-Aktif';
-                                            $statusClass = 'btn-secondary';
-                                            $statusIcon = 'fa-times-circle';
-                                        }
+                                        $statusText = ($santri['Active'] == 1) ? 'Aktif' : 'Non-Aktif';
+                                        $statusClass = ($santri['Active'] == 1) ? 'btn-success' : 'btn-secondary';
+                                        $statusIcon = ($santri['Active'] == 1) ? 'fa-check-circle' : 'fa-times-circle';
                                         ?>
                                         <button type="button" class="btn btn-sm <?= $statusClass ?>"
                                             id="statusBtn<?= $santri['id']; ?>"
@@ -374,11 +342,7 @@
                                         </button>
                                     <?php else: ?>
                                         <!-- Operator bisa mengubah status aktif / non-aktif dengan tombol konfirmasi yang aman -->
-                                        <?php if ($santri['Active'] == 0): ?>
-                                            <span class="badge badge-warning" title="Santri Baru (Belum Masuk Kelas)">
-                                                <i class="fas fa-user-plus"></i> Santri Baru
-                                            </span>
-                                        <?php elseif ($santri['Active'] == 1): ?>
+                                        <?php if ($santri['Active'] == 1): ?>
                                             <button type="button" class="btn btn-sm btn-success"
                                                 id="statusBtn<?= $santri['id']; ?>"
                                                 onclick="toggleStatusOperator(<?= $santri['id']; ?>, 1)"
@@ -1293,14 +1257,7 @@
         const td = document.querySelector(`#statusBtn${id}`).closest('td');
 
         // Tentukan status saat ini
-        let currentStatusText = '';
-        if (currentStatus == 0) {
-            currentStatusText = 'Santri Baru';
-        } else if (currentStatus == 1) {
-            currentStatusText = 'Aktif';
-        } else if (currentStatus == 2) {
-            currentStatusText = 'Non-Aktif';
-        }
+        const currentStatusText = (currentStatus == 1) ? 'Aktif' : 'Non-Aktif';
 
         Swal.fire({
             title: 'Pilih Status Santri',
@@ -1311,9 +1268,6 @@
                     <hr>
                     <p class="mb-3">Pilih status baru:</p>
                     <div class="form-group text-left">
-                        <button type="button" class="btn btn-warning btn-block mb-2" onclick="selectStatus(${id}, 0, 'Santri Baru')">
-                            <i class="fas fa-user-plus"></i> Santri Baru (0)
-                        </button>
                         <button type="button" class="btn btn-success btn-block mb-2" onclick="selectStatus(${id}, 1, 'Aktif')">
                             <i class="fas fa-check-circle"></i> Aktif (1)
                         </button>
@@ -1377,10 +1331,7 @@
                             const td = btn.closest('td');
 
                             // Update button style
-                            if (status == 0) {
-                                btn.className = 'btn btn-sm btn-warning';
-                                btn.innerHTML = '<i class="fas fa-user-plus"></i> Santri Baru';
-                            } else if (status == 1) {
+                            if (status == 1) {
                                 btn.className = 'btn btn-sm btn-success';
                                 btn.innerHTML = '<i class="fas fa-check-circle"></i> Aktif';
                             } else if (status == 2) {
