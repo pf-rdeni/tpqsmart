@@ -296,10 +296,15 @@ class Kelas extends BaseController
             }
 
             // Ambil id santri dari tabel santri untuk update IdKelas pada tabel santri
-            $dataSantri[] = [
+            // Jika kelas baru adalah ALUMNI (10), set Active = 2 (Alumni / Non-Aktif)
+            $updateSantriItem = [
                 'IdSantri' => $idSantri,
                 'IdKelas' => $idKelasBaru
             ];
+            if ($idKelasBaru == 10) {
+                $updateSantriItem['Active'] = 2;
+            }
+            $dataSantri[] = $updateSantriItem;
 
             // Tentukan tahun ajaran untuk alumni
             $tahunAjaranUntukKelasBaru = ($idKelasBaru == 10) ? $previousAcademicYear : $newTahunAjaran;

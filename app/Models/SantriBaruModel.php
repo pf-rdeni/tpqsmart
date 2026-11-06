@@ -642,7 +642,7 @@ class SantriBaruModel extends Model
      * @param bool $filterAlumniAll Tampilkan seluruh alumni lintas Tahun Ajaran
      * @return array
      */
-    public function getListAturSantriBaru($IdTpq = null, $IdKelas = null, $isGuru = false, $IdTahunAjaran = null, $filterAlumniAll = false)
+    public function getListAturSantriBaru($IdTpq = null, $IdKelas = null, $isGuru = false, $IdTahunAjaran = null, $filterAlumniAll = false, $filterActive = null)
     {
         if (empty($IdTahunAjaran)) {
             $IdTahunAjaran = session()->get('IdTahunAjaran');
@@ -679,6 +679,8 @@ class SantriBaruModel extends Model
 
             if ($isGuru) {
                 $builder->where('tbl_santri_baru.Active', 1);
+            } elseif ($filterActive !== null && $filterActive !== '') {
+                $builder->where('tbl_santri_baru.Active', (int)$filterActive);
             }
 
             if ($IdKelas !== null) {
@@ -718,6 +720,8 @@ class SantriBaruModel extends Model
 
             if ($isGuru) {
                 $builder->where('tbl_santri_baru.Active', 1);
+            } elseif ($filterActive !== null && $filterActive !== '') {
+                $builder->where('tbl_santri_baru.Active', (int)$filterActive);
             }
 
             if ($IdKelas !== null) {
@@ -749,6 +753,8 @@ class SantriBaruModel extends Model
 
             if ($isGuru) {
                 $builder->where('tbl_santri_baru.Active', 1);
+            } elseif ($filterActive !== null && $filterActive !== '') {
+                $builder->where('tbl_santri_baru.Active', (int)$filterActive);
             }
 
             if ($IdKelas !== null) {

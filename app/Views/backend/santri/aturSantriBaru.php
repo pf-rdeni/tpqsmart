@@ -54,8 +54,7 @@
                             </ul>
                         </li>
                         <li class="mb-2">
-                            <strong>Ubah Status Aktif (Admin/Operator):</strong> Gunakan toggle switch di kolom "Active" untuk mengaktifkan/nonaktifkan santri.
-                            Status <span class="badge badge-secondary"><i class="fas fa-graduation-cap"></i> Alumni</span> tidak dapat diubah.
+                            <strong>Ubah Status Aktif (Admin/Operator):</strong> Gunakan tombol di kolom "Active" untuk mengaktifkan/menonaktifkan santri.
                         </li>
                         <li class="mb-2">
                             <strong>Edit Data Santri:</strong> Klik tombol <span class="badge badge-warning"><i class="fas fa-edit"></i> Edit</span>
@@ -73,8 +72,132 @@
                             <li>Perubahan status verifikasi dan aktif akan <strong>tersimpan otomatis</strong> saat Anda mengubahnya.</li>
                             <li>Kolom "Active" hanya muncul untuk <strong>Admin</strong> dan <strong>Operator</strong>.</li>
                             <li>Kolom "Kelurahan/Desa" dan "TPQ" hanya muncul untuk <strong>Admin</strong>.</li>
-                            <li>Santri dengan status <strong>Alumni</strong> tidak dapat diubah status aktifnya.</li>
                         </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistik Status Santri -->
+    <?php
+    $statTotalSantri = count($dataSantri ?? []);
+    $statAktif = 0;
+    $statSantriBaru = 0;
+    $statNonAktif = 0;
+
+    $statSudahVerif = 0;
+    $statBelumVerif = 0;
+    $statPerluPerbaikan = 0;
+
+    if (!empty($dataSantri)) {
+        foreach ($dataSantri as $s) {
+            // Status Active: 1 = Aktif, 0 = Santri Baru, 2 = Non-Aktif
+            $activeVal = isset($s['Active']) ? (int)$s['Active'] : 0;
+            if ($activeVal === 1) {
+                $statAktif++;
+            } elseif ($activeVal === 0) {
+                $statSantriBaru++;
+            } elseif ($activeVal === 2) {
+                $statNonAktif++;
+            }
+
+            // Status Verifikasi
+            $statusVerif = trim($s['Status'] ?? '');
+            if ($statusVerif === 'Sudah Diverifikasi') {
+                $statSudahVerif++;
+            } elseif ($statusVerif === 'Perlu Perbaikan') {
+                $statPerluPerbaikan++;
+            } else {
+                $statBelumVerif++;
+            }
+        }
+    }
+    ?>
+    <div class="row">
+        <div class="col-xl-3 col-md-6 col-12">
+            <div class="info-box bg-gradient-info elevation-2">
+                <span class="info-box-icon"><i class="fas fa-users"></i></span>
+                <div class="info-box-content">
+                    <span class="info-box-text font-weight-bold">Total Santri</span>
+                    <span class="info-box-number" style="font-size: 1.5rem;"><?= number_format($statTotalSantri) ?></span>
+                    <div class="progress">
+                        <div class="progress-bar" style="width: 100%"></div>
+                    </div>
+                    <span class="progress-description text-xs">
+                        Sesuai filter yang dipilih
+                    </span>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 col-12">
+            <div class="info-box bg-gradient-success elevation-2">
+                <span class="info-box-icon"><i class="fas fa-user-check"></i></span>
+                <div class="info-box-content">
+                    <span class="info-box-text font-weight-bold">Santri Aktif</span>
+                    <span class="info-box-number" style="font-size: 1.5rem;"><?= number_format($statAktif) ?></span>
+                    <div class="progress">
+                        <div class="progress-bar" style="width: <?= $statTotalSantri > 0 ? round(($statAktif / $statTotalSantri) * 100) : 0 ?>%"></div>
+                    </div>
+                    <span class="progress-description text-xs">
+                        <?= $statTotalSantri > 0 ? round(($statAktif / $statTotalSantri) * 100, 1) : 0 ?>% dari total santri
+                    </span>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 col-12">
+            <div class="info-box bg-gradient-warning elevation-2">
+                <span class="info-box-icon text-white"><i class="fas fa-user-plus"></i></span>
+                <div class="info-box-content">
+                    <span class="info-box-text font-weight-bold">Santri Baru</span>
+                    <span class="info-box-number text-white" style="font-size: 1.5rem;"><?= number_format($statSantriBaru) ?></span>
+                    <div class="progress">
+                        <div class="progress-bar bg-white" style="width: <?= $statTotalSantri > 0 ? round(($statSantriBaru / $statTotalSantri) * 100) : 0 ?>%"></div>
+                    </div>
+                    <span class="progress-description text-xs text-white">
+                        <?= $statTotalSantri > 0 ? round(($statSantriBaru / $statTotalSantri) * 100, 1) : 0 ?>% belum masuk kelas
+                    </span>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 col-12">
+            <div class="info-box bg-gradient-secondary elevation-2">
+                <span class="info-box-icon"><i class="fas fa-user-slash"></i></span>
+                <div class="info-box-content">
+                    <span class="info-box-text font-weight-bold">Non-Aktif</span>
+                    <span class="info-box-number" style="font-size: 1.5rem;"><?= number_format($statNonAktif) ?></span>
+                    <div class="progress">
+                        <div class="progress-bar" style="width: <?= $statTotalSantri > 0 ? round(($statNonAktif / $statTotalSantri) * 100) : 0 ?>%"></div>
+                    </div>
+                    <span class="progress-description text-xs">
+                        <?= $statTotalSantri > 0 ? round(($statNonAktif / $statTotalSantri) * 100, 1) : 0 ?>% dari total santri
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sub-Statistik Status Verifikasi -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="card card-outline card-primary mb-0 shadow-sm">
+                <div class="card-body py-2 px-3">
+                    <div class="d-flex flex-wrap align-items-center justify-content-between">
+                        <div class="d-flex align-items-center mb-1 mb-md-0">
+                            <i class="fas fa-clipboard-check text-primary mr-2 fa-lg"></i>
+                            <span class="font-weight-bold text-dark">Status Verifikasi Data:</span>
+                        </div>
+                        <div class="d-flex flex-wrap align-items-center">
+                            <span class="badge badge-success px-3 py-2 mr-2 mb-1">
+                                <i class="fas fa-check-circle mr-1"></i> Sudah Diverifikasi: <strong><?= number_format($statSudahVerif) ?></strong>
+                            </span>
+                            <span class="badge badge-warning px-3 py-2 mr-2 mb-1">
+                                <i class="fas fa-clock mr-1"></i> Belum Diverifikasi: <strong><?= number_format($statBelumVerif) ?></strong>
+                            </span>
+                            <span class="badge badge-danger px-3 py-2 mb-1">
+                                <i class="fas fa-exclamation-triangle mr-1"></i> Perlu Perbaikan: <strong><?= number_format($statPerluPerbaikan) ?></strong>
+                            </span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -94,7 +217,7 @@
         <div class="card-body">
             <!-- Filter TPQ dan Kelas -->
             <div class="row mb-3">
-                <div class="col-md-6">
+                <div class="col-md-4">
                     <div class="form-group">
                         <label for="filterTpq">Filter TPQ</label>
                         <select class="form-control" id="filterTpq" name="filterTpq" <?= (!$isAdmin) ? 'disabled' : '' ?>>
@@ -118,7 +241,7 @@
                         <?php endif; ?>
                     </div>
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-5">
                     <div class="form-group">
                         <label for="filterKelas">Filter Kelas</label>
                         <?php
@@ -157,6 +280,29 @@
                         </small>
                         <?php if ($disableFilterKelas): ?>
                             <input type="hidden" name="filterKelas" value="">
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label for="filterActive">Filter Status Active</label>
+                        <?php
+                        $activeValFilter = isset($currentFilterActive) ? (string)$currentFilterActive : '';
+                        ?>
+                        <select class="form-control custom-select" id="filterActive" name="filterActive" <?= (isset($isGuru) && $isGuru) ? 'disabled' : '' ?>>
+                            <option value="" <?= ($activeValFilter === '') ? 'selected' : '' ?>>Semua Status Active</option>
+                            <option value="1" <?= ($activeValFilter === '1') ? 'selected' : '' ?>>Aktif</option>
+                            <option value="0" <?= ($activeValFilter === '0') ? 'selected' : '' ?>>Santri Baru (Belum Masuk Kelas)</option>
+                            <option value="2" <?= ($activeValFilter === '2') ? 'selected' : '' ?>>Non-Aktif</option>
+                        </select>
+                        <?php if (isset($isGuru) && $isGuru): ?>
+                            <small class="form-text text-muted">
+                                <i class="fas fa-lock"></i> Guru hanya melihat santri aktif
+                            </small>
+                        <?php else: ?>
+                            <small class="form-text text-muted">
+                                <i class="fas fa-filter"></i> Saring berdasarkan status Active
+                            </small>
                         <?php endif; ?>
                     </div>
                 </div>
@@ -201,7 +347,7 @@
                             <?php if (in_groups('Admin') || in_groups('Operator')): ?>
                                 <td data-order="<?= $santri['Active'] ?>">
                                     <?php if (in_groups('Admin')): ?>
-                                        <!-- Admin bisa mengubah semua status termasuk alumni -->
+                                        <!-- Admin bisa mengubah status santri (Santri Baru / Aktif / Non-Aktif) -->
                                         <?php
                                         $statusText = '';
                                         $statusClass = '';
@@ -215,9 +361,9 @@
                                             $statusClass = 'btn-success';
                                             $statusIcon = 'fa-check-circle';
                                         } elseif ($santri['Active'] == 2) {
-                                            $statusText = 'Alumni';
+                                            $statusText = 'Non-Aktif';
                                             $statusClass = 'btn-secondary';
-                                            $statusIcon = 'fa-graduation-cap';
+                                            $statusIcon = 'fa-times-circle';
                                         }
                                         ?>
                                         <button type="button" class="btn btn-sm <?= $statusClass ?>"
@@ -1153,7 +1299,7 @@
         } else if (currentStatus == 1) {
             currentStatusText = 'Aktif';
         } else if (currentStatus == 2) {
-            currentStatusText = 'Alumni';
+            currentStatusText = 'Non-Aktif';
         }
 
         Swal.fire({
@@ -1171,8 +1317,8 @@
                         <button type="button" class="btn btn-success btn-block mb-2" onclick="selectStatus(${id}, 1, 'Aktif')">
                             <i class="fas fa-check-circle"></i> Aktif (1)
                         </button>
-                        <button type="button" class="btn btn-secondary btn-block mb-2" onclick="selectStatus(${id}, 2, 'Alumni')">
-                            <i class="fas fa-graduation-cap"></i> Alumni (2)
+                        <button type="button" class="btn btn-secondary btn-block mb-2" onclick="selectStatus(${id}, 2, 'Non-Aktif')">
+                            <i class="fas fa-times-circle"></i> Non-Aktif (2)
                         </button>
                     </div>
                 </div>
@@ -1239,7 +1385,7 @@
                                 btn.innerHTML = '<i class="fas fa-check-circle"></i> Aktif';
                             } else if (status == 2) {
                                 btn.className = 'btn btn-sm btn-secondary';
-                                btn.innerHTML = '<i class="fas fa-graduation-cap"></i> Alumni';
+                                btn.innerHTML = '<i class="fas fa-times-circle"></i> Non-Aktif';
                             }
 
                             // Update data-order untuk sorting
@@ -1647,6 +1793,7 @@
     /* ===== Region: Filter TPQ dan Kelas dengan localStorage ===== */
     const STORAGE_KEY_TPQ = 'santri_filter_tpq';
     const STORAGE_KEY_KELAS = 'santri_filter_kelas';
+    const STORAGE_KEY_ACTIVE = 'santri_filter_active';
     const STORAGE_KEY_ALUMNI_ALL = 'santri_filter_alumni_all';
     const isGuru = <?= isset($isGuru) && $isGuru ? 'true' : 'false' ?>;
     const guruJumlahKelas = <?= isset($guruJumlahKelas) ? $guruJumlahKelas : 0 ?>;
@@ -1656,15 +1803,24 @@
     function initFilters() {
         const savedTpq = localStorage.getItem(STORAGE_KEY_TPQ);
         const savedKelas = localStorage.getItem(STORAGE_KEY_KELAS);
+        const savedActive = localStorage.getItem(STORAGE_KEY_ACTIVE);
         const savedAlumniAll = localStorage.getItem(STORAGE_KEY_ALUMNI_ALL);
 
         const filterTpq = document.getElementById('filterTpq');
         const filterKelas = $('#filterKelas');
+        const filterActive = document.getElementById('filterActive');
         const filterAlumniAll = document.getElementById('filterAlumniAll');
 
         // Hanya set dari localStorage jika belum ada value dari server
         if (savedTpq && filterTpq && !filterTpq.value) {
             filterTpq.value = savedTpq;
+        }
+
+        if (savedActive !== null && filterActive && (!filterActive.value || filterActive.value === '')) {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (!urlParams.has('filterActive')) {
+                filterActive.value = savedActive;
+            }
         }
 
         // Untuk Guru: gunakan localStorage hanya jika memiliki lebih dari satu kelas
@@ -1701,10 +1857,15 @@
     function saveFilters() {
         const filterTpq = document.getElementById('filterTpq');
         const filterKelas = $('#filterKelas');
+        const filterActive = document.getElementById('filterActive');
         const filterAlumniAll = document.getElementById('filterAlumniAll');
 
         if (filterTpq) {
             localStorage.setItem(STORAGE_KEY_TPQ, filterTpq.value || '');
+        }
+
+        if (filterActive) {
+            localStorage.setItem(STORAGE_KEY_ACTIVE, filterActive.value ?? '');
         }
 
         // Untuk Guru: simpan filter kelas ke localStorage hanya jika memiliki lebih dari satu kelas
@@ -1722,10 +1883,12 @@
     function reloadData() {
         const filterTpq = document.getElementById('filterTpq');
         const filterKelas = $('#filterKelas');
+        const filterActive = document.getElementById('filterActive');
         const filterAlumniAll = document.getElementById('filterAlumniAll');
 
         const tpqValue = filterTpq ? filterTpq.value : '';
         const kelasValues = filterKelas.length > 0 ? (filterKelas.val() || []) : [];
+        const activeValue = filterActive ? filterActive.value : '';
         const alumniAllChecked = filterAlumniAll ? filterAlumniAll.checked : false;
 
         // Simpan ke localStorage
@@ -1741,6 +1904,10 @@
         // Jika guru hanya memiliki satu kelas, filter di-handle oleh server berdasarkan session
         if ((!isGuru || guruBisaFilterKelas) && kelasValues.length > 0) {
             params.append('filterIdKelas', kelasValues.join(','));
+        }
+
+        if (activeValue !== '' && activeValue !== null) {
+            params.append('filterActive', activeValue);
         }
 
         if (alumniAllChecked) {
@@ -1783,6 +1950,7 @@
         }
 
         const filterTpq = document.getElementById('filterTpq');
+        const filterActive = document.getElementById('filterActive');
         const filterAlumniAll = document.getElementById('filterAlumniAll');
 
         // Simpan filter saat halaman dimuat (untuk memastikan sync dengan server)
@@ -1793,7 +1961,13 @@
         // Hanya tambahkan event listener jika field tidak disabled
         if (filterTpq && !filterTpq.disabled) {
             filterTpq.addEventListener('change', function() {
-                // Delay reload untuk memberikan waktu user memilih multiple kelas
+                clearTimeout(window.filterTimeout);
+                window.filterTimeout = setTimeout(reloadData, 300);
+            });
+        }
+
+        if (filterActive && !filterActive.disabled) {
+            filterActive.addEventListener('change', function() {
                 clearTimeout(window.filterTimeout);
                 window.filterTimeout = setTimeout(reloadData, 300);
             });

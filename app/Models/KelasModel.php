@@ -213,6 +213,8 @@ class KelasModel extends Model
     {
         $builder = $this->select('tbl_kelas_santri.IdTahunAjaran, tbl_kelas_santri.IdKelas, tbl_kelas.NamaKelas, COUNT(tbl_kelas_santri.IdSantri) AS SumIdKelas')
             ->join('tbl_kelas', 'tbl_kelas_santri.IdKelas = tbl_kelas.IdKelas')
+            ->join('tbl_santri_baru s', 'tbl_kelas_santri.IdSantri = s.IdSantri', 'inner')
+            ->where('s.Active', 1)
             ->groupBy('tbl_kelas_santri.IdTahunAjaran, tbl_kelas_santri.IdKelas')
             ->orderBy('tbl_kelas_santri.IdTahunAjaran', 'ASC')
             ->orderBy('tbl_kelas_santri.IdKelas', 'ASC')
@@ -230,7 +232,7 @@ class KelasModel extends Model
     }
 
     /**
-     * Mendapatkan list santri berdasarkan tahun ajaran dan kelas
+     * Mendapatkan list santri berdasarkan tahun ajaran dan kelas (hanya santri aktif)
      * @param mixed $idTahunAjaran
      * @param mixed $idKelas
      * @param mixed $IdTpq
@@ -238,19 +240,22 @@ class KelasModel extends Model
      */
     public function getSantriByTahunAjaranDanKelas($idTahunAjaran, $idKelas, $IdTpq = null)
     {
-        $builder = $this->where('IdTahunAjaran', $idTahunAjaran)
-            ->where('IdKelas', $idKelas)
-            ->where('Status', 1);
+        $builder = $this->select('tbl_kelas_santri.*')
+            ->join('tbl_santri_baru s', 'tbl_kelas_santri.IdSantri = s.IdSantri', 'inner')
+            ->where('tbl_kelas_santri.IdTahunAjaran', $idTahunAjaran)
+            ->where('tbl_kelas_santri.IdKelas', $idKelas)
+            ->where('tbl_kelas_santri.Status', 1)
+            ->where('s.Active', 1);
 
         if (!empty($IdTpq) && $IdTpq != 0) {
-            $builder->where('IdTpq', $IdTpq);
+            $builder->where('tbl_kelas_santri.IdTpq', $IdTpq);
         }
 
         return $builder->findAll();
     }
 
     /**
-     * Mendapatkan daftar santri lengkap dengan NamaSantri dan NamaTpq
+     * Mendapatkan daftar santri lengkap dengan NamaSantri dan NamaTpq (hanya santri aktif)
      * @param string $idTahunAjaran
      * @param string $idKelas
      * @param mixed $IdTpq
@@ -260,11 +265,12 @@ class KelasModel extends Model
     {
         $builder = $this->db->table('tbl_kelas_santri ks')
             ->select('ks.*, s.NamaSantri, t.NamaTpq')
-            ->join('tbl_santri_baru s', 'ks.IdSantri = s.IdSantri', 'left')
+            ->join('tbl_santri_baru s', 'ks.IdSantri = s.IdSantri', 'inner')
             ->join('tbl_tpq t', 'ks.IdTpq = t.IdTpq', 'left')
             ->where('ks.IdTahunAjaran', $idTahunAjaran)
             ->where('ks.IdKelas', $idKelas)
-            ->where('ks.Status', 1);
+            ->where('ks.Status', 1)
+            ->where('s.Active', 1);
 
         if (!empty($IdTpq) && $IdTpq != 0) {
             $builder->where('ks.IdTpq', $IdTpq);

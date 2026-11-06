@@ -1242,6 +1242,7 @@ class Santri extends BaseController
         $filterIdTpq = $this->request->getGet('filterIdTpq');
         $filterIdKelas = $this->request->getGet('filterIdKelas');
         $filterAlumniAll = $this->request->getGet('filterAlumniAll');
+        $filterActive = $this->request->getGet('filterActive');
 
         // Ambil IdTpq dari session untuk role-based filtering
         $sessionIdTpq = session()->get('IdTpq');
@@ -1405,7 +1406,7 @@ class Santri extends BaseController
         }
 
         // Ambil data santri menggunakan method dari model
-        $santri = $this->DataSantriBaru->getListAturSantriBaru($IdTpq, $IdKelas, $isGuru, $IdTahunAjaran, $useFilterAlumniAll);
+        $santri = $this->DataSantriBaru->getListAturSantriBaru($IdTpq, $IdKelas, $isGuru, $IdTahunAjaran, $useFilterAlumniAll, $filterActive);
 
         // Konversi nama kelas menjadi MDA jika sesuai dengan mapping
         if (!empty($santri) && !empty($IdTpq)) {
@@ -1438,6 +1439,7 @@ class Santri extends BaseController
             'dataKelas' => $dataKelas,
             'currentIdTpq' => $IdTpq,
             'currentIdKelas' => $IdKelas,
+            'currentFilterActive' => $filterActive,
             'filterAlumniAll' => $useFilterAlumniAll,
             'isAdmin' => $isAdmin,
             'isGuru' => $isGuru,
