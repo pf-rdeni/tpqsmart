@@ -44,6 +44,9 @@
             // Jika masih kosong, buat dari santri yang ada
             if (empty($kelasList)) {
                 foreach ($santri as $row) {
+                    if ((int)($row->IdKelas ?? 0) == 10 || stripos($row->NamaKelas ?? '', 'alumni') !== false) {
+                        continue;
+                    }
                     if (!isset($kelasList[$row->IdKelas])) {
                         $kelasList[$row->IdKelas] = [
                             'IdKelas' => $row->IdKelas,
@@ -112,9 +115,17 @@
                             <?php
                             $firstTab = true;
                             foreach ($kelasList as $kelas):
+                                if ((int)($kelas['IdKelas'] ?? 0) == 10 || stripos($kelas['NamaKelas'] ?? '', 'alumni') !== false) continue;
                                 $jml = (int)($kelas['total_santri'] ?? 0);
                                 $jmlL = (int)($kelas['total_laki'] ?? 0);
                                 $jmlP = (int)($kelas['total_perempuan'] ?? 0);
+                                $idKelas = $kelas['IdKelas'];
+                                $statAbsen = isset($status_absensi_kelas[$idKelas]) ? $status_absensi_kelas[$idKelas] : null;
+                                $totAbsen = $statAbsen ? (int)$statAbsen['total_absen'] : 0;
+                                $h = $statAbsen ? (int)$statAbsen['hadir'] : 0;
+                                $s = $statAbsen ? (int)$statAbsen['sakit'] : 0;
+                                $i = $statAbsen ? (int)$statAbsen['izin'] : 0;
+                                $a = $statAbsen ? (int)$statAbsen['alfa'] : 0;
                             ?>
                                 <div class="col-6 col-sm-4 col-md-3 col-lg-2 mb-2">
                                     <div class="card class-summary-card h-100 mb-0 shadow-sm <?= $firstTab ? 'active-summary-card' : '' ?>"
@@ -134,6 +145,43 @@
                                                     <?= $jml > 0 ? 'Santri' : '0 Santri' ?>
                                                 </span>
                                             </div>
+
+                                            <!-- Status Presensi Sesuai Tanggal Dipilih -->
+                                            <div class="class-absensi-info my-1 py-1 border-top" id="card-absensi-info-<?= $idKelas ?>">
+                                                <?php if ($totAbsen == 0): ?>
+                                                    <span class="badge py-1 px-2 mb-1" style="font-size: 0.72rem; background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb;">
+                                                        <i class="fas fa-times-circle mr-1 text-danger"></i>Belum Diabsen
+                                                    </span>
+                                                    <div class="text-muted text-xs font-italic">0 catatan presensi</div>
+                                                <?php else: ?>
+                                                    <?php
+                                                    $isSemua = ($jml > 0 && $totAbsen >= $jml);
+                                                    $statusLabel = $isSemua ? 'Sudah Diabsen' : "Sebagian ({$totAbsen}/{$jml})";
+                                                    $badgeClass = $isSemua ? 'badge-success' : 'badge-info';
+                                                    ?>
+                                                    <span class="badge <?= $badgeClass ?> py-1 px-2 mb-1" style="font-size: 0.72rem;">
+                                                        <i class="fas fa-check-circle mr-1"></i><?= $statusLabel ?>
+                                                    </span>
+                                                    <div class="d-flex justify-content-center align-items-center mt-1" style="gap: 3px; font-size: 0.72rem;">
+                                                        <span class="badge badge-success px-1" title="Hadir: <?= $h ?>">H: <?= $h ?></span>
+                                                        <span class="badge badge-warning px-1" title="Izin: <?= $i ?>">I: <?= $i ?></span>
+                                                        <span class="badge badge-info px-1" title="Sakit: <?= $s ?>">S: <?= $s ?></span>
+                                                        <span class="badge badge-danger px-1" title="Alfa: <?= $a ?>">A: <?= $a ?></span>
+                                                    </div>
+                                                <?php endif; ?>
+                                                <?php
+                                                $infoBelumKls = $tanggal_belum_absen_info['kelas_data'][$idKelas] ?? null;
+                                                $jmlBelumTgl = $infoBelumKls ? (int)$infoBelumKls['total_belum_absen'] : 0;
+                                                ?>
+                                                <div class="mt-1" id="badge-tertinggal-<?= $idKelas ?>">
+                                                    <?php if ($jmlBelumTgl > 0): ?>
+                                                        <span class="badge badge-warning text-xs px-1 py-0" title="<?= $jmlBelumTgl ?> tanggal aktif belum diabsen bulan ini" style="font-size: 0.68rem;">
+                                                            <i class="fas fa-exclamation-triangle"></i> <?= $jmlBelumTgl ?> tgl kosong
+                                                        </span>
+                                                    <?php endif; ?>
+                                                </div>
+                                            </div>
+
                                             <div class="class-gender-info text-muted border-top pt-1 mt-1 d-flex justify-content-around">
                                                 <span title="Laki-laki" class="text-info font-weight-500">
                                                     <i class="fas fa-mars"></i> <?= $jmlL ?>
@@ -159,7 +207,9 @@
                         <ul class="nav nav-tabs flex-wrap justify-content-start justify-content-md-between" id="custom-tabs-one-tab" role="tablist">
                             <?php
                             $firstTab = true;
-                            foreach ($kelasList as $index => $kelas): ?>
+                            foreach ($kelasList as $index => $kelas): 
+                                if ((int)($kelas['IdKelas'] ?? 0) == 10 || stripos($kelas['NamaKelas'] ?? '', 'alumni') !== false) continue;
+                            ?>
                                 <li class="nav-item flex-fill mx-1 my-md-0 my-1">
                                     <a class="nav-link border-white text-center <?= $firstTab ? 'active' : '' ?>"
                                         id="custom-tabs-one-kelas-<?= $kelas['IdKelas'] ?>-tab"
@@ -184,6 +234,7 @@
                             <?php
                             $firstTab = true;
                             foreach ($kelasList as $kelas):
+                                if ((int)($kelas['IdKelas'] ?? 0) == 10 || stripos($kelas['NamaKelas'] ?? '', 'alumni') !== false) continue;
                                 // Ambil santri untuk kelas ini, jika tidak ada gunakan array kosong
                                 $santriList = isset($santriByKelas[$kelas['NamaKelas']]) ? $santriByKelas[$kelas['NamaKelas']] : [];
                             ?>
@@ -206,6 +257,125 @@
                                                 data-kelas-id="<?= $kelas['IdKelas'] ?>"
                                                 style="-webkit-appearance: none; -moz-appearance: textfield; appearance: none;"
                                                 required>
+                                        </div>
+
+                                        <!-- Card Analisis Tanggal Belum Diabsen (Baseline Opsi B) -->
+                                        <?php
+                                        $idKlsCur = (int)$kelas['IdKelas'];
+                                        $infoKlsCur = $tanggal_belum_absen_info['kelas_data'][$idKlsCur] ?? [
+                                            'total_hari_aktif_tpq' => 0,
+                                            'total_sudah_absen' => 0,
+                                            'total_belum_absen' => 0,
+                                            'belum_absen_list' => [],
+                                            'grouped_by_month' => []
+                                        ];
+                                        $periodeStr = $tanggal_belum_absen_info['periode'] ?? 'bulan';
+                                        $periodeLabelStr = $tanggal_belum_absen_info['periode_label'] ?? ('Bulan ' . date('F Y', strtotime($tanggalDipilih)));
+                                        $isSemesterView = ($periodeStr === 'semester');
+                                        ?>
+                                        <div class="card shadow-sm mb-3 card-tanggal-belum-absen" id="card-belum-absen-<?= $kelas['IdKelas'] ?>" style="border-left: 4px solid #ffc107; background: #fffdf5;">
+                                            <div class="card-body p-3">
+                                                <div class="d-flex justify-content-between align-items-center flex-wrap mb-2">
+                                                    <div class="mb-2 mb-md-0">
+                                                        <span class="font-weight-bold text-dark" style="font-size: 0.92rem;">
+                                                            <i class="fas fa-calendar-check text-warning mr-1"></i>
+                                                            Kelengkapan Absensi: <span class="badge-periode-label-<?= $kelas['IdKelas'] ?> text-primary font-weight-bold"><?= esc($periodeLabelStr) ?></span>
+                                                        </span>
+                                                        <span class="badge badge-light border text-muted ml-1" style="font-size: 0.78rem;">
+                                                            Baseline Opsi B: <strong class="badge-sudah-<?= $kelas['IdKelas'] ?>"><?= $infoKlsCur['total_sudah_absen'] ?></strong> / <strong class="badge-aktif-<?= $kelas['IdKelas'] ?>"><?= $infoKlsCur['total_hari_aktif_tpq'] ?></strong> Hari Aktif TPQ
+                                                        </span>
+                                                    </div>
+
+                                                    <!-- Filter Periode: Minggu Ini, Minggu Kemarin, Per Bulan, Semester -->
+                                                    <div class="btn-group btn-group-sm periode-filter-group shadow-xs" role="group">
+                                                        <button type="button" class="btn btn-outline-secondary btn-filter-periode <?= ($periodeStr === 'minggu_ini') ? 'active font-weight-bold' : '' ?>" data-periode="minggu_ini" data-kelas-id="<?= $kelas['IdKelas'] ?>">Minggu Ini</button>
+                                                        <button type="button" class="btn btn-outline-secondary btn-filter-periode <?= ($periodeStr === 'minggu_kemarin') ? 'active font-weight-bold' : '' ?>" data-periode="minggu_kemarin" data-kelas-id="<?= $kelas['IdKelas'] ?>">Minggu Lalu</button>
+                                                        <button type="button" class="btn btn-outline-secondary btn-filter-periode <?= ($periodeStr === 'bulan') ? 'active font-weight-bold' : '' ?>" data-periode="bulan" data-kelas-id="<?= $kelas['IdKelas'] ?>">Per Bulan</button>
+                                                        <button type="button" class="btn btn-outline-secondary btn-filter-periode <?= ($periodeStr === 'semester') ? 'active font-weight-bold' : '' ?>" data-periode="semester" data-kelas-id="<?= $kelas['IdKelas'] ?>">Per Semester</button>
+                                                    </div>
+                                                </div>
+
+                                                <div class="content-belum-absen-<?= $kelas['IdKelas'] ?>">
+                                                    <?php if ($infoKlsCur['total_belum_absen'] > 0): ?>
+                                                        <p class="text-muted mb-2" style="font-size: 0.82rem;">
+                                                            <i class="fas fa-exclamation-circle text-danger mr-1"></i>
+                                                            Ditemukan <strong class="text-danger"><?= $infoKlsCur['total_belum_absen'] ?> tanggal aktif TPQ</strong> yang belum tercatat absensinya pada kelas ini. 
+                                                            <strong>Klik tanggal di bawah</strong> untuk langsung membuka dan menginput absensi:
+                                                        </p>
+
+                                                        <?php if ($isSemesterView && !empty($infoKlsCur['grouped_by_month'])): ?>
+                                                            <!-- Grouping per Bulan untuk Overview Periode Panjang / Semester (Default Collapsed) -->
+                                                            <div class="semester-month-groups">
+                                                                <?php foreach ($infoKlsCur['grouped_by_month'] as $mGroup): 
+                                                                    $hasPending = (!$mGroup['is_lengkap'] && !empty($mGroup['tanggal_list']));
+                                                                ?>
+                                                                    <div class="month-group-card mb-2 border rounded bg-white shadow-xs">
+                                                                        <div class="month-header d-flex justify-content-between align-items-center p-2 <?= $hasPending ? 'cursor-pointer' : '' ?>">
+                                                                            <div class="d-flex align-items-center">
+                                                                                <?php if ($hasPending): ?>
+                                                                                    <i class="fas fa-chevron-right text-muted mr-2 chevron-icon" style="font-size: 0.75rem;"></i>
+                                                                                <?php else: ?>
+                                                                                    <i class="fas fa-check text-success mr-2" style="font-size: 0.75rem;"></i>
+                                                                                <?php endif; ?>
+                                                                                <span class="font-weight-bold text-dark" style="font-size: 0.84rem;">
+                                                                                    <i class="fas fa-calendar-alt text-secondary mr-1"></i> <?= esc($mGroup['bulan_label']) ?>
+                                                                                </span>
+                                                                            </div>
+                                                                            <div>
+                                                                                <span class="badge <?= $mGroup['is_lengkap'] ? 'badge-success' : 'badge-warning' ?>" style="font-size: 0.72rem;">
+                                                                                    <?= $mGroup['is_lengkap'] ? 'Lengkap (' . $mGroup['total_aktif'] . '/' . $mGroup['total_aktif'] . ' hari)' : ($mGroup['total_belum'] . ' hari tertinggal') ?>
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
+                                                                        <?php if ($hasPending): ?>
+                                                                            <div class="month-collapse-body p-2 border-top bg-light" style="display: none;">
+                                                                                <small class="text-muted d-block mb-1 font-italic" style="font-size: 0.75rem;">Pilih tanggal untuk diisi presensinya:</small>
+                                                                                <div class="d-flex flex-wrap" style="gap: 5px;">
+                                                                                    <?php foreach ($mGroup['tanggal_list'] as $tglItem): ?>
+                                                                                        <button type="button" 
+                                                                                                class="btn btn-outline-danger btn-sm btn-pilih-tanggal-kosong px-2 py-1 shadow-xs" 
+                                                                                                data-tanggal="<?= $tglItem['tanggal'] ?>" 
+                                                                                                data-kelas-id="<?= $kelas['IdKelas'] ?>" 
+                                                                                                title="Klik untuk langsung membuka absensi tanggal <?= $tglItem['label'] ?>">
+                                                                                            <i class="fas fa-calendar-day text-danger mr-1"></i>
+                                                                                            <strong><?= $tglItem['badge_label'] ?></strong>
+                                                                                        </button>
+                                                                                    <?php endforeach; ?>
+                                                                                </div>
+                                                                            </div>
+                                                                        <?php endif; ?>
+                                                                    </div>
+                                                                <?php endforeach; ?>
+                                                            </div>
+                                                        <?php else: ?>
+                                                            <!-- Tampilan Flat untuk Periode Mingguan atau Bulanan -->
+                                                            <div class="d-flex flex-wrap" style="gap: 6px;">
+                                                                <?php foreach ($infoKlsCur['belum_absen_list'] as $tglItem): ?>
+                                                                    <button type="button" 
+                                                                            class="btn btn-outline-danger btn-sm btn-pilih-tanggal-kosong px-2 py-1 shadow-xs" 
+                                                                            data-tanggal="<?= $tglItem['tanggal'] ?>" 
+                                                                            data-kelas-id="<?= $kelas['IdKelas'] ?>" 
+                                                                            title="Klik untuk langsung membuka absensi tanggal <?= $tglItem['label'] ?>">
+                                                                        <i class="fas fa-calendar-day text-danger mr-1"></i>
+                                                                        <strong><?= $tglItem['badge_label'] ?></strong>
+                                                                    </button>
+                                                                <?php endforeach; ?>
+                                                            </div>
+                                                        <?php endif; ?>
+
+                                                    <?php elseif ($infoKlsCur['total_hari_aktif_tpq'] > 0): ?>
+                                                        <div class="text-success font-weight-500 py-1" style="font-size: 0.85rem;">
+                                                            <i class="fas fa-check-circle mr-1"></i>
+                                                            Alhamdulillah! Seluruh tanggal aktif TPQ (<strong><?= $infoKlsCur['total_hari_aktif_tpq'] ?> hari</strong>) pada <?= esc($periodeLabelStr) ?> sudah lengkap diabsen untuk kelas ini.
+                                                        </div>
+                                                    <?php else: ?>
+                                                        <div class="text-muted font-italic py-1" style="font-size: 0.85rem;">
+                                                            <i class="fas fa-info-circle mr-1"></i>
+                                                            Belum ada catatan aktivitas presensi TPQ pada <?= esc($periodeLabelStr) ?>.
+                                                        </div>
+                                                    <?php endif; ?>
+                                                </div>
+                                            </div>
                                         </div>
 
                                         <!-- Quick Action: Set All Hadir & Info Santri Kelas -->
@@ -237,102 +407,130 @@
                                                 <div class="alert alert-warning">
                                                     <i class="fas fa-exclamation-triangle"></i> Belum ada santri terdaftar di kelas <?= esc($kelas['NamaKelas']) ?> pada tahun ajaran ini.
                                                 </div>
-                                            <?php elseif (empty($santriList)): ?>
-                                                <div class="alert alert-info">
-                                                    <i class="fas fa-info-circle"></i> Semua santri di kelas <?= esc($kelas['NamaKelas']) ?> (Total: <strong><?= (int)($kelas['total_santri'] ?? 0) ?></strong> santri) sudah diabsen pada tanggal <?= date('d-m-Y', strtotime($tanggalDipilih)) ?>.
-                                                    <?php
-                                                    // Tampilkan nama guru yang mengabsen jika ada
-                                                    if (isset($guru_absensi[$kelas['IdKelas']])) {
-                                                        echo ' <strong>Oleh: ' . esc($guru_absensi[$kelas['IdKelas']]) . '</strong>';
-                                                    }
-                                                    ?>
-                                                </div>
                                             <?php else: ?>
-                                                <?php foreach ($santriList as $row): ?>
-                                                    <div class="card mb-1 shadow-sm">
-                                                        <div class="card-body">
-                                                            <h5 class="card-title mb-2 d-flex align-items-center">
-                                                                <?php
-                                                                $uploadPath = (ENVIRONMENT === 'production') ? 'https://tpqsmart.simpedis.com/uploads/santri/' : base_url('uploads/santri/');
-                                                                $thumbnailPath = (ENVIRONMENT === 'production') ? 'https://tpqsmart.simpedis.com/uploads/santri/thumbnails/' : base_url('uploads/santri/thumbnails/');
-                                                                $photoProfil = $row->PhotoProfil ?? '';
-                                                                ?>
-                                                                <?php if ($photoProfil): ?>
-                                                                    <img src="<?= $thumbnailPath . 'thumb_' . $photoProfil; ?>"
-                                                                        alt="PhotoProfil"
-                                                                        class="photo-profil-thumbnail mr-2"
-                                                                        loading="lazy"
-                                                                        style="cursor: pointer; width: 40px; height: 40px; border-radius: 50%; object-fit: cover;">
-                                                                    <div class="image-popup" style="display: none; position: absolute; z-index: 1000;">
-                                                                        <img src="<?= $uploadPath . $photoProfil; ?>"
-                                                                            alt="PhotoProfil"
-                                                                            width="200"
-                                                                            height="250"
-                                                                            loading="lazy"
-                                                                            class="rounded shadow">
-                                                                    </div>
-                                                                <?php else: ?>
-                                                                    <i class="fas fa-user-circle mr-2" style="font-size: 40px; color: #6c757d;"></i>
-                                                                <?php endif; ?>
-                                                                <?= esc($row->NamaSantri) ?>
-                                                            </h5>
-
-                                                            <!-- Kehadiran Options -->
-                                                            <div class="mb-1">
-                                                                <div class="btn-group w-100" role="group">
-                                                                    <label class="btn btn-success absensi-btn-mobile active">
-                                                                        <input type="radio"
-                                                                            name="kehadiran[<?= $row->IdSantri ?>]"
-                                                                            value="Hadir"
-                                                                            autocomplete="off"
-                                                                            checked>
-                                                                        <i class="fas fa-check-circle"></i> Hadir
-                                                                    </label>
-                                                                    <label class="btn btn-warning absensi-btn-mobile">
-                                                                        <input type="radio"
-                                                                            name="kehadiran[<?= $row->IdSantri ?>]"
-                                                                            value="Izin"
-                                                                            autocomplete="off">
-                                                                        <i class="fas fa-info-circle"></i> Izin
-                                                                    </label>
-                                                                    <label class="btn btn-info absensi-btn-mobile">
-                                                                        <input type="radio"
-                                                                            name="kehadiran[<?= $row->IdSantri ?>]"
-                                                                            value="Sakit"
-                                                                            autocomplete="off">
-                                                                        <i class="fas fa-thermometer-half"></i> Sakit
-                                                                    </label>
-                                                                    <label class="btn btn-danger absensi-btn-mobile">
-                                                                        <input type="radio"
-                                                                            name="kehadiran[<?= $row->IdSantri ?>]"
-                                                                            value="Alfa"
-                                                                            autocomplete="off">
-                                                                        <i class="fas fa-times-circle"></i> Alfa
-                                                                    </label>
-                                                                </div>
-                                                            </div>
-
-                                                            <!-- Keterangan Field -->
-                                                            <div class="form-group keterangan-field" id="keterangan-field-<?= $row->IdSantri ?>" style="display: none;">
-                                                                <label for="keterangan-<?= $row->IdSantri ?>">
-                                                                    <i class="fas fa-comment-alt"></i> Keterangan:
-                                                                </label>
-                                                                <input type="text"
-                                                                    name="keterangan[<?= $row->IdSantri ?>]"
-                                                                    id="keterangan-<?= $row->IdSantri ?>"
-                                                                    class="form-control form-control-lg"
-                                                                    placeholder="Masukkan keterangan (opsional)">
-                                                            </div>
+                                                <?php
+                                                // Cek apakah kelas ini sudah memiliki data absensi pada tanggal ini
+                                                $statAbsen = isset($status_absensi_kelas[$kelas['IdKelas']]) ? $status_absensi_kelas[$kelas['IdKelas']] : null;
+                                                $totAbsen = $statAbsen ? (int)$statAbsen['total_absen'] : 0;
+                                                $jmlSantriKelas = (int)($kelas['total_santri'] ?? 0);
+                                                ?>
+                                                <?php if ($totAbsen > 0): ?>
+                                                    <div class="alert alert-info py-2 px-3 mb-3 d-flex align-items-center justify-content-between flex-wrap">
+                                                        <div>
+                                                            <i class="fas fa-check-circle text-success mr-1"></i>
+                                                            <strong>Kelas ini sudah diabsen</strong> pada tanggal <?= date('d-m-Y', strtotime($tanggalDipilih)) ?>
+                                                            <?php
+                                                            if (isset($guru_absensi[$kelas['IdKelas']])) {
+                                                                echo ' (Oleh: <strong>' . esc($guru_absensi[$kelas['IdKelas']]) . '</strong>)';
+                                                            }
+                                                            ?>.
+                                                            <span class="text-muted d-block d-sm-inline ml-sm-1">Anda dapat melihat atau memperbarui status kehadiran di bawah jika ada perubahan.</span>
                                                         </div>
                                                     </div>
-                                                <?php endforeach; ?>
+                                                <?php endif; ?>
+
+                                                <?php if (empty($santriList)): ?>
+                                                    <div class="alert alert-warning">
+                                                        <i class="fas fa-info-circle"></i> Tidak ada data santri yang dapat ditampilkan untuk kelas ini.
+                                                    </div>
+                                                <?php else: ?>
+                                                    <?php foreach ($santriList as $row): 
+                                                        $curKehadiran = $row->Kehadiran ?? 'Hadir';
+                                                        $curKeterangan = $row->Keterangan ?? '';
+                                                        $isHadir = ($curKehadiran === 'Hadir');
+                                                        $isIzin = ($curKehadiran === 'Izin');
+                                                        $isSakit = ($curKehadiran === 'Sakit');
+                                                        $isAlfa = in_array($curKehadiran, ['Alfa', 'Alpa']);
+                                                    ?>
+                                                        <div class="card mb-1 shadow-sm">
+                                                            <div class="card-body">
+                                                                <h5 class="card-title mb-2 d-flex align-items-center">
+                                                                    <?php
+                                                                    $uploadPath = (ENVIRONMENT === 'production') ? 'https://tpqsmart.simpedis.com/uploads/santri/' : base_url('uploads/santri/');
+                                                                    $thumbnailPath = (ENVIRONMENT === 'production') ? 'https://tpqsmart.simpedis.com/uploads/santri/thumbnails/' : base_url('uploads/santri/thumbnails/');
+                                                                    $photoProfil = $row->PhotoProfil ?? '';
+                                                                    ?>
+                                                                    <?php if ($photoProfil): ?>
+                                                                        <img src="<?= $thumbnailPath . 'thumb_' . $photoProfil; ?>"
+                                                                            alt="PhotoProfil"
+                                                                            class="photo-profil-thumbnail mr-2"
+                                                                            loading="lazy"
+                                                                            style="cursor: pointer; width: 40px; height: 40px; border-radius: 50%; object-fit: cover;">
+                                                                        <div class="image-popup" style="display: none; position: absolute; z-index: 1000;">
+                                                                            <img src="<?= $uploadPath . $photoProfil; ?>"
+                                                                                alt="PhotoProfil"
+                                                                                width="200"
+                                                                                height="250"
+                                                                                loading="lazy"
+                                                                                class="rounded shadow">
+                                                                        </div>
+                                                                    <?php else: ?>
+                                                                        <i class="fas fa-user-circle mr-2" style="font-size: 40px; color: #6c757d;"></i>
+                                                                    <?php endif; ?>
+                                                                    <?= esc($row->NamaSantri) ?>
+                                                                </h5>
+
+                                                                <!-- Kehadiran Options -->
+                                                                <div class="mb-1">
+                                                                    <div class="btn-group w-100" role="group">
+                                                                        <label class="btn btn-success absensi-btn-mobile <?= $isHadir ? 'active' : '' ?>">
+                                                                            <input type="radio"
+                                                                                name="kehadiran[<?= $row->IdSantri ?>]"
+                                                                                value="Hadir"
+                                                                                autocomplete="off"
+                                                                                <?= $isHadir ? 'checked' : '' ?>>
+                                                                            <i class="fas fa-check-circle"></i> Hadir
+                                                                        </label>
+                                                                        <label class="btn btn-warning absensi-btn-mobile <?= $isIzin ? 'active' : '' ?>">
+                                                                            <input type="radio"
+                                                                                name="kehadiran[<?= $row->IdSantri ?>]"
+                                                                                value="Izin"
+                                                                                autocomplete="off"
+                                                                                <?= $isIzin ? 'checked' : '' ?>>
+                                                                            <i class="fas fa-info-circle"></i> Izin
+                                                                        </label>
+                                                                        <label class="btn btn-info absensi-btn-mobile <?= $isSakit ? 'active' : '' ?>">
+                                                                            <input type="radio"
+                                                                                name="kehadiran[<?= $row->IdSantri ?>]"
+                                                                                value="Sakit"
+                                                                                autocomplete="off"
+                                                                                <?= $isSakit ? 'checked' : '' ?>>
+                                                                            <i class="fas fa-thermometer-half"></i> Sakit
+                                                                        </label>
+                                                                        <label class="btn btn-danger absensi-btn-mobile <?= $isAlfa ? 'active' : '' ?>">
+                                                                            <input type="radio"
+                                                                                name="kehadiran[<?= $row->IdSantri ?>]"
+                                                                                value="Alfa"
+                                                                                autocomplete="off"
+                                                                                <?= $isAlfa ? 'checked' : '' ?>>
+                                                                            <i class="fas fa-times-circle"></i> Alfa
+                                                                        </label>
+                                                                    </div>
+                                                                </div>
+
+                                                                <!-- Keterangan Field -->
+                                                                <div class="form-group keterangan-field" id="keterangan-field-<?= $row->IdSantri ?>" style="<?= (!$isHadir || !empty($curKeterangan)) ? '' : 'display: none;' ?>">
+                                                                    <label for="keterangan-<?= $row->IdSantri ?>">
+                                                                        <i class="fas fa-comment-alt"></i> Keterangan:
+                                                                    </label>
+                                                                    <input type="text"
+                                                                        name="keterangan[<?= $row->IdSantri ?>]"
+                                                                        id="keterangan-<?= $row->IdSantri ?>"
+                                                                        value="<?= esc($curKeterangan) ?>"
+                                                                        class="form-control form-control-lg"
+                                                                        placeholder="Masukkan keterangan (opsional)">
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    <?php endforeach; ?>
+                                                <?php endif; ?>
                                             <?php endif; ?>
                                         </div>
 
-                                        <!-- Submit Button - selalu ada di HTML, tampil/sembunyi via JavaScript -->
-                                        <div class="mt-4" id="submit-button-container-<?= $kelas['IdKelas'] ?>" style="<?= empty($santriList) ? 'display: none;' : '' ?>">
+                                        <!-- Submit Button - selalu tampil jika ada santri -->
+                                        <div class="mt-4" id="submit-button-container-<?= $kelas['IdKelas'] ?>" style="<?= (empty($santriList) && (int)($kelas['total_santri'] ?? 0) === 0) ? 'display: none;' : '' ?>">
                                             <button type="submit" class="btn btn-primary btn-lg btn-block">
-                                                <i class="fas fa-save"></i> Simpan Absensi Kelas <?= esc($kelas['NamaKelas']) ?>
+                                                <i class="fas fa-save mr-1"></i> Simpan / Perbarui Absensi Kelas <?= esc($kelas['NamaKelas']) ?>
                                             </button>
                                         </div>
                                     </form>
@@ -405,6 +603,58 @@
         font-size: 0.75rem;
         padding: 0.25em 0.55em;
         vertical-align: middle;
+    }
+
+    /* Card Analisis Tanggal Belum Diabsen (Baseline Opsi B) */
+    .card-tanggal-belum-absen {
+        border-radius: 8px !important;
+        transition: all 0.2s ease-in-out;
+    }
+    .periode-filter-group .btn-filter-periode {
+        font-size: 0.76rem !important;
+        padding: 0.22rem 0.55rem !important;
+        border-color: #ced4da !important;
+        background-color: #ffffff;
+        color: #495057;
+    }
+    .periode-filter-group .btn-filter-periode:hover {
+        background-color: #f1f3f5;
+        color: #007bff;
+    }
+    .periode-filter-group .btn-filter-periode.active {
+        background-color: #007bff !important;
+        border-color: #007bff !important;
+        color: #ffffff !important;
+    }
+    .month-group-card {
+        border-left: 3px solid #6c757d !important;
+        transition: all 0.15s ease-in-out;
+    }
+    .month-group-card:hover {
+        border-left-color: #007bff !important;
+    }
+    .month-header.cursor-pointer {
+        cursor: pointer;
+        user-select: none;
+        transition: background-color 0.15s ease-in-out;
+    }
+    .month-header.cursor-pointer:hover {
+        background-color: #f8f9fa;
+    }
+    .chevron-icon {
+        transition: transform 0.2s ease-in-out;
+    }
+    .month-header.active-collapse .chevron-icon {
+        transform: rotate(90deg);
+    }
+    .btn-pilih-tanggal-kosong {
+        transition: all 0.15s ease-in-out;
+        border-radius: 6px;
+        font-weight: 500;
+    }
+    .btn-pilih-tanggal-kosong:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 3px 6px rgba(220, 53, 69, 0.25);
     }
 
     /* Mobile-friendly styles */
@@ -700,18 +950,18 @@
     function toggleKeteranganField() {
         $('input[type="radio"][name^="kehadiran"]:checked').each(function() {
             var name = $(this).attr('name');
-            var id = name.match(/\[(\d+)\]/)[1];
+            var match = name.match(/\[(\d+)\]/);
+            if (!match) return;
+            var id = match[1];
             var status = $(this).val();
             var keteranganField = $('#keterangan-field-' + id);
             var keteranganInput = $('#keterangan-' + id);
 
-            // Tampilkan field keterangan jika status bukan "Hadir"
-            if (status !== 'Hadir') {
-                keteranganField.slideDown(200);
-                keteranganInput.focus();
+            // Tampilkan field keterangan jika status bukan "Hadir" atau jika keterangan ada isinya
+            if (status !== 'Hadir' || (keteranganInput.val() && keteranganInput.val().trim() !== '')) {
+                keteranganField.show();
             } else {
-                keteranganField.slideUp(200);
-                keteranganInput.val(''); // Clear value saat disembunyikan
+                keteranganField.hide();
             }
         });
     }
@@ -891,27 +1141,22 @@
 
         // Handle radio button changes to update active states and toggle keterangan
         $(document).on('change', 'input[type="radio"][name^="kehadiran"]', function() {
-            updateActiveState();
-            toggleKeteranganField();
-        });
-
-        // Handle click event on label to ensure radio is checked
-        $(document).on('click', '.absensi-btn, .absensi-btn-mobile', function(e) {
-            // Jika yang diklik bukan input radio, trigger click pada input radio di dalam label
-            if (!$(e.target).is('input[type="radio"]') && !$(e.target).closest('input[type="radio"]').length) {
-                var radioInput = $(this).find('input[type="radio"]');
-                if (radioInput.length) {
-                    radioInput.prop('checked', true).trigger('change');
+            var name = $(this).attr('name');
+            var match = name.match(/\[(\d+)\]/);
+            if (match) {
+                var id = match[1];
+                var status = $(this).val();
+                var keteranganField = $('#keterangan-field-' + id);
+                var keteranganInput = $('#keterangan-' + id);
+                if (status !== 'Hadir') {
+                    keteranganField.slideDown(200);
+                    keteranganInput.focus();
+                } else {
+                    keteranganField.slideUp(200);
+                    keteranganInput.val('');
                 }
             }
-        });
-
-        // Handle click event for radio button
-        $(document).on('click', 'input[type="radio"][name^="kehadiran"]', function() {
-            setTimeout(function() {
-                updateActiveState();
-                toggleKeteranganField();
-            }, 50);
+            updateActiveState();
         });
 
         // Handle click di luar popup untuk menyembunyikan popup
@@ -1043,6 +1288,12 @@
             // Sinkronkan semua input tanggal di semua tab
             $('.tanggal-input').val(tanggal);
 
+            // Perbarui status dan rekap H, I, S, A pada semua kartu ringkasan kelas
+            updateSummaryCardsAttendance(tanggal);
+
+            // Perbarui card tanggal belum absen untuk semua kelas (Baseline Opsi B)
+            updateTanggalBelumAbsenCards(tanggal);
+
             // Tampilkan loading indicator
             cardsContainer.html('<div class="text-center py-5"><i class="fas fa-spinner fa-spin fa-3x text-primary"></i><p class="mt-3">Memuat data...</p></div>');
             submitButton.hide();
@@ -1072,7 +1323,7 @@
                         console.log('[DEBUG] Response success, updating list with', response.count, 'santri');
                         console.log('[DEBUG] Nama guru:', response.nama_guru || 'Tidak ada');
                         // Update tampilan dengan data baru (fungsi ini juga akan handle show/hide tombol submit)
-                        updateSantriList(cardsContainer, response.santri, idKelas, tanggal, response.nama_guru, response.total_santri);
+                        updateSantriList(cardsContainer, response.santri, idKelas, tanggal, response.nama_guru, response.total_santri, response.sudah_absen);
                     } else {
                         console.error('[DEBUG] Response success but data failed:', response.message);
                         cardsContainer.html('<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> ' + (response.message || 'Gagal memuat data') + '</div>');
@@ -1107,15 +1358,253 @@
             });
         });
 
+        // Fungsi untuk memperbarui status dan rincian H, I, S, A pada semua kartu ringkasan kelas secara otomatis
+        function updateSummaryCardsAttendance(tanggal) {
+            if (!tanggal) return;
+
+            // Tampilkan status loading ringkas pada semua kartu kelas
+            $('.class-absensi-info').each(function() {
+                $(this).html('<span class="text-muted text-xs"><i class="fas fa-spinner fa-spin mr-1"></i>Memuat...</span>');
+            });
+
+            $.ajax({
+                url: '<?= base_url("backend/absensi/getStatusAbsensiPerKelas") ?>',
+                type: 'GET',
+                data: { tanggal: tanggal },
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success && response.data) {
+                        response.data.forEach(function(item) {
+                            var container = $('#card-absensi-info-' + item.IdKelas);
+                            if (container.length > 0) {
+                                var html = '';
+                                if (item.totalAbsen === 0) {
+                                    html = `
+                                        <span class="badge py-1 px-2 mb-1" style="font-size: 0.72rem; background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb;">
+                                            <i class="fas fa-times-circle mr-1 text-danger"></i>Belum Diabsen
+                                        </span>
+                                        <div class="text-muted text-xs font-italic">0 catatan presensi</div>
+                                    `;
+                                } else {
+                                    var isSemua = item.totalSantri > 0 && item.totalAbsen >= item.totalSantri;
+                                    var labelStatus = isSemua ? 'Sudah Diabsen' : `Sebagian (${item.totalAbsen}/${item.totalSantri})`;
+                                    var badgeCls = isSemua ? 'badge-success' : 'badge-info';
+                                    html = `
+                                        <span class="badge ${badgeCls} py-1 px-2 mb-1" style="font-size: 0.72rem;">
+                                            <i class="fas fa-check-circle mr-1"></i>${labelStatus}
+                                        </span>
+                                        <div class="d-flex justify-content-center align-items-center mt-1" style="gap: 3px; font-size: 0.72rem;">
+                                            <span class="badge badge-success px-1" title="Hadir: ${item.jumlahHadir}">H: ${item.jumlahHadir}</span>
+                                            <span class="badge badge-warning px-1" title="Izin: ${item.jumlahIzin}">I: ${item.jumlahIzin}</span>
+                                            <span class="badge badge-info px-1" title="Sakit: ${item.jumlahSakit}">S: ${item.jumlahSakit}</span>
+                                            <span class="badge badge-danger px-1" title="Alfa: ${item.jumlahAlfa}">A: ${item.jumlahAlfa}</span>
+                                        </div>
+                                    `;
+                                }
+                                container.html(html);
+                            }
+                        });
+                    }
+                },
+                error: function(err) {
+                    console.warn('[DEBUG] Gagal memperbarui status card absensi:', err);
+                }
+            });
+        }
+
+        // Variabel global untuk menyimpan filter periode kelengkapan yang aktif ('minggu_ini', 'minggu_kemarin', 'bulan', 'semester')
+        var currentPeriodeFilter = '<?= $tanggal_belum_absen_info['periode'] ?? 'bulan' ?>';
+
+        // Fungsi untuk memperbarui card kelengkapan tanggal belum diabsen (Baseline Opsi B)
+        function updateTanggalBelumAbsenCards(tanggal, periode) {
+            if (!tanggal) return;
+            periode = periode || currentPeriodeFilter || 'bulan';
+
+            $.ajax({
+                url: '<?= base_url("backend/absensi/getTanggalBelumAbsenPerKelas") ?>',
+                type: 'GET',
+                data: { 
+                    tanggal: tanggal,
+                    periode: periode
+                },
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success && response.data) {
+                        var periodeLabel = response.data.periode_label || '';
+                        var totalHariAktifTpq = response.data.total_hari_aktif_tpq || 0;
+                        var kelasData = response.data.kelas_data || {};
+                        var isSemester = (periode === 'semester');
+
+                        // Update status tombol filter periode di semua tab
+                        $('.btn-filter-periode').removeClass('active font-weight-bold');
+                        $('.btn-filter-periode[data-periode="' + periode + '"]').addClass('active font-weight-bold');
+
+                        Object.keys(kelasData).forEach(function(idK) {
+                            var info = kelasData[idK];
+                            $('.badge-periode-label-' + idK).text(periodeLabel);
+                            $('.badge-sudah-' + idK).text(info.total_sudah_absen);
+                            $('.badge-aktif-' + idK).text(totalHariAktifTpq);
+
+                            // Update badge tertinggal di kartu summary kelas di bagian atas
+                            var badgeTertinggal = $('#badge-tertinggal-' + idK);
+                            if (badgeTertinggal.length) {
+                                if (info.total_belum_absen > 0) {
+                                    badgeTertinggal.html('<span class="badge badge-warning text-xs px-1 py-0" title="' + info.total_belum_absen + ' tanggal aktif belum diabsen (' + periodeLabel + ')" style="font-size: 0.68rem;"><i class="fas fa-exclamation-triangle"></i> ' + info.total_belum_absen + ' tgl kosong</span>');
+                                } else {
+                                    badgeTertinggal.empty();
+                                }
+                            }
+
+                            // Update konten card tanggal belum absen di tab kelas
+                            var container = $('.content-belum-absen-' + idK);
+                            if (container.length) {
+                                var html = '';
+                                if (info.total_belum_absen > 0) {
+                                    html += '<p class="text-muted mb-2" style="font-size: 0.82rem;">' +
+                                        '<i class="fas fa-exclamation-circle text-danger mr-1"></i>' +
+                                        'Ditemukan <strong class="text-danger">' + info.total_belum_absen + ' tanggal aktif TPQ</strong> yang belum tercatat absensinya pada kelas ini. ' +
+                                        '<strong>Klik tanggal di bawah</strong> untuk langsung membuka dan menginput absensi:</p>';
+
+                                    if (isSemester && info.grouped_by_month && info.grouped_by_month.length > 0) {
+                                        // Grouping per Bulan untuk Overview Semester yang Rapi (Default Collapsed)
+                                        html += '<div class="semester-month-groups">';
+                                        info.grouped_by_month.forEach(function(mGroup) {
+                                            var badgeClass = mGroup.is_lengkap ? 'badge-success' : 'badge-warning';
+                                            var badgeText = mGroup.is_lengkap ? ('Lengkap (' + mGroup.total_aktif + '/' + mGroup.total_aktif + ' hari)') : (mGroup.total_belum + ' hari tertinggal');
+                                            var hasPending = (!mGroup.is_lengkap && mGroup.tanggal_list && mGroup.tanggal_list.length > 0);
+
+                                            html += '<div class="month-group-card mb-2 border rounded bg-white shadow-xs">' +
+                                                '<div class="month-header d-flex justify-content-between align-items-center p-2 ' + (hasPending ? 'cursor-pointer' : '') + '">' +
+                                                '<div class="d-flex align-items-center">' +
+                                                (hasPending ? '<i class="fas fa-chevron-right text-muted mr-2 chevron-icon" style="font-size: 0.75rem;"></i>' : '<i class="fas fa-check text-success mr-2" style="font-size: 0.75rem;"></i>') +
+                                                '<span class="font-weight-bold text-dark" style="font-size: 0.84rem;">' +
+                                                '<i class="fas fa-calendar-alt text-secondary mr-1"></i> ' + $('<div>').text(mGroup.bulan_label).html() +
+                                                '</span>' +
+                                                '</div>' +
+                                                '<div>' +
+                                                '<span class="badge ' + badgeClass + '" style="font-size: 0.72rem;">' + badgeText + '</span>' +
+                                                '</div>' +
+                                                '</div>';
+
+                                            if (hasPending) {
+                                                html += '<div class="month-collapse-body p-2 border-top bg-light" style="display: none;">' +
+                                                    '<small class="text-muted d-block mb-1 font-italic" style="font-size: 0.75rem;">Pilih tanggal untuk diisi presensinya:</small>' +
+                                                    '<div class="d-flex flex-wrap" style="gap: 5px;">';
+                                                mGroup.tanggal_list.forEach(function(t) {
+                                                    html += '<button type="button" class="btn btn-outline-danger btn-sm btn-pilih-tanggal-kosong px-2 py-1 shadow-xs" ' +
+                                                        'data-tanggal="' + t.tanggal + '" data-kelas-id="' + idK + '" ' +
+                                                        'title="Klik untuk langsung membuka absensi tanggal ' + t.label + '">' +
+                                                        '<i class="fas fa-calendar-day text-danger mr-1"></i>' +
+                                                        '<strong>' + t.badge_label + '</strong>' +
+                                                        '</button>';
+                                                });
+                                                html += '</div></div>';
+                                            }
+                                            html += '</div>';
+                                        });
+                                        html += '</div>';
+                                    } else {
+                                        // Tampilan Flat untuk Periode Mingguan atau Bulanan
+                                        html += '<div class="d-flex flex-wrap" style="gap: 6px;">';
+                                        info.belum_absen_list.forEach(function(t) {
+                                            html += '<button type="button" class="btn btn-outline-danger btn-sm btn-pilih-tanggal-kosong px-2 py-1 shadow-xs" ' +
+                                                'data-tanggal="' + t.tanggal + '" data-kelas-id="' + idK + '" ' +
+                                                'title="Klik untuk langsung membuka absensi tanggal ' + t.label + '">' +
+                                                '<i class="fas fa-calendar-day text-danger mr-1"></i>' +
+                                                '<strong>' + t.badge_label + '</strong>' +
+                                                '</button>';
+                                        });
+                                        html += '</div>';
+                                    }
+                                } else if (totalHariAktifTpq > 0) {
+                                    html += '<div class="text-success font-weight-500 py-1" style="font-size: 0.85rem;">' +
+                                        '<i class="fas fa-check-circle mr-1"></i>' +
+                                        'Alhamdulillah! Seluruh tanggal aktif TPQ (<strong>' + totalHariAktifTpq + ' hari</strong>) pada ' + $('<div>').text(periodeLabel).html() + ' sudah lengkap diabsen untuk kelas ini.' +
+                                        '</div>';
+                                } else {
+                                    html += '<div class="text-muted font-italic py-1" style="font-size: 0.85rem;">' +
+                                        '<i class="fas fa-info-circle mr-1"></i>' +
+                                        'Belum ada catatan aktivitas presensi TPQ pada ' + $('<div>').text(periodeLabel).html() + '.' +
+                                        '</div>';
+                                }
+                                container.html(html);
+                            }
+                        });
+                    }
+                },
+                error: function(err) {
+                    console.warn('[DEBUG] Gagal memperbarui data tanggal belum absen:', err);
+                }
+            });
+        }
+
+        // Event handler klik filter periode kelengkapan (Minggu Ini, Minggu Lalu, Per Bulan, Semester)
+        $(document).on('click', '.btn-filter-periode', function(e) {
+            e.preventDefault();
+            var periode = $(this).data('periode');
+            if (!periode) return;
+
+            currentPeriodeFilter = periode;
+
+            // Beri visual loading ringkas pada semua content belum absen
+            $('.content-belum-absen-' + $(this).data('kelas-id')).html('<div class="text-center py-2 text-muted text-xs"><i class="fas fa-spinner fa-spin mr-1"></i>Memuat overview periode...</div>');
+
+            var tanggal = $('.tanggal-input').first().val() || '<?= date("Y-m-d") ?>';
+            updateTanggalBelumAbsenCards(tanggal, periode);
+        });
+
+        // Event handler klik tombol tanggal yang belum diabsen untuk langsung membuka tanggal tersebut
+        $(document).on('click', '.btn-pilih-tanggal-kosong', function(e) {
+            e.preventDefault();
+            var tanggal = $(this).data('tanggal');
+            var idKelas = $(this).data('kelas-id');
+
+            if (!tanggal || !idKelas) return;
+
+            var inputTgl = $('#tanggal' + idKelas);
+            if (inputTgl.length) {
+                // Beri efek tombol sedang ditekan
+                $(this).addClass('active disabled');
+
+                // Set nilai input dan picu event change
+                inputTgl.val(tanggal).trigger('change');
+
+                // Scroll halus menuju list absensi santri
+                var containerCards = $('#cards-container-' + idKelas);
+                if (containerCards.length) {
+                    $('html, body').animate({
+                        scrollTop: containerCards.offset().top - 120
+                    }, 400);
+                }
+            }
+        });
+
+        // Event handler klik toggle buka/tutup (collapse) card per bulan pada tampilan semester
+        $(document).on('click', '.month-header.cursor-pointer', function(e) {
+            e.preventDefault();
+            var card = $(this).closest('.month-group-card');
+            var body = card.find('.month-collapse-body');
+            var header = $(this);
+
+            if (body.is(':visible')) {
+                body.slideUp(180);
+                header.removeClass('active-collapse');
+            } else {
+                body.slideDown(180);
+                header.addClass('active-collapse');
+            }
+        });
+
         // Fungsi untuk update tampilan list santri
-        function updateSantriList(container, santriList, idKelas, tanggal, namaGuru, totalSantri) {
+        function updateSantriList(container, santriList, idKelas, tanggal, namaGuru, totalSantri, sudahAbsen) {
             console.log('[DEBUG] updateSantriList called');
             console.log('[DEBUG] Container:', container.length > 0 ? 'Found' : 'NOT FOUND');
-            console.log('[DEBUG] Santri list count:', santriList.length);
+            console.log('[DEBUG] Santri list count:', santriList ? santriList.length : 0);
             console.log('[DEBUG] IdKelas:', idKelas);
             console.log('[DEBUG] Tanggal:', tanggal);
             console.log('[DEBUG] Nama Guru:', namaGuru || 'Tidak ada');
             console.log('[DEBUG] Total Santri:', totalSantri);
+            console.log('[DEBUG] Sudah Absen:', sudahAbsen);
 
             if (container.length === 0) {
                 console.error('[DEBUG] Container is empty! Cannot update list.');
@@ -1131,32 +1620,11 @@
 
             console.log('[DEBUG] Submit button in updateSantriList:', submitButton.length > 0 ? 'Found' : 'NOT FOUND');
 
-            if (santriList.length === 0) {
-                var tanggalFormatted = new Date(tanggal).toLocaleDateString('id-ID', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                });
+            if (!santriList || santriList.length === 0) {
                 console.log('[DEBUG] No santri, showing empty message');
-
-                // Ambil nama guru dari parameter (jika ada)
-                var namaGuruText = '';
-                if (namaGuru && namaGuru !== null && namaGuru !== '') {
-                    namaGuruText = ' <strong>Oleh: ' + namaGuru + '</strong>';
-                }
-
-                var totalCount = (typeof totalSantri !== 'undefined' && totalSantri !== null) ? totalSantri : null;
-                var message = '';
-                if (totalCount === 0) {
-                    message = '<div class="alert alert-warning"><i class="fas fa-exclamation-triangle"></i> Belum ada santri terdaftar di kelas ini pada tahun ajaran ini.</div>';
-                } else {
-                    var totalText = totalCount !== null ? ' (Total: <strong>' + totalCount + '</strong> santri)' : '';
-                    message = '<div class="alert alert-info"><i class="fas fa-info-circle"></i> Semua santri di kelas ini' + totalText + ' sudah diabsen pada tanggal ' + tanggalFormatted + '.' + namaGuruText + '</div>';
-                }
-
+                var message = '<div class="alert alert-warning"><i class="fas fa-exclamation-triangle"></i> Belum ada santri terdaftar di kelas ini pada tahun ajaran ini.</div>';
                 container.html(message);
 
-                // Sembunyikan tombol submit jika tidak ada santri
                 if (submitButton.length > 0) {
                     console.log('[DEBUG] Hiding submit button (no santri)');
                     submitButton.hide();
@@ -1176,6 +1644,24 @@
             var uploadPath = '<?= (ENVIRONMENT === 'production') ? 'https://tpqsmart.simpedis.com/uploads/santri/' : base_url('uploads/santri/') ?>';
             var thumbnailPath = '<?= (ENVIRONMENT === 'production') ? 'https://tpqsmart.simpedis.com/uploads/santri/thumbnails/' : base_url('uploads/santri/thumbnails/') ?>';
 
+            // Tampilkan banner info jika kelas sudah memiliki data absensi pada tanggal tersebut
+            var tanggalFormatted = new Date(tanggal).toLocaleDateString('id-ID', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            var jmlSudah = (typeof sudahAbsen !== 'undefined' && sudahAbsen !== null) ? parseInt(sudahAbsen) : 0;
+            if (jmlSudah > 0) {
+                var namaGuruText = (namaGuru && namaGuru !== null && namaGuru !== '') ? ' (Oleh: <strong>' + $('<div>').text(namaGuru).html() + '</strong>)' : '';
+                html += '<div class="alert alert-info py-2 px-3 mb-3 d-flex align-items-center justify-content-between flex-wrap">' +
+                    '<div>' +
+                    '<i class="fas fa-check-circle text-success mr-1"></i>' +
+                    '<strong>Kelas ini sudah diabsen</strong> pada tanggal ' + tanggalFormatted + namaGuruText + '.' +
+                    '<span class="text-muted d-block d-sm-inline ml-sm-1">Anda dapat melihat atau memperbarui status kehadiran di bawah jika ada perubahan.</span>' +
+                    '</div>' +
+                    '</div>';
+            }
+
             santriList.forEach(function(santri) {
                 var photoHtml = '';
                 if (santri.PhotoProfil) {
@@ -1192,35 +1678,44 @@
                     photoHtml = '<i class="fas fa-user-circle mr-2" style="font-size: 40px; color: #6c757d;"></i>';
                 }
 
+                var curKehadiran = santri.Kehadiran || 'Hadir';
+                var curKeterangan = santri.Keterangan || '';
+                var isHadir = (curKehadiran === 'Hadir');
+                var isIzin = (curKehadiran === 'Izin');
+                var isSakit = (curKehadiran === 'Sakit');
+                var isAlfa = (curKehadiran === 'Alfa' || curKehadiran === 'Alpa');
+                var showKeterangan = (!isHadir || curKeterangan !== '');
+
                 html += '<div class="card mb-1 shadow-sm">' +
                     '<div class="card-body">' +
                     '<h5 class="card-title mb-2 d-flex align-items-center">' +
                     photoHtml +
-                    santri.NamaSantri +
+                    $('<div>').text(santri.NamaSantri).html() +
                     '</h5>' +
                     '<div class="mb-1">' +
                     '<div class="btn-group w-100" role="group">' +
-                    '<label class="btn btn-success absensi-btn-mobile active">' +
-                    '<input type="radio" name="kehadiran[' + santri.IdSantri + ']" value="Hadir" autocomplete="off" checked>' +
+                    '<label class="btn btn-success absensi-btn-mobile ' + (isHadir ? 'active' : '') + '">' +
+                    '<input type="radio" name="kehadiran[' + santri.IdSantri + ']" value="Hadir" autocomplete="off" ' + (isHadir ? 'checked' : '') + '>' +
                     '<i class="fas fa-check-circle"></i> Hadir' +
                     '</label>' +
-                    '<label class="btn btn-warning absensi-btn-mobile">' +
-                    '<input type="radio" name="kehadiran[' + santri.IdSantri + ']" value="Izin" autocomplete="off">' +
+                    '<label class="btn btn-warning absensi-btn-mobile ' + (isIzin ? 'active' : '') + '">' +
+                    '<input type="radio" name="kehadiran[' + santri.IdSantri + ']" value="Izin" autocomplete="off" ' + (isIzin ? 'checked' : '') + '>' +
                     '<i class="fas fa-info-circle"></i> Izin' +
                     '</label>' +
-                    '<label class="btn btn-info absensi-btn-mobile">' +
-                    '<input type="radio" name="kehadiran[' + santri.IdSantri + ']" value="Sakit" autocomplete="off">' +
+                    '<label class="btn btn-info absensi-btn-mobile ' + (isSakit ? 'active' : '') + '">' +
+                    '<input type="radio" name="kehadiran[' + santri.IdSantri + ']" value="Sakit" autocomplete="off" ' + (isSakit ? 'checked' : '') + '>' +
                     '<i class="fas fa-thermometer-half"></i> Sakit' +
                     '</label>' +
-                    '<label class="btn btn-danger absensi-btn-mobile">' +
-                    '<input type="radio" name="kehadiran[' + santri.IdSantri + ']" value="Alfa" autocomplete="off">' +
+                    '<label class="btn btn-danger absensi-btn-mobile ' + (isAlfa ? 'active' : '') + '">' +
+                    '<input type="radio" name="kehadiran[' + santri.IdSantri + ']" value="Alfa" autocomplete="off" ' + (isAlfa ? 'checked' : '') + '>' +
                     '<i class="fas fa-times-circle"></i> Alfa' +
                     '</label>' +
                     '</div>' +
                     '</div>' +
-                    '<div class="form-group keterangan-field" id="keterangan-field-' + santri.IdSantri + '" style="display: none;">' +
+                    '<div class="form-group keterangan-field" id="keterangan-field-' + santri.IdSantri + '" style="' + (showKeterangan ? '' : 'display: none;') + '">' +
                     '<label for="keterangan-' + santri.IdSantri + '"><i class="fas fa-comment-alt"></i> Keterangan:</label>' +
                     '<input type="text" name="keterangan[' + santri.IdSantri + ']" id="keterangan-' + santri.IdSantri + '" ' +
+                    'value="' + $('<div>').text(curKeterangan).html() + '" ' +
                     'class="form-control form-control-lg" placeholder="Masukkan keterangan (opsional)">' +
                     '</div>' +
                     '</div>' +

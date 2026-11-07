@@ -59,9 +59,6 @@
                             </option>
                         <?php endforeach; ?>
                     </select>
-                    <?php if ($isGuru): ?>
-                        <small class="text-muted"><i class="fas fa-lock text-info"></i> Kelas ampu</small>
-                    <?php endif; ?>
                 </div>
 
                 <div class="<?= $isAdmin ? 'col-lg-2' : 'col-lg-2' ?> col-md-6 mb-2">
@@ -105,7 +102,10 @@
                         <button type="button" class="btn btn-outline-primary btn-quick-range" data-range="this_month">Bulan Ini</button>
                         <button type="button" class="btn btn-outline-primary btn-quick-range" data-range="semester">Semester Ini</button>
                     </div>
-                    <div>
+                    <div class="d-flex align-items-center">
+                        <button type="button" class="btn btn-outline-secondary btn-sm mr-2 py-0 px-2" id="btnResetFilters" title="Kembalikan semua filter ke kondisi awal">
+                            <i class="fas fa-undo mr-1"></i> Reset Filter
+                        </button>
                         <span class="badge badge-light border text-muted py-1 px-2" id="labelActiveFilterRange">
                             <i class="far fa-clock mr-1"></i> Memuat data...
                         </span>
@@ -217,6 +217,43 @@
                         <canvas id="chartDonutKomposisi"></canvas>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ROW: PERBANDINGAN STATUS KEHADIRAN PER KELAS (STACKED BAR CHART: HADIR, SAKIT, IZIN, ALPA) -->
+    <div class="card card-outline card-success shadow-sm mb-3">
+        <div class="card-header py-2 d-flex justify-content-between align-items-center flex-wrap">
+            <div class="d-flex align-items-center">
+                <h3 class="card-title font-weight-bold text-dark mb-0 mr-2">
+                    <i class="fas fa-layer-group text-success mr-1"></i> Perbandingan Status Kehadiran Per Kelas
+                </h3>
+                <span class="badge badge-light border text-muted d-none d-sm-inline">Tingkat Hadir, Sakit, Izin, & Alpa</span>
+            </div>
+            <div class="card-tools d-flex align-items-center mt-2 mt-md-0">
+                <div class="btn-group btn-group-sm mr-2" role="group">
+                    <button type="button" class="btn btn-outline-secondary active" id="btnKelasChartStackedVal">
+                        <i class="fas fa-chart-bar mr-1"></i>Jumlah Presensi
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" id="btnKelasChartStackedPct">
+                        <i class="fas fa-percentage mr-1"></i>Persentase (100%)
+                    </button>
+                </div>
+                <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                    <i class="fas fa-minus"></i>
+                </button>
+            </div>
+        </div>
+        <div class="card-body p-3">
+            <div style="position: relative; height: 340px;">
+                <canvas id="chartKelasStacked"></canvas>
+            </div>
+            <div class="d-flex justify-content-center align-items-center text-xs text-muted mt-2 flex-wrap">
+                <span class="mr-3"><i class="fas fa-square text-success mr-1"></i> Hadir</span>
+                <span class="mr-3"><i class="fas fa-square text-info mr-1"></i> Sakit</span>
+                <span class="mr-3"><i class="fas fa-square text-warning mr-1"></i> Izin</span>
+                <span class="mr-3"><i class="fas fa-square text-danger mr-1"></i> Alpa</span>
+                <span><i class="fas fa-info-circle text-secondary mr-1"></i> Nilai dihitung berdasarkan hari kalender efektif lembaga</span>
             </div>
         </div>
     </div>
@@ -612,6 +649,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Kunci LocalStorage
     const KEY_THRESHOLD_PCT = 'santri_absensi_threshold_pct';
     const KEY_THRESHOLD_ALPA = 'santri_absensi_threshold_alpa';
+    const KEY_SAVED_FILTERS = 'santri_absensi_saved_filters';
     const DEFAULT_THRESHOLD_PCT = 75;
     const DEFAULT_THRESHOLD_ALPA = 3;
 
@@ -636,6 +674,9 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentTpqData = [];
     let currentTpqFilter = 'semua';
     let currentTpqChartMode = 'val';
+    let chartKelasStacked = null;
+    let currentKomposisiKelas = [];
+    let currentKelasChartMode = 'val';
     let dataTableInstance = null;
 
     // Palette warna kelas
@@ -753,6 +794,85 @@ document.addEventListener('DOMContentLoaded', function() {
         $('#inputThresholdAlpa').val(DEFAULT_THRESHOLD_ALPA);
     });
 
+    // Helper untuk menyimpan filter terakhir ke LocalStorage
+    function saveCurrentFilters() {
+        try {
+            const activeRangeBtn = $('.btn-quick-range.active');
+            const quickRange = activeRangeBtn.length > 0 ? activeRangeBtn.data('range') : null;
+
+            const filters = {
+                id_tpq: $('#filterTpq').length > 0 ? ($('#filterTpq').val() || '') : '',
+                status_kehadiran: $('#filterStatusKehadiran').val() || '',
+                id_kelas: $('#filterKelas').val() || [],
+                id_tahun_ajaran: $('#filterTahunAjaran').val() || '',
+                start_date: $('#filterStartDate').val() || '',
+                end_date: $('#filterEndDate').val() || '',
+                quick_range: quickRange
+            };
+            localStorage.setItem(KEY_SAVED_FILTERS, JSON.stringify(filters));
+        } catch (e) {
+            console.warn('[LocalStorage] Gagal menyimpan filter:', e);
+        }
+    }
+
+    // Helper untuk memulihkan filter terakhir dari LocalStorage
+    function restoreSavedFilters() {
+        try {
+            const raw = localStorage.getItem(KEY_SAVED_FILTERS);
+            if (!raw) return false;
+            const filters = JSON.parse(raw);
+            if (!filters || typeof filters !== 'object') return false;
+
+            let hasRestored = false;
+
+            if (filters.id_tpq && $('#filterTpq').length > 0) {
+                if ($(`#filterTpq option[value="${filters.id_tpq}"]`).length > 0) {
+                    $('#filterTpq').val(filters.id_tpq);
+                    hasRestored = true;
+                }
+            }
+
+            if (filters.status_kehadiran !== undefined && $('#filterStatusKehadiran').length > 0) {
+                $('#filterStatusKehadiran').val(filters.status_kehadiran);
+                hasRestored = true;
+            }
+
+            if (filters.id_tahun_ajaran && $('#filterTahunAjaran').length > 0) {
+                if ($(`#filterTahunAjaran option[value="${filters.id_tahun_ajaran}"]`).length > 0) {
+                    $('#filterTahunAjaran').val(filters.id_tahun_ajaran);
+                    hasRestored = true;
+                }
+            }
+
+            if (filters.start_date) {
+                $('#filterStartDate').val(filters.start_date);
+                hasRestored = true;
+            }
+
+            if (filters.end_date) {
+                $('#filterEndDate').val(filters.end_date);
+                hasRestored = true;
+            }
+
+            if (filters.id_kelas && Array.isArray(filters.id_kelas) && $('#filterKelas').length > 0) {
+                $('#filterKelas').val(filters.id_kelas).trigger('change.select2');
+                hasRestored = true;
+            }
+
+            if (filters.quick_range) {
+                $('.btn-quick-range').removeClass('active');
+                $(`.btn-quick-range[data-range="${filters.quick_range}"]`).addClass('active');
+            } else {
+                $('.btn-quick-range').removeClass('active');
+            }
+
+            return hasRestored;
+        } catch (e) {
+            console.warn('[LocalStorage] Gagal memulihkan filter:', e);
+            return false;
+        }
+    }
+
     // Trigger Filter Click
     $('#btnApplyFilter').on('click', function() {
         loadAnalyticsData();
@@ -762,8 +882,37 @@ document.addEventListener('DOMContentLoaded', function() {
         loadAnalyticsData();
     });
 
+    $('#filterStartDate, #filterEndDate').on('change', function() {
+        $('.btn-quick-range').removeClass('active');
+        loadAnalyticsData();
+    });
+
+    // Handle Reset Filter Button
+    $('#btnResetFilters').on('click', function() {
+        localStorage.removeItem(KEY_SAVED_FILTERS);
+        if ($('#filterTpq').length > 0) $('#filterTpq').val('');
+        $('#filterStatusKehadiran').val('');
+        $('#filterKelas').val(null).trigger('change.select2');
+        $('#filterTahunAjaran').val('<?= $currentIdTahunAjaran ?>');
+
+        $('.btn-quick-range').removeClass('active');
+        $('.btn-quick-range[data-range="this_week"]').addClass('active');
+
+        const today = new Date();
+        const start = getMondayOfWeek(today);
+        const end = new Date(start);
+        end.setDate(start.getDate() + 6);
+        const formatDate = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        $('#filterStartDate').val(formatDate(start));
+        $('#filterEndDate').val(formatDate(end));
+
+        loadAnalyticsData();
+    });
+
     // Main Function to Fetch & Render Analytics
     function loadAnalyticsData() {
+        saveCurrentFilters();
+
         const idTpq = $('#filterTpq').val() || '';
         const statusKehadiran = $('#filterStatusKehadiran').val() || '';
         const idKelas = $('#filterKelas').val() || [];
@@ -795,6 +944,7 @@ document.addEventListener('DOMContentLoaded', function() {
             renderKPI(data.kpi);
             renderChartTrend(data.trend_harian);
             renderChartDonut(data.kpi);
+            renderChartKelasStacked(data.komposisi_kelas);
             if (data.analitik_tpq) {
                 renderAnalitikTpq(data.analitik_tpq, data.summary_tpq);
             }
@@ -990,6 +1140,123 @@ document.addEventListener('DOMContentLoaded', function() {
             plugins: [centerDoughnutTextPlugin]
         });
     }
+
+    // 3b. Render Grafik Batang Status Kehadiran Per Kelas (Stacked Bar Chart: Hadir, Sakit, Izin, Alpa)
+    function renderChartKelasStacked(komposisiData) {
+        if (komposisiData !== undefined) {
+            currentKomposisiKelas = komposisiData || [];
+        }
+
+        const ctx = document.getElementById('chartKelasStacked');
+        if (!ctx) return;
+
+        if (!currentKomposisiKelas || currentKomposisiKelas.length === 0) {
+            if (chartKelasStacked) chartKelasStacked.destroy();
+            return;
+        }
+
+        const labels = currentKomposisiKelas.map(k => k.NamaKelas);
+        const hadirData = [];
+        const sakitData = [];
+        const izinData = [];
+        const alpaData = [];
+
+        currentKomposisiKelas.forEach(k => {
+            const h = parseInt(k.hadir) || 0;
+            const s = parseInt(k.sakit) || 0;
+            const i = parseInt(k.izin) || 0;
+            const a = parseInt(k.alpa) || 0;
+            const tot = h + s + i + a;
+
+            if (currentKelasChartMode === 'pct') {
+                hadirData.push(tot > 0 ? parseFloat(((h / tot) * 100).toFixed(1)) : 0);
+                sakitData.push(tot > 0 ? parseFloat(((s / tot) * 100).toFixed(1)) : 0);
+                izinData.push(tot > 0 ? parseFloat(((i / tot) * 100).toFixed(1)) : 0);
+                alpaData.push(tot > 0 ? parseFloat(((a / tot) * 100).toFixed(1)) : 0);
+            } else {
+                hadirData.push(h);
+                sakitData.push(s);
+                izinData.push(i);
+                alpaData.push(a);
+            }
+        });
+
+        if (chartKelasStacked) chartKelasStacked.destroy();
+
+        chartKelasStacked = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    { label: 'Hadir', data: hadirData, backgroundColor: '#28a745', borderRadius: 2 },
+                    { label: 'Sakit', data: sakitData, backgroundColor: '#17a2b8', borderRadius: 2 },
+                    { label: 'Izin', data: izinData, backgroundColor: '#ffc107', borderRadius: 2 },
+                    { label: 'Alpa', data: alpaData, backgroundColor: '#dc3545', borderRadius: 2 }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'top', labels: { boxWidth: 12 } },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            afterTitle: function(context) {
+                                const k = currentKomposisiKelas[context[0].dataIndex];
+                                return `Kelas: ${k.NamaKelas} | Santri: ${k.jumlah_santri || 0} orang | Hari Efektif: ${k.jumlah_hari_efektif || 0} Hari`;
+                            },
+                            label: function(context) {
+                                const k = currentKomposisiKelas[context.dataIndex];
+                                const rawVal = context.dataset.label === 'Hadir' ? k.hadir :
+                                              (context.dataset.label === 'Sakit' ? k.sakit :
+                                              (context.dataset.label === 'Izin' ? k.izin : k.alpa));
+                                const tot = (k.hadir + k.sakit + k.izin + k.alpa) || 1;
+                                const pct = ((rawVal / tot) * 100).toFixed(1);
+                                if (currentKelasChartMode === 'pct') {
+                                    return ` ${context.dataset.label}: ${context.parsed.y}% (${rawVal.toLocaleString()} presensi)`;
+                                } else {
+                                    return ` ${context.dataset.label}: ${context.parsed.y.toLocaleString()} presensi (${pct}%)`;
+                                }
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        stacked: true,
+                        ticks: { autoSkip: false, maxRotation: 45, minRotation: 0 }
+                    },
+                    y: {
+                        stacked: true,
+                        beginAtZero: true,
+                        max: currentKelasChartMode === 'pct' ? 100 : undefined,
+                        ticks: {
+                            callback: function(val) {
+                                return currentKelasChartMode === 'pct' ? val + '%' : val.toLocaleString();
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Toggle mode Stacked Bar Chart Kelas (Nilai Absolut vs Persentase 100%)
+    $(document).on('click', '#btnKelasChartStackedVal', function() {
+        $('#btnKelasChartStackedPct').removeClass('active');
+        $(this).addClass('active');
+        currentKelasChartMode = 'val';
+        renderChartKelasStacked();
+    });
+
+    $(document).on('click', '#btnKelasChartStackedPct', function() {
+        $('#btnKelasChartStackedVal').removeClass('active');
+        $(this).addClass('active');
+        currentKelasChartMode = 'pct';
+        renderChartKelasStacked();
+    });
 
     // 4. Render Fluktuasi Kehadiran Per Kelas (Multi-line Chart)
     function renderChartFluktuasi(fluktuasiData) {
@@ -1652,7 +1919,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (row.Kehadiran === 'Hadir') { h++; badge = 'badge-success'; }
                     else if (row.Kehadiran === 'Sakit') { s++; badge = 'badge-info'; }
                     else if (row.Kehadiran === 'Izin') { i++; badge = 'badge-warning'; }
-                    else if (row.Kehadiran === 'Alpa') { a++; badge = 'badge-danger'; }
+                    else if (row.Kehadiran === 'Alpa' || row.Kehadiran === 'Alfa') { a++; badge = 'badge-danger'; }
 
                     html += `
                         <tr>
@@ -1677,6 +1944,9 @@ document.addEventListener('DOMContentLoaded', function() {
             $('#tbodyRiwayatDetail').html(`<tr><td colspan="5" class="text-center text-danger py-3">Gagal mengambil data riwayat.</td></tr>`);
         });
     });
+
+    // Pulihkan filter terakhir dari LocalStorage jika ada
+    restoreSavedFilters();
 
     // Inisialisasi awal saat halaman dimuat
     loadAnalyticsData();

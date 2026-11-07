@@ -289,7 +289,7 @@ class AbsensiModel extends Model
                 SUM(CASE WHEN a.Kehadiran = 'Hadir' THEN 1 ELSE 0 END) as total_hadir,
                 SUM(CASE WHEN a.Kehadiran = 'Sakit' THEN 1 ELSE 0 END) as total_sakit,
                 SUM(CASE WHEN a.Kehadiran = 'Izin' THEN 1 ELSE 0 END) as total_izin,
-                SUM(CASE WHEN a.Kehadiran = 'Alpa' THEN 1 ELSE 0 END) as total_alpa
+                SUM(CASE WHEN a.Kehadiran IN ('Alfa', 'Alpa') THEN 1 ELSE 0 END) as total_alpa
             ");
 
         $builderKpi->where('a.IdKelas !=', 10);
@@ -313,7 +313,11 @@ class AbsensiModel extends Model
             $builderKpi->where('a.IdTahunAjaran', $IdTahunAjaran);
         }
         if (!empty($statusKehadiran)) {
-            $builderKpi->where('a.Kehadiran', $statusKehadiran);
+            if (in_array(strtolower($statusKehadiran), ['alpa', 'alfa'])) {
+                $builderKpi->whereIn('a.Kehadiran', ['Alfa', 'Alpa']);
+            } else {
+                $builderKpi->where('a.Kehadiran', $statusKehadiran);
+            }
         }
 
         $kpi = $builderKpi->get()->getRowArray() ?: [
@@ -327,7 +331,7 @@ class AbsensiModel extends Model
                 SUM(CASE WHEN a.Kehadiran = 'Hadir' THEN 1 ELSE 0 END) as hadir,
                 SUM(CASE WHEN a.Kehadiran = 'Sakit' THEN 1 ELSE 0 END) as sakit,
                 SUM(CASE WHEN a.Kehadiran = 'Izin' THEN 1 ELSE 0 END) as izin,
-                SUM(CASE WHEN a.Kehadiran = 'Alpa' THEN 1 ELSE 0 END) as alpa,
+                SUM(CASE WHEN a.Kehadiran IN ('Alfa', 'Alpa') THEN 1 ELSE 0 END) as alpa,
                 COUNT(*) as total
             ")
             ->where('a.IdKelas !=', 10);
@@ -352,7 +356,11 @@ class AbsensiModel extends Model
             $builderTrend->where('a.IdTahunAjaran', $IdTahunAjaran);
         }
         if (!empty($statusKehadiran)) {
-            $builderTrend->where('a.Kehadiran', $statusKehadiran);
+            if (in_array(strtolower($statusKehadiran), ['alpa', 'alfa'])) {
+                $builderTrend->whereIn('a.Kehadiran', ['Alfa', 'Alpa']);
+            } else {
+                $builderTrend->where('a.Kehadiran', $statusKehadiran);
+            }
         }
 
         $trendHarian = $builderTrend->groupBy('a.Tanggal')->orderBy('a.Tanggal', 'ASC')->get()->getResultArray();
@@ -362,7 +370,7 @@ class AbsensiModel extends Model
             ->select("
                 a.Tanggal,
                 a.IdKelas,
-                k.NamaKelas,
+                MAX(k.NamaKelas) as NamaKelas,
                 SUM(CASE WHEN a.Kehadiran = 'Hadir' THEN 1 ELSE 0 END) as hadir,
                 COUNT(*) as total
             ")
@@ -389,7 +397,11 @@ class AbsensiModel extends Model
             $builderFluktuasi->where('a.IdTahunAjaran', $IdTahunAjaran);
         }
         if (!empty($statusKehadiran)) {
-            $builderFluktuasi->where('a.Kehadiran', $statusKehadiran);
+            if (in_array(strtolower($statusKehadiran), ['alpa', 'alfa'])) {
+                $builderFluktuasi->whereIn('a.Kehadiran', ['Alfa', 'Alpa']);
+            } else {
+                $builderFluktuasi->where('a.Kehadiran', $statusKehadiran);
+            }
         }
 
         $fluktuasiRaw = $builderFluktuasi->groupBy('a.Tanggal, a.IdKelas')
@@ -401,13 +413,13 @@ class AbsensiModel extends Model
         $builderRanking = $this->db->table('tbl_absensi_santri a')
             ->select("
                 a.IdKelas,
-                k.NamaKelas,
+                MAX(k.NamaKelas) as NamaKelas,
                 COUNT(*) as total,
                 COUNT(DISTINCT a.Tanggal) as jumlah_hari_efektif,
                 SUM(CASE WHEN a.Kehadiran = 'Hadir' THEN 1 ELSE 0 END) as hadir,
                 SUM(CASE WHEN a.Kehadiran = 'Sakit' THEN 1 ELSE 0 END) as sakit,
                 SUM(CASE WHEN a.Kehadiran = 'Izin' THEN 1 ELSE 0 END) as izin,
-                SUM(CASE WHEN a.Kehadiran = 'Alpa' THEN 1 ELSE 0 END) as alpa,
+                SUM(CASE WHEN a.Kehadiran IN ('Alfa', 'Alpa') THEN 1 ELSE 0 END) as alpa,
                 ROUND((SUM(CASE WHEN a.Kehadiran = 'Hadir' THEN 1 ELSE 0 END) / COUNT(*)) * 100, 1) as persentase_hadir
             ")
             ->join('tbl_kelas k', 'a.IdKelas = k.IdKelas', 'left')
@@ -433,7 +445,11 @@ class AbsensiModel extends Model
             $builderRanking->where('a.IdTahunAjaran', $IdTahunAjaran);
         }
         if (!empty($statusKehadiran)) {
-            $builderRanking->where('a.Kehadiran', $statusKehadiran);
+            if (in_array(strtolower($statusKehadiran), ['alpa', 'alfa'])) {
+                $builderRanking->whereIn('a.Kehadiran', ['Alfa', 'Alpa']);
+            } else {
+                $builderRanking->where('a.Kehadiran', $statusKehadiran);
+            }
         }
 
         $rankingKelasRaw = $builderRanking->groupBy('a.IdKelas')
@@ -674,14 +690,14 @@ class AbsensiModel extends Model
         $builderAbsensiTpq = $this->db->table('tbl_absensi_santri a')
             ->select("
                 a.IdTpq,
-                t.NamaTpq,
+                MAX(t.NamaTpq) as NamaTpq,
                 COUNT(*) as total_presensi,
                 COUNT(DISTINCT a.Tanggal) as jumlah_hari_aktif,
                 MAX(a.Tanggal) as terakhir_absen,
                 SUM(CASE WHEN a.Kehadiran = 'Hadir' THEN 1 ELSE 0 END) as hadir,
                 SUM(CASE WHEN a.Kehadiran = 'Sakit' THEN 1 ELSE 0 END) as sakit,
                 SUM(CASE WHEN a.Kehadiran = 'Izin' THEN 1 ELSE 0 END) as izin,
-                SUM(CASE WHEN a.Kehadiran = 'Alpa' THEN 1 ELSE 0 END) as alpa,
+                SUM(CASE WHEN a.Kehadiran IN ('Alfa', 'Alpa') THEN 1 ELSE 0 END) as alpa,
                 ROUND((SUM(CASE WHEN a.Kehadiran = 'Hadir' THEN 1 ELSE 0 END) / COUNT(*)) * 100, 1) as persentase_hadir
             ")
             ->join('tbl_tpq t', 'a.IdTpq = t.IdTpq', 'left')
@@ -707,7 +723,11 @@ class AbsensiModel extends Model
             $builderAbsensiTpq->where('a.IdTahunAjaran', $IdTahunAjaran);
         }
         if (!empty($statusKehadiran)) {
-            $builderAbsensiTpq->where('a.Kehadiran', $statusKehadiran);
+            if (in_array(strtolower($statusKehadiran), ['alpa', 'alfa'])) {
+                $builderAbsensiTpq->whereIn('a.Kehadiran', ['Alfa', 'Alpa']);
+            } else {
+                $builderAbsensiTpq->where('a.Kehadiran', $statusKehadiran);
+            }
         }
 
         $absensiTpqRaw = $builderAbsensiTpq->groupBy('a.IdTpq')->get()->getResultArray();
@@ -805,21 +825,55 @@ class AbsensiModel extends Model
             'max_hari_periode' => $maxHariTpq
         ];
 
+        // Hitung hari aktif/efektif per TPQ untuk baseline kalender Opsi B
+        $builderHariTpq = $this->db->table('tbl_absensi_santri a')
+            ->select('a.IdTpq, COUNT(DISTINCT a.Tanggal) as hari_efektif')
+            ->where('a.IdKelas !=', 10);
+
+        if (!empty($IdTpq) && $IdTpq != 0) {
+            $builderHariTpq->where('a.IdTpq', $IdTpq);
+        }
+        if (!empty($startDate)) {
+            $builderHariTpq->where('a.Tanggal >=', $startDate);
+        }
+        if (!empty($endDate)) {
+            $builderHariTpq->where('a.Tanggal <=', $endDate);
+        }
+        if (!empty($IdTahunAjaran)) {
+            $builderHariTpq->where('a.IdTahunAjaran', $IdTahunAjaran);
+        }
+
+        $hariTpqRows = $builderHariTpq->groupBy('a.IdTpq')->get()->getResultArray();
+        $hariEfektifTpqMap = [];
+        foreach ($hariTpqRows as $ht) {
+            $hariEfektifTpqMap[$ht['IdTpq']] = (int)$ht['hari_efektif'];
+        }
+
         // 5. Matriks Presensi Per Santri
-        $statusAbsenFilterSql = !empty($statusKehadiran) ? " AND a.Kehadiran = '{$statusKehadiran}'" : "";
+        $statusAbsenFilterSql = "";
+        if (!empty($statusKehadiran)) {
+            if (in_array(strtolower($statusKehadiran), ['alpa', 'alfa'])) {
+                $statusAbsenFilterSql = " AND a.Kehadiran IN ('Alfa', 'Alpa')";
+            } else {
+                $statusAbsenFilterSql = " AND a.Kehadiran = '{$statusKehadiran}'";
+            }
+        }
+
         $builderSantri = $this->db->table('tbl_santri_baru s')
             ->select("
                 s.IdSantri,
-                s.NamaSantri,
-                COALESCE(NULLIF(s.NoHpAyah, ''), NULLIF(s.NoHpIbu, ''), NULLIF(s.NoHpWali, ''), NULLIF(s.NoHpSantri, ''), '') as NoHpOrtu,
-                s.Active,
-                COALESCE(k.NamaKelas, 'Tanpa Kelas') as NamaKelas,
-                t.NamaTpq,
+                a.IdKelas,
+                MAX(s.NamaSantri) as NamaSantri,
+                MAX(COALESCE(NULLIF(s.NoHpAyah, ''), NULLIF(s.NoHpIbu, ''), NULLIF(s.NoHpWali, ''), NULLIF(s.NoHpSantri, ''), '')) as NoHpOrtu,
+                MAX(s.Active) as Active,
+                MAX(COALESCE(k.NamaKelas, 'Tanpa Kelas')) as NamaKelas,
+                MAX(COALESCE(s.IdTpq, a.IdTpq)) as IdTpq,
+                MAX(t.NamaTpq) as NamaTpq,
                 COUNT(a.Id) as total_absen,
                 SUM(CASE WHEN a.Kehadiran = 'Hadir' THEN 1 ELSE 0 END) as total_hadir,
                 SUM(CASE WHEN a.Kehadiran = 'Sakit' THEN 1 ELSE 0 END) as total_sakit,
                 SUM(CASE WHEN a.Kehadiran = 'Izin' THEN 1 ELSE 0 END) as total_izin,
-                SUM(CASE WHEN a.Kehadiran = 'Alpa' THEN 1 ELSE 0 END) as total_alpa
+                SUM(CASE WHEN a.Kehadiran IN ('Alfa', 'Alpa') THEN 1 ELSE 0 END) as total_alpa
             ")
             ->join('tbl_absensi_santri a', 's.IdSantri = a.IdSantri' . 
                 (!empty($startDate) ? " AND a.Tanggal >= '{$startDate}'" : "") .
@@ -844,15 +898,104 @@ class AbsensiModel extends Model
         }
 
         $santriRecap = $builderSantri->groupBy('s.IdSantri, a.IdKelas')
-            ->orderBy('k.IdKelas', 'ASC')
-            ->orderBy('s.NamaSantri', 'ASC')
+            ->orderBy('a.IdKelas', 'ASC')
+            ->orderBy('MAX(s.NamaSantri)', 'ASC')
             ->get()->getResultArray();
 
         foreach ($santriRecap as &$item) {
-            $totalAbsen = (int)$item['total_absen'];
+            $tpqId = $item['IdTpq'] ?? $IdTpq;
             $hadir = (int)$item['total_hadir'];
-            $item['persentase_hadir'] = $totalAbsen > 0 ? round(($hadir / $totalAbsen) * 100, 1) : 0;
+            $sakit = (int)$item['total_sakit'];
+            $izin = (int)$item['total_izin'];
+            $alfaCatat = (int)$item['total_alpa'];
+            $totalCatat = $hadir + $sakit + $izin + $alfaCatat;
+
+            if (empty($statusKehadiran)) {
+                // OPSI B: Samakan penyebut dengan Total Hari Efektif TPQ santri tersebut
+                $targetHari = !empty($hariEfektifTpqMap[$tpqId]) ? $hariEfektifTpqMap[$tpqId] : $totalCatat;
+                $targetHariFinal = max($targetHari, $totalCatat);
+
+                if ($targetHariFinal > $totalCatat) {
+                    $hariKosong = $targetHariFinal - $totalCatat;
+                    $alpaFinal = $alfaCatat + $hariKosong;
+                    $totalFinal = $targetHariFinal;
+                } else {
+                    $alpaFinal = $alfaCatat;
+                    $totalFinal = $totalCatat;
+                }
+            } else {
+                $alpaFinal = $alfaCatat;
+                $totalFinal = $totalCatat;
+            }
+
+            $item['total_absen'] = $totalFinal;
+            $item['total_alpa'] = $alpaFinal;
+            $item['persentase_hadir'] = $totalFinal > 0 ? round(($hadir / $totalFinal) * 100, 1) : 0;
         }
+        unset($item);
+
+        // Singkronkan KPI keseluruhan dengan Opsi B agar 100% konsisten dengan tabel rekap
+        if (empty($statusKehadiran) && !empty($santriRecap)) {
+            $kpiHadir = 0;
+            $kpiSakit = 0;
+            $kpiIzin = 0;
+            $kpiAlpa = 0;
+            $kpiTotal = 0;
+            foreach ($santriRecap as $s) {
+                $kpiHadir += (int)$s['total_hadir'];
+                $kpiSakit += (int)$s['total_sakit'];
+                $kpiIzin += (int)$s['total_izin'];
+                $kpiAlpa += (int)$s['total_alpa'];
+                $kpiTotal += (int)$s['total_absen'];
+            }
+            $kpi = [
+                'total_record' => $kpiTotal,
+                'total_hadir' => $kpiHadir,
+                'total_sakit' => $kpiSakit,
+                'total_izin' => $kpiIzin,
+                'total_alpa' => $kpiAlpa,
+            ];
+        }
+
+        // 6. Komposisi Presensi Per Kelas (Hadir, Sakit, Izin, Alpa berbobot Opsi B)
+        $komposisiKelasMap = [];
+        foreach ($santriRecap as $s) {
+            $idK = $s['IdKelas'];
+            if (!isset($komposisiKelasMap[$idK])) {
+                $komposisiKelasMap[$idK] = [
+                    'IdKelas' => $idK,
+                    'NamaKelas' => $s['NamaKelas'],
+                    'hadir' => 0,
+                    'sakit' => 0,
+                    'izin' => 0,
+                    'alpa' => 0,
+                    'total' => 0,
+                    'jumlah_santri' => 0,
+                    'jumlah_hari_efektif' => isset($absensiKelasMap[$idK]['jumlah_hari_efektif']) ? (int)$absensiKelasMap[$idK]['jumlah_hari_efektif'] : 0,
+                ];
+            }
+            $komposisiKelasMap[$idK]['hadir'] += (int)$s['total_hadir'];
+            $komposisiKelasMap[$idK]['sakit'] += (int)$s['total_sakit'];
+            $komposisiKelasMap[$idK]['izin'] += (int)$s['total_izin'];
+            $komposisiKelasMap[$idK]['alpa'] += (int)$s['total_alpa'];
+            $komposisiKelasMap[$idK]['total'] += (int)$s['total_absen'];
+            $komposisiKelasMap[$idK]['jumlah_santri']++;
+        }
+
+        $komposisiKelas = array_values($komposisiKelasMap);
+        foreach ($komposisiKelas as &$kls) {
+            $tot = $kls['total'];
+            $kls['persentase_hadir'] = $tot > 0 ? round(($kls['hadir'] / $tot) * 100, 1) : 0;
+            $kls['persentase_sakit'] = $tot > 0 ? round(($kls['sakit'] / $tot) * 100, 1) : 0;
+            $kls['persentase_izin'] = $tot > 0 ? round(($kls['izin'] / $tot) * 100, 1) : 0;
+            $kls['persentase_alpa'] = $tot > 0 ? round(($kls['alpa'] / $tot) * 100, 1) : 0;
+        }
+        unset($kls);
+
+        // Urutkan kelas sesuai urutan IdKelas
+        usort($komposisiKelas, function($a, $b) {
+            return ($a['IdKelas'] <=> $b['IdKelas']);
+        });
 
         return [
             'kpi' => $kpi,
@@ -863,6 +1006,7 @@ class AbsensiModel extends Model
             'summary_kerajinan' => $summaryKerajinan,
             'analitik_tpq' => $dataTpqAnalitik,
             'summary_tpq' => $summaryTpq,
+            'komposisi_kelas' => $komposisiKelas,
             'santri_recap' => $santriRecap
         ];
     }
@@ -891,4 +1035,200 @@ class AbsensiModel extends Model
         return $builder->orderBy('a.Tanggal', 'DESC')->get()->getResultArray();
     }
 
+    /**
+     * Mengambil daftar tanggal aktif TPQ yang belum diabsen per kelas (Konsep Opsi B)
+     * Mendukung periode: 'minggu_ini', 'minggu_kemarin', 'bulan', 'semester'
+     * Dilengkapi grouping per bulan untuk overview periode panjang (seperti semester)
+     */
+    public function getTanggalBelumAbsenPerKelasPeriode($IdTpq, $periode = 'bulan', $tanggalRef = null, $IdTahunAjaran = null)
+    {
+        if (empty($tanggalRef)) {
+            $tanggalRef = date('Y-m-d');
+        }
+
+        $hariIndo = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+        $bulanIndo = [
+            '01' => 'Januari', '02' => 'Februari', '03' => 'Maret',
+            '04' => 'April', '05' => 'Mei', '06' => 'Juni',
+            '07' => 'Juli', '08' => 'Agustus', '09' => 'September',
+            '10' => 'Oktober', '11' => 'November', '12' => 'Desember'
+        ];
+
+        $tsRef = strtotime($tanggalRef);
+        $dRef = date('d', $tsRef);
+        $mRef = date('m', $tsRef);
+        $yRef = date('Y', $tsRef);
+
+        // Tentukan startDate, endDate, dan label berdasarkan periode
+        switch ($periode) {
+            case 'minggu_ini':
+                $dayOfWeek = (int)date('N', $tsRef); // 1 (Senin) - 7 (Minggu)
+                $startDate = date('Y-m-d', strtotime('-' . ($dayOfWeek - 1) . ' days', $tsRef));
+                $endDate = date('Y-m-d', strtotime('+' . (7 - $dayOfWeek) . ' days', $tsRef));
+                $periodeLabel = 'Minggu Ini (' . date('d M', strtotime($startDate)) . ' - ' . date('d M Y', strtotime($endDate)) . ')';
+                break;
+
+            case 'minggu_kemarin':
+                $dayOfWeek = (int)date('N', $tsRef);
+                $seninIni = strtotime('-' . ($dayOfWeek - 1) . ' days', $tsRef);
+                $startDate = date('Y-m-d', strtotime('-7 days', $seninIni));
+                $endDate = date('Y-m-d', strtotime('+6 days', strtotime($startDate)));
+                $periodeLabel = 'Minggu Kemarin (' . date('d M', strtotime($startDate)) . ' - ' . date('d M Y', strtotime($endDate)) . ')';
+                break;
+
+            case 'semester':
+                $mInt = (int)$mRef;
+                if ($mInt >= 7) {
+                    $startDate = $yRef . '-07-01';
+                    $endDate = $yRef . '-12-31';
+                    $periodeLabel = 'Semester Ganjil ' . $yRef . ' (Juli - Des ' . $yRef . ')';
+                } else {
+                    $startDate = $yRef . '-01-01';
+                    $endDate = $yRef . '-06-30';
+                    $periodeLabel = 'Semester Genap ' . $yRef . ' (Jan - Jun ' . $yRef . ')';
+                }
+                break;
+
+            case 'bulan':
+            default:
+                $periode = 'bulan';
+                $startDate = date('Y-m-01', $tsRef);
+                $endDate = date('Y-m-t', $tsRef);
+                $periodeLabel = 'Bulan ' . ($bulanIndo[$mRef] ?? '') . ' ' . $yRef;
+                break;
+        }
+
+        $builder = $this->db->table('tbl_absensi_santri a')
+            ->select('a.IdKelas, a.Tanggal')
+            ->where('a.IdKelas !=', 10)
+            ->where('a.Tanggal >=', $startDate)
+            ->where('a.Tanggal <=', $endDate);
+
+        if (!empty($IdTpq) && $IdTpq != 0) {
+            $builder->where('a.IdTpq', $IdTpq);
+        }
+        if (!empty($IdTahunAjaran)) {
+            $builder->where('a.IdTahunAjaran', $IdTahunAjaran);
+        }
+
+        $rows = $builder->groupBy('a.IdKelas, a.Tanggal')->get()->getResultArray();
+
+        $semuaTanggalTpq = [];
+        $sudahAbsenMap = [];
+
+        foreach ($rows as $r) {
+            $tgl = $r['Tanggal'];
+            $idK = (int)$r['IdKelas'];
+            $semuaTanggalTpq[$tgl] = true;
+            $sudahAbsenMap[$idK][$tgl] = true;
+        }
+
+        ksort($semuaTanggalTpq);
+        $listTanggalTpq = array_keys($semuaTanggalTpq);
+        $totalHariAktif = count($listTanggalTpq);
+
+        // Kumpulkan daftar bulan unik yang ada di rentang tanggal aktif TPQ
+        $bulanAktifList = [];
+        foreach ($listTanggalTpq as $tgl) {
+            $bKey = substr($tgl, 0, 7); // Y-m
+            if (!isset($bulanAktifList[$bKey])) {
+                $bParts = explode('-', $bKey);
+                $bNama = ($bulanIndo[$bParts[1] ?? ''] ?? '') . ' ' . ($bParts[0] ?? '');
+                $bulanAktifList[$bKey] = [
+                    'bulan_key' => $bKey,
+                    'bulan_label' => $bNama,
+                    'tanggal_aktif' => []
+                ];
+            }
+            $bulanAktifList[$bKey]['tanggal_aktif'][] = $tgl;
+        }
+
+        // Struktur hasil per kelas
+        $hasilPerKelas = [];
+        $builderKelas = $this->db->table('tbl_kelas')
+            ->where('IdKelas !=', 10);
+        $allKelas = $builderKelas->get()->getResultArray();
+
+        foreach ($allKelas as $k) {
+            $idK = (int)$k['IdKelas'];
+            $sudahList = $sudahAbsenMap[$idK] ?? [];
+            $totalSudah = count($sudahList);
+
+            $belumList = [];
+            $groupedByMonth = [];
+
+            // Inisialisasi grup bulan dari bulanAktifList
+            foreach ($bulanAktifList as $bKey => $bMeta) {
+                $groupedByMonth[$bKey] = [
+                    'bulan_key' => $bKey,
+                    'bulan_label' => $bMeta['bulan_label'],
+                    'total_aktif' => count($bMeta['tanggal_aktif']),
+                    'total_sudah' => 0,
+                    'total_belum' => 0,
+                    'is_lengkap' => false,
+                    'tanggal_list' => []
+                ];
+            }
+
+            foreach ($listTanggalTpq as $tgl) {
+                $bKey = substr($tgl, 0, 7);
+                if (isset($sudahList[$tgl])) {
+                    if (isset($groupedByMonth[$bKey])) {
+                        $groupedByMonth[$bKey]['total_sudah']++;
+                    }
+                } else {
+                    $ts = strtotime($tgl);
+                    $dayIdx = (int)date('w', $ts);
+                    $d = date('d', $ts);
+                    $m = date('m', $ts);
+                    $y = date('Y', $ts);
+                    $tglItem = [
+                        'tanggal' => $tgl,
+                        'hari' => $hariIndo[$dayIdx],
+                        'formatted' => date('d/m/Y', $ts),
+                        'label' => $hariIndo[$dayIdx] . ', ' . $d . ' ' . ($bulanIndo[$m] ?? '') . ' ' . $y,
+                        'badge_label' => $hariIndo[$dayIdx] . ', ' . $d . '/' . $m
+                    ];
+
+                    $belumList[] = $tglItem;
+                    if (isset($groupedByMonth[$bKey])) {
+                        $groupedByMonth[$bKey]['total_belum']++;
+                        $groupedByMonth[$bKey]['tanggal_list'][] = $tglItem;
+                    }
+                }
+            }
+
+            foreach ($groupedByMonth as &$g) {
+                $g['is_lengkap'] = ($g['total_aktif'] > 0 && $g['total_belum'] === 0);
+            }
+            unset($g);
+
+            $hasilPerKelas[$idK] = [
+                'IdKelas' => $idK,
+                'total_hari_aktif_tpq' => $totalHariAktif,
+                'total_sudah_absen' => $totalSudah,
+                'total_belum_absen' => count($belumList),
+                'belum_absen_list' => $belumList,
+                'grouped_by_month' => array_values($groupedByMonth)
+            ];
+        }
+
+        return [
+            'periode' => $periode,
+            'periode_label' => $periodeLabel,
+            'start_date' => $startDate,
+            'end_date' => $endDate,
+            'total_hari_aktif_tpq' => $totalHariAktif,
+            'kelas_data' => $hasilPerKelas
+        ];
+    }
+
+    /**
+     * Mengambil daftar tanggal aktif TPQ pada bulan tertentu (Y-m) yang belum diabsen oleh masing-masing kelas (Konsep Opsi B)
+     */
+    public function getTanggalBelumAbsenPerKelasBulan($IdTpq, $bulan, $IdTahunAjaran = null)
+    {
+        $tanggalRef = $bulan . '-01';
+        return $this->getTanggalBelumAbsenPerKelasPeriode($IdTpq, 'bulan', $tanggalRef, $IdTahunAjaran);
+    }
 }

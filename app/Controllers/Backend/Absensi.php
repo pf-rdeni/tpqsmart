@@ -49,6 +49,11 @@ class Absensi extends BaseController
                 $namaK = is_object($kObj) ? $kObj->NamaKelas : $kObj['NamaKelas'];
                 $idTa = is_object($kObj) ? ($kObj->IdTahunAjaran ?? $IdTahunAjaran) : ($kObj['IdTahunAjaran'] ?? $IdTahunAjaran);
 
+                // Abaikan kelas Alumni
+                if ($idK == 10 || stripos($namaK ?? '', 'alumni') !== false) {
+                    continue;
+                }
+
                 $namaKelasOriginal = $namaK ?? '';
                 $mdaCheckResult = $this->helpFunction->checkMdaKelasMapping($IdTpq, $namaKelasOriginal);
                 $namaKelasMapped = $this->helpFunction->convertKelasToMda(
@@ -73,9 +78,15 @@ class Absensi extends BaseController
 
         foreach ($santriList as $santriObj) {
             $idKelasSantri = $santriObj->IdKelas;
+            $namaKelasOriginal = $santriObj->NamaKelas ?? '';
+
+            // Abaikan santri kelas Alumni
+            if ($idKelasSantri == 10 || stripos($namaKelasOriginal, 'alumni') !== false) {
+                continue;
+            }
+
             if (!isset($kelasListAll[$idKelasSantri])) {
                 // Konversi nama kelas menjadi MDA jika sesuai dengan mapping
-                $namaKelasOriginal = $santriObj->NamaKelas ?? '';
                 $mdaCheckResult = $this->helpFunction->checkMdaKelasMapping($IdTpq, $namaKelasOriginal);
                 $namaKelasMapped = $this->helpFunction->convertKelasToMda(
                     $namaKelasOriginal,
@@ -105,31 +116,53 @@ class Absensi extends BaseController
             }
         }
 
-        // Filter santri yang belum ada absensinya pada tanggal yang dipilih dan konversi nama kelas ke MDA
-        $santri = [];
-        foreach ($santriList as $santriObj) {
-            // Cek apakah absensi sudah ada untuk santri ini pada tanggal yang dipilih
-            $cekAbsensi = $absensiModel
-                ->where('IdSantri', $santriObj->IdSantri)
-                ->where('Tanggal', $tanggal)
-                ->first();
-
-            // Jika belum ada absensi, masukkan santri ke dalam daftar
-            if (!$cekAbsensi) {
-                // Konversi nama kelas menjadi MDA jika sesuai dengan mapping
-                $namaKelasOriginal = $santriObj->NamaKelas ?? '';
-                $mdaCheckResult = $this->helpFunction->checkMdaKelasMapping($IdTpq, $namaKelasOriginal);
-                $santriObj->NamaKelas = $this->helpFunction->convertKelasToMda(
-                    $namaKelasOriginal,
-                    $mdaCheckResult['mappedMdaKelas']
-                );
-
-                $santri[] = $santriObj;
+        // Ambil semua data absensi santri pada tanggal yang dipilih sekaligus (efisien & cepat)
+        $builderAbsensiHariIni = $absensiModel->where('Tanggal', $tanggal);
+        if (!empty($IdTpq)) {
+            $builderAbsensiHariIni->where('IdTpq', $IdTpq);
+        }
+        $listAbsensiHariIni = $builderAbsensiHariIni->findAll();
+        $mapAbsensiSantri = [];
+        foreach ($listAbsensiHariIni as $ab) {
+            $idS = is_array($ab) ? ($ab['IdSantri'] ?? null) : ($ab->IdSantri ?? null);
+            if ($idS) {
+                $mapAbsensiSantri[$idS] = $ab;
             }
         }
 
-        // Ambil semua data kelas untuk dropdown filter
-        $kelas = $kelasModel->findAll();
+        // Siapkan daftar santri (semua santri non-alumni tetap disertakan, baik sudah absen maupun belum)
+        $santri = [];
+        foreach ($santriList as $santriObj) {
+            $idKelasSantri = $santriObj->IdKelas;
+            $namaKelasOriginal = $santriObj->NamaKelas ?? '';
+
+            // Abaikan santri kelas Alumni
+            if ($idKelasSantri == 10 || stripos($namaKelasOriginal, 'alumni') !== false) {
+                continue;
+            }
+
+            // Ambil data absensi jika santri sudah tercatat pada tanggal yang dipilih
+            $cekAbsensi = $mapAbsensiSantri[$santriObj->IdSantri] ?? null;
+            $santriObj->SudahDiabsen = !empty($cekAbsensi);
+            $santriObj->Kehadiran = $cekAbsensi ? (is_array($cekAbsensi) ? ($cekAbsensi['Kehadiran'] ?? 'Hadir') : ($cekAbsensi->Kehadiran ?? 'Hadir')) : 'Hadir';
+            $santriObj->Keterangan = $cekAbsensi ? (is_array($cekAbsensi) ? ($cekAbsensi['Keterangan'] ?? '') : ($cekAbsensi->Keterangan ?? '')) : '';
+
+            // Konversi nama kelas menjadi MDA jika sesuai dengan mapping
+            $mdaCheckResult = $this->helpFunction->checkMdaKelasMapping($IdTpq, $namaKelasOriginal);
+            $santriObj->NamaKelas = $this->helpFunction->convertKelasToMda(
+                $namaKelasOriginal,
+                $mdaCheckResult['mappedMdaKelas']
+            );
+
+            $santri[] = $santriObj;
+        }
+
+        // Ambil semua data kelas untuk dropdown filter (Kecualikan Alumni)
+        $kelas = array_values(array_filter($kelasModel->findAll(), function($k) {
+            $id = is_array($k) ? $k['IdKelas'] : $k->IdKelas;
+            $nama = is_array($k) ? ($k['NamaKelas'] ?? '') : ($k->NamaKelas ?? '');
+            return $id != 10 && stripos($nama, 'alumni') === false;
+        }));
 
         // Ambil data guru yang mengabsen untuk setiap kelas pada tanggal tertentu
         $guruAbsensi = [];
@@ -170,6 +203,41 @@ class Absensi extends BaseController
             }
         }
 
+        // Ambil rekap kehadiran per kelas pada tanggal yang dipilih untuk info card di atas
+        $builderRekapTgl = $absensiModel->db->table('tbl_absensi_santri a')
+            ->select("
+                a.IdKelas,
+                COUNT(*) as total_absen,
+                SUM(CASE WHEN a.Kehadiran = 'Hadir' THEN 1 ELSE 0 END) as hadir,
+                SUM(CASE WHEN a.Kehadiran = 'Sakit' THEN 1 ELSE 0 END) as sakit,
+                SUM(CASE WHEN a.Kehadiran = 'Izin' THEN 1 ELSE 0 END) as izin,
+                SUM(CASE WHEN a.Kehadiran IN ('Alfa', 'Alpa') THEN 1 ELSE 0 END) as alfa
+            ")
+            ->where('a.Tanggal', $tanggal)
+            ->where('a.IdKelas !=', 10);
+
+        if (!empty($IdTpq)) {
+            $builderRekapTgl->where('a.IdTpq', $IdTpq);
+        }
+        if (!empty($IdTahunAjaran)) {
+            $builderRekapTgl->where('a.IdTahunAjaran', $IdTahunAjaran);
+        }
+        $rekapRows = $builderRekapTgl->groupBy('a.IdKelas')->get()->getResultArray();
+        $statusAbsensiKelasMap = [];
+        foreach ($rekapRows as $r) {
+            $statusAbsensiKelasMap[$r['IdKelas']] = [
+                'total_absen' => (int)$r['total_absen'],
+                'hadir' => (int)$r['hadir'],
+                'sakit' => (int)$r['sakit'],
+                'izin' => (int)$r['izin'],
+                'alfa' => (int)$r['alfa'],
+            ];
+        }
+
+        // Ambil info tanggal aktif TPQ yang belum diabsen per kelas berdasarkan periode (Konsep Opsi B)
+        $periodeDipilih = $this->request->getGet('periode') ?: 'bulan';
+        $tanggalBelumAbsenInfo = $absensiModel->getTanggalBelumAbsenPerKelasPeriode($IdTpq, $periodeDipilih, $tanggal, $IdTahunAjaran);
+
         // Data yang akan dikirim ke view
         $data = [
             'page_title' => 'Absensi Santri',
@@ -180,6 +248,8 @@ class Absensi extends BaseController
             'tanggal_hari_ini' => $tanggalHariIni,
             'kelas_list_all' => $kelasListAll, // Kirim semua kelas untuk menampilkan tab
             'guru_absensi' => $guruAbsensi, // Kirim data guru yang mengabsen
+            'status_absensi_kelas' => $statusAbsensiKelasMap, // Rekap status absensi per kelas pada tanggal dipilih
+            'tanggal_belum_absen_info' => $tanggalBelumAbsenInfo, // Info tanggal belum absen (Opsi B)
             'total_santri_semua' => $totalSantriSemua,
             'total_laki_semua' => $totalLakiSemua,
             'total_perempuan_semua' => $totalPerempuanSemua
@@ -428,50 +498,36 @@ class Absensi extends BaseController
         log_message('debug', '[ABSENSI AJAX] Session - IdGuru: ' . $IdGuru);
         log_message('debug', '[ABSENSI AJAX] Session - IdTahunAjaran: ' . $IdTahunAjaran);
 
-        if (empty($IdKelas) || empty($tanggal)) {
-            log_message('error', '[ABSENSI AJAX] Missing parameters - IdKelas: ' . $IdKelas . ', Tanggal: ' . $tanggal);
+        if (empty($IdKelas) || empty($tanggal) || $IdKelas == 10) {
+            log_message('error', '[ABSENSI AJAX] Missing parameters or Alumni class - IdKelas: ' . $IdKelas . ', Tanggal: ' . $tanggal);
             return $this->response->setJSON([
                 'success' => false,
-                'message' => 'IdKelas dan tanggal harus diisi'
+                'message' => 'IdKelas tidak valid atau merupakan kelas alumni'
             ]);
         }
 
         // Ambil data santri berdasarkan kelas
         $santriList = $santriModel->GetDataSantriPerKelas($IdTpq, $IdTahunAjaran, $IdKelas, $IdGuru);
 
-        // Filter santri yang belum ada absensinya pada tanggal yang dipilih dan konversi nama kelas ke MDA
-        $santri = [];
-        foreach ($santriList as $santriObj) {
-            // Cek apakah absensi sudah ada untuk santri ini pada tanggal yang dipilih
-            $cekAbsensi = $absensiModel
-                ->where('IdSantri', $santriObj->IdSantri)
-                ->where('Tanggal', $tanggal)
-                ->first();
-
-            // Jika belum ada absensi, masukkan santri ke dalam daftar
-            if (!$cekAbsensi) {
-                // Konversi nama kelas menjadi MDA jika sesuai dengan mapping
-                $namaKelasOriginal = $santriObj->NamaKelas ?? '';
-                $mdaCheckResult = $this->helpFunction->checkMdaKelasMapping($IdTpq, $namaKelasOriginal);
-                $santriObj->NamaKelas = $this->helpFunction->convertKelasToMda(
-                    $namaKelasOriginal,
-                    $mdaCheckResult['mappedMdaKelas']
-                );
-
-                $santri[] = $santriObj;
+        // Ambil data absensi pada tanggal dan kelas ini sekaligus (1 query)
+        $builderAbsensi = $absensiModel
+            ->where('IdKelas', $IdKelas)
+            ->where('Tanggal', $tanggal);
+        if (!empty($IdTpq)) {
+            $builderAbsensi->where('IdTpq', $IdTpq);
+        }
+        $listAbsensi = $builderAbsensi->findAll();
+        $mapAbsensi = [];
+        foreach ($listAbsensi as $ab) {
+            $idS = is_array($ab) ? ($ab['IdSantri'] ?? null) : ($ab->IdSantri ?? null);
+            if ($idS) {
+                $mapAbsensi[$idS] = $ab;
             }
         }
 
-        log_message('debug', '[ABSENSI AJAX] Total santri from query: ' . count($santriList));
-        log_message('debug', '[ABSENSI AJAX] Santri belum diabsen: ' . count($santri));
-
         // Ambil data guru yang mengabsen untuk kelas ini pada tanggal tertentu
         $namaGuru = null;
-        $absensiRecord = $absensiModel
-            ->where('IdKelas', $IdKelas)
-            ->where('Tanggal', $tanggal)
-            ->where('IdTpq', $IdTpq)
-            ->first();
+        $absensiRecord = !empty($listAbsensi) ? $listAbsensi[0] : null;
 
         if ($absensiRecord) {
             // Ambil IdGuru dari record (bisa array atau object)
@@ -491,7 +547,7 @@ class Absensi extends BaseController
                         // Tambahkan prefix berdasarkan jenis kelamin (case-insensitive)
                         $jenisKelaminLower = strtolower($jenisKelamin ?? '');
                         if (stripos($jenisKelaminLower, 'l') === 0 || stripos($jenisKelaminLower, 'laki') !== false) {
-                            $namaGuru = 'Ustad ' . $namaGuru;
+                            $namaGuru = 'Ustadz ' . $namaGuru;
                         } elseif (stripos($jenisKelaminLower, 'p') === 0 || stripos($jenisKelaminLower, 'perempuan') !== false) {
                             $namaGuru = 'Ustadzah ' . $namaGuru;
                         }
@@ -500,21 +556,47 @@ class Absensi extends BaseController
             }
         }
 
-        // Format data untuk response
+        // Format data untuk response (sertakan SEMUA santri kelas, lengkap dengan status kehadiran tersimpan)
         $santriData = [];
-        foreach ($santri as $row) {
+        $totalSudahAbsen = 0;
+        foreach ($santriList as $santriObj) {
+            $idKelasSantri = $santriObj->IdKelas;
+            $namaKelasOriginal = $santriObj->NamaKelas ?? '';
+
+            // Abaikan santri kelas Alumni
+            if ($idKelasSantri == 10 || stripos($namaKelasOriginal, 'alumni') !== false) {
+                continue;
+            }
+
+            $cekAbsensi = $mapAbsensi[$santriObj->IdSantri] ?? null;
+            $sudahDiabsen = !empty($cekAbsensi);
+            if ($sudahDiabsen) {
+                $totalSudahAbsen++;
+            }
+            $kehadiran = $cekAbsensi ? (is_array($cekAbsensi) ? ($cekAbsensi['Kehadiran'] ?? 'Hadir') : ($cekAbsensi->Kehadiran ?? 'Hadir')) : 'Hadir';
+            $keterangan = $cekAbsensi ? (is_array($cekAbsensi) ? ($cekAbsensi['Keterangan'] ?? '') : ($cekAbsensi->Keterangan ?? '')) : '';
+
+            // Konversi nama kelas menjadi MDA jika sesuai dengan mapping
+            $mdaCheckResult = $this->helpFunction->checkMdaKelasMapping($IdTpq, $namaKelasOriginal);
+            $namaKelasMapped = $this->helpFunction->convertKelasToMda(
+                $namaKelasOriginal,
+                $mdaCheckResult['mappedMdaKelas']
+            );
+
             $santriData[] = [
-                'IdSantri' => $row->IdSantri,
-                'NamaSantri' => $row->NamaSantri,
-                'PhotoProfil' => $row->PhotoProfil ?? '',
-                'JenisKelamin' => $row->JenisKelamin ?? '',
-                'NamaKelas' => $row->NamaKelas
+                'IdSantri' => $santriObj->IdSantri,
+                'NamaSantri' => $santriObj->NamaSantri,
+                'PhotoProfil' => $santriObj->PhotoProfil ?? '',
+                'JenisKelamin' => $santriObj->JenisKelamin ?? '',
+                'NamaKelas' => $namaKelasMapped,
+                'Kehadiran' => $kehadiran,
+                'Keterangan' => $keterangan,
+                'SudahDiabsen' => $sudahDiabsen
             ];
         }
 
-        $totalSantriKelas = count($santriList);
-        $totalBelumAbsen = count($santriData);
-        $totalSudahAbsen = $totalSantriKelas - $totalBelumAbsen;
+        $totalSantriKelas = count($santriData);
+        $totalBelumAbsen = $totalSantriKelas - $totalSudahAbsen;
 
         $response = [
             'success' => true,
@@ -523,9 +605,10 @@ class Absensi extends BaseController
             'total_santri' => $totalSantriKelas,
             'belum_absen' => $totalBelumAbsen,
             'sudah_absen' => $totalSudahAbsen,
+            'is_semua_absen' => ($totalSantriKelas > 0 && $totalSudahAbsen >= $totalSantriKelas),
             'tanggal' => $tanggal,
             'IdKelas' => $IdKelas,
-            'nama_guru' => $namaGuru // Tambahkan nama guru
+            'nama_guru' => $namaGuru
         ];
 
         log_message('debug', '[ABSENSI AJAX] Response count: ' . count($santriData));
@@ -854,8 +937,9 @@ class Absensi extends BaseController
             $helpFunction = new HelpFunctionModel();
             $db = db_connect();
 
-            // Ambil daftar kelas yang diajar oleh guru ini
-            $kelasList = $helpFunction->getListKelas($IdTpq, $IdTahunAjaran, null, $IdGuru, false);
+            // Ambil daftar kelas yang diajar oleh guru ini (atau semua kelas jika operator/admin)
+            $isOperator = session()->get('role') === 'Operator' || session()->get('role') === 'Admin' || in_groups('Admin');
+            $kelasList = $helpFunction->getListKelas($IdTpq, $IdTahunAjaran, null, $IdGuru, $isOperator);
             
             $statusKelas = [];
             
@@ -863,7 +947,7 @@ class Absensi extends BaseController
                 $IdKelas = is_array($kelas) ? ($kelas['IdKelas'] ?? null) : ($kelas->IdKelas ?? null);
                 $NamaKelas = is_array($kelas) ? ($kelas['NamaKelas'] ?? null) : ($kelas->NamaKelas ?? null);
                 
-                if (!$IdKelas || !$NamaKelas) {
+                if (!$IdKelas || !$NamaKelas || $IdKelas == 10 || stripos($NamaKelas, 'alumni') !== false) {
                     continue;
                 }
 
@@ -912,7 +996,8 @@ class Absensi extends BaseController
                             $jumlahSakit = $jumlah;
                             break;
                         case 'alfa':
-                            $jumlahAlfa = $jumlah;
+                        case 'alpa':
+                            $jumlahAlfa += $jumlah;
                             break;
                     }
                 }
@@ -972,6 +1057,40 @@ class Absensi extends BaseController
             return $this->response->setJSON([
                 'success' => false,
                 'message' => 'Gagal mengambil status absensi: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * AJAX endpoint untuk mendapatkan daftar tanggal aktif TPQ yang belum diabsen per kelas (Konsep Opsi B)
+     */
+    public function getTanggalBelumAbsenPerKelas()
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Invalid request - must be AJAX'
+            ]);
+        }
+
+        try {
+            $absensiModel = new AbsensiModel();
+            $IdTpq = session()->get('IdTpq');
+            $IdTahunAjaran = session()->get('IdTahunAjaran');
+
+            $tanggal = $this->request->getGet('tanggal') ?: date('Y-m-d');
+            $periode = $this->request->getGet('periode') ?: 'bulan';
+
+            $info = $absensiModel->getTanggalBelumAbsenPerKelasPeriode($IdTpq, $periode, $tanggal, $IdTahunAjaran);
+
+            return $this->response->setJSON([
+                'success' => true,
+                'data' => $info
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal mengambil data tanggal belum absen: ' . $e->getMessage()
             ]);
         }
     }

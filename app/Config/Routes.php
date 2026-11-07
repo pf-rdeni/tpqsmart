@@ -721,6 +721,7 @@ $routes->post('presensi/hadir', 'AbsensiGuru::hadir');
 
 // Public Student Attendance (Link)
 $routes->get('absensi/haskey/logout/(:segment)', 'Frontend\AbsensiSantri::logout/$1');
+$routes->get('absensi/haskey/getTanggalBelumAbsen', 'Frontend\AbsensiSantri::getTanggalBelumAbsen');
 $routes->get('absensi/haskey/(:segment)', 'Frontend\AbsensiSantri::index/$1');
 $routes->post('absensi/haskey/simpan', 'Frontend\AbsensiSantri::simpanAbsensi');
 $routes->post('absensi/haskey/update', 'Frontend\AbsensiSantri::updateSingleAbsensi');

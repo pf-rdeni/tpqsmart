@@ -248,6 +248,50 @@ class AbsensiSantri extends BaseController
             }
         }
         
+        $periodeDipilih = $this->request->getGet('periode') ?: 'bulan';
+        $tanggalBelumAbsenInfo = $this->absensiModel->getTanggalBelumAbsenPerKelasPeriode($IdTpq, $periodeDipilih, $tanggal, $IdTahunAjaran);
+
+        // Hitung statistik kehadiran santri pada tanggal & kelas yang dipilih
+        $totalSantriKelas = count($santri) + count($santriSudahAbsen);
+        $countHadir = 0;
+        $countIzin = 0;
+        $countSakit = 0;
+        $countAlfa = 0;
+        $totalSudahAbsen = count($santriSudahAbsen);
+        $totalBelumAbsen = count($santri);
+
+        foreach ($santriSudahAbsen as $sObj) {
+            $k = strtolower(trim($sObj->Kehadiran ?? ''));
+            if ($k === 'hadir') {
+                $countHadir++;
+            } elseif ($k === 'izin') {
+                $countIzin++;
+            } elseif ($k === 'sakit') {
+                $countSakit++;
+            } elseif ($k === 'alfa' || $k === 'alpa') {
+                $countAlfa++;
+            }
+        }
+
+        $statusPresensi = 'belum';
+        if ($totalSudahAbsen > 0) {
+            $statusPresensi = ($totalBelumAbsen === 0) ? 'lengkap' : 'sebagian';
+        }
+
+        $persenHadir = ($totalSantriKelas > 0) ? round(($countHadir / $totalSantriKelas) * 100) : 0;
+
+        $statAbsensiKelas = [
+            'total_santri' => $totalSantriKelas,
+            'sudah_absen' => $totalSudahAbsen,
+            'belum_absen' => $totalBelumAbsen,
+            'hadir' => $countHadir,
+            'izin' => $countIzin,
+            'sakit' => $countSakit,
+            'alfa' => $countAlfa,
+            'persen_hadir' => $persenHadir,
+            'status' => $statusPresensi
+        ];
+
         $data = [
             'page_title' => 'Absensi Santri Public',
             'santri' => $santri,
@@ -261,7 +305,10 @@ class AbsensiSantri extends BaseController
             'IdGuru' => $IdGuru,
             'IdTahunAjaran' => $IdTahunAjaran,
             'absensi_recorder' => $absensiRecorder,
-            'IdTpq' => $IdTpq
+            'IdTpq' => $IdTpq,
+            'tanggal_belum_absen_info' => $tanggalBelumAbsenInfo,
+            'periode_dipilih' => $periodeDipilih,
+            'stat_absensi_kelas' => $statAbsensiKelas
         ];
         
         return view('frontend/absensi/absensiSantri', $data);
@@ -444,6 +491,31 @@ class AbsensiSantri extends BaseController
             return $this->response->setJSON([
                 'success' => false,
                 'message' => 'Gagal memperbarui: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * AJAX endpoint untuk mendapatkan daftar tanggal aktif TPQ yang belum diabsen (Public Link)
+     */
+    public function getTanggalBelumAbsen()
+    {
+        try {
+            $IdTpq = $this->request->getGet('IdTpq');
+            $IdTahunAjaran = $this->request->getGet('IdTahunAjaran');
+            $tanggal = $this->request->getGet('tanggal') ?: date('Y-m-d');
+            $periode = $this->request->getGet('periode') ?: 'bulan';
+
+            $info = $this->absensiModel->getTanggalBelumAbsenPerKelasPeriode($IdTpq, $periode, $tanggal, $IdTahunAjaran);
+
+            return $this->response->setJSON([
+                'success' => true,
+                'data' => $info
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal mengambil data tanggal belum absen: ' . $e->getMessage()
             ]);
         }
     }
