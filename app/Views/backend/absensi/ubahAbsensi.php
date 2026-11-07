@@ -359,8 +359,8 @@
             totalAbsenSemuaKelas += (parseInt(k.totalAbsen) || 0);
         });
 
-        // Tampilkan tombol batal jika ada absensi yang tercatat pada tanggal ini
-        if (totalAbsenSemuaKelas > 0) {
+        // Tombol Batal Seluruh Kelas HANYA untuk Admin / Operator Lembaga
+        if (isOperator && totalAbsenSemuaKelas > 0) {
             $('#containerBatalSemua').show();
         } else {
             $('#containerBatalSemua').hide();
@@ -393,9 +393,9 @@
                 guruInfo = `<small class="text-muted d-block mt-1"><i class="fas fa-user"></i> Oleh: ${kelas.namaGuru}</small>`;
             }
 
-            // Tombol Batalkan Absensi Per Kelas jika kelas ini sudah ada absensinya
+            // Tombol Batalkan Absensi Per Kelas HANYA untuk Admin / Operator Lembaga
             let btnBatalPerKelas = '';
-            if (kelas.totalAbsen > 0) {
+            if (isOperator && kelas.totalAbsen > 0) {
                 btnBatalPerKelas = `
                     <div class="mt-2">
                         <button type="button" class="btn btn-sm btn-outline-danger btn-block" onclick="konfirmasiBatalkanAbsensi('${kelas.IdKelas}', '${kelas.NamaKelas}')">

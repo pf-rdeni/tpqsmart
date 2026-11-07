@@ -914,14 +914,49 @@ class Absensi extends BaseController
     }
 
     /**
+     * Helper privat untuk mengecek apakah user saat ini bertindak sebagai Admin atau Operator
+     * Memastikan guru tidak pernah dianggap sebagai operator.
+     */
+    private function checkIsOperatorOrAdmin()
+    {
+        $activeRole = session()->get('active_role');
+        
+        // 1. Jika active_role secara eksplisit adalah guru / wali_kelas, maka PASTI GURU (bukan operator)
+        if (in_array($activeRole, ['guru', 'wali_kelas'])) {
+            return false;
+        }
+
+        // 2. Jika active_role secara eksplisit adalah admin atau operator
+        if ($activeRole === 'admin' && in_groups('Admin')) {
+            return true;
+        }
+        if ($activeRole === 'operator' && in_groups('Operator')) {
+            return true;
+        }
+
+        // 3. Jika active_role kosong (fallback)
+        if (empty($activeRole)) {
+            // Prioritas: Jika punya group Guru dan bukan murni Admin, anggap Guru
+            if (in_groups('Guru') && !in_groups('Admin')) {
+                return false;
+            }
+            if (in_groups('Admin')) {
+                return true;
+            }
+            if (in_groups('Operator')) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Halaman untuk mengubah absensi santri
      */
     public function ubahAbsensi()
     {
-        $activeRole = session()->get('active_role');
-        $isOperator = in_groups('Admin') || in_groups('Operator') || 
-                      session()->get('role') === 'Operator' || session()->get('role') === 'Admin' ||
-                      $activeRole === 'operator' || $activeRole === 'admin';
+        $isOperator = $this->checkIsOperatorOrAdmin();
 
         $data = [
             'page_title' => 'Ubah Absensi Santri',
@@ -962,10 +997,7 @@ class Absensi extends BaseController
             $db = db_connect();
 
             // Ambil daftar kelas yang diajar oleh guru ini (atau semua kelas jika operator/admin)
-            $activeRole = session()->get('active_role');
-            $isOperator = in_groups('Admin') || in_groups('Operator') || 
-                          session()->get('role') === 'Operator' || session()->get('role') === 'Admin' ||
-                          $activeRole === 'operator' || $activeRole === 'admin';
+            $isOperator = $this->checkIsOperatorOrAdmin();
             $kelasList = $helpFunction->getListKelas($IdTpq, $IdTahunAjaran, null, $IdGuru, $isOperator);
             
             $statusKelas = [];
@@ -1105,10 +1137,7 @@ class Absensi extends BaseController
         }
 
         // Validasi Otorisasi: Hanya Admin atau Operator
-        $activeRole = session()->get('active_role');
-        $isOperator = in_groups('Admin') || in_groups('Operator') || 
-                      session()->get('role') === 'Operator' || session()->get('role') === 'Admin' ||
-                      $activeRole === 'operator' || $activeRole === 'admin';
+        $isOperator = $this->checkIsOperatorOrAdmin();
         if (!$isOperator) {
             return $this->response->setStatusCode(403)->setJSON([
                 'success' => false,
