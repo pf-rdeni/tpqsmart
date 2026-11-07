@@ -13,8 +13,8 @@
                     <a href="<?= base_url('backend/absensi') ?>" class="btn btn-sm btn-primary mr-2" title="Kelola / Edit Data Absensi Santri">
                         <i class="fas fa-edit mr-1"></i> <span class="d-none d-sm-inline">Edit Absensi</span>
                     </a>
-                    <button type="button" class="btn btn-sm btn-outline-secondary mr-2" data-toggle="modal" data-target="#modalThresholdSetting" title="Konfigurasi Ambang Batas Santri At-Risk">
-                        <i class="fas fa-sliders-h text-warning mr-1"></i> <span class="d-none d-sm-inline">Atur Batas Warning</span>
+                    <button type="button" class="btn btn-sm btn-outline-secondary mr-2" data-toggle="modal" data-target="#modalThresholdSetting" title="Konfigurasi Ambang Batas Evaluasi Presensi">
+                        <i class="fas fa-sliders-h text-warning mr-1"></i> <span class="d-none d-sm-inline">Atur Batas Evaluasi</span>
                     </button>
                     <button type="button" class="btn btn-tool" data-card-widget="collapse">
                         <i class="fas fa-minus"></i>
@@ -448,57 +448,123 @@
         </div>
     </div>
 
-    <!-- ROW 4: EARLY WARNING RADAR (SANTRI AT-RISK) -->
-    <div class="card card-outline card-danger shadow-sm mb-3">
-        <div class="card-header py-2 d-flex justify-content-between align-items-center">
-            <h3 class="card-title font-weight-bold text-danger">
-                <i class="fas fa-exclamation-triangle mr-1"></i> Radar Early Warning: Santri Butuh Perhatian (At-Risk)
-            </h3>
+    <!-- ROW 3.7: CARD MATRIKS SUMMARY KELAS & TOP 10 SANTRI PER KELAS -->
+    <div class="card card-outline card-info shadow-sm mb-3" id="cardMatriksTop10">
+        <div class="card-header py-2 d-flex justify-content-between align-items-center flex-wrap">
+            <div class="d-flex align-items-center mb-1 mb-md-0">
+                <h3 class="card-title font-weight-bold text-dark mb-0 mr-2">
+                    <i class="fas fa-users-cog text-info mr-1"></i> Rekapitulasi Kelas & Top 10 Santri
+                </h3>
+                <small class="text-muted d-none d-md-inline" title="Ringkasan agregat presensi per kelas dan daftar 10 santri terpilih per kelas">
+                    (Izin, Sakit & Alfa)
+                </small>
+            </div>
             <div class="card-tools d-flex align-items-center">
-                <span class="badge badge-danger mr-2" id="badgeTotalAtRisk">0 Santri</span>
-                <a href="<?= base_url('backend/absensi') ?>" class="btn btn-xs btn-outline-danger mr-2" title="Buka Halaman Edit Absensi">
-                    <i class="fas fa-edit mr-1"></i> Edit Absensi
-                </a>
+                <!-- Sorting Mode Toggle untuk Top 10 -->
+                <div class="btn-group btn-group-sm mr-2" role="group" id="btnGroupSortTop10">
+                    <button type="button" class="btn btn-danger active" data-sort="ketidakhadiran" title="Urutkan santri dengan ketidakhadiran terbanyak (Alfa, Izin, Sakit)">
+                        <i class="fas fa-user-times mr-1"></i> Ketidakhadiran Terbanyak
+                    </button>
+                    <button type="button" class="btn btn-outline-success" data-sort="disiplin" title="Urutkan santri dengan kehadiran tertinggi (Top Hadir)">
+                        <i class="fas fa-user-check mr-1"></i> Terdisiplin
+                    </button>
+                </div>
                 <button type="button" class="btn btn-tool" data-card-widget="collapse">
                     <i class="fas fa-minus"></i>
                 </button>
             </div>
         </div>
-        <div class="card-body p-0">
-            <div class="px-3 py-2 bg-light border-bottom text-muted small d-flex justify-content-between flex-wrap">
-                <span>Kriteria Santri Berisiko: Kehadiran &lt; <strong id="lblThresholdPct">75%</strong> ATAU Alpa &gt;= <strong id="lblThresholdAlpa">3x</strong> pada periode ini.</span>
-                <a href="javascript:void(0)" data-toggle="modal" data-target="#modalThresholdSetting" class="text-primary font-weight-bold">
-                    <i class="fas fa-edit mr-1"></i> Ubah Ambang Batas
-                </a>
-            </div>
-            <div class="table-responsive" style="max-height: 280px;">
-                <table class="table table-hover table-striped table-sm mb-0">
-                    <thead class="thead-light">
-                        <tr>
-                            <th width="5%">No</th>
-                            <th>IdSantri</th>
-                            <th>Nama Santri</th>
-                            <th>Kelas</th>
-                            <th>TPQ</th>
-                            <th class="text-center">Hadir</th>
-                            <th class="text-center">Sakit</th>
-                            <th class="text-center">Izin</th>
-                            <th class="text-center text-danger">Alpa</th>
-                            <th class="text-center">% Hadir</th>
-                            <th class="text-center" width="15%">Tindakan</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tbodyAtRisk">
-                        <tr>
-                            <td colspan="11" class="text-center text-muted py-3">Memuat data santri...</td>
-                        </tr>
-                    </tbody>
-                </table>
+        <div class="card-body p-3">
+            <!-- Nav Tabs Kelas: Tab Summary di urutan pertama, disusul tiap kelas -->
+            <ul class="nav nav-pills mb-3 flex-wrap" id="tabsKelasTop10" role="tablist">
+                <li class="nav-item mr-1 mb-1">
+                    <a class="nav-link active py-1 px-3 font-weight-bold" id="tab-summary-kelas" data-toggle="pill" href="#content-summary-kelas" role="tab" aria-controls="content-summary-kelas" aria-selected="true">
+                        <i class="fas fa-chart-pie mr-1"></i> Summary Semua Kelas
+                    </a>
+                </li>
+                <!-- Dynamic Class Tabs akan di-render oleh JavaScript -->
+            </ul>
+
+            <!-- Tab Content -->
+            <div class="tab-content" id="tabContentKelasTop10">
+                <!-- Tab Pane 1: Summary Semua Kelas -->
+                <div class="tab-pane fade show active" id="content-summary-kelas" role="tabpanel" aria-labelledby="tab-summary-kelas">
+                    <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap">
+                        <span class="text-muted font-weight-bold small">
+                            <i class="fas fa-table mr-1"></i> Matriks Perbandingan Seluruh Kelas pada Periode Ini
+                        </span>
+                        <span class="badge badge-light border text-muted" id="badgeTotalKelasCount">
+                            0 Kelas Terdata
+                        </span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped table-hover table-sm mb-0">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th width="4%" class="text-center">No</th>
+                                    <th>Nama Kelas</th>
+                                    <th class="text-center">Total Santri</th>
+                                    <th class="text-center text-success">Hadir</th>
+                                    <th class="text-center text-info">Sakit</th>
+                                    <th class="text-center text-warning">Izin</th>
+                                    <th class="text-center text-danger">Alfa</th>
+                                    <th class="text-center">% Hadir Rata-rata</th>
+                                    <th class="text-center" width="12%">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbodySummaryKelas">
+                                <tr>
+                                    <td colspan="9" class="text-center text-muted py-3">Memuat data ringkasan kelas...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Tab Pane 2: Top 10 Santri Kelas Terpilih -->
+                <div class="tab-pane fade" id="content-top10-kelas" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap">
+                        <div>
+                            <span class="font-weight-bold text-dark" id="lblTitleKelasTop10">
+                                <i class="fas fa-chalkboard-teacher text-info mr-1"></i> Kelas: -
+                            </span>
+                            <span class="badge badge-light border text-muted ml-2" id="lblInfoSantriKelas">
+                                Total: 0 Santri
+                            </span>
+                        </div>
+                        <small class="text-muted font-italic" id="lblKeteranganUrutanTop10">
+                            Menampilkan 10 santri dengan catatan ketidakhadiran tertinggi
+                        </small>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped table-hover table-sm mb-0">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th width="4%" class="text-center">No</th>
+                                    <th>IdSantri</th>
+                                    <th>Nama Santri</th>
+                                    <th class="text-center text-success">Hadir</th>
+                                    <th class="text-center text-info">Sakit</th>
+                                    <th class="text-center text-warning">Izin</th>
+                                    <th class="text-center text-danger font-weight-bold">Alfa</th>
+                                    <th class="text-center">% Hadir</th>
+                                    <th class="text-center">Status Presensi</th>
+                                    <th class="text-center" width="14%">Tindakan</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbodyTop10Santri">
+                                <tr>
+                                    <td colspan="10" class="text-center text-muted py-3">Pilih kelas untuk melihat Top 10 Santri...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- ROW 5: DATA MATRIX REKAP DETAIL SANTRI (DataTable) -->
+    <!-- ROW 4: DATA MATRIX REKAP DETAIL SANTRI (DataTable) -->
     <div class="card card-outline card-secondary shadow-sm">
         <div class="card-header py-2 d-flex justify-content-between align-items-center">
             <h3 class="card-title font-weight-bold text-dark">
@@ -546,7 +612,7 @@
         <div class="modal-content shadow-lg">
             <div class="modal-header bg-gradient-primary text-white py-2">
                 <h5 class="modal-title" id="thresholdModalLabel">
-                    <i class="fas fa-sliders-h mr-1"></i> Pengaturan Ambang Batas Santri At-Risk
+                    <i class="fas fa-sliders-h mr-1"></i> Pengaturan Ambang Batas Evaluasi Presensi
                 </h5>
                 <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
@@ -554,7 +620,7 @@
             </div>
             <div class="modal-body">
                 <p class="text-muted small">
-                    Atur kriteria santri yang masuk ke dalam radar peringatan <strong>Early Warning (At-Risk)</strong>. Pengaturan ini tersimpan di browser Anda (LocalStorage).
+                    Atur kriteria persentase kehadiran minimal dan batas maksimal alpa santri. Pengaturan ini tersimpan di browser Anda (LocalStorage).
                 </p>
                 <div class="form-group">
                     <label for="inputThresholdPct" class="font-weight-bold">Batas Minimal Persentase Kehadiran (%):</label>
@@ -657,8 +723,10 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentThresholdPct = parseInt(localStorage.getItem(KEY_THRESHOLD_PCT)) || DEFAULT_THRESHOLD_PCT;
     let currentThresholdAlpa = parseInt(localStorage.getItem(KEY_THRESHOLD_ALPA)) || DEFAULT_THRESHOLD_ALPA;
 
-    document.getElementById('lblThresholdPct').innerText = currentThresholdPct + '%';
-    document.getElementById('lblThresholdAlpa').innerText = currentThresholdAlpa + 'x';
+    const elLblPct = document.getElementById('lblThresholdPct');
+    if (elLblPct) elLblPct.innerText = currentThresholdPct + '%';
+    const elLblAlpa = document.getElementById('lblThresholdAlpa');
+    if (elLblAlpa) elLblAlpa.innerText = currentThresholdAlpa + 'x';
     document.getElementById('inputThresholdPct').value = currentThresholdPct;
     document.getElementById('inputThresholdAlpa').value = currentThresholdAlpa;
 
@@ -678,6 +746,9 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentKomposisiKelas = [];
     let currentKelasChartMode = 'val';
     let dataTableInstance = null;
+    let currentTop10KelasData = {};
+    let currentActiveKelasId = null;
+    let currentTop10SortMode = 'ketidakhadiran';
 
     // Palette warna kelas
     const colorPalette = [
@@ -774,8 +845,8 @@ document.addEventListener('DOMContentLoaded', function() {
         localStorage.setItem(KEY_THRESHOLD_PCT, pct);
         localStorage.setItem(KEY_THRESHOLD_ALPA, alpa);
 
-        $('#lblThresholdPct').text(pct + '%');
-        $('#lblThresholdAlpa').text(alpa + 'x');
+        if (elLblPct) elLblPct.innerText = pct + '%';
+        if (elLblAlpa) elLblAlpa.innerText = alpa + 'x';
         $('#modalThresholdSetting').modal('hide');
 
         Swal.fire({
@@ -951,7 +1022,7 @@ document.addEventListener('DOMContentLoaded', function() {
             renderChartFluktuasi(data.fluktuasi_kelas);
             renderChartRanking(data.ranking_kelas);
             renderKerajinanKelas(data.kerajinan_kelas, data.summary_kerajinan);
-            renderAtRiskSantri(data.santri_recap);
+            renderMatriksTop10Kelas(data.santri_recap);
             renderDataTableSantri(data.santri_recap);
         })
         .catch(err => {
@@ -1747,33 +1818,154 @@ document.addEventListener('DOMContentLoaded', function() {
         applyTpqFilter(filter);
     });
 
-    // 6. Render Santri At-Risk (Early Warning Radar)
-    function renderAtRiskSantri(santriList) {
-        const tbody = document.getElementById('tbodyAtRisk');
-        if (!tbody) return;
+    // 5.5. Render Matriks Summary Kelas & Top 10 Santri Per Kelas
+    function renderMatriksTop10Kelas(santriList) {
+        currentTop10KelasData = {};
 
-        // Filter santri sesuai setting threshold dinamis
-        const atRiskList = santriList.filter(s => {
-            const pct = parseFloat(s.persentase_hadir) || 0;
-            const alpa = parseInt(s.total_alpa) || 0;
-            return pct < currentThresholdPct || alpa >= currentThresholdAlpa;
-        });
-
-        $('#badgeTotalAtRisk').text(`${atRiskList.length} Santri`);
-
-        if (atRiskList.length === 0) {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="11" class="text-center text-success py-3">
-                        <i class="fas fa-check-circle mr-1"></i> Tidak ada santri yang berstatus at-risk pada ambang batas saat ini.
-                    </td>
-                </tr>
-            `;
+        if (!santriList || santriList.length === 0) {
+            $('#tbodySummaryKelas').html('<tr><td colspan="9" class="text-center text-muted py-3">Tidak ada data kelas/santri pada filter saat ini.</td></tr>');
+            $('#tbodyTop10Santri').html('<tr><td colspan="10" class="text-center text-muted py-3">Tidak ada data santri.</td></tr>');
+            $('#tabsKelasTop10 .dynamic-class-tab').remove();
+            $('#badgeTotalKelasCount').text('0 Kelas');
             return;
         }
 
-        let html = '';
-        atRiskList.forEach((s, idx) => {
+        // Grouping data santri berdasarkan IdKelas
+        santriList.forEach(s => {
+            const idK = s.IdKelas;
+            if (!currentTop10KelasData[idK]) {
+                currentTop10KelasData[idK] = {
+                    idKelas: idK,
+                    namaKelas: s.NamaKelas || ('Kelas ' + idK),
+                    namaTpq: s.NamaTpq || '',
+                    santri: [],
+                    totalSantri: 0,
+                    hadir: 0,
+                    sakit: 0,
+                    izin: 0,
+                    alfa: 0,
+                    totalAbsen: 0
+                };
+            }
+            currentTop10KelasData[idK].santri.push(s);
+            currentTop10KelasData[idK].totalSantri++;
+            currentTop10KelasData[idK].hadir += parseInt(s.total_hadir) || 0;
+            currentTop10KelasData[idK].sakit += parseInt(s.total_sakit) || 0;
+            currentTop10KelasData[idK].izin += parseInt(s.total_izin) || 0;
+            currentTop10KelasData[idK].alfa += parseInt(s.total_alpa) || 0;
+            currentTop10KelasData[idK].totalAbsen += parseInt(s.total_absen) || 0;
+        });
+
+        const kelasKeys = Object.keys(currentTop10KelasData);
+
+        // Render dynamic tabs untuk tiap kelas (setelah tab summary)
+        $('#tabsKelasTop10 .dynamic-class-tab').remove();
+        let tabsHtml = '';
+        kelasKeys.forEach(idK => {
+            const kls = currentTop10KelasData[idK];
+            tabsHtml += `
+                <li class="nav-item mr-1 mb-1 dynamic-class-tab">
+                    <a class="nav-link py-1 px-3 btn-tab-kelas-top10" data-toggle="pill" href="#content-top10-kelas" role="tab" data-kelas-id="${idK}">
+                        ${kls.namaKelas} <span class="badge badge-light border ml-1">${kls.totalSantri}</span>
+                    </a>
+                </li>
+            `;
+        });
+        $('#tabsKelasTop10').append(tabsHtml);
+
+        // Render Tabel Summary Semua Kelas
+        let summaryHtml = '';
+        let no = 1;
+        kelasKeys.forEach(idK => {
+            const kls = currentTop10KelasData[idK];
+            const pct = kls.totalAbsen > 0 ? ((kls.hadir / kls.totalAbsen) * 100).toFixed(1) : 0;
+            let badgeClass = 'badge-success';
+            if (pct < currentThresholdPct) badgeClass = 'badge-danger';
+            else if (pct < 85) badgeClass = 'badge-warning';
+
+            summaryHtml += `
+                <tr>
+                    <td class="text-center font-weight-bold">${no++}</td>
+                    <td class="font-weight-bold">
+                        ${kls.namaKelas}
+                        ${kls.namaTpq ? `<span class="badge badge-light border text-muted ml-1" style="font-size: 0.72rem;">${kls.namaTpq}</span>` : ''}
+                    </td>
+                    <td class="text-center font-weight-bold">${kls.totalSantri} Santri</td>
+                    <td class="text-center text-success font-weight-bold">${kls.hadir.toLocaleString()}</td>
+                    <td class="text-center text-info">${kls.sakit.toLocaleString()}</td>
+                    <td class="text-center text-warning">${kls.izin.toLocaleString()}</td>
+                    <td class="text-center text-danger font-weight-bold">${kls.alfa.toLocaleString()}</td>
+                    <td class="text-center"><span class="badge ${badgeClass}">${pct}%</span></td>
+                    <td class="text-center">
+                        <button type="button" class="btn btn-xs btn-outline-info btn-switch-to-top10" data-kelas-id="${idK}" title="Buka daftar 10 santri teratas kelas ${kls.namaKelas}">
+                            <i class="fas fa-list-ol mr-1"></i> Top 10
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+        $('#tbodySummaryKelas').html(summaryHtml);
+        $('#badgeTotalKelasCount').text(`${kelasKeys.length} Kelas Terdata`);
+
+        // Update detail Top 10 jika ada kelas yang sedang aktif atau default ke kelas pertama
+        if (currentActiveKelasId && currentTop10KelasData[currentActiveKelasId]) {
+            renderTop10Detail(currentActiveKelasId);
+        } else if (kelasKeys.length > 0) {
+            currentActiveKelasId = kelasKeys[0];
+            renderTop10Detail(currentActiveKelasId);
+        }
+    }
+
+    // Fungsi untuk me-render daftar 10 Santri pada kelas yang dipilih
+    function renderTop10Detail(idKelas) {
+        const kls = currentTop10KelasData[idKelas];
+        if (!kls) return;
+
+        currentActiveKelasId = idKelas;
+        $('#lblTitleKelasTop10').html(`<i class="fas fa-chalkboard-teacher text-info mr-1"></i> Kelas: <strong>${kls.namaKelas}</strong> ${kls.namaTpq ? '<span class="text-muted font-weight-normal text-xs">(' + kls.namaTpq + ')</span>' : ''}`);
+        $('#lblInfoSantriKelas').text(`Total: ${kls.totalSantri} Santri`);
+
+        if (currentTop10SortMode === 'ketidakhadiran') {
+            $('#lblKeteranganUrutanTop10').html('<i class="fas fa-sort-amount-down text-danger mr-1"></i> Menampilkan 10 santri dengan <strong>ketidakhadiran tertinggi</strong> (prioritas Alfa, lalu Izin & Sakit)');
+        } else {
+            $('#lblKeteranganUrutanTop10').html('<i class="fas fa-trophy text-success mr-1"></i> Menampilkan 10 santri <strong>paling disiplin</strong> (% Kehadiran tertinggi)');
+        }
+
+        // Duplikasi santri array untuk disorting
+        let santriList = [...kls.santri];
+
+        if (currentTop10SortMode === 'ketidakhadiran') {
+            // Urutkan ketidakhadiran terbanyak: Alfa DESC, lalu Izin+Sakit DESC, lalu % Hadir ASC
+            santriList.sort((a, b) => {
+                const alpaA = parseInt(a.total_alpa) || 0;
+                const alpaB = parseInt(b.total_alpa) || 0;
+                if (alpaB !== alpaA) return alpaB - alpaA;
+
+                const izinSakitA = (parseInt(a.total_sakit) || 0) + (parseInt(a.total_izin) || 0);
+                const izinSakitB = (parseInt(b.total_sakit) || 0) + (parseInt(b.total_izin) || 0);
+                if (izinSakitB !== izinSakitA) return izinSakitB - izinSakitA;
+
+                const pctA = parseFloat(a.persentase_hadir) || 0;
+                const pctB = parseFloat(b.persentase_hadir) || 0;
+                return pctA - pctB;
+            });
+        } else {
+            // Urutkan terdisiplin: % Hadir DESC, lalu Hadir DESC
+            santriList.sort((a, b) => {
+                const pctA = parseFloat(a.persentase_hadir) || 0;
+                const pctB = parseFloat(b.persentase_hadir) || 0;
+                if (pctB !== pctA) return pctB - pctA;
+
+                const hadirA = parseInt(a.total_hadir) || 0;
+                const hadirB = parseInt(b.total_hadir) || 0;
+                return hadirB - hadirA;
+            });
+        }
+
+        const top10 = santriList.slice(0, 10);
+        let rowsHtml = '';
+
+        top10.forEach((s, idx) => {
             const noHp = (s.NoHpOrtu || '').replace(/[^0-9]/g, '');
             let waBtn = '';
             if (noHp) {
@@ -1781,22 +1973,36 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (formattedPhone.startsWith('0')) {
                     formattedPhone = '62' + formattedPhone.substring(1);
                 }
-                const msg = encodeURIComponent(`Assalamu'alaikum wr. wb., Kami dari pengurus TPQ menginformasikan perihal presensi Ananda ${s.NamaSantri} (Kelas ${s.NamaKelas}) yang tercatat memiliki ${s.total_alpa} kali alpa pada periode ini. Mohon konfirmasinya. Terima kasih.`);
+                const msg = encodeURIComponent(`Assalamu'alaikum wr. wb., Kami dari pengurus TPQ menginformasikan perihal presensi Ananda ${s.NamaSantri} (Kelas ${s.NamaKelas}) pada periode ini: Hadir: ${s.total_hadir}, Sakit: ${s.total_sakit}, Izin: ${s.total_izin}, Alpa: ${s.total_alpa} (${s.persentase_hadir}%). Mohon konfirmasinya. Terima kasih.`);
                 waBtn = `<a href="https://wa.me/${formattedPhone}?text=${msg}" target="_blank" class="btn btn-xs btn-success mr-1" title="Hubungi Wali via WhatsApp"><i class="fab fa-whatsapp"></i> WA</a>`;
             }
 
-            html += `
+            const pct = parseFloat(s.persentase_hadir) || 0;
+            const alpaCount = parseInt(s.total_alpa) || 0;
+            let badgeClass = 'badge-success';
+            let statusText = 'Sangat Baik';
+
+            if (pct < currentThresholdPct) {
+                badgeClass = 'badge-danger';
+                statusText = 'Kritis / Kurang';
+            } else if (pct < 85) {
+                badgeClass = 'badge-warning';
+                statusText = (alpaCount >= currentThresholdAlpa) ? 'Perhatian' : 'Cukup';
+            }
+
+            let pctBadgeClass = (pct < currentThresholdPct) ? 'badge-danger' : (pct < 85 ? 'badge-warning' : 'badge-success');
+
+            rowsHtml += `
                 <tr>
                     <td class="text-center font-weight-bold">${idx + 1}</td>
                     <td><code>${s.IdSantri}</code></td>
                     <td class="font-weight-bold">${s.NamaSantri}</td>
-                    <td>${s.NamaKelas}</td>
-                    <td>${s.NamaTpq || '-'}</td>
-                    <td class="text-center">${s.total_hadir}</td>
-                    <td class="text-center">${s.total_sakit}</td>
-                    <td class="text-center">${s.total_izin}</td>
-                    <td class="text-center font-weight-bold text-danger">${s.total_alpa}</td>
-                    <td class="text-center"><span class="badge badge-danger">${s.persentase_hadir}%</span></td>
+                    <td class="text-center text-success font-weight-bold">${s.total_hadir}</td>
+                    <td class="text-center text-info">${s.total_sakit}</td>
+                    <td class="text-center text-warning">${s.total_izin}</td>
+                    <td class="text-center text-danger font-weight-bold">${s.total_alpa}</td>
+                    <td class="text-center"><span class="badge ${pctBadgeClass}">${s.persentase_hadir}%</span></td>
+                    <td class="text-center"><span class="badge ${badgeClass}">${statusText}</span></td>
                     <td class="text-center">
                         ${waBtn}
                         <button type="button" class="btn btn-xs btn-info btn-view-riwayat" data-id="${s.IdSantri}" data-nama="${s.NamaSantri}" data-kelas="${s.NamaKelas}" title="Lihat Riwayat Presensi">
@@ -1807,10 +2013,48 @@ document.addEventListener('DOMContentLoaded', function() {
             `;
         });
 
-        tbody.innerHTML = html;
+        $('#tbodyTop10Santri').html(rowsHtml);
     }
 
-    // 7. Render DataTable Rekap Santri
+    // Event handler klik tab kelas Top 10
+    $(document).on('click', '.btn-tab-kelas-top10', function(e) {
+        const idKelas = $(this).data('kelas-id');
+        if (idKelas) {
+            renderTop10Detail(idKelas);
+        }
+    });
+
+    // Event handler klik tombol "Top 10" dari tabel summary semua kelas
+    $(document).on('click', '.btn-switch-to-top10', function(e) {
+        e.preventDefault();
+        const idKelas = $(this).data('kelas-id');
+        if (idKelas) {
+            // Aktifkan tab kelas tersebut dan trigger bootstrap tab
+            $(`.btn-tab-kelas-top10[data-kelas-id="${idKelas}"]`).tab('show');
+            renderTop10Detail(idKelas);
+        }
+    });
+
+    // Event handler klik toggle mode sorting Top 10 (Ketidakhadiran Terbanyak vs Terdisiplin)
+    $('#btnGroupSortTop10 button').on('click', function() {
+        const mode = $(this).data('sort');
+        if (mode === currentTop10SortMode) return;
+
+        currentTop10SortMode = mode;
+        if (mode === 'ketidakhadiran') {
+            $('#btnGroupSortTop10 button[data-sort="ketidakhadiran"]').addClass('btn-danger active').removeClass('btn-outline-danger');
+            $('#btnGroupSortTop10 button[data-sort="disiplin"]').addClass('btn-outline-success').removeClass('btn-success active');
+        } else {
+            $('#btnGroupSortTop10 button[data-sort="disiplin"]').addClass('btn-success active').removeClass('btn-outline-success');
+            $('#btnGroupSortTop10 button[data-sort="ketidakhadiran"]').addClass('btn-outline-danger').removeClass('btn-danger active');
+        }
+
+        if (currentActiveKelasId) {
+            renderTop10Detail(currentActiveKelasId);
+        }
+    });
+
+    // 6. Render DataTable Rekap Santri
     function renderDataTableSantri(santriList) {
         const tbody = document.getElementById('tbodySantriRecap');
         if (!tbody) return;
@@ -1822,15 +2066,17 @@ document.addEventListener('DOMContentLoaded', function() {
         let rowsHtml = '';
         santriList.forEach((s, idx) => {
             const pct = parseFloat(s.persentase_hadir) || 0;
+            const alpaCount = parseInt(s.total_alpa) || 0;
             let badgeClass = 'badge-success';
             let statusText = 'Sangat Baik';
 
-            if (pct < currentThresholdPct || parseInt(s.total_alpa) >= currentThresholdAlpa) {
+            // Penentuan kategori evaluasi presensi berbasis ambang batas (Threshold %) yang dikonfigurasi
+            if (pct < currentThresholdPct) {
                 badgeClass = 'badge-danger';
-                statusText = 'Kritis / At-Risk';
+                statusText = 'Kritis / Kurang';
             } else if (pct < 85) {
                 badgeClass = 'badge-warning';
-                statusText = 'Cukup';
+                statusText = (alpaCount >= currentThresholdAlpa) ? 'Perhatian' : 'Cukup';
             }
 
             rowsHtml += `
