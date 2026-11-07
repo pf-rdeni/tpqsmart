@@ -918,8 +918,14 @@ class Absensi extends BaseController
      */
     public function ubahAbsensi()
     {
+        $activeRole = session()->get('active_role');
+        $isOperator = in_groups('Admin') || in_groups('Operator') || 
+                      session()->get('role') === 'Operator' || session()->get('role') === 'Admin' ||
+                      $activeRole === 'operator' || $activeRole === 'admin';
+
         $data = [
-            'page_title' => 'Ubah Absensi Santri'
+            'page_title' => 'Ubah Absensi Santri',
+            'isOperator' => $isOperator
         ];
 
         return view('backend/absensi/ubahAbsensi', $data);
@@ -956,7 +962,10 @@ class Absensi extends BaseController
             $db = db_connect();
 
             // Ambil daftar kelas yang diajar oleh guru ini (atau semua kelas jika operator/admin)
-            $isOperator = session()->get('role') === 'Operator' || session()->get('role') === 'Admin' || in_groups('Admin');
+            $activeRole = session()->get('active_role');
+            $isOperator = in_groups('Admin') || in_groups('Operator') || 
+                          session()->get('role') === 'Operator' || session()->get('role') === 'Admin' ||
+                          $activeRole === 'operator' || $activeRole === 'admin';
             $kelasList = $helpFunction->getListKelas($IdTpq, $IdTahunAjaran, null, $IdGuru, $isOperator);
             
             $statusKelas = [];
@@ -1069,12 +1078,99 @@ class Absensi extends BaseController
             return $this->response->setJSON([
                 'success' => true,
                 'data' => $statusKelas,
-                'tanggal' => $tanggal
+                'tanggal' => $tanggal,
+                'isOperator' => $isOperator
             ]);
         } catch (\Exception $e) {
             return $this->response->setJSON([
                 'success' => false,
                 'message' => 'Gagal mengambil status absensi: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * AJAX endpoint untuk membatalkan / menghapus absensi pada tanggal tertentu
+     * Khusus Admin atau Operator.
+     * Dapat membatalkan absensi seluruh kelas di TPQ pada tanggal tersebut (misal hari libur)
+     * atau spesifik per kelas.
+     */
+    public function batalkanAbsensiTanggal()
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setStatusCode(403)->setJSON([
+                'success' => false,
+                'message' => 'Akses ditolak.'
+            ]);
+        }
+
+        // Validasi Otorisasi: Hanya Admin atau Operator
+        $activeRole = session()->get('active_role');
+        $isOperator = in_groups('Admin') || in_groups('Operator') || 
+                      session()->get('role') === 'Operator' || session()->get('role') === 'Admin' ||
+                      $activeRole === 'operator' || $activeRole === 'admin';
+        if (!$isOperator) {
+            return $this->response->setStatusCode(403)->setJSON([
+                'success' => false,
+                'message' => 'Hanya Admin atau Operator Lembaga yang memiliki wewenang untuk membatalkan absensi tanggal.'
+            ]);
+        }
+
+        $tanggal = $this->request->getPost('tanggal');
+        $idKelas = $this->request->getPost('IdKelas'); // opsional: jika null/empty/'all', batalkan semua kelas pada tanggal tsb
+        $IdTpq = session()->get('IdTpq');
+        $IdTahunAjaran = session()->get('IdTahunAjaran');
+
+        if (empty($tanggal)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Tanggal absensi yang akan dibatalkan wajib diisi.'
+            ]);
+        }
+
+        try {
+            $db = db_connect();
+            $builder = $db->table('tbl_absensi_santri');
+            $builder->where('Tanggal', $tanggal);
+
+            if (!empty($IdTpq) && $IdTpq != 0) {
+                $builder->where('IdTpq', $IdTpq);
+            }
+            if (!empty($IdTahunAjaran)) {
+                $builder->where('IdTahunAjaran', $IdTahunAjaran);
+            }
+
+            // Jika spesifik per kelas
+            if (!empty($idKelas) && $idKelas !== 'all') {
+                $builder->where('IdKelas', $idKelas);
+            }
+
+            // Hitung dulu data yang akan dihapus
+            $totalDeleted = $builder->countAllResults(false);
+
+            if ($totalDeleted === 0) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Tidak ditemukan data absensi pada tanggal tersebut untuk dibatalkan.'
+                ]);
+            }
+
+            // Lakukan penghapusan
+            $builder->delete();
+
+            $scopeMsg = (!empty($idKelas) && $idKelas !== 'all') 
+                ? "pada kelas yang dipilih" 
+                : "pada seluruh kelas di TPQ";
+
+            return $this->response->setJSON([
+                'success' => true,
+                'total_deleted' => $totalDeleted,
+                'message' => "Berhasil membatalkan {$totalDeleted} rekaman absensi {$scopeMsg} pada tanggal " . date('d/m/Y', strtotime($tanggal)) . ". Tanggal ini tidak lagi terhitung sebagai hari aktif yang menuntut absensi."
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat membatalkan absensi: ' . $e->getMessage()
             ]);
         }
     }

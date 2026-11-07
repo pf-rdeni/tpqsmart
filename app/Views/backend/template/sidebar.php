@@ -894,6 +894,14 @@
                             </li>
                             <?php if (in_groups('Admin') || $isActiveOperator): ?>
                                 <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/absensi/ubahAbsensi') ?> class="nav-link">
+                                        <i class="fas fa-calendar-times nav-icon text-warning"></i>
+                                        <p>Ubah / Batal Absensi</p>
+                                    </a>
+                                </li>
+                            <?php endif; ?>
+                            <?php if (in_groups('Admin') || $isActiveOperator): ?>
+                                <li class="nav-item">
                                     <a href=<?php echo base_url('backend/kelas/showListSantriPerKelas') ?> class="nav-link">
                                         <i class="fas fa-level-up-alt nav-icon text-warning"></i>
                                         <p>Kenaikan Kelas</p>

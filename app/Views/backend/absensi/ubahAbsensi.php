@@ -28,10 +28,15 @@
             <!-- Status Absensi Per Kelas -->
             <div id="statusAbsensiKelas" class="mb-4" style="display: none;">
                 <div class="card card-info">
-                    <div class="card-header">
+                    <div class="card-header d-flex justify-content-between align-items-center">
                         <h3 class="card-title">
                             <i class="fas fa-clipboard-list"></i> Status Absensi Per Kelas
                         </h3>
+                        <div class="card-tools ml-auto" id="containerBatalSemua" style="display: none;">
+                            <button type="button" class="btn btn-danger btn-sm shadow-sm font-weight-bold" id="btnBatalAbsensiSemua" onclick="konfirmasiBatalkanAbsensi('all')">
+                                <i class="fas fa-calendar-times mr-1"></i> Batalkan Absensi Seluruh Kelas (Hari Libur)
+                            </button>
+                        </div>
                     </div>
                     <div class="card-body">
                         <div id="statusKelasList" class="row">
@@ -323,9 +328,10 @@
             },
             success: function(response) {
                 if (response.success && response.data.length > 0) {
-                    displayStatusKelas(response.data, tanggal);
+                    displayStatusKelas(response.data, tanggal, response.isOperator);
                 } else {
                     $('#statusKelasList').html('<div class="col-12"><div class="alert alert-info"><i class="fas fa-info-circle"></i> Tidak ada kelas yang ditemukan</div></div>');
+                    $('#containerBatalSemua').hide();
                 }
                 $('#statusAbsensiKelas').show();
             },
@@ -337,13 +343,27 @@
     }
 
     // Fungsi untuk display status kelas
-    function displayStatusKelas(data, tanggal) {
+    function displayStatusKelas(data, tanggal, isOperator) {
         const container = $('#statusKelasList');
         container.empty();
 
         if (data.length === 0) {
             container.html('<div class="col-12"><div class="alert alert-info"><i class="fas fa-info-circle"></i> Tidak ada kelas yang ditemukan</div></div>');
+            $('#containerBatalSemua').hide();
             return;
+        }
+
+        // Cek apakah ada kelas yang sudah tercatat absensinya pada tanggal ini
+        let totalAbsenSemuaKelas = 0;
+        data.forEach(function(k) {
+            totalAbsenSemuaKelas += (parseInt(k.totalAbsen) || 0);
+        });
+
+        // Tampilkan tombol batal jika ada absensi yang tercatat pada tanggal ini
+        if (totalAbsenSemuaKelas > 0) {
+            $('#containerBatalSemua').show();
+        } else {
+            $('#containerBatalSemua').hide();
         }
 
         data.forEach(function(kelas) {
@@ -371,6 +391,18 @@
             let guruInfo = '';
             if (kelas.namaGuru) {
                 guruInfo = `<small class="text-muted d-block mt-1"><i class="fas fa-user"></i> Oleh: ${kelas.namaGuru}</small>`;
+            }
+
+            // Tombol Batalkan Absensi Per Kelas jika kelas ini sudah ada absensinya
+            let btnBatalPerKelas = '';
+            if (kelas.totalAbsen > 0) {
+                btnBatalPerKelas = `
+                    <div class="mt-2">
+                        <button type="button" class="btn btn-sm btn-outline-danger btn-block" onclick="konfirmasiBatalkanAbsensi('${kelas.IdKelas}', '${kelas.NamaKelas}')">
+                            <i class="fas fa-trash-alt mr-1"></i> Batalkan Absensi Kelas Ini
+                        </button>
+                    </div>
+                `;
             }
 
             // Buat link absensi jika belum diabsen atau sebagian diabsen
@@ -412,8 +444,8 @@
                 <div class="col-md-6 col-lg-4">
                     <div class="card status-kelas-card ${statusClass}">
                         <div class="card-body">
-                            <h6 class="card-title mb-2">
-                                <i class="fas fa-chalkboard-teacher"></i> ${kelas.NamaKelas}
+                            <h6 class="card-title mb-2 font-weight-bold">
+                                <i class="fas fa-chalkboard-teacher text-primary mr-1"></i> ${kelas.NamaKelas}
                             </h6>
                             <div class="mb-2">
                                 <span class="status-badge ${statusClass}">
@@ -421,12 +453,12 @@
                                 </span>
                             </div>
                             <div class="mb-2">
-                                <small class="text-muted">
-                                    <i class="fas fa-users"></i> ${kelas.totalAbsen} / ${kelas.totalSantri} santri
+                                <small class="text-muted font-weight-500">
+                                    <i class="fas fa-users"></i> ${kelas.totalAbsen} / ${kelas.totalSantri} santri tercatat
                                 </small>
                             </div>
                             ${kategoriBadges}
-                            <div class="progress mb-2" style="height: 8px;">
+                            <div class="progress mb-2 mt-2" style="height: 8px;">
                                 <div class="progress-bar ${statusClass === 'sudah-absen' ? 'bg-success' : statusClass === 'sebagian-absen' ? 'bg-warning' : 'bg-danger'}" 
                                      role="progressbar" 
                                      style="width: ${progressPercent}%" 
@@ -437,6 +469,7 @@
                             </div>
                             ${guruInfo}
                             ${linkAbsensi}
+                            ${btnBatalPerKelas}
                         </div>
                     </div>
                 </div>
@@ -825,6 +858,100 @@
                             icon: 'error',
                             title: 'Error',
                             text: 'Terjadi kesalahan saat menyimpan data',
+                            confirmButtonText: 'OK'
+                        });
+                    }
+                });
+            }
+        });
+    }
+
+    // Fungsi untuk membatalkan / menghapus absensi tanggal (Khusus Admin / Operator)
+    function konfirmasiBatalkanAbsensi(idKelas, namaKelas = '') {
+        const tanggal = $('#tanggal').val();
+        if (!tanggal) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Perhatian',
+                text: 'Silakan pilih tanggal terlebih dahulu.'
+            });
+            return;
+        }
+
+        const isSemua = (idKelas === 'all');
+        const titleText = isSemua 
+            ? 'Batalkan Absensi Seluruh Kelas?' 
+            : `Batalkan Absensi Kelas ${namaKelas}?`;
+        
+        const htmlText = isSemua 
+            ? `<div class="text-left text-sm">
+                <p>Anda akan <strong>menghapus / membatalkan seluruh rekaman absensi</strong> pada tanggal <strong>${tanggal}</strong> untuk semua kelas.</p>
+                <div class="alert alert-warning py-2 px-3 mb-2">
+                    <i class="fas fa-exclamation-triangle mr-1"></i> Gunakan opsi ini jika tanggal tersebut adalah <strong>HARI LIBUR</strong> atau ada kesalahan input absensi massal.
+                </div>
+                <p class="mb-0 text-muted">Setelah dibatalkan, tanggal ini tidak lagi dianggap sebagai hari aktif TPQ yang menuntut absensi kelas.</p>
+               </div>`
+            : `<div class="text-left text-sm">
+                <p>Anda akan membatalkan rekaman absensi pada kelas <strong>${namaKelas}</strong> untuk tanggal <strong>${tanggal}</strong>.</p>
+                <p class="mb-0 text-muted">Santri pada kelas ini tidak lagi tercatat hadir/absen pada tanggal tersebut.</p>
+               </div>`;
+
+        Swal.fire({
+            title: titleText,
+            html: htmlText,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: '<i class="fas fa-trash-alt mr-1"></i> Ya, Batalkan Absensi!',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'Memproses...',
+                    text: 'Sedang membatalkan absensi tanggal...',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                $.ajax({
+                    url: '<?= base_url("backend/absensi/batalkanAbsensiTanggal") ?>',
+                    type: 'POST',
+                    data: {
+                        tanggal: tanggal,
+                        IdKelas: idKelas
+                    },
+                    dataType: 'json',
+                    success: function(response) {
+                        Swal.close();
+                        if (response.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Berhasil!',
+                                text: response.message,
+                                confirmButtonText: 'OK'
+                            }).then(() => {
+                                // Reload status kelas & reset form
+                                loadStatusAbsensiKelas(tanggal);
+                                resetForm();
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Gagal',
+                                text: response.message || 'Gagal membatalkan absensi.',
+                                confirmButtonText: 'OK'
+                            });
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        Swal.close();
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Terjadi kesalahan sistem saat membatalkan absensi: ' + error,
                             confirmButtonText: 'OK'
                         });
                     }
