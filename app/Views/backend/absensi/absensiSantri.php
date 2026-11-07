@@ -40,6 +40,21 @@
             $tanggalHariIni = isset($tanggal_hari_ini) ? $tanggal_hari_ini : date('Y-m-d');
             $tanggalDipilih = isset($tanggal_dipilih) ? $tanggal_dipilih : $tanggalHariIni;
 
+            // Helper nama hari dan bulan bahasa Indonesia untuk tampilan tanggal
+            $daftarHariIndo = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+            $daftarBulanIndo = [
+                '01' => 'Januari', '02' => 'Februari', '03' => 'Maret',
+                '04' => 'April', '05' => 'Mei', '06' => 'Juni',
+                '07' => 'Juli', '08' => 'Agustus', '09' => 'September',
+                '10' => 'Oktober', '11' => 'November', '12' => 'Desember'
+            ];
+            $tsDipilih = strtotime($tanggalDipilih);
+            $namaHariDipilih = $daftarHariIndo[(int)date('w', $tsDipilih)] ?? '';
+            $tglHariDipilih = date('d', $tsDipilih);
+            $blnHariDipilih = $daftarBulanIndo[date('m', $tsDipilih)] ?? date('F', $tsDipilih);
+            $thnHariDipilih = date('Y', $tsDipilih);
+            $labelTanggalLengkap = $namaHariDipilih . ', ' . (int)$tglHariDipilih . ' ' . $blnHariDipilih . ' ' . $thnHariDipilih;
+
             // Gunakan kelas_list_all dari controller untuk menampilkan tab (semua kelas)
             // Jika tidak ada, buat dari santri yang ada
             $kelasList = isset($kelas_list_all) && !empty($kelas_list_all) ? $kelas_list_all : [];
@@ -249,9 +264,14 @@
                                     <form action="<?= base_url('/backend/absensi/simpanAbsensi') ?>" method="post" id="formAbsensi<?= $kelas['IdKelas'] ?>">
                                         <!-- Date Input -->
                                         <div class="form-group mb-3">
-                                            <label for="tanggal<?= $kelas['IdKelas'] ?>">
-                                                <i class="fas fa-calendar-alt"></i> Tanggal:
-                                            </label>
+                                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                                <label for="tanggal<?= $kelas['IdKelas'] ?>" class="mb-0 font-weight-bold">
+                                                    <i class="fas fa-calendar-alt text-primary mr-1"></i> Tanggal Absensi:
+                                                </label>
+                                                <span class="badge badge-info px-2 py-1 label-hari-tanggal-info" style="font-size: 0.88rem; font-weight: 600;">
+                                                    <i class="far fa-calendar-check mr-1"></i> <span class="text-label-hari"><?= esc($labelTanggalLengkap); ?></span>
+                                                </span>
+                                            </div>
                                             <input type="date"
                                                 name="tanggal"
                                                 id="tanggal<?= $kelas['IdKelas'] ?>"
@@ -1103,6 +1123,33 @@
 
         console.log('[DEBUG] Event listener registered for .tanggal-input');
         console.log('[DEBUG] ============================================');
+
+        // Helper format tanggal bahasa Indonesia: Senin, 5 Desember 2026
+        function formatTanggalIndo(dateStr) {
+            if (!dateStr) return '';
+            var hariIndo = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+            var bulanIndo = [
+                'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+                'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+            ];
+            var parts = dateStr.split('-');
+            if (parts.length !== 3) return dateStr;
+            var d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+            var namaHari = hariIndo[d.getDay()] || '';
+            var tgl = parseInt(parts[2], 10);
+            var namaBulan = bulanIndo[parseInt(parts[1], 10) - 1] || '';
+            var thn = parts[0];
+            return namaHari + ', ' + tgl + ' ' + namaBulan + ' ' + thn;
+        }
+
+        function updateLabelHariTanggalSemua(dateStr) {
+            var formatted = formatTanggalIndo(dateStr);
+            $('.text-label-hari').text(formatted);
+        }
+
+        // Inisialisasi label hari tanggal saat halaman dimuat
+        updateLabelHariTanggalSemua($('.tanggal-input').first().val() || '<?= $tanggalDipilih ?>');
+
         // Fungsi untuk memastikan semua "Hadir" terpilih
         function ensureAllHadirSelected() {
             // Loop melalui semua grup radio button
@@ -1293,6 +1340,9 @@
 
             // Sinkronkan semua input tanggal di semua tab
             $('.tanggal-input').val(tanggal);
+
+            // Perbarui label nama hari dan tanggal di atas input tanggal
+            updateLabelHariTanggalSemua(tanggal);
 
             // Perbarui status dan rekap H, I, S, A pada semua kartu ringkasan kelas
             updateSummaryCardsAttendance(tanggal);

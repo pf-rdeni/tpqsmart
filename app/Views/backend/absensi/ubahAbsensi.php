@@ -103,9 +103,14 @@
             <div class="row mb-4">
                 <div class="col-md-6">
                     <div class="form-group">
-                        <label for="tanggal">
-                            <i class="fas fa-calendar-alt"></i> Pilih Tanggal:
-                        </label>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label for="tanggal" class="mb-0 font-weight-bold">
+                                <i class="fas fa-calendar-alt text-primary mr-1"></i> Pilih Tanggal:
+                            </label>
+                            <span class="badge badge-info px-2 py-1" style="font-size: 0.88rem; font-weight: 600;">
+                                <i class="far fa-calendar-check mr-1"></i> <span id="labelHariTanggalUbahAbsen">-</span>
+                            </span>
+                        </div>
                         <input type="date" 
                             id="tanggal" 
                             class="form-control form-control-lg" 
@@ -573,6 +578,7 @@
         // Load status absensi saat halaman pertama kali dimuat
         const tanggal = $('#tanggal').val();
         if (tanggal) {
+            updateLabelHariTanggalUbah(tanggal);
             loadStatusAbsensiKelas(tanggal);
         }
 
@@ -1255,9 +1261,32 @@
         $('.absensi-btn-mobile').removeClass('active');
     }
 
+    // Helper format tanggal bahasa Indonesia: Senin, 5 Desember 2026
+    function formatTanggalIndo(dateStr) {
+        if (!dateStr) return '-';
+        const hariIndo = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+        const bulanIndo = [
+            'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+            'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+        ];
+        const parts = dateStr.split('-');
+        if (parts.length !== 3) return dateStr;
+        const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+        const namaHari = hariIndo[d.getDay()] || '';
+        const tgl = parseInt(parts[2], 10);
+        const namaBulan = bulanIndo[parseInt(parts[1], 10) - 1] || '';
+        const thn = parts[0];
+        return namaHari + ', ' + tgl + ' ' + namaBulan + ' ' + thn;
+    }
+
+    function updateLabelHariTanggalUbah(dateStr) {
+        $('#labelHariTanggalUbahAbsen').text(formatTanggalIndo(dateStr));
+    }
+
     // Handle tanggal change
     $('#tanggal').on('change', function() {
         const tanggal = $(this).val();
+        updateLabelHariTanggalUbah(tanggal);
         
         // Load status absensi per kelas
         loadStatusAbsensiKelas(tanggal);

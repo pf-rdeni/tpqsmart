@@ -250,7 +250,23 @@
                  <div class="row mb-3">
                      <div class="col-md-6">
                          <div class="form-group mb-2 mb-md-0">
-                             <label><i class="fas fa-calendar-alt"></i> Tanggal Absensi:</label>
+                             <div class="d-flex justify-content-between align-items-center mb-1">
+                                 <label class="mb-0 font-weight-bold"><i class="fas fa-calendar-alt text-primary"></i> Tanggal Absensi:</label>
+                                 <?php
+                                 $hariIndoFront = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+                                 $bulanIndoFront = [
+                                     '01' => 'Januari', '02' => 'Februari', '03' => 'Maret',
+                                     '04' => 'April', '05' => 'Mei', '06' => 'Juni',
+                                     '07' => 'Juli', '08' => 'Agustus', '09' => 'September',
+                                     '10' => 'Oktober', '11' => 'November', '12' => 'Desember'
+                                 ];
+                                 $tsFront = strtotime($tanggal_dipilih);
+                                 $labelHariFront = ($hariIndoFront[(int)date('w', $tsFront)] ?? '') . ', ' . (int)date('d', $tsFront) . ' ' . ($bulanIndoFront[date('m', $tsFront)] ?? '') . ' ' . date('Y', $tsFront);
+                                 ?>
+                                 <span class="badge badge-info px-2 py-1" style="font-size: 0.85rem; font-weight: 600;">
+                                     <i class="far fa-calendar-check mr-1"></i> <?= esc($labelHariFront); ?>
+                                 </span>
+                             </div>
                              <input type="date" class="form-control form-control-lg" value="<?= $tanggal_dipilih ?>" onchange="updateTanggal(this.value)">
                          </div>
                      </div>
