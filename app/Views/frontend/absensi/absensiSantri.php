@@ -625,6 +625,9 @@
                             </div>
                             
                             <?php foreach ($santri_sudah_absen as $row): 
+                                if (($row->Kehadiran ?? '') === 'Pra-Masuk') {
+                                    continue; // Sembunyikan santri pra-masuk dari list publik
+                                }
                                 $photoProfil = $row->PhotoProfil ?? '';
                                 $thumbnailPath = base_url('uploads/santri/thumbnails/thumb_' . $photoProfil);
                                 

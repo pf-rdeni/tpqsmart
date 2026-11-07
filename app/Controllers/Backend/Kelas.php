@@ -515,6 +515,17 @@ class Kelas extends BaseController
             // Gunakan method yang dioptimasi dengan bulk operations
             $result = $this->helpFunction->saveDataSantriDanMateriDiTabelNilaiOptimized(0, $dataSantriBaru);
 
+            // Sinkronisasi status 'Pra-Masuk' untuk santri baru agar absensi kelas tidak berantakan
+            try {
+                $absensiModel = new \App\Models\AbsensiModel();
+                $kelasDiproses = array_unique(array_column($dataSantriBaru, 'IdKelas'));
+                foreach ($kelasDiproses as $kId) {
+                    $absensiModel->syncPraMasukSantriKelas($this->IdTpq, $kId, $idTahunAjaran);
+                }
+            } catch (\Exception $exSync) {
+                log_message('error', 'Error syncPraMasukSantriKelas in simpanKelasBaru: ' . $exSync->getMessage());
+            }
+
             if ($result['success'] > 0) {
                 $this->setFlashData('success', "Berhasil memproses {$result['success']} dari {$totalDiproses} santri baru yang dipilih.");
             }

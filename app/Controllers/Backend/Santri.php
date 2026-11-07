@@ -4828,6 +4828,14 @@ class Santri extends BaseController
         }
 
         $absensiModel = new \App\Models\AbsensiModel();
+        // Auto-sync status Pra-Masuk agar data analytics selalu adil & akurat
+        if (!empty($idTpq)) {
+            try {
+                $absensiModel->syncPraMasukSantriKelas($idTpq, $idKelas, $reqTahunAjaran);
+            } catch (\Exception $eSync) {
+                log_message('error', 'Auto-sync Pra-Masuk in getAnalyticsDataAjax: ' . $eSync->getMessage());
+            }
+        }
         $analytics = $absensiModel->getAnalitikPresensi($idTpq, $idKelas, $reqStartDate, $reqEndDate, $reqTahunAjaran, $reqStatusKehadiran);
 
         return $this->response->setJSON([

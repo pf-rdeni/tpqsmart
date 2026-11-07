@@ -37,6 +37,15 @@ class Absensi extends BaseController
         // Ambil data santri berdasarkan kelas
         $santriList = $santriModel->GetDataSantriPerKelas($IdTpq, $IdTahunAjaran, $IdKelas, $IdGuru);
 
+        // Auto-sync Just-In-Time status Pra-Masuk untuk santri yang masuk di tengah periode
+        if (!empty($IdTpq)) {
+            try {
+                $absensiModel->syncPraMasukSantriKelas($IdTpq, $IdKelas, $IdTahunAjaran);
+            } catch (\Exception $eSync) {
+                log_message('error', 'Auto-sync Pra-Masuk backend index: ' . $eSync->getMessage());
+            }
+        }
+
         // Ambil daftar kelas lengkap untuk memastikan semua kelas terdata (meskipun ada kelas dengan 0 santri)
         $isOperator = session()->get('role') === 'Operator' || session()->get('role') === 'Admin';
         $daftarKelasLengkap = $this->helpFunction->getListKelas($IdTpq, $IdTahunAjaran, $IdKelas, $IdGuru, $isOperator);
@@ -508,6 +517,15 @@ class Absensi extends BaseController
 
         // Ambil data santri berdasarkan kelas
         $santriList = $santriModel->GetDataSantriPerKelas($IdTpq, $IdTahunAjaran, $IdKelas, $IdGuru);
+
+        // Auto-sync Just-In-Time status Pra-Masuk untuk santri yang masuk di tengah periode
+        if (!empty($IdTpq)) {
+            try {
+                $absensiModel->syncPraMasukSantriKelas($IdTpq, $IdKelas, $IdTahunAjaran);
+            } catch (\Exception $eSync) {
+                log_message('error', 'Auto-sync Pra-Masuk backend index: ' . $eSync->getMessage());
+            }
+        }
 
         // Ambil data absensi pada tanggal dan kelas ini sekaligus (1 query)
         $builderAbsensi = $absensiModel

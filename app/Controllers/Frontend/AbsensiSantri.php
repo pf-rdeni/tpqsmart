@@ -153,6 +153,15 @@ class AbsensiSantri extends BaseController
 
         $santriList = $this->santriModel->GetDataSantriPerKelas($IdTpq, $IdTahunAjaran, 0, $IdGuru);
 
+        // Auto-sync Just-In-Time status Pra-Masuk
+        if (!empty($IdTpq)) {
+            try {
+                $this->absensiModel->syncPraMasukSantriKelas($IdTpq, null, $IdTahunAjaran);
+            } catch (\Exception $eSync) {
+                log_message('error', 'Auto-sync Pra-Masuk frontend index: ' . $eSync->getMessage());
+            }
+        }
+
         $kelasListAll = [];
         foreach ($santriList as $santriObj) {
             if (!isset($kelasListAll[$santriObj->IdKelas])) {

@@ -285,7 +285,7 @@ class AbsensiModel extends Model
         // 1. KPI & Komposisi Keseluruhan
         $builderKpi = $this->db->table('tbl_absensi_santri a')
             ->select("
-                COUNT(*) as total_record,
+                COUNT(CASE WHEN a.Kehadiran != 'Pra-Masuk' THEN 1 ELSE NULL END) as total_record,
                 SUM(CASE WHEN a.Kehadiran = 'Hadir' THEN 1 ELSE 0 END) as total_hadir,
                 SUM(CASE WHEN a.Kehadiran = 'Sakit' THEN 1 ELSE 0 END) as total_sakit,
                 SUM(CASE WHEN a.Kehadiran = 'Izin' THEN 1 ELSE 0 END) as total_izin,
@@ -293,6 +293,7 @@ class AbsensiModel extends Model
             ");
 
         $builderKpi->where('a.IdKelas !=', 10);
+        $builderKpi->where('a.Kehadiran !=', 'Pra-Masuk');
         if (!empty($IdTpq) && $IdTpq != 0) {
             $builderKpi->where('a.IdTpq', $IdTpq);
         }
@@ -332,9 +333,10 @@ class AbsensiModel extends Model
                 SUM(CASE WHEN a.Kehadiran = 'Sakit' THEN 1 ELSE 0 END) as sakit,
                 SUM(CASE WHEN a.Kehadiran = 'Izin' THEN 1 ELSE 0 END) as izin,
                 SUM(CASE WHEN a.Kehadiran IN ('Alfa', 'Alpa') THEN 1 ELSE 0 END) as alpa,
-                COUNT(*) as total
+                COUNT(CASE WHEN a.Kehadiran != 'Pra-Masuk' THEN 1 ELSE NULL END) as total
             ")
-            ->where('a.IdKelas !=', 10);
+            ->where('a.IdKelas !=', 10)
+            ->where('a.Kehadiran !=', 'Pra-Masuk');
 
         if (!empty($IdTpq) && $IdTpq != 0) {
             $builderTrend->where('a.IdTpq', $IdTpq);
@@ -372,10 +374,11 @@ class AbsensiModel extends Model
                 a.IdKelas,
                 MAX(k.NamaKelas) as NamaKelas,
                 SUM(CASE WHEN a.Kehadiran = 'Hadir' THEN 1 ELSE 0 END) as hadir,
-                COUNT(*) as total
+                COUNT(CASE WHEN a.Kehadiran != 'Pra-Masuk' THEN 1 ELSE NULL END) as total
             ")
             ->join('tbl_kelas k', 'a.IdKelas = k.IdKelas', 'left')
-            ->where('a.IdKelas !=', 10);
+            ->where('a.IdKelas !=', 10)
+            ->where('a.Kehadiran !=', 'Pra-Masuk');
 
         if (!empty($IdTpq) && $IdTpq != 0) {
             $builderFluktuasi->where('a.IdTpq', $IdTpq);
@@ -414,16 +417,17 @@ class AbsensiModel extends Model
             ->select("
                 a.IdKelas,
                 MAX(k.NamaKelas) as NamaKelas,
-                COUNT(*) as total,
+                COUNT(CASE WHEN a.Kehadiran != 'Pra-Masuk' THEN 1 ELSE NULL END) as total,
                 COUNT(DISTINCT a.Tanggal) as jumlah_hari_efektif,
                 SUM(CASE WHEN a.Kehadiran = 'Hadir' THEN 1 ELSE 0 END) as hadir,
                 SUM(CASE WHEN a.Kehadiran = 'Sakit' THEN 1 ELSE 0 END) as sakit,
                 SUM(CASE WHEN a.Kehadiran = 'Izin' THEN 1 ELSE 0 END) as izin,
                 SUM(CASE WHEN a.Kehadiran IN ('Alfa', 'Alpa') THEN 1 ELSE 0 END) as alpa,
-                ROUND((SUM(CASE WHEN a.Kehadiran = 'Hadir' THEN 1 ELSE 0 END) / COUNT(*)) * 100, 1) as persentase_hadir
+                ROUND((SUM(CASE WHEN a.Kehadiran = 'Hadir' THEN 1 ELSE 0 END) / NULLIF(COUNT(CASE WHEN a.Kehadiran != 'Pra-Masuk' THEN 1 ELSE NULL END), 0)) * 100, 1) as persentase_hadir
             ")
             ->join('tbl_kelas k', 'a.IdKelas = k.IdKelas', 'left')
-            ->where('a.IdKelas !=', 10);
+            ->where('a.IdKelas !=', 10)
+            ->where('a.Kehadiran !=', 'Pra-Masuk');
 
         if (!empty($IdTpq) && $IdTpq != 0) {
             $builderRanking->where('a.IdTpq', $IdTpq);
@@ -691,17 +695,18 @@ class AbsensiModel extends Model
             ->select("
                 a.IdTpq,
                 MAX(t.NamaTpq) as NamaTpq,
-                COUNT(*) as total_presensi,
+                COUNT(CASE WHEN a.Kehadiran != 'Pra-Masuk' THEN 1 ELSE NULL END) as total_presensi,
                 COUNT(DISTINCT a.Tanggal) as jumlah_hari_aktif,
                 MAX(a.Tanggal) as terakhir_absen,
                 SUM(CASE WHEN a.Kehadiran = 'Hadir' THEN 1 ELSE 0 END) as hadir,
                 SUM(CASE WHEN a.Kehadiran = 'Sakit' THEN 1 ELSE 0 END) as sakit,
                 SUM(CASE WHEN a.Kehadiran = 'Izin' THEN 1 ELSE 0 END) as izin,
                 SUM(CASE WHEN a.Kehadiran IN ('Alfa', 'Alpa') THEN 1 ELSE 0 END) as alpa,
-                ROUND((SUM(CASE WHEN a.Kehadiran = 'Hadir' THEN 1 ELSE 0 END) / COUNT(*)) * 100, 1) as persentase_hadir
+                ROUND((SUM(CASE WHEN a.Kehadiran = 'Hadir' THEN 1 ELSE 0 END) / NULLIF(COUNT(CASE WHEN a.Kehadiran != 'Pra-Masuk' THEN 1 ELSE NULL END), 0)) * 100, 1) as persentase_hadir
             ")
             ->join('tbl_tpq t', 'a.IdTpq = t.IdTpq', 'left')
-            ->where('a.IdKelas !=', 10);
+            ->where('a.IdKelas !=', 10)
+            ->where('a.Kehadiran !=', 'Pra-Masuk');
 
         if (!empty($IdTpq) && $IdTpq != 0) {
             $builderAbsensiTpq->where('a.IdTpq', $IdTpq);
@@ -873,7 +878,8 @@ class AbsensiModel extends Model
                 SUM(CASE WHEN a.Kehadiran = 'Hadir' THEN 1 ELSE 0 END) as total_hadir,
                 SUM(CASE WHEN a.Kehadiran = 'Sakit' THEN 1 ELSE 0 END) as total_sakit,
                 SUM(CASE WHEN a.Kehadiran = 'Izin' THEN 1 ELSE 0 END) as total_izin,
-                SUM(CASE WHEN a.Kehadiran IN ('Alfa', 'Alpa') THEN 1 ELSE 0 END) as total_alpa
+                SUM(CASE WHEN a.Kehadiran IN ('Alfa', 'Alpa') THEN 1 ELSE 0 END) as total_alpa,
+                SUM(CASE WHEN a.Kehadiran = 'Pra-Masuk' THEN 1 ELSE 0 END) as total_pra_masuk
             ")
             ->join('tbl_absensi_santri a', 's.IdSantri = a.IdSantri' . 
                 (!empty($startDate) ? " AND a.Tanggal >= '{$startDate}'" : "") .
@@ -908,11 +914,13 @@ class AbsensiModel extends Model
             $sakit = (int)$item['total_sakit'];
             $izin = (int)$item['total_izin'];
             $alfaCatat = (int)$item['total_alpa'];
+            $praMasuk = (int)($item['total_pra_masuk'] ?? 0);
             $totalCatat = $hadir + $sakit + $izin + $alfaCatat;
 
             if (empty($statusKehadiran)) {
-                // OPSI B: Samakan penyebut dengan Total Hari Efektif TPQ santri tersebut
-                $targetHari = !empty($hariEfektifTpqMap[$tpqId]) ? $hariEfektifTpqMap[$tpqId] : $totalCatat;
+                // OPSI B: Samakan penyebut dengan Total Hari Efektif TPQ santri tersebut dikurangi hari Pra-Masuk
+                $hariEfektifMaks = !empty($hariEfektifTpqMap[$tpqId]) ? $hariEfektifTpqMap[$tpqId] : ($totalCatat + $praMasuk);
+                $targetHari = max(0, $hariEfektifMaks - $praMasuk);
                 $targetHariFinal = max($targetHari, $totalCatat);
 
                 if ($targetHariFinal > $totalCatat) {
@@ -1020,7 +1028,8 @@ class AbsensiModel extends Model
             ->select('a.*, k.NamaKelas, g.Nama as NamaGuru')
             ->join('tbl_kelas k', 'a.IdKelas = k.IdKelas', 'left')
             ->join('tbl_guru g', 'a.IdGuru = g.IdGuru', 'left')
-            ->where('a.IdSantri', $idSantri);
+            ->where('a.IdSantri', $idSantri)
+            ->where('a.Kehadiran !=', 'Pra-Masuk');
 
         if (!empty($startDate)) {
             $builder->where('a.Tanggal >=', $startDate);
@@ -1230,5 +1239,156 @@ class AbsensiModel extends Model
     {
         $tanggalRef = $bulan . '-01';
         return $this->getTanggalBelumAbsenPerKelasPeriode($IdTpq, 'bulan', $tanggalRef, $IdTahunAjaran);
+    }
+
+    /**
+     * Otomatis sinkronisasi status 'Pra-Masuk' untuk santri baru atau eksisting dalam suatu kelas dan tahun ajaran.
+     * Mencegah absensi kelas berubah menjadi 'belum lengkap' dan mengamankan persentase statistik kehadiran.
+     */
+    public function syncPraMasukSantriKelas($IdTpq, $IdKelas = null, $IdTahunAjaran = null)
+    {
+        if (empty($IdTahunAjaran)) {
+            $helpFunction = new \App\Models\HelpFunctionModel();
+            $IdTahunAjaran = $helpFunction->getTahunAjaranSaatIni();
+        }
+
+        // 1. Ambil daftar tanggal absensi yang sudah terjadi di TPQ & Kelas pada Tahun Ajaran ini
+        $builderTgl = $this->db->table('tbl_absensi_santri')
+            ->select('IdKelas, Tanggal, IdGuru, IdTahunAjaran, IdTpq')
+            ->where('IdKelas !=', 10);
+
+        if (!empty($IdTpq) && $IdTpq != 0) {
+            $builderTgl->where('IdTpq', $IdTpq);
+        }
+        if (!empty($IdKelas)) {
+            if (is_array($IdKelas)) {
+                $builderTgl->whereIn('IdKelas', $IdKelas);
+            } else {
+                $builderTgl->where('IdKelas', $IdKelas);
+            }
+        }
+        if (!empty($IdTahunAjaran)) {
+            $builderTgl->where('IdTahunAjaran', $IdTahunAjaran);
+        }
+
+        $allTglKelas = $builderTgl->groupBy('IdKelas, Tanggal')->orderBy('Tanggal', 'ASC')->get()->getResultArray();
+        if (empty($allTglKelas)) {
+            return 0;
+        }
+
+        // Group tanggal per kelas
+        $tglPerKelas = [];
+        $sampleMetaPerKelasTgl = [];
+        foreach ($allTglKelas as $r) {
+            $kId = (int)$r['IdKelas'];
+            $tgl = $r['Tanggal'];
+            $tglPerKelas[$kId][] = $tgl;
+            $sampleMetaPerKelasTgl[$kId . '_' . $tgl] = [
+                'IdGuru' => $r['IdGuru'] ?? null,
+                'IdTpq' => $r['IdTpq'] ?? $IdTpq,
+                'IdTahunAjaran' => $r['IdTahunAjaran'] ?? $IdTahunAjaran,
+            ];
+        }
+
+        // 2. Ambil semua santri aktif di kelas terkait pada tahun ajaran ini
+        $builderSantri = $this->db->table('tbl_kelas_santri ks')
+            ->select('ks.IdSantri, ks.IdKelas, ks.IdTpq, ks.IdTahunAjaran, s.created_at')
+            ->join('tbl_santri_baru s', 's.IdSantri = ks.IdSantri', 'inner')
+            ->where('ks.Status', 1)
+            ->where('s.Active', 1)
+            ->where('ks.IdKelas !=', 10);
+
+        if (!empty($IdTpq) && $IdTpq != 0) {
+            $builderSantri->where('ks.IdTpq', $IdTpq);
+        }
+        if (!empty($IdKelas)) {
+            if (is_array($IdKelas)) {
+                $builderSantri->whereIn('ks.IdKelas', $IdKelas);
+            } else {
+                $builderSantri->where('ks.IdKelas', $IdKelas);
+            }
+        }
+        if (!empty($IdTahunAjaran)) {
+            $builderSantri->where('ks.IdTahunAjaran', $IdTahunAjaran);
+        }
+
+        $santriList = $builderSantri->get()->getResultArray();
+        if (empty($santriList)) {
+            return 0;
+        }
+
+        // 3. Ambil absensi pertama nyata dan semua record absensi yang sudah ada untuk santri-santri ini
+        $santriIds = array_column($santriList, 'IdSantri');
+        $existingAbsensiRows = $this->db->table('tbl_absensi_santri')
+            ->select('IdSantri, Tanggal, Kehadiran')
+            ->whereIn('IdSantri', $santriIds)
+            ->where('IdTahunAjaran', $IdTahunAjaran)
+            ->get()->getResultArray();
+
+        $existingAbsenMap = [];
+        $minRealTanggalMap = [];
+        foreach ($existingAbsensiRows as $ea) {
+            $sId = $ea['IdSantri'];
+            $tgl = $ea['Tanggal'];
+            $existingAbsenMap[$sId . '_' . $tgl] = $ea['Kehadiran'];
+
+            // Catat tanggal absensi riil pertama santri (bukan Pra-Masuk)
+            if ($ea['Kehadiran'] !== 'Pra-Masuk') {
+                if (!isset($minRealTanggalMap[$sId]) || $tgl < $minRealTanggalMap[$sId]) {
+                    $minRealTanggalMap[$sId] = $tgl;
+                }
+            }
+        }
+
+        // 4. Identifikasi tanggal sebelum santri masuk dan siapkan batch insert 'Pra-Masuk'
+        $batchInsert = [];
+        foreach ($santriList as $s) {
+            $sId = $s['IdSantri'];
+            $kId = (int)$s['IdKelas'];
+            $createdAtTgl = !empty($s['created_at']) ? substr($s['created_at'], 0, 10) : null;
+
+            // Titik awal santri aktif:
+            // Prioritas 1: Tanggal absensi riil pertama di tahun ajaran ini
+            // Prioritas 2: created_at santri
+            // Prioritas 3: Hari ini (jika baru dibuat tanpa record)
+            $tglMulai = $minRealTanggalMap[$sId] ?? ($createdAtTgl ?? date('Y-m-d'));
+
+            $daftarTglKelas = $tglPerKelas[$kId] ?? [];
+            foreach ($daftarTglKelas as $tglK) {
+                // Hanya suntikkan Pra-Masuk jika tanggal absensi kelas lebih awal dari tgl mulai santri
+                if ($tglK < $tglMulai) {
+                    $keyCheck = $sId . '_' . $tglK;
+                    if (!isset($existingAbsenMap[$keyCheck])) {
+                        $metaKey = $kId . '_' . $tglK;
+                        $meta = $sampleMetaPerKelasTgl[$metaKey] ?? [];
+
+                        $batchInsert[] = [
+                            'IdSantri' => $sId,
+                            'Tanggal' => $tglK,
+                            'Kehadiran' => 'Pra-Masuk',
+                            'Keterangan' => 'Pra-Masuk (Belum Terdaftar)',
+                            'IdKelas' => $kId,
+                            'IdTahunAjaran' => $s['IdTahunAjaran'] ?? ($meta['IdTahunAjaran'] ?? $IdTahunAjaran),
+                            'IdGuru' => $meta['IdGuru'] ?? null,
+                            'IdTpq' => $s['IdTpq'] ?? ($meta['IdTpq'] ?? $IdTpq),
+                            'created_at' => date('Y-m-d H:i:s'),
+                        ];
+
+                        // Tandai agar tidak double
+                        $existingAbsenMap[$keyCheck] = 'Pra-Masuk';
+                    }
+                }
+            }
+        }
+
+        if (!empty($batchInsert)) {
+            $chunks = array_chunk($batchInsert, 200);
+            foreach ($chunks as $chunk) {
+                $this->db->table('tbl_absensi_santri')->insertBatch($chunk);
+            }
+            return count($batchInsert);
+        }
+
+        return 0;
     }
 }

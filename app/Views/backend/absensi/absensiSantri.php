@@ -436,6 +436,9 @@
                                                 <?php else: ?>
                                                     <?php foreach ($santriList as $row): 
                                                         $curKehadiran = $row->Kehadiran ?? 'Hadir';
+                                                        if ($curKehadiran === 'Pra-Masuk') {
+                                                            $curKehadiran = 'Hadir'; // Default UI jika dibuka untuk diedit guru
+                                                        }
                                                         $curKeterangan = $row->Keterangan ?? '';
                                                         $isHadir = ($curKehadiran === 'Hadir');
                                                         $isIzin = ($curKehadiran === 'Izin');
