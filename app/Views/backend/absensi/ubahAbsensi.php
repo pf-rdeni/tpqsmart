@@ -2,13 +2,103 @@
 <?= $this->section('content'); ?>
 <div class="col-12">
     <div class="card">
-        <div class="card-header bg-warning">
-            <h3 class="card-title">
+        <div class="card-header bg-warning d-flex justify-content-between align-items-center">
+            <h3 class="card-title mb-0">
                 <i class="fas fa-edit"></i> Ubah Absensi Santri
             </h3>
+            <?php if (!empty($isOperator)): ?>
+                <div class="card-tools ml-auto">
+                    <button type="button" class="btn btn-outline-dark btn-sm shadow-sm font-weight-bold" data-toggle="collapse" data-target="#panelDeteksiLibur">
+                        <i class="fas fa-search-location mr-1 text-danger"></i> Deteksi & Cek Absensi Hari Libur
+                    </button>
+                </div>
+            <?php endif; ?>
         </div>
         <!-- /.card-header -->
         <div class="card-body">
+            <?php if (!empty($isOperator)): ?>
+                <!-- Panel Khusus Deteksi Absensi Hari Libur (Bulan / Semester / Preferensi Hari) -->
+                <div class="collapse mb-4" id="panelDeteksiLibur">
+                    <div class="card card-outline card-danger shadow-sm">
+                        <div class="card-header bg-light">
+                            <h5 class="card-title font-weight-bold text-danger mb-0">
+                                <i class="fas fa-calendar-check mr-1"></i> Deteksi Salah Input Absensi pada Hari Libur Lembaga
+                            </h5>
+                            <div class="card-tools">
+                                <button type="button" class="btn btn-tool" data-toggle="collapse" data-target="#panelDeteksiLibur"><i class="fas fa-times"></i></button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="row align-items-end">
+                                <div class="col-md-3 col-sm-6 mb-3">
+                                    <label class="font-weight-600 text-sm"><i class="fas fa-filter mr-1"></i> Rentang Periode:</label>
+                                    <div class="btn-group btn-group-toggle w-100" data-toggle="buttons">
+                                        <label class="btn btn-outline-secondary btn-sm active" id="lblPerBulan">
+                                            <input type="radio" name="optPeriodeLibur" value="bulan" checked autocomplete="off"> Per Bulan
+                                        </label>
+                                        <label class="btn btn-outline-secondary btn-sm" id="lblPerSemester">
+                                            <input type="radio" name="optPeriodeLibur" value="semester" autocomplete="off"> Per Semester
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 col-sm-12 mb-3">
+                                    <label class="font-weight-600 text-sm"><i class="fas fa-calendar-day mr-1"></i> Preferensi Hari Libur Lembaga:</label>
+                                    <div class="d-flex flex-wrap" id="checkboxHariLibur">
+                                        <div class="custom-control custom-checkbox mr-3 mb-1">
+                                            <input class="custom-control-input" type="checkbox" id="chkLibur0" value="0" checked>
+                                            <label for="chkLibur0" class="custom-control-label font-weight-normal text-danger">Minggu</label>
+                                        </div>
+                                        <div class="custom-control custom-checkbox mr-3 mb-1">
+                                            <input class="custom-control-input" type="checkbox" id="chkLibur6" value="6" checked>
+                                            <label for="chkLibur6" class="custom-control-label font-weight-normal text-danger">Sabtu</label>
+                                        </div>
+                                        <div class="custom-control custom-checkbox mr-3 mb-1">
+                                            <input class="custom-control-input" type="checkbox" id="chkLibur5" value="5">
+                                            <label for="chkLibur5" class="custom-control-label font-weight-normal">Jumat</label>
+                                        </div>
+                                        <div class="custom-control custom-checkbox mr-3 mb-1">
+                                            <input class="custom-control-input" type="checkbox" id="chkLibur1" value="1">
+                                            <label for="chkLibur1" class="custom-control-label font-weight-normal">Senin</label>
+                                        </div>
+                                        <div class="custom-control custom-checkbox mr-3 mb-1">
+                                            <input class="custom-control-input" type="checkbox" id="chkLibur2" value="2">
+                                            <label for="chkLibur2" class="custom-control-label font-weight-normal">Selasa</label>
+                                        </div>
+                                        <div class="custom-control custom-checkbox mr-3 mb-1">
+                                            <input class="custom-control-input" type="checkbox" id="chkLibur3" value="3">
+                                            <label for="chkLibur3" class="custom-control-label font-weight-normal">Rabu</label>
+                                        </div>
+                                        <div class="custom-control custom-checkbox mr-3 mb-1">
+                                            <input class="custom-control-input" type="checkbox" id="chkLibur4" value="4">
+                                            <label for="chkLibur4" class="custom-control-label font-weight-normal">Kamis</label>
+                                        </div>
+                                    </div>
+                                    <small class="text-muted"><i class="fas fa-info-circle mr-1"></i> Centang hari yang ditetapkan sebagai hari libur di lembaga Anda.</small>
+                                </div>
+                                <div class="col-md-3 col-sm-6 mb-3">
+                                    <button type="button" class="btn btn-danger btn-block font-weight-bold shadow-sm" id="btnJalankanDeteksi" onclick="jalankanDeteksiHariLibur()">
+                                        <i class="fas fa-search mr-1"></i> Scan & Temukan
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Area Hasil Scan Hari Libur -->
+                            <div id="hasilScanLibur" class="mt-3" style="display: none;">
+                                <div class="alert alert-light border py-2 mb-2 d-flex justify-content-between align-items-center">
+                                    <span class="font-weight-bold text-sm" id="scanLiburInfoTitle">
+                                        <i class="fas fa-history mr-1"></i> Hasil Scan
+                                    </span>
+                                    <span class="badge badge-danger text-sm px-2 py-1" id="scanLiburBadgeCount">0 Tanggal Ditemukan</span>
+                                </div>
+                                <div id="scanLiburContainer">
+                                    <!-- Render list tanggal libur via JS -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            <?php endif; ?>
+
             <!-- Step 1: Pilih Tanggal -->
             <div class="row mb-4">
                 <div class="col-md-6">
@@ -952,6 +1042,200 @@
                             icon: 'error',
                             title: 'Error',
                             text: 'Terjadi kesalahan sistem saat membatalkan absensi: ' + error,
+                            confirmButtonText: 'OK'
+                        });
+                    }
+                });
+            }
+        });
+    }
+
+    // Fungsi untuk menjalankan deteksi tanggal libur yang terlanjur terabsen
+    function jalankanDeteksiHariLibur() {
+        const periode = $('input[name="optPeriodeLibur"]:checked').val() || 'bulan';
+        const tanggal = $('#tanggal').val() || '<?= date('Y-m-d') ?>';
+
+        // Kumpulkan hari libur yang dicentang
+        const hariLiburDipilih = [];
+        $('#checkboxHariLibur input[type="checkbox"]:checked').each(function() {
+            hariLiburDipilih.push($(this).val());
+        });
+
+        if (hariLiburDipilih.length === 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Perhatian',
+                text: 'Silakan centang minimal satu hari sebagai preferensi hari libur.'
+            });
+            return;
+        }
+
+        const btn = $('#btnJalankanDeteksi');
+        btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-1"></i> Memindai...');
+
+        $.ajax({
+            url: '<?= base_url("backend/absensi/deteksiAbsensiHariLibur") ?>',
+            type: 'GET',
+            data: {
+                periode: periode,
+                tanggal: tanggal,
+                hari_libur: hariLiburDipilih.join(',')
+            },
+            dataType: 'json',
+            success: function(response) {
+                btn.prop('disabled', false).html('<i class="fas fa-search mr-1"></i> Scan & Temukan');
+                if (response.success) {
+                    renderHasilDeteksiLibur(response);
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Gagal',
+                        text: response.message || 'Gagal mendeteksi absensi hari libur.'
+                    });
+                }
+            },
+            error: function(xhr, status, error) {
+                btn.prop('disabled', false).html('<i class="fas fa-search mr-1"></i> Scan & Temukan');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Terjadi kesalahan sistem: ' + error
+                });
+            }
+        });
+    }
+
+    // Render hasil scan absensi hari libur
+    function renderHasilDeteksiLibur(res) {
+        $('#hasilScanLibur').show();
+        $('#scanLiburInfoTitle').html(`<i class="fas fa-calendar-alt text-primary mr-1"></i> Hasil Scan Periode: <strong>${res.periode_label}</strong>`);
+        $('#scanLiburBadgeCount').text(`${res.total_tanggal_ditemukan} Tanggal Ditemukan`);
+
+        const container = $('#scanLiburContainer');
+        container.empty();
+
+        if (res.total_tanggal_ditemukan === 0) {
+            container.html(`
+                <div class="alert alert-success mb-0 py-3 text-center">
+                    <i class="fas fa-check-circle fa-2x mb-2 d-block text-success"></i>
+                    <strong>Bersih! Tidak Ditemukan Absensi di Hari Libur</strong>
+                    <div class="text-xs text-muted mt-1">Seluruh absensi yang tercatat pada periode ini berada di luar hari libur yang dicentang.</div>
+                </div>
+            `);
+            return;
+        }
+
+        let html = '<div class="list-group shadow-sm">';
+        res.data.forEach(function(item) {
+            let kelasBadgeList = '';
+            item.kelas_terkena.forEach(function(k) {
+                kelasBadgeList += `<span class="badge badge-light border mr-1 mb-1 font-weight-normal py-1 px-2">
+                    <strong class="text-dark">${k.NamaKelas}</strong>: ${k.total_santri} santri 
+                    <small class="text-muted">(H:${k.hadir}, I:${k.izin}, S:${k.sakit}, A:${k.alfa})</small>
+                </span>`;
+            });
+
+            html += `
+                <div class="list-group-item list-group-item-action p-3 mb-2 rounded border">
+                    <div class="d-flex w-100 justify-content-between align-items-center flex-wrap mb-2">
+                        <h6 class="mb-1 font-weight-bold text-danger">
+                            <i class="fas fa-exclamation-triangle mr-1"></i> ${item.hari}, ${item.tanggal_formatted}
+                        </h6>
+                        <div>
+                            <span class="badge badge-danger px-2 py-1 mr-2">${item.total_rekaman} Total Rekaman</span>
+                            <button type="button" class="btn btn-xs btn-outline-primary mr-1" onclick="pilihTanggalScan('${item.tanggal}')" title="Buka dan telusuri tanggal ini di form atas">
+                                <i class="fas fa-eye mr-1"></i> Buka Tanggal
+                            </button>
+                            <button type="button" class="btn btn-xs btn-danger shadow-sm font-weight-bold" onclick="konfirmasiBatalkanAbsensiTanggalLangsung('${item.tanggal}', '${item.hari}, ${item.tanggal_formatted}')" title="Batalkan langsung rekaman absensi hari libur ini">
+                                <i class="fas fa-trash-alt mr-1"></i> Batalkan Tanggal Ini
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mb-0">
+                        <small class="text-muted d-block mb-1">Kelas yang terlanjur terabsen pada tanggal ini:</small>
+                        <div class="d-flex flex-wrap">${kelasBadgeList}</div>
+                    </div>
+                </div>
+            `;
+        });
+        html += '</div>';
+
+        container.html(html);
+    }
+
+    // Klik tombol Buka Tanggal dari hasil scan
+    function pilihTanggalScan(tanggal) {
+        $('#tanggal').val(tanggal).trigger('change');
+        $('html, body').animate({
+            scrollTop: $("#statusAbsensiKelas").offset().top - 70
+        }, 400);
+    }
+
+    // Batalkan langsung dari panel hasil scan hari libur
+    function konfirmasiBatalkanAbsensiTanggalLangsung(tanggal, labelTanggal) {
+        Swal.fire({
+            title: 'Batalkan Absensi Hari Libur?',
+            html: `<div class="text-left text-sm">
+                <p>Anda akan membatalkan / menghapus <strong>seluruh rekaman absensi</strong> pada tanggal <strong>${labelTanggal}</strong>.</p>
+                <div class="alert alert-warning py-2 px-3 mb-2">
+                    <i class="fas fa-info-circle mr-1"></i> Tanggal ini akan dihapus dari riwayat absensi sehingga tidak lagi dianggap sebagai hari aktif TPQ yang mewajibkan kelas lain absen.
+                </div>
+            </div>`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: '<i class="fas fa-trash-alt mr-1"></i> Ya, Hapus Absensi Libur!',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'Memproses...',
+                    text: 'Sedang menghapus data absensi libur...',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                $.ajax({
+                    url: '<?= base_url("backend/absensi/batalkanAbsensiTanggal") ?>',
+                    type: 'POST',
+                    data: {
+                        tanggal: tanggal,
+                        IdKelas: 'all'
+                    },
+                    dataType: 'json',
+                    success: function(response) {
+                        Swal.close();
+                        if (response.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Berhasil!',
+                                text: response.message,
+                                confirmButtonText: 'OK'
+                            }).then(() => {
+                                // Refresh status kelas jika sedang di tanggal tersebut dan re-scan
+                                if ($('#tanggal').val() === tanggal) {
+                                    loadStatusAbsensiKelas(tanggal);
+                                }
+                                jalankanDeteksiHariLibur();
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Gagal',
+                                text: response.message || 'Gagal membatalkan absensi.',
+                                confirmButtonText: 'OK'
+                            });
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        Swal.close();
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Terjadi kesalahan sistem: ' + error,
                             confirmButtonText: 'OK'
                         });
                     }

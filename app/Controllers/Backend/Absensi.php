@@ -1205,6 +1205,147 @@ class Absensi extends BaseController
     }
 
     /**
+     * AJAX endpoint untuk mendeteksi tanggal-tanggal yang terlanjur terabsen pada hari libur
+     * Mendukung rentang: 'bulan' (bulan ini / bulan terpilih) atau 'semester' (semester ganjil/genap)
+     * Filter hari libur bisa dikonfigurasi: misal [0, 6] (Minggu & Sabtu) atau hari lainnya sesuai kebijakan TPQ.
+     */
+    public function deteksiAbsensiHariLibur()
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setStatusCode(403)->setJSON([
+                'success' => false,
+                'message' => 'Akses ditolak.'
+            ]);
+        }
+
+        $IdTpq = session()->get('IdTpq');
+        $IdTahunAjaran = session()->get('IdTahunAjaran');
+        $periode = $this->request->getGet('periode') ?: 'bulan';
+        $tanggalRef = $this->request->getGet('tanggal') ?: date('Y-m-d');
+        $hariLiburParam = $this->request->getGet('hari_libur'); // array angka hari: 0 (Minggu) s/d 6 (Sabtu)
+
+        // Default hari libur: Sabtu (6) dan Minggu (0)
+        $hariLiburDipilih = [0, 6];
+        if (!empty($hariLiburParam)) {
+            if (is_array($hariLiburParam)) {
+                $hariLiburDipilih = array_map('intval', $hariLiburParam);
+            } else {
+                $hariLiburDipilih = array_map('intval', explode(',', $hariLiburParam));
+            }
+        }
+
+        $tsRef = strtotime($tanggalRef);
+        $mRef = date('m', $tsRef);
+        $yRef = date('Y', $tsRef);
+
+        if ($periode === 'semester') {
+            $mInt = (int)$mRef;
+            if ($mInt >= 7) {
+                $startDate = $yRef . '-07-01';
+                $endDate = $yRef . '-12-31';
+                $periodeLabel = 'Semester Ganjil ' . $yRef . ' (Juli - Des ' . $yRef . ')';
+            } else {
+                $startDate = $yRef . '-01-01';
+                $endDate = $yRef . '-06-30';
+                $periodeLabel = 'Semester Genap ' . $yRef . ' (Jan - Jun ' . $yRef . ')';
+            }
+        } else {
+            // Periode bulan
+            $startDate = date('Y-m-01', $tsRef);
+            $endDate = date('Y-m-t', $tsRef);
+            $bulanIndo = [
+                '01' => 'Januari', '02' => 'Februari', '03' => 'Maret',
+                '04' => 'April', '05' => 'Mei', '06' => 'Juni',
+                '07' => 'Juli', '08' => 'Agustus', '09' => 'September',
+                '10' => 'Oktober', '11' => 'November', '12' => 'Desember'
+            ];
+            $periodeLabel = 'Bulan ' . ($bulanIndo[$mRef] ?? '') . ' ' . $yRef;
+        }
+
+        try {
+            $db = db_connect();
+            $builder = $db->table('tbl_absensi_santri a')
+                ->select("
+                    a.Tanggal,
+                    a.IdKelas,
+                    k.NamaKelas,
+                    COUNT(*) as total_santri_tercatat,
+                    SUM(CASE WHEN a.Kehadiran = 'Hadir' THEN 1 ELSE 0 END) as hadir,
+                    SUM(CASE WHEN a.Kehadiran = 'Izin' THEN 1 ELSE 0 END) as izin,
+                    SUM(CASE WHEN a.Kehadiran = 'Sakit' THEN 1 ELSE 0 END) as sakit,
+                    SUM(CASE WHEN a.Kehadiran IN ('Alfa', 'Alpa') THEN 1 ELSE 0 END) as alfa
+                ")
+                ->join('tbl_kelas k', 'a.IdKelas = k.IdKelas', 'left')
+                ->where('a.IdKelas !=', 10)
+                ->where('a.Tanggal >=', $startDate)
+                ->where('a.Tanggal <=', $endDate);
+
+            if (!empty($IdTpq) && $IdTpq != 0) {
+                $builder->where('a.IdTpq', $IdTpq);
+            }
+            if (!empty($IdTahunAjaran)) {
+                $builder->where('a.IdTahunAjaran', $IdTahunAjaran);
+            }
+
+            $rows = $builder->groupBy('a.Tanggal, a.IdKelas')
+                ->orderBy('a.Tanggal', 'ASC')
+                ->orderBy('k.NamaKelas', 'ASC')
+                ->get()->getResultArray();
+
+            $hariIndo = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+            $temuanLibur = [];
+
+            foreach ($rows as $r) {
+                $tgl = $r['Tanggal'];
+                $ts = strtotime($tgl);
+                $dayOfWeek = (int)date('w', $ts); // 0 (Minggu) - 6 (Sabtu)
+
+                // Cek apakah hari ini termasuk hari libur yang dipilih
+                if (in_array($dayOfWeek, $hariLiburDipilih)) {
+                    if (!isset($temuanLibur[$tgl])) {
+                        $temuanLibur[$tgl] = [
+                            'tanggal' => $tgl,
+                            'tanggal_formatted' => date('d/m/Y', $ts),
+                            'hari' => $hariIndo[$dayOfWeek],
+                            'day_of_week' => $dayOfWeek,
+                            'total_rekaman' => 0,
+                            'kelas_terkena' => []
+                        ];
+                    }
+
+                    $tot = (int)$r['total_santri_tercatat'];
+                    $temuanLibur[$tgl]['total_rekaman'] += $tot;
+                    $temuanLibur[$tgl]['kelas_terkena'][] = [
+                        'IdKelas' => (int)$r['IdKelas'],
+                        'NamaKelas' => $r['NamaKelas'],
+                        'total_santri' => $tot,
+                        'hadir' => (int)$r['hadir'],
+                        'izin' => (int)$r['izin'],
+                        'sakit' => (int)$r['sakit'],
+                        'alfa' => (int)$r['alfa'],
+                    ];
+                }
+            }
+
+            return $this->response->setJSON([
+                'success' => true,
+                'periode' => $periode,
+                'periode_label' => $periodeLabel,
+                'start_date' => $startDate,
+                'end_date' => $endDate,
+                'hari_libur_dipilih' => $hariLiburDipilih,
+                'total_tanggal_ditemukan' => count($temuanLibur),
+                'data' => array_values($temuanLibur)
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal mendeteksi absensi hari libur: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
      * AJAX endpoint untuk mendapatkan daftar tanggal aktif TPQ yang belum diabsen per kelas (Konsep Opsi B)
      */
     public function getTanggalBelumAbsenPerKelas()
