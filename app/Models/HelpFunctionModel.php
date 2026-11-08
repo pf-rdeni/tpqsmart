@@ -1523,12 +1523,16 @@ class HelpFunctionModel extends Model
         $kelasSantriData = [];
         $santriIds = [];
 
+        $now = date('Y-m-d H:i:s');
         foreach ($santriList as $santri) {
             $kelasSantriData[] = [
                 'IdKelas' => $santri['IdKelas'],
                 'IdTpq' => $santri['IdTpq'],
                 'IdSantri' => $santri['IdSantri'],
-                'IdTahunAjaran' => $santri['IdTahunAjaran']
+                'IdTahunAjaran' => $santri['IdTahunAjaran'],
+                'Status' => 1,
+                'created_at' => $now,
+                'updated_at' => $now
             ];
             $santriIds[] = $santri['IdSantri'];
         }
@@ -1561,6 +1565,7 @@ class HelpFunctionModel extends Model
         $kelasSantriData = [];
         $updateIds = [];
 
+        $now = date('Y-m-d H:i:s');
         foreach ($santriList as $santri) {
             // Get next kelas
             $kelasBaru = $this->getNextKelas($santri['IdKelas']);
@@ -1569,7 +1574,10 @@ class HelpFunctionModel extends Model
                 'IdKelas' => $kelasBaru,
                 'IdTpq' => $santri['IdTpq'],
                 'IdSantri' => $santri['IdSantri'],
-                'IdTahunAjaran' => $tahunAjaran
+                'IdTahunAjaran' => $tahunAjaran,
+                'Status' => 1,
+                'created_at' => $now,
+                'updated_at' => $now
             ];
 
             $updateIds[] = $santri['Id'];
