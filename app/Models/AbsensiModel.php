@@ -1290,9 +1290,9 @@ class AbsensiModel extends Model
             ];
         }
 
-        // 2. Ambil semua santri aktif di kelas terkait pada tahun ajaran ini
+        // 2. Ambil semua santri aktif di kelas terkait pada tahun ajaran ini beserta tanggal registrasi kelasnya
         $builderSantri = $this->db->table('tbl_kelas_santri ks')
-            ->select('ks.IdSantri, ks.IdKelas, ks.IdTpq, ks.IdTahunAjaran, s.created_at')
+            ->select('ks.IdSantri, ks.IdKelas, ks.IdTpq, ks.IdTahunAjaran, ks.created_at as tgl_registrasi_kelas, s.created_at as tgl_daftar_santri')
             ->join('tbl_santri_baru s', 's.IdSantri = ks.IdSantri', 'inner')
             ->where('ks.Status', 1)
             ->where('s.Active', 1)
@@ -1345,13 +1345,17 @@ class AbsensiModel extends Model
         foreach ($santriList as $s) {
             $sId = $s['IdSantri'];
             $kId = (int)$s['IdKelas'];
-            $createdAtTgl = !empty($s['created_at']) ? substr($s['created_at'], 0, 10) : null;
+            
+            // Tanggal registrasi ke kelas oleh Operator/Admin (Prioritas Utama)
+            $tglRegKelas = !empty($s['tgl_registrasi_kelas']) ? substr($s['tgl_registrasi_kelas'], 0, 10) : null;
+            // Tanggal santri pertama kali didaftarkan di sistem
+            $tglDaftar = !empty($s['tgl_daftar_santri']) ? substr($s['tgl_daftar_santri'], 0, 10) : null;
 
             // Titik awal santri aktif:
-            // Prioritas 1: Tanggal absensi riil pertama di tahun ajaran ini
-            // Prioritas 2: created_at santri
-            // Prioritas 3: Hari ini (jika baru dibuat tanpa record)
-            $tglMulai = $minRealTanggalMap[$sId] ?? ($createdAtTgl ?? date('Y-m-d'));
+            // 1. Jika sudah pernah diabsen riil oleh guru, gunakan tanggal absensi riil pertama
+            // 2. Jika belum pernah diabsen, gunakan tanggal diregistrasi ke kelas oleh Operator/Admin
+            // 3. Fallback ke tanggal pendaftaran awal santri atau hari ini
+            $tglMulai = $minRealTanggalMap[$sId] ?? ($tglRegKelas ?? ($tglDaftar ?? date('Y-m-d')));
 
             $daftarTglKelas = $tglPerKelas[$kId] ?? [];
             foreach ($daftarTglKelas as $tglK) {
