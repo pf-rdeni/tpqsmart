@@ -405,7 +405,10 @@
             <h3 class="card-title">
                 <i class="fas fa-chart-bar"></i> Statistik Jumlah Peserta Munaqosah per Tahun Ajaran
             </h3>
-            <div class="card-tools">
+            <div class="card-tools d-flex align-items-center">
+                <button type="button" class="btn btn-success btn-sm font-weight-bold mr-2 shadow-sm" id="btnOpenModalWaSummary">
+                    <i class="fab fa-whatsapp mr-1"></i> Kirim Summary ke WhatsApp
+                </button>
                 <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Collapse">
                     <i class="fas fa-minus"></i>
                 </button>
@@ -1444,6 +1447,59 @@
         </div>
     </div>
 </div>
+<!-- Modal Ringkasan Peserta untuk WhatsApp -->
+<div class="modal fade" id="modalWaSummary" tabindex="-1" role="dialog" aria-labelledby="modalWaSummaryLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title font-weight-bold" id="modalWaSummaryLabel">
+                    <i class="fab fa-whatsapp mr-1"></i> Ringkasan Peserta Munaqosah untuk WhatsApp
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <!-- Toggle Switch Lampirkan Belum Kirim -->
+                <div class="card card-light mb-3 border shadow-sm">
+                    <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong><i class="fas fa-tasks mr-1 text-primary"></i> Lampirkan Daftar TPQ yang Belum Mengirimkan Data</strong>
+                            <div class="text-muted small">Centang untuk menyertakan daftar nama TPQ yang belum mendaftar sama sekali (0 santri).</div>
+                        </div>
+                        <div class="custom-control custom-switch custom-switch-lg ml-3">
+                            <input type="checkbox" class="custom-control-input" id="switchIncludeBelum" checked>
+                            <label class="custom-control-label font-weight-bold text-success" for="switchIncludeBelum" id="labelSwitchBelum">Ya, Lampirkan</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group mb-0">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <label for="waSummaryTextarea" class="font-weight-bold mb-0">
+                            <i class="fas fa-comment-alt text-info mr-1"></i> Preview Pesan WhatsApp:
+                        </label>
+                        <small class="text-muted"><i class="fas fa-edit mr-1"></i>Teks dapat diedit secara bebas sebelum dikirim</small>
+                    </div>
+                    <textarea class="form-control" id="waSummaryTextarea" rows="14" style="font-family: Consolas, Monaco, monospace; font-size: 0.9rem; line-height: 1.45;"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer justify-content-between">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                    <i class="fas fa-times mr-1"></i> Tutup
+                </button>
+                <div>
+                    <button type="button" class="btn btn-outline-primary mr-2" id="btnCopyWaText">
+                        <i class="fas fa-copy mr-1"></i> Salin Teks
+                    </button>
+                    <button type="button" class="btn btn-success font-weight-bold" id="btnSendToWa">
+                        <i class="fab fa-whatsapp mr-1"></i> Buka WhatsApp
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 <?= $this->endSection() ?>
 
 <?= $this->section('scripts') ?>
@@ -1925,13 +1981,13 @@
         color: #fff;
     }
 
-    /* Modal z-index fix */
-    .select2-container {
-        z-index: 9999;
+    /* Modal z-index fix - hanya dropdown yang sedang terbuka yang diberi z-index tinggi agar tidak menimpa popup modal */
+    .select2-container--open {
+        z-index: 1060 !important;
     }
 
     .select2-dropdown {
-        z-index: 9999;
+        z-index: 1060 !important;
     }
 
     /* Konsistensi tinggi untuk semua form control */
@@ -2549,6 +2605,131 @@
 
             // Redirect dengan filter
             window.location.href = url;
+        });
+
+        // Data WhatsApp Summary dari Controller
+        var waSummaryData = <?= json_encode($waSummaryData ?? [], JSON_UNESCAPED_UNICODE) ?>;
+
+        function buildWaSummaryText(includeBelum) {
+            if (!waSummaryData || !waSummaryData.tahunAjaranFormatted) {
+                return 'Data summary tidak tersedia.';
+            }
+
+            var ta = waSummaryData.tahunAjaranFormatted;
+            var waktu = waSummaryData.waktuUpdate || '';
+            var totalPeserta = waSummaryData.totalPeserta || 0;
+            var totalBatal = waSummaryData.totalBatal || 0;
+            var tpqSudah = waSummaryData.tpqSudah || [];
+            var tpqBelum = waSummaryData.tpqBelum || [];
+
+            var text = '📢 *UPDATE DATA PESERTA MUNAQOSAH*\n';
+            text += 'Tahun Ajaran: *' + ta + '*\n';
+            text += 'Per: *' + waktu + '*\n\n';
+
+            text += '📊 *RINGKASAN SINGKAT:*\n';
+            text += '• Total Peserta Terdaftar: *' + totalPeserta + ' Santri*';
+            if (totalBatal > 0) {
+                var aktif = totalPeserta - totalBatal;
+                text += ' _(' + aktif + ' Aktif, ' + totalBatal + ' Batal)_';
+            }
+            text += '\n';
+            text += '• Lembaga Sudah Kirim: *' + tpqSudah.length + ' TPQ*\n';
+            text += '• Lembaga Belum Kirim: *' + tpqBelum.length + ' TPQ*\n\n';
+
+            text += '===============================\n\n';
+
+            text += '✅ *SUDAH MENGIRIMKAN DATA (' + tpqSudah.length + ' TPQ):*\n';
+            if (tpqSudah.length > 0) {
+                tpqSudah.forEach(function(t, index) {
+                    text += (index + 1) + '. ' + t.nama + ' (' + t.jumlah + ' Santri)\n';
+                });
+            } else {
+                text += '_(Belum ada lembaga yang mengirimkan data)_\n';
+            }
+            text += '\n';
+
+            if (includeBelum) {
+                text += '⏳ *BELUM MENGIRIMKAN DATA (' + tpqBelum.length + ' TPQ):*\n';
+                if (tpqBelum.length > 0) {
+                    tpqBelum.forEach(function(t, index) {
+                        text += (index + 1) + '. ' + t.nama + '\n';
+                    });
+                } else {
+                    text += '_(Alhamdulillah, semua lembaga sudah mengirimkan data)_\n';
+                }
+                text += '\n';
+                text += '===============================\n\n';
+                text += '📌 *TOTAL KESELURUHAN: ' + totalPeserta + ' SANTRI*\n\n';
+                text += '_Catatan: Bagi lembaga TPQ yang belum mengirimkan / mendaftarkan santrinya, dimohon untuk segera melakukan registrasi peserta melalui SIM TPQ Smart. Terima kasih._ 🙏';
+            } else {
+                text += '===============================\n\n';
+                text += '📌 *TOTAL KESELURUHAN: ' + totalPeserta + ' SANTRI*\n\n';
+                text += '_Catatan: Bagi lembaga TPQ yang belum mengirimkan data, mohon untuk segera melengkapi registrasi peserta munaqosah. Terima kasih._ 🙏';
+            }
+
+            return text;
+        }
+
+        // Buka Modal WhatsApp Summary
+        $('#btnOpenModalWaSummary').on('click', function() {
+            var isChecked = $('#switchIncludeBelum').is(':checked');
+            $('#waSummaryTextarea').val(buildWaSummaryText(isChecked));
+            $('#modalWaSummary').modal('show');
+        });
+
+        // Switch toggle apakah melampirkan TPQ yang belum atau tidak
+        $('#switchIncludeBelum').on('change', function() {
+            var isChecked = $(this).is(':checked');
+            if (isChecked) {
+                $('#labelSwitchBelum').text('Ya, Lampirkan').removeClass('text-muted').addClass('text-success');
+            } else {
+                $('#labelSwitchBelum').text('Tidak Dilampirkan').removeClass('text-success').addClass('text-muted');
+            }
+            $('#waSummaryTextarea').val(buildWaSummaryText(isChecked));
+        });
+
+        // Tombol Salin Teks
+        $('#btnCopyWaText').on('click', function() {
+            var text = $('#waSummaryTextarea').val();
+            if (!text) return;
+
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text).then(function() {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Tersalin!',
+                        text: 'Teks summary berhasil disalin ke clipboard.',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                }).catch(function() {
+                    fallbackCopyText();
+                });
+            } else {
+                fallbackCopyText();
+            }
+
+            function fallbackCopyText() {
+                var el = document.getElementById('waSummaryTextarea');
+                el.select();
+                el.setSelectionRange(0, 99999);
+                document.execCommand('copy');
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Tersalin!',
+                    text: 'Teks summary berhasil disalin ke clipboard.',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+            }
+        });
+
+        // Tombol Buka WhatsApp
+        $('#btnSendToWa').on('click', function() {
+            var text = $('#waSummaryTextarea').val();
+            if (!text) return;
+            var url = 'https://api.whatsapp.com/send?text=' + encodeURIComponent(text);
+            window.open(url, '_blank');
         });
 
         // Event handler untuk tombol Reset Filter Statistik

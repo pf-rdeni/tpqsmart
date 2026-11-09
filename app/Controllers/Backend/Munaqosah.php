@@ -4286,7 +4286,7 @@ class Munaqosah extends BaseController
             }
         }
 
-        // Handle array untuk filter Tahun Ajaran
+        // Handle array untuk filter Tahun Ajaran (default ke tahun ajaran saat ini jika tidak ada filter)
         $filterTahunAjaranArray = [];
         if ($filterTahunAjaran) {
             if (is_array($filterTahunAjaran)) {
@@ -4294,6 +4294,8 @@ class Munaqosah extends BaseController
             } else {
                 $filterTahunAjaranArray = [$filterTahunAjaran];
             }
+        } else {
+            $filterTahunAjaranArray = [$this->helpFunction->getTahunAjaranSaatIni()];
         }
 
         // Normalize tahun ajaran array
@@ -4654,6 +4656,110 @@ class Munaqosah extends BaseController
         // Convert ke array untuk view
         $statistikGroupedByTahun = array_values($statistikGroupedByTahun);
 
+        // Siapkan data ringkasan untuk WhatsApp Summary
+        $allTpqList = $this->helpFunction->getDataTpq();
+        $nameFreq = [];
+        foreach ($allTpqList as $t) {
+            $cleanName = strtoupper(trim($t['NamaTpq']));
+            $nameFreq[$cleanName] = ($nameFreq[$cleanName] ?? 0) + 1;
+        }
+
+        $kelurahanAbbr = [
+            'BUSUNG' => 'BS',
+            'KUALA SEMPANG' => 'KS',
+            'TELUK SASAH' => 'TS',
+            'TELUK LOBAM' => 'TL',
+            'TANJUNG PERMAI' => 'TP',
+        ];
+
+        $formatNamaTpq = function($namaTpq, $kelurahanDesa) use ($nameFreq, $kelurahanAbbr) {
+            $cleanName = strtoupper(trim($namaTpq));
+            if (isset($nameFreq[$cleanName]) && $nameFreq[$cleanName] > 1) {
+                $kelClean = strtoupper(trim($kelurahanDesa ?? ''));
+                $abbr = $kelurahanAbbr[$kelClean] ?? '';
+                if (empty($abbr) && !empty($kelClean)) {
+                    $words = preg_split('/\s+/', $kelClean);
+                    if (count($words) > 1) {
+                        $abbr = '';
+                        foreach ($words as $w) {
+                            $abbr .= strtoupper(substr($w, 0, 1));
+                        }
+                    } else {
+                        $abbr = strtoupper(substr($kelClean, 0, 2));
+                    }
+                }
+                return trim($namaTpq) . ($abbr ? ' ' . $abbr : '');
+            }
+            return trim($namaTpq);
+        };
+
+        // Ambil data peserta munaqosah untuk tahun ajaran aktif untuk mapping WA
+        $pesertaRowsForWa = $this->db->table('tbl_munaqosah_peserta')
+            ->select('IdTpq, keterangan')
+            ->where('IdTahunAjaran', $tahunAjaran)
+            ->get()->getResultArray();
+
+        $countTpqMap = [];
+        $batalCount = 0;
+        foreach ($pesertaRowsForWa as $pRow) {
+            $tId = $pRow['IdTpq'];
+            $countTpqMap[$tId] = ($countTpqMap[$tId] ?? 0) + 1;
+            $parseBatal = $this->pesertaMunaqosahModel->parsePembatalanData($pRow['keterangan'] ?? '');
+            if ($parseBatal['is_batal']) {
+                $batalCount++;
+            }
+        }
+
+        $waTpqSudah = [];
+        $waTpqBelum = [];
+        $waTotalPeserta = 0;
+
+        foreach ($allTpqList as $tpq) {
+            $id = $tpq['IdTpq'];
+            $displayName = $formatNamaTpq($tpq['NamaTpq'], $tpq['KelurahanDesa'] ?? '');
+            $jumlah = $countTpqMap[$id] ?? 0;
+            if ($jumlah > 0) {
+                $waTpqSudah[] = [
+                    'id' => $id,
+                    'nama' => $displayName,
+                    'kelurahan' => $tpq['KelurahanDesa'] ?? '-',
+                    'jumlah' => $jumlah
+                ];
+                $waTotalPeserta += $jumlah;
+            } else {
+                $waTpqBelum[] = [
+                    'id' => $id,
+                    'nama' => $displayName,
+                    'kelurahan' => $tpq['KelurahanDesa'] ?? '-'
+                ];
+            }
+        }
+
+        usort($waTpqSudah, function($a, $b) {
+            if ($b['jumlah'] !== $a['jumlah']) {
+                return $b['jumlah'] - $a['jumlah'];
+            }
+            return strcmp($a['nama'], $b['nama']);
+        });
+
+        usort($waTpqBelum, function($a, $b) {
+            return strcmp($a['nama'], $b['nama']);
+        });
+
+        $hariIndo = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+        $bulanIndo = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+        $waktuUpdate = $hariIndo[date('w')] . ', ' . date('d') . ' ' . $bulanIndo[(int)date('n')] . ' ' . date('Y') . ' - ' . date('H:i') . ' WIB';
+
+        $waSummaryData = [
+            'tahunAjaranFormatted' => convertTahunAjaran($tahunAjaran),
+            'tahunAjaranRaw' => $tahunAjaran,
+            'totalPeserta' => $waTotalPeserta,
+            'totalBatal' => $batalCount,
+            'tpqSudah' => $waTpqSudah,
+            'tpqBelum' => $waTpqBelum,
+            'waktuUpdate' => $waktuUpdate
+        ];
+
         $data = [
             'page_title' => 'Data Peserta Munaqosah',
             'peserta' => $peserta,
@@ -4676,6 +4782,7 @@ class Munaqosah extends BaseController
             'hideTpqColumn' => $hideTpqColumn, // Flag untuk menyembunyikan kolom TPQ/Alamat
             'isOperator' => $isOperator, // Flag untuk menonaktifkan filter TPQ untuk operator
             'isAdmin' => $isAdmin, // Flag untuk admin
+            'waSummaryData' => $waSummaryData, // Data ringkasan untuk WhatsApp
         ];
         return view('backend/Munaqosah/listPesertaMunaqosah', $data);
     }
