@@ -332,7 +332,10 @@ if (!function_exists('convertTahunAjaran')) {
     {
         // jika array ambil index 0
         if (is_array($TahunAjaran)) {
-            $TahunAjaran = $TahunAjaran[0];
+            $TahunAjaran = $TahunAjaran[0] ?? '';
+        }
+        if ($TahunAjaran === 'all' || $TahunAjaran === 'semua' || empty($TahunAjaran)) {
+            return 'Semua Tahun Ajaran';
         }
         $startYear = (int) substr($TahunAjaran, 0, 4);
         $endYear = (int) substr($TahunAjaran, 4);

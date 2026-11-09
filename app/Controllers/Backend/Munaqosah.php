@@ -4298,18 +4298,24 @@ class Munaqosah extends BaseController
             $filterTahunAjaranArray = [$this->helpFunction->getTahunAjaranSaatIni()];
         }
 
+        $isAllTahunAjaran = in_array('all', $filterTahunAjaranArray) || in_array('semua', $filterTahunAjaranArray);
+
         // Normalize tahun ajaran array
         $normalizedTahunAjaranArray = [];
-        foreach ($filterTahunAjaranArray as $ta) {
-            try {
-                $normalizedTahunAjaranArray[] = $this->helpFunction->normalizeTahunAjaran($ta);
-            } catch (\Exception $e) {
-                // Skip invalid values
+        if (!$isAllTahunAjaran) {
+            foreach ($filterTahunAjaranArray as $ta) {
+                try {
+                    $normalizedTahunAjaranArray[] = $this->helpFunction->normalizeTahunAjaran($ta);
+                } catch (\Exception $e) {
+                    // Skip invalid values
+                }
             }
         }
 
         // ambil tahun ajaran saat ini (gunakan yang pertama jika ada filter, atau default)
-        $tahunAjaran = !empty($normalizedTahunAjaranArray) ? $normalizedTahunAjaranArray[0] : $this->helpFunction->getTahunAjaranSaatIni();
+        $tahunAjaran = (!$isAllTahunAjaran && !empty($normalizedTahunAjaranArray)) 
+            ? $normalizedTahunAjaranArray[0] 
+            : $this->helpFunction->getTahunAjaranSaatIni();
         // IdTpq dari session
         $idTpq = session()->get('IdTpq');
 
@@ -4365,7 +4371,7 @@ class Munaqosah extends BaseController
 
         // Ambil data peserta dengan filter (handle multiple TPQ dan multiple tahun ajaran)
         // Untuk getPesertaWithRelations, kita perlu query manual jika multiple
-        if (!empty($filterTpqFinalArray) || !empty($normalizedTahunAjaranArray) || $filterKelurahanDesa) {
+        if (!empty($filterTpqFinalArray) || !empty($normalizedTahunAjaranArray) || $filterKelurahanDesa || $isAllTahunAjaran) {
             $builder = $this->db->table('tbl_munaqosah_peserta pm');
             $builder->select('s.*, t.*, k.NamaKelas, k.IdKelas, pm.*');
             $builder->join('tbl_santri_baru s', 's.IdSantri = pm.IdSantri', 'left');
@@ -4379,7 +4385,7 @@ class Munaqosah extends BaseController
             }
 
             // Filter multiple Tahun Ajaran
-            if (!empty($normalizedTahunAjaranArray)) {
+            if (!$isAllTahunAjaran && !empty($normalizedTahunAjaranArray)) {
                 $builder->whereIn('pm.IdTahunAjaran', $normalizedTahunAjaranArray);
             }
 
@@ -4507,7 +4513,9 @@ class Munaqosah extends BaseController
         $whereParams = [];
 
         // Filter multiple Tahun Ajaran
-        if (!empty($normalizedTahunAjaranArray)) {
+        if ($isAllTahunAjaran) {
+            // Semua tahun ajaran: jangan filter IdTahunAjaran
+        } elseif (!empty($normalizedTahunAjaranArray)) {
             $placeholders = implode(',', array_fill(0, count($normalizedTahunAjaranArray), '?'));
             $whereConditions[] = "p.IdTahunAjaran IN ($placeholders)";
             $whereParams = array_merge($whereParams, $normalizedTahunAjaranArray);
@@ -4618,7 +4626,7 @@ class Munaqosah extends BaseController
         }
 
         // Filter berdasarkan multiple Tahun Ajaran
-        if (!empty($normalizedTahunAjaranArray)) {
+        if (!$isAllTahunAjaran && !empty($normalizedTahunAjaranArray)) {
             $statistikQuery->whereIn('p.IdTahunAjaran', $normalizedTahunAjaranArray);
         }
 
@@ -4694,10 +4702,12 @@ class Munaqosah extends BaseController
         };
 
         // Ambil data peserta munaqosah untuk tahun ajaran aktif untuk mapping WA
-        $pesertaRowsForWa = $this->db->table('tbl_munaqosah_peserta')
-            ->select('IdTpq, keterangan')
-            ->where('IdTahunAjaran', $tahunAjaran)
-            ->get()->getResultArray();
+        $pesertaQueryForWa = $this->db->table('tbl_munaqosah_peserta')
+            ->select('IdTpq, keterangan');
+        if (!$isAllTahunAjaran) {
+            $pesertaQueryForWa->where('IdTahunAjaran', $tahunAjaran);
+        }
+        $pesertaRowsForWa = $pesertaQueryForWa->get()->getResultArray();
 
         $countTpqMap = [];
         $batalCount = 0;
@@ -4751,8 +4761,8 @@ class Munaqosah extends BaseController
         $waktuUpdate = $hariIndo[date('w')] . ', ' . date('d') . ' ' . $bulanIndo[(int)date('n')] . ' ' . date('Y') . ' - ' . date('H:i') . ' WIB';
 
         $waSummaryData = [
-            'tahunAjaranFormatted' => convertTahunAjaran($tahunAjaran),
-            'tahunAjaranRaw' => $tahunAjaran,
+            'tahunAjaranFormatted' => $isAllTahunAjaran ? 'Semua Tahun Ajaran' : convertTahunAjaran($tahunAjaran),
+            'tahunAjaranRaw' => $isAllTahunAjaran ? 'all' : $tahunAjaran,
             'totalPeserta' => $waTotalPeserta,
             'totalBatal' => $batalCount,
             'tpqSudah' => $waTpqSudah,
@@ -4783,6 +4793,7 @@ class Munaqosah extends BaseController
             'isOperator' => $isOperator, // Flag untuk menonaktifkan filter TPQ untuk operator
             'isAdmin' => $isAdmin, // Flag untuk admin
             'waSummaryData' => $waSummaryData, // Data ringkasan untuk WhatsApp
+            'isAllTahunAjaran' => $isAllTahunAjaran, // Flag semua tahun ajaran
         ];
         return view('backend/Munaqosah/listPesertaMunaqosah', $data);
     }

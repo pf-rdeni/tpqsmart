@@ -219,6 +219,9 @@
                     <div class="form-group">
                         <label for="filterTahunAjaranStatistik">Tahun Ajaran <small class="text-muted">(Bisa pilih lebih dari satu)</small></label>
                         <select class="form-control select2" id="filterTahunAjaranStatistik" name="filterTahunAjaranStatistik[]" multiple="multiple">
+                            <option value="all" <?= ($isAllTahunAjaran ?? false) ? 'selected' : '' ?>>
+                                -- Semua Tahun Ajaran --
+                            </option>
                             <?php
                             $currentTahunAjaran = $tahunAjaran;
                             $filterTahunValues = [];
@@ -242,18 +245,18 @@
                                     // Skip invalid values
                                 }
                             }
-                            if (empty($normalizedTahunValues)) {
+                            if (empty($normalizedTahunValues) && !($isAllTahunAjaran ?? false)) {
                                 $normalizedTahunValues = [$currentTahunAjaran];
                             }
                             ?>
                             <?php if (!empty($listTahunAjaran ?? [])): ?>
                                 <?php foreach ($listTahunAjaran as $ta): ?>
-                                    <option value="<?= $ta ?>" <?= in_array($ta, $normalizedTahunValues) ? 'selected' : '' ?>>
+                                    <option value="<?= $ta ?>" <?= (!($isAllTahunAjaran ?? false) && in_array($ta, $normalizedTahunValues)) ? 'selected' : '' ?>>
                                         <?= convertTahunAjaran($ta) ?>
                                     </option>
                                 <?php endforeach; ?>
                             <?php else: ?>
-                                <option value="<?= $currentTahunAjaran ?>" selected><?= convertTahunAjaran($currentTahunAjaran) ?></option>
+                                <option value="<?= $currentTahunAjaran ?>" <?= !($isAllTahunAjaran ?? false) ? 'selected' : '' ?>><?= convertTahunAjaran($currentTahunAjaran) ?></option>
                             <?php endif; ?>
                         </select>
                         <small class="form-text text-muted">Pilih satu atau lebih tahun ajaran untuk difilter</small>
@@ -2554,6 +2557,20 @@
             theme: 'bootstrap4',
             language: 'id',
             closeOnSelect: false // Untuk multiple select, jangan tutup dropdown setelah pilih
+        });
+
+        // Handle seleksi "Semua Tahun Ajaran" agar eksklusif
+        $('#filterTahunAjaranStatistik').on('select2:select', function(e) {
+            var selectedVal = e.params.data.id;
+            var currentVals = $(this).val() || [];
+            if (selectedVal === 'all') {
+                $(this).val(['all']).trigger('change');
+            } else {
+                if (currentVals.indexOf('all') !== -1) {
+                    var filteredVals = currentVals.filter(function(v) { return v !== 'all'; });
+                    $(this).val(filteredVals).trigger('change');
+                }
+            }
         });
 
         // Event handler untuk tombol Terapkan Filter Statistik
