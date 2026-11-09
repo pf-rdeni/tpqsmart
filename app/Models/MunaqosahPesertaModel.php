@@ -50,7 +50,7 @@ class MunaqosahPesertaModel extends Model
     public function getPesertaWithRelations($idTpq = null, $idKelas = null, $idTahunAjaran = null)
     {
         $builder = $this->db->table($this->table . ' pm');
-        $builder->select('pm.*, s.*, t.*, k.NamaKelas, k.IdKelas');
+        $builder->select('s.*, t.*, k.NamaKelas, k.IdKelas, pm.*');
         $builder->join('tbl_santri_baru s', 's.IdSantri = pm.IdSantri', 'left');
         $builder->join('tbl_tpq t', 't.IdTpq = pm.IdTpq', 'left');
         $builder->join('tbl_kelas_santri ks', 'ks.IdSantri = s.IdSantri AND ks.IdTahunAjaran = pm.IdTahunAjaran AND ks.Status = 1', 'left');
@@ -200,5 +200,95 @@ class MunaqosahPesertaModel extends Model
         }
 
         return $this->update($id, $data);
+    }
+
+    /**
+     * Parse data pembatalan dari kolom keterangan
+     *
+     * @param string|null $keterangan
+     * @return array ['is_batal' => bool, 'data' => array|null]
+     */
+    public function parsePembatalanData($keterangan)
+    {
+        if (empty($keterangan) || strpos($keterangan, '[Data Pembatalan JSON]') === false) {
+            return ['is_batal' => false, 'data' => null];
+        }
+
+        if (preg_match('/\[Data Pembatalan JSON\]\s*\n([\s\S]*?)(?=\n\[|$)/', $keterangan, $matches)) {
+            try {
+                $json = json_decode(trim($matches[1]), true);
+                if ($json && isset($json['status']) && $json['status'] === 'batal') {
+                    return ['is_batal' => true, 'data' => $json];
+                }
+            } catch (\Exception $e) {
+                return ['is_batal' => false, 'data' => null];
+            }
+        }
+
+        return ['is_batal' => false, 'data' => null];
+    }
+
+    /**
+     * Amend atau append tag [Data Pembatalan JSON] ke dalam kolom keterangan tanpa merusak teks lama
+     *
+     * @param string|null $keteranganLama
+     * @param array $payloadBatal
+     * @return string
+     */
+    public function amendPembatalanKeterangan($keteranganLama, array $payloadBatal)
+    {
+        $tag = '[Data Pembatalan JSON]';
+        $jsonString = $tag . "\n" . json_encode($payloadBatal, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+
+        if (empty($keteranganLama)) {
+            return $jsonString;
+        }
+
+        // Jika tag sudah ada sebelumnya, ganti blok tersebut tanpa mengubah teks lainnya
+        if (strpos($keteranganLama, $tag) !== false) {
+            return preg_replace('/\[Data Pembatalan JSON\]\s*\n[\s\S]*?(?=\n\[|$)/', $jsonString, $keteranganLama);
+        }
+
+        // Jika belum ada, cukup append di baris baru
+        return rtrim($keteranganLama) . "\n" . $jsonString;
+    }
+
+    /**
+     * Cek apakah santri sudah memiliki nilai munaqosah final
+     *
+     * @param int|string $idSantri
+     * @param int|string $idTahunAjaran
+     * @return bool
+     */
+    /**
+     * Cek apakah santri sudah memiliki nilai pra-munaqosah
+     *
+     * @param int|string $idSantri
+     * @param int|string $idTahunAjaran
+     * @return bool
+     */
+    public function hasNilaiPraMunaqosah($idSantri, $idTahunAjaran)
+    {
+        return $this->db->table('tbl_munaqosah_nilai')
+            ->where('IdSantri', $idSantri)
+            ->where('IdTahunAjaran', $idTahunAjaran)
+            ->where('TypeUjian', 'pra-munaqosah')
+            ->countAllResults() > 0;
+    }
+
+    /**
+     * Cek apakah santri sudah memiliki nilai munaqosah final
+     *
+     * @param int|string $idSantri
+     * @param int|string $idTahunAjaran
+     * @return bool
+     */
+    public function hasNilaiMunaqosahFinal($idSantri, $idTahunAjaran)
+    {
+        return $this->db->table('tbl_munaqosah_nilai')
+            ->where('IdSantri', $idSantri)
+            ->where('IdTahunAjaran', $idTahunAjaran)
+            ->where('TypeUjian', 'munaqosah')
+            ->countAllResults() > 0;
     }
 }

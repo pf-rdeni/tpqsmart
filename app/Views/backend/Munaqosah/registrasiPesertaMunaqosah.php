@@ -1670,12 +1670,20 @@ ${text}
                     printIconColor = santri.isPesertaPraMunaqosah ? 'text-success' : 'text-danger';
                     printDisabled = santri.isPesertaPraMunaqosah ? '' : 'disabled';
                 } else {
-                    isPeserta = santri.isPeserta ? `<i class="fas fa-check-circle text-success"></i>` : `<i class="fas fa-times-circle text-danger"></i> Not Registered`;
-                    statusClass = santri.isPeserta ? 'badge-light border border-success' : 'badge-light border border-danger';
-                    disabledAttr = santri.isPeserta ? 'disabled' : '';
-                    printIconColor = santri.isPeserta ? 'text-success' : 'text-danger';
-                    printDisabled = santri.isPeserta ? '' : 'disabled';
-                }
+                    if (santri.isBatal) {
+                        const alasanBatal = (santri.dataBatal && santri.dataBatal.alasan) ? santri.dataBatal.alasan : 'Dibatalkan';
+                        isPeserta = `<i class="fas fa-user-times text-danger"></i> Batal Munaqosah`;
+                        statusClass = 'badge-light border border-danger text-danger';
+                        disabledAttr = 'disabled';
+                        printIconColor = 'text-muted';
+                        printDisabled = 'disabled';
+                    } else {
+                        isPeserta = santri.isPeserta ? `<i class="fas fa-check-circle text-success"></i>` : `<i class="fas fa-times-circle text-danger"></i> Not Registered`;
+                        statusClass = santri.isPeserta ? 'badge-light border border-success' : 'badge-light border border-danger';
+                        disabledAttr = santri.isPeserta ? 'disabled' : '';
+                        printIconColor = santri.isPeserta ? 'text-success' : 'text-danger';
+                        printDisabled = santri.isPeserta ? '' : 'disabled';
+                    }
 
                 // Button copy hanya muncul jika sudah register dan memiliki HasKey
                 let copyButton = '';

@@ -303,6 +303,17 @@
                 </div>
             </div>
 
+            <!-- Callout Total Batal Munaqosah -->
+            <?php if (!empty($total_peserta_batal) && $total_peserta_batal > 0): ?>
+            <div class="alert alert-danger d-flex justify-content-between align-items-center mb-3 shadow-sm">
+                <div>
+                    <h5 class="mb-0 font-weight-bold"><i class="fas fa-user-times mr-2"></i><?= number_format($total_peserta_batal) ?> Santri Batal Munaqosah</h5>
+                    <small>Santri terdaftar yang berstatus <em>Batal / Mengundurkan Diri</em> dari Munaqosah Final tingkat kecamatan. Histori pra-munaqosah lembaga tetap aman tersimpan.</small>
+                </div>
+                <span class="badge badge-light border border-danger text-danger px-3 py-2 font-weight-bold">Soft Cancelled</span>
+            </div>
+            <?php endif; ?>
+
             <div class="row">
                 <div class="col-lg-3 col-6">
                     <div class="small-box bg-info">
@@ -579,14 +590,65 @@
                                     $alamat = $row->KelurahanDesa ?? '';
                                     $tpqAlamat = trim($namaTpq . ($namaTpq && $alamat ? ' , ' : '') . $alamat) ?: '-';
                                     ?>
-                                    <tr>
+                                    <tr class="<?= !empty($row->is_batal) ? 'bg-light text-muted' : '' ?>">
                                         <td><?= $no++ ?></td>
                                         <td>
-                                            <button type="button" class="btn btn-info btn-sm"
-                                                onclick="editPeserta(<?= $row->IdSantri ?>, '<?= $row->NamaSantri ?? 'Tidak Diketahui' ?>', 'perlu_perbaikan')"
-                                                title="Review & Konfirmasi Perbaikan">
-                                                <i class="fas fa-check-double"></i> Review
-                                            </button>
+                                            <div class="dropdown">
+                                                <button type="button" class="btn btn-outline-info btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                    <i class="fas fa-cog mr-1"></i> Aksi
+                                                </button>
+                                                <div class="dropdown-menu shadow">
+                                                    <a class="dropdown-item text-info font-weight-bold" href="javascript:void(0)"
+                                                        onclick="editPeserta(<?= $row->IdSantri ?>, '<?= esc($row->NamaSantri ?? 'Tidak Diketahui') ?>', 'perlu_perbaikan')">
+                                                        <i class="fas fa-check-double mr-2"></i> Review & Konfirmasi
+                                                    </a>
+                                                    <div class="dropdown-divider"></div>
+                                                    <?php if (!empty($row->has_nilai_final)): ?>
+                                                        <?php if (!($isAdmin ?? false)): ?>
+                                                            <span class="dropdown-item text-muted disabled" data-toggle="tooltip" title="Terkunci: Santri telah memiliki nilai Munaqosah Final. Hanya Admin FKPQ yang dapat mengelola status peserta ini.">
+                                                                <i class="fas fa-lock mr-2"></i> Terkunci (Ada Nilai Final)
+                                                            </span>
+                                                        <?php else: ?>
+                                                            <?php if (!empty($row->is_batal)): ?>
+                                                                <a class="dropdown-item text-success" href="javascript:void(0)"
+                                                                    onclick="aktifkanPeserta(<?= $row->id ?>, '<?= esc($row->NamaSantri ?? '') ?>', true)">
+                                                                    <i class="fas fa-user-check mr-2"></i> Aktifkan Kembali
+                                                                </a>
+                                                            <?php else: ?>
+                                                                <a class="dropdown-item text-danger" href="javascript:void(0)"
+                                                                    onclick="batalkanPeserta(<?= $row->id ?>, '<?= esc($row->NamaSantri ?? '') ?>', '<?= esc($row->NamaTpq ?? '') ?>', true)">
+                                                                    <i class="fas fa-user-times mr-2"></i> Batalkan Munaqosah Final
+                                                                </a>
+                                                            <?php endif; ?>
+                                                            <a class="dropdown-item text-danger" href="javascript:void(0)"
+                                                                onclick="deletePeserta(<?= $row->IdSantri ?>, '<?= esc($row->NamaSantri ?? 'Tidak Diketahui') ?>')">
+                                                                <i class="fas fa-trash mr-2"></i> Hapus Permanen (Admin)
+                                                            </a>
+                                                        <?php endif; ?>
+                                                    <?php elseif (!empty($row->has_nilai_pra)): ?>
+                                                        <?php if (!empty($row->is_batal)): ?>
+                                                            <a class="dropdown-item text-success" href="javascript:void(0)"
+                                                                onclick="aktifkanPeserta(<?= $row->id ?>, '<?= esc($row->NamaSantri ?? '') ?>', false)">
+                                                                <i class="fas fa-user-check mr-2"></i> Aktifkan Kembali
+                                                            </a>
+                                                        <?php else: ?>
+                                                            <a class="dropdown-item text-warning font-weight-bold" href="javascript:void(0)"
+                                                                onclick="batalkanPeserta(<?= $row->id ?>, '<?= esc($row->NamaSantri ?? '') ?>', '<?= esc($row->NamaTpq ?? '') ?>', false)">
+                                                                <i class="fas fa-user-times mr-2"></i> Batalkan Munaqosah Final
+                                                            </a>
+                                                        <?php endif; ?>
+                                                        <a class="dropdown-item text-danger" href="javascript:void(0)"
+                                                            onclick="deletePeserta(<?= $row->IdSantri ?>, '<?= esc($row->NamaSantri ?? 'Tidak Diketahui') ?>')">
+                                                            <i class="fas fa-trash mr-2"></i> Hapus Permanen (Termasuk Nilai Pra)
+                                                        </a>
+                                                    <?php else: ?>
+                                                        <a class="dropdown-item text-danger" href="javascript:void(0)"
+                                                            onclick="deletePeserta(<?= $row->IdSantri ?>, '<?= esc($row->NamaSantri ?? 'Tidak Diketahui') ?>')">
+                                                            <i class="fas fa-trash mr-2"></i> Hapus Peserta
+                                                        </a>
+                                                    <?php endif; ?>
+                                                </div>
+                                            </div>
                                         </td>
                                         <td><?= $row->IdSantri ?? '-' ?></td>
                                         <td><?= $row->NamaSantri ?? '-' ?></td>
@@ -597,7 +659,19 @@
                                         <?php if (empty($hideTpqColumn)): ?>
                                             <td><?= $tpqAlamat ?></td>
                                         <?php endif; ?>
-                                        <td><span class="badge badge-warning"><i class="fas fa-exclamation-triangle"></i> Perlu Perbaikan</span></td>
+                                        <td>
+                                            <span class="badge badge-warning"><i class="fas fa-exclamation-triangle"></i> Perlu Perbaikan</span>
+                                            <?php if (!empty($row->is_batal)): ?>
+                                                <div class="mt-1">
+                                                    <span class="badge badge-danger" data-toggle="tooltip" title="<?= esc(($row->data_batal['alasan'] ?? 'Batal') . ' oleh ' . ($row->data_batal['batal_by'] ?? '-') . ' (' . ($row->data_batal['batal_at'] ?? '-') . ')') ?>">
+                                                        <i class="fas fa-user-times"></i> Batal Munaqosah
+                                                    </span>
+                                                </div>
+                                                <?php if (!empty($row->data_batal['alasan'])): ?>
+                                                    <small class="text-danger d-block font-italic mt-1" style="font-size: 0.8em;"><?= esc($row->data_batal['alasan']) ?></small>
+                                                <?php endif; ?>
+                                            <?php endif; ?>
+                                        </td>
                                     </tr>
                                 <?php endforeach; ?>
                             </tbody>
@@ -655,33 +729,82 @@
                                     $alamat = $row->KelurahanDesa ?? '';
                                     $tpqAlamat = trim($namaTpq . ($namaTpq && $alamat ? ' , ' : '') . $alamat) ?: '-';
                                     ?>
-                                    <tr>
+                                    <tr class="<?= !empty($row->is_batal) ? 'bg-light text-muted' : '' ?>">
                                         <td><?= $no++ ?></td>
                                         <td>
-                                            <button type="button" class="btn btn-warning btn-sm mr-1 action-btn"
-                                                onclick="editPeserta(<?= $row->IdSantri ?>, '<?= $row->NamaSantri ?? 'Tidak Diketahui' ?>', '<?= $row->status_verifikasi ?? '' ?>')"
-                                                title="Edit">
-                                                <i class="fas fa-edit"></i> Edit
-                                            </button>
-                                            <?php if (!empty($row->HasKey)): ?>
-                                                <button type="button" class="btn btn-success btn-sm mr-1 copy-link-btn-peserta action-btn"
-                                                    data-nama-santri="<?= esc($row->NamaSantri ?? '') ?>"
-                                                    data-haskey="<?= esc($row->HasKey) ?>"
-                                                    data-no-hp-ayah="<?= esc($row->NoHpAyah ?? '') ?>"
-                                                    data-nama-ayah="<?= esc($row->NamaAyah ?? '') ?>"
-                                                    data-no-hp-ibu="<?= esc($row->NoHpIbu ?? '') ?>"
-                                                    data-nama-ibu="<?= esc($row->NamaIbu ?? '') ?>"
-                                                    data-nama-tpq="<?= esc($row->NamaTpq ?? '') ?>"
-                                                    title="Kirim link WhatsApp untuk <?= esc($row->NamaSantri ?? '') ?>">
-                                                    <i class="fab fa-whatsapp"></i> <span class="btn-text">Kirim Link</span>
+                                            <div class="dropdown">
+                                                <button type="button" class="btn btn-outline-success btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                    <i class="fas fa-cog mr-1"></i> Aksi
                                                 </button>
-                                            <?php endif; ?>
-                                            <a href="<?= base_url('backend/munaqosah/printInstruksiVerifikasi/' . $row->IdSantri) ?>"
-                                                target="_blank"
-                                                class="btn btn-info btn-sm mr-1 action-btn"
-                                                title="Cetak Instruksi Verifikasi untuk <?= esc($row->NamaSantri ?? '') ?>">
-                                                <i class="fas fa-print"></i> <span class="btn-text">Print Instruksi</span>
-                                            </a>
+                                                <div class="dropdown-menu shadow">
+                                                    <a class="dropdown-item" href="javascript:void(0)"
+                                                        onclick="editPeserta(<?= $row->IdSantri ?>, '<?= esc($row->NamaSantri ?? 'Tidak Diketahui') ?>', '<?= $row->status_verifikasi ?? '' ?>')">
+                                                        <i class="fas fa-edit text-warning mr-2"></i> Edit Data
+                                                    </a>
+
+                                                    <?php if (!empty($row->has_nilai_final)): ?>
+                                                        <?php if (!($isAdmin ?? false)): ?>
+                                                            <span class="dropdown-item text-muted disabled" data-toggle="tooltip" title="Terkunci: Santri telah memiliki nilai Munaqosah Final. Hanya Admin FKPQ yang dapat mengelola status peserta ini.">
+                                                                <i class="fas fa-lock mr-2"></i> Terkunci (Ada Nilai Final)
+                                                            </span>
+                                                        <?php else: ?>
+                                                            <?php if (!empty($row->is_batal)): ?>
+                                                                <a class="dropdown-item text-success" href="javascript:void(0)"
+                                                                    onclick="aktifkanPeserta(<?= $row->id ?>, '<?= esc($row->NamaSantri ?? '') ?>', true)">
+                                                                    <i class="fas fa-user-check mr-2"></i> Aktifkan Kembali
+                                                                </a>
+                                                            <?php else: ?>
+                                                                <a class="dropdown-item text-danger" href="javascript:void(0)"
+                                                                    onclick="batalkanPeserta(<?= $row->id ?>, '<?= esc($row->NamaSantri ?? '') ?>', '<?= esc($row->NamaTpq ?? '') ?>', true)">
+                                                                    <i class="fas fa-user-times mr-2"></i> Batalkan Munaqosah Final
+                                                                </a>
+                                                            <?php endif; ?>
+                                                            <a class="dropdown-item text-danger" href="javascript:void(0)"
+                                                                onclick="deletePeserta(<?= $row->IdSantri ?>, '<?= esc($row->NamaSantri ?? 'Tidak Diketahui') ?>')">
+                                                                <i class="fas fa-trash mr-2"></i> Hapus Permanen (Admin)
+                                                            </a>
+                                                        <?php endif; ?>
+                                                    <?php elseif (!empty($row->has_nilai_pra)): ?>
+                                                        <?php if (!empty($row->is_batal)): ?>
+                                                            <a class="dropdown-item text-success" href="javascript:void(0)"
+                                                                onclick="aktifkanPeserta(<?= $row->id ?>, '<?= esc($row->NamaSantri ?? '') ?>', false)">
+                                                                <i class="fas fa-user-check mr-2"></i> Aktifkan Kembali
+                                                            </a>
+                                                        <?php else: ?>
+                                                            <a class="dropdown-item text-warning font-weight-bold" href="javascript:void(0)"
+                                                                onclick="batalkanPeserta(<?= $row->id ?>, '<?= esc($row->NamaSantri ?? '') ?>', '<?= esc($row->NamaTpq ?? '') ?>', false)">
+                                                                <i class="fas fa-user-times mr-2"></i> Batalkan Munaqosah Final
+                                                            </a>
+                                                        <?php endif; ?>
+                                                        <a class="dropdown-item text-danger" href="javascript:void(0)"
+                                                            onclick="deletePeserta(<?= $row->IdSantri ?>, '<?= esc($row->NamaSantri ?? 'Tidak Diketahui') ?>')">
+                                                            <i class="fas fa-trash mr-2"></i> Hapus Permanen (Termasuk Nilai Pra)
+                                                        </a>
+                                                    <?php else: ?>
+                                                        <a class="dropdown-item text-danger" href="javascript:void(0)"
+                                                            onclick="deletePeserta(<?= $row->IdSantri ?>, '<?= esc($row->NamaSantri ?? 'Tidak Diketahui') ?>')">
+                                                            <i class="fas fa-trash mr-2"></i> Hapus Peserta
+                                                        </a>
+                                                    <?php endif; ?>
+
+                                                    <div class="dropdown-divider"></div>
+                                                    <?php if (!empty($row->HasKey)): ?>
+                                                        <a class="dropdown-item text-success copy-link-btn-peserta" href="javascript:void(0)"
+                                                            data-nama-santri="<?= esc($row->NamaSantri ?? '') ?>"
+                                                            data-haskey="<?= esc($row->HasKey) ?>"
+                                                            data-no-hp-ayah="<?= esc($row->NoHpAyah ?? '') ?>"
+                                                            data-nama-ayah="<?= esc($row->NamaAyah ?? '') ?>"
+                                                            data-no-hp-ibu="<?= esc($row->NoHpIbu ?? '') ?>"
+                                                            data-nama-ibu="<?= esc($row->NamaIbu ?? '') ?>"
+                                                            data-nama-tpq="<?= esc($row->NamaTpq ?? '') ?>">
+                                                            <i class="fab fa-whatsapp mr-2"></i> Kirim Link WhatsApp
+                                                        </a>
+                                                    <?php endif; ?>
+                                                    <a class="dropdown-item text-info" href="<?= base_url('backend/munaqosah/printInstruksiVerifikasi/' . $row->IdSantri) ?>" target="_blank">
+                                                        <i class="fas fa-print mr-2"></i> Print Instruksi
+                                                    </a>
+                                                </div>
+                                            </div>
                                         </td>
                                         <td><?= $row->IdSantri ?? '-' ?></td>
                                         <td><?= $row->NamaSantri ?? '-' ?></td>
@@ -692,7 +815,19 @@
                                         <?php if (empty($hideTpqColumn)): ?>
                                             <td><?= $tpqAlamat ?></td>
                                         <?php endif; ?>
-                                        <td><span class="badge badge-success"><i class="fas fa-check-circle"></i> Valid</span></td>
+                                        <td>
+                                            <span class="badge badge-success"><i class="fas fa-check-circle"></i> Valid</span>
+                                            <?php if (!empty($row->is_batal)): ?>
+                                                <div class="mt-1">
+                                                    <span class="badge badge-danger" data-toggle="tooltip" title="<?= esc(($row->data_batal['alasan'] ?? 'Batal') . ' oleh ' . ($row->data_batal['batal_by'] ?? '-') . ' (' . ($row->data_batal['batal_at'] ?? '-') . ')') ?>">
+                                                        <i class="fas fa-user-times"></i> Batal Munaqosah
+                                                    </span>
+                                                </div>
+                                                <?php if (!empty($row->data_batal['alasan'])): ?>
+                                                    <small class="text-danger d-block font-italic mt-1" style="font-size: 0.8em;"><?= esc($row->data_batal['alasan']) ?></small>
+                                                <?php endif; ?>
+                                            <?php endif; ?>
+                                        </td>
                                     </tr>
                                 <?php endforeach; ?>
                             </tbody>
@@ -750,38 +885,82 @@
                                     $alamat = $row->KelurahanDesa ?? '';
                                     $tpqAlamat = trim($namaTpq . ($namaTpq && $alamat ? ' , ' : '') . $alamat) ?: '-';
                                     ?>
-                                    <tr>
+                                    <tr class="<?= !empty($row->is_batal) ? 'bg-light text-muted' : '' ?>">
                                         <td><?= $no++ ?></td>
                                         <td>
-                                            <button type="button" class="btn btn-warning btn-sm mr-1 action-btn"
-                                                onclick="editPeserta(<?= $row->IdSantri ?>, '<?= $row->NamaSantri ?? 'Tidak Diketahui' ?>', '<?= $row->status_verifikasi ?? '' ?>')"
-                                                title="Edit">
-                                                <i class="fas fa-edit"></i> Edit
-                                            </button>
-                                            <button type="button" class="btn btn-danger btn-sm mr-1 action-btn"
-                                                onclick="deletePeserta(<?= $row->IdSantri ?>, '<?= $row->NamaSantri ?? 'Tidak Diketahui' ?>')"
-                                                title="Hapus">
-                                                <i class="fas fa-trash"></i> <span class="btn-text">Hapus</span>
-                                            </button>
-                                            <?php if (!empty($row->HasKey)): ?>
-                                                <button type="button" class="btn btn-success btn-sm mr-1 copy-link-btn-peserta action-btn"
-                                                    data-nama-santri="<?= esc($row->NamaSantri ?? '') ?>"
-                                                    data-haskey="<?= esc($row->HasKey) ?>"
-                                                    data-no-hp-ayah="<?= esc($row->NoHpAyah ?? '') ?>"
-                                                    data-nama-ayah="<?= esc($row->NamaAyah ?? '') ?>"
-                                                    data-no-hp-ibu="<?= esc($row->NoHpIbu ?? '') ?>"
-                                                    data-nama-ibu="<?= esc($row->NamaIbu ?? '') ?>"
-                                                    data-nama-tpq="<?= esc($row->NamaTpq ?? '') ?>"
-                                                    title="Kirim link WhatsApp untuk <?= esc($row->NamaSantri ?? '') ?>">
-                                                    <i class="fab fa-whatsapp"></i> <span class="btn-text">Kirim Link</span>
+                                            <div class="dropdown">
+                                                <button type="button" class="btn btn-outline-secondary btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                    <i class="fas fa-cog mr-1"></i> Aksi
                                                 </button>
-                                            <?php endif; ?>
-                                            <a href="<?= base_url('backend/munaqosah/printInstruksiVerifikasi/' . $row->IdSantri) ?>"
-                                                target="_blank"
-                                                class="btn btn-info btn-sm mr-1 action-btn"
-                                                title="Cetak Instruksi Verifikasi untuk <?= esc($row->NamaSantri ?? '') ?>">
-                                                <i class="fas fa-print"></i> <span class="btn-text">Print Instruksi</span>
-                                            </a>
+                                                <div class="dropdown-menu shadow">
+                                                    <a class="dropdown-item" href="javascript:void(0)"
+                                                        onclick="editPeserta(<?= $row->IdSantri ?>, '<?= esc($row->NamaSantri ?? 'Tidak Diketahui') ?>', '<?= $row->status_verifikasi ?? '' ?>')">
+                                                        <i class="fas fa-edit text-warning mr-2"></i> Edit Data
+                                                    </a>
+
+                                                    <?php if (!empty($row->has_nilai_final)): ?>
+                                                        <?php if (!($isAdmin ?? false)): ?>
+                                                            <span class="dropdown-item text-muted disabled" data-toggle="tooltip" title="Terkunci: Santri telah memiliki nilai Munaqosah Final. Hanya Admin FKPQ yang dapat mengelola status peserta ini.">
+                                                                <i class="fas fa-lock mr-2"></i> Terkunci (Ada Nilai Final)
+                                                            </span>
+                                                        <?php else: ?>
+                                                            <?php if (!empty($row->is_batal)): ?>
+                                                                <a class="dropdown-item text-success" href="javascript:void(0)"
+                                                                    onclick="aktifkanPeserta(<?= $row->id ?>, '<?= esc($row->NamaSantri ?? '') ?>', true)">
+                                                                    <i class="fas fa-user-check mr-2"></i> Aktifkan Kembali
+                                                                </a>
+                                                            <?php else: ?>
+                                                                <a class="dropdown-item text-danger" href="javascript:void(0)"
+                                                                    onclick="batalkanPeserta(<?= $row->id ?>, '<?= esc($row->NamaSantri ?? '') ?>', '<?= esc($row->NamaTpq ?? '') ?>', true)">
+                                                                    <i class="fas fa-user-times mr-2"></i> Batalkan Munaqosah Final
+                                                                </a>
+                                                            <?php endif; ?>
+                                                            <a class="dropdown-item text-danger" href="javascript:void(0)"
+                                                                onclick="deletePeserta(<?= $row->IdSantri ?>, '<?= esc($row->NamaSantri ?? 'Tidak Diketahui') ?>')">
+                                                                <i class="fas fa-trash mr-2"></i> Hapus Permanen (Admin)
+                                                            </a>
+                                                        <?php endif; ?>
+                                                    <?php elseif (!empty($row->has_nilai_pra)): ?>
+                                                        <?php if (!empty($row->is_batal)): ?>
+                                                            <a class="dropdown-item text-success" href="javascript:void(0)"
+                                                                onclick="aktifkanPeserta(<?= $row->id ?>, '<?= esc($row->NamaSantri ?? '') ?>', false)">
+                                                                <i class="fas fa-user-check mr-2"></i> Aktifkan Kembali
+                                                            </a>
+                                                        <?php else: ?>
+                                                            <a class="dropdown-item text-warning font-weight-bold" href="javascript:void(0)"
+                                                                onclick="batalkanPeserta(<?= $row->id ?>, '<?= esc($row->NamaSantri ?? '') ?>', '<?= esc($row->NamaTpq ?? '') ?>', false)">
+                                                                <i class="fas fa-user-times mr-2"></i> Batalkan Munaqosah Final
+                                                            </a>
+                                                        <?php endif; ?>
+                                                        <a class="dropdown-item text-danger" href="javascript:void(0)"
+                                                            onclick="deletePeserta(<?= $row->IdSantri ?>, '<?= esc($row->NamaSantri ?? 'Tidak Diketahui') ?>')">
+                                                            <i class="fas fa-trash mr-2"></i> Hapus Permanen (Termasuk Nilai Pra)
+                                                        </a>
+                                                    <?php else: ?>
+                                                        <a class="dropdown-item text-danger" href="javascript:void(0)"
+                                                            onclick="deletePeserta(<?= $row->IdSantri ?>, '<?= esc($row->NamaSantri ?? 'Tidak Diketahui') ?>')">
+                                                            <i class="fas fa-trash mr-2"></i> Hapus Peserta
+                                                        </a>
+                                                    <?php endif; ?>
+
+                                                    <div class="dropdown-divider"></div>
+                                                    <?php if (!empty($row->HasKey)): ?>
+                                                        <a class="dropdown-item text-success copy-link-btn-peserta" href="javascript:void(0)"
+                                                            data-nama-santri="<?= esc($row->NamaSantri ?? '') ?>"
+                                                            data-haskey="<?= esc($row->HasKey) ?>"
+                                                            data-no-hp-ayah="<?= esc($row->NoHpAyah ?? '') ?>"
+                                                            data-nama-ayah="<?= esc($row->NamaAyah ?? '') ?>"
+                                                            data-no-hp-ibu="<?= esc($row->NoHpIbu ?? '') ?>"
+                                                            data-nama-ibu="<?= esc($row->NamaIbu ?? '') ?>"
+                                                            data-nama-tpq="<?= esc($row->NamaTpq ?? '') ?>">
+                                                            <i class="fab fa-whatsapp mr-2"></i> Kirim Link WhatsApp
+                                                        </a>
+                                                    <?php endif; ?>
+                                                    <a class="dropdown-item text-info" href="<?= base_url('backend/munaqosah/printInstruksiVerifikasi/' . $row->IdSantri) ?>" target="_blank">
+                                                        <i class="fas fa-print mr-2"></i> Print Instruksi
+                                                    </a>
+                                                </div>
+                                            </div>
                                         </td>
                                         <td><?= $row->IdSantri ?? '-' ?></td>
                                         <td><?= $row->NamaSantri ?? '-' ?></td>
@@ -792,7 +971,19 @@
                                         <?php if (empty($hideTpqColumn)): ?>
                                             <td><?= $tpqAlamat ?></td>
                                         <?php endif; ?>
-                                        <td><span class="badge badge-secondary"><i class="fas fa-clock"></i> Belum Dikonfirmasi</span></td>
+                                        <td>
+                                            <span class="badge badge-secondary"><i class="fas fa-clock"></i> Belum Dikonfirmasi</span>
+                                            <?php if (!empty($row->is_batal)): ?>
+                                                <div class="mt-1">
+                                                    <span class="badge badge-danger" data-toggle="tooltip" title="<?= esc(($row->data_batal['alasan'] ?? 'Batal') . ' oleh ' . ($row->data_batal['batal_by'] ?? '-') . ' (' . ($row->data_batal['batal_at'] ?? '-') . ')') ?>">
+                                                        <i class="fas fa-user-times"></i> Batal Munaqosah
+                                                    </span>
+                                                </div>
+                                                <?php if (!empty($row->data_batal['alasan'])): ?>
+                                                    <small class="text-danger d-block font-italic mt-1" style="font-size: 0.8em;"><?= esc($row->data_batal['alasan']) ?></small>
+                                                <?php endif; ?>
+                                            <?php endif; ?>
+                                        </td>
                                     </tr>
                                 <?php endforeach; ?>
                             </tbody>
@@ -1195,10 +1386,90 @@
         </div>
     </div>
 </div>
+
+<!-- Modal Batalkan Peserta Munaqosah -->
+<div class="modal fade" id="modalBatalkanPeserta" tabindex="-1" role="dialog" aria-labelledby="modalBatalkanPesertaLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="modalBatalkanPesertaLabel">
+                    <i class="fas fa-user-times"></i> Batalkan Keikutsertaan Munaqosah Final
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="formBatalkanPeserta">
+                <input type="hidden" id="batal_peserta_id" name="id">
+                <div class="modal-body">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Santri yang dibatalkan <strong>tidak akan didaftarkan ke Munaqosah Final</strong> tingkat kecamatan. Data riwayat <strong>Pra-Munaqosah di tingkat lembaga tetap aman</strong> dan tidak dihapus.
+                    </div>
+
+                    <div class="form-group">
+                        <label>Nama Santri:</label>
+                        <p class="font-weight-bold mb-1 text-primary" id="batal_nama_santri" style="font-size: 1.1rem;">-</p>
+                        <small class="text-muted" id="batal_nama_tpq">-</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="batal_kategori_alasan">Kategori Alasan <span class="text-danger">*</span></label>
+                        <select class="form-control" id="batal_kategori_alasan" name="kategori_alasan" required>
+                            <option value="">-- Pilih Kategori Alasan --</option>
+                            <option value="permintaan_wali">Permintaan Orang Tua / Wali Santri</option>
+                            <option value="belum_siap">Belum Siap Materi / Mental</option>
+                            <option value="sakit_keluarga">Sakit / Urusan Keluarga</option>
+                            <option value="pindah_domisili">Pindah Domisili / Keluar TPQ</option>
+                            <option value="lainnya">Lainnya</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="batal_alasan">
+                            Keterangan / Rincian Alasan 
+                            <span class="text-danger" id="batal_alasan_required_star" style="display: none;">*</span>
+                            <small class="text-muted font-italic" id="batal_alasan_optional_text">(Opsional)</small>
+                        </label>
+                        <textarea class="form-control" id="batal_alasan" name="alasan" rows="3" placeholder="Tuliskan keterangan tambahan jika ada (opsional)..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Tutup</button>
+                    <button type="submit" class="btn btn-danger" id="btnSubmitBatalkan">
+                        <i class="fas fa-check"></i> Ya, Batalkan Peserta
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 <?= $this->endSection() ?>
 
 <?= $this->section('scripts') ?>
 <style>
+    /* Styling dropdown menu aksi di dalam tabel */
+    .table td .dropdown {
+        position: relative;
+    }
+    .table-responsive {
+        overflow-y: visible !important;
+    }
+    .table td .dropdown-menu {
+        z-index: 1060 !important;
+        min-width: 195px;
+        border-radius: 0.35rem;
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+    }
+    .table td .dropdown-item {
+        padding: 0.45rem 1rem;
+        font-size: 0.875rem;
+    }
+    .table td .dropdown-item i {
+        width: 18px;
+        text-align: center;
+    }
+
     /* Styling untuk field comparison */
     .field-comparison {
         position: relative;
@@ -2802,41 +3073,35 @@
                     var totalTerkait = response.total_terkait;
                     var isAman = response.is_aman;
 
-                    if (totalTerkait > 0) {
-                        // Ada data terkait, tampilkan konfirmasi detail
-                        var detailMessage = 'Peserta <strong>' + namaSantri + '</strong> memiliki data terkait:<br><br>';
+                    var hasNilaiPra = dataTerkait.nilai_munaqosah && dataTerkait.nilai_munaqosah.has_nilai_pra;
+                    var hasNilaiFinal = dataTerkait.nilai_munaqosah && dataTerkait.nilai_munaqosah.has_nilai_final;
 
-                        if (dataTerkait.registrasi_uji) {
-                            detailMessage += '• <strong>' + dataTerkait.registrasi_uji.count + '</strong> data registrasi uji';
-                            if (dataTerkait.registrasi_uji.by_type) {
-                                var typeDetails = [];
-                                for (var type in dataTerkait.registrasi_uji.by_type) {
-                                    typeDetails.push(type + ': ' + dataTerkait.registrasi_uji.by_type[type]);
-                                }
-                                detailMessage += ' (' + typeDetails.join(', ') + ')<br>';
-                            } else {
-                                detailMessage += '<br>';
-                            }
-                        }
-                        if (dataTerkait.nilai_munaqosah) {
-                            detailMessage += '• <strong>' + dataTerkait.nilai_munaqosah.count + '</strong> data nilai munaqosah<br>';
-                        }
-                        if (dataTerkait.antrian_munaqosah) {
-                            detailMessage += '• <strong>' + dataTerkait.antrian_munaqosah.count + '</strong> data antrian munaqosah<br>';
-                        }
-
-                        detailMessage += '<br><span class="text-danger"><strong>Semua data terkait akan dihapus juga!</strong></span>';
-                        detailMessage += '<br><br><div class="alert alert-warning"><i class="fas fa-exclamation-triangle"></i> <strong>Peringatan:</strong> Data registrasi, nilai, dan antrian akan ikut terhapus.</div>';
-                        detailMessage += '<br><div class="alert alert-info"><i class="fas fa-info-circle"></i> <strong>Info:</strong> Data santri utama tidak akan dihapus, hanya dihapus dari daftar peserta munaqosah.</div>';
+                    if (hasNilaiPra || totalTerkait > 0) {
+                        var detailMessage = `
+                            <div class="alert alert-danger text-left">
+                                <h6 class="font-weight-bold mb-1"><i class="fas fa-exclamation-triangle mr-1"></i> PERINGATAN PENGHAPUSAN PERMANEN!</h6>
+                                Santri <strong>${namaSantri}</strong> memiliki data ujian terkait:<br>
+                                <ul class="mb-2 mt-1 pl-3">
+                                    ${dataTerkait.nilai_munaqosah ? `<li><strong>${dataTerkait.nilai_munaqosah.count}</strong> Data Nilai Ujian (Pra/Munaqosah)</li>` : ''}
+                                    ${dataTerkait.registrasi_uji ? `<li><strong>${dataTerkait.registrasi_uji.count}</strong> Data Registrasi Uji</li>` : ''}
+                                    ${dataTerkait.antrian_munaqosah ? `<li><strong>${dataTerkait.antrian_munaqosah.count}</strong> Data Antrian Ujian</li>` : ''}
+                                </ul>
+                                <strong>Seluruh nilai ujian, antrian, dan nomor registrasi santri ini akan DIHAPUS BERSIH & HILANG PERMANEN dari sistem!</strong>
+                            </div>
+                            <div class="alert alert-info text-left">
+                                <i class="fas fa-lightbulb mr-1"></i> <strong>Saran:</strong> Jika santri hanya batal ke Munaqosah Final tingkat kecamatan namun nilai pra-munaqosah ingin tetap diarsipkan, gunakan menu <strong>"Batalkan Munaqosah Final"</strong>.
+                            </div>
+                            <p class="text-danger font-weight-bold mb-0">Apakah Anda benar-benar yakin ingin menghapus permanen santri ini?</p>
+                        `;
 
                         Swal.fire({
-                            title: 'Konfirmasi Hapus Data Terkait',
+                            title: 'Konfirmasi Hapus Permanen',
                             html: detailMessage,
                             icon: 'warning',
                             showCancelButton: true,
                             confirmButtonColor: '#d33',
-                            cancelButtonColor: '#3085d6',
-                            confirmButtonText: 'Ya, Hapus Semua!',
+                            cancelButtonColor: '#6c757d',
+                            confirmButtonText: '<i class="fas fa-trash mr-1"></i> Ya, Hapus Permanen!',
                             cancelButtonText: 'Batal',
                             showLoaderOnConfirm: true,
                             preConfirm: () => {
@@ -2844,15 +3109,15 @@
                             }
                         });
                     } else {
-                        // Tidak ada data terkait, hapus langsung dengan pesan hijau
+                        // Tidak ada data nilai/terkait sama sekali, hapus langsung
                         Swal.fire({
-                            title: 'Konfirmasi Hapus',
-                            html: `Apakah Anda yakin ingin menghapus peserta <strong>${namaSantri}</strong>?<br><br><span class="badge badge-success"><i class="fas fa-check-circle"></i> Tidak ada data terkait yang akan terpengaruh. Aman untuk dihapus.</span><br><br><div class="alert alert-success"><i class="fas fa-info-circle"></i> <strong>Info:</strong> Data santri utama tidak akan dihapus, hanya dihapus dari daftar peserta munaqosah.</div>`,
+                            title: 'Konfirmasi Hapus Peserta',
+                            html: `Apakah Anda yakin ingin menghapus pendaftaran santri <strong>${namaSantri}</strong>?<br><br><span class="badge badge-success"><i class="fas fa-check-circle"></i> Santri belum memiliki riwayat ujian apa pun. Aman untuk dihapus.</span><br><br><div class="alert alert-light border"><i class="fas fa-info-circle text-info"></i> Data santri pada master santri induk tetap tersimpan.</div>`,
                             icon: 'question',
                             showCancelButton: true,
                             confirmButtonColor: '#28a745',
-                            cancelButtonColor: '#3085d6',
-                            confirmButtonText: 'Ya, Hapus!',
+                            cancelButtonColor: '#6c757d',
+                            confirmButtonText: '<i class="fas fa-trash mr-1"></i> Ya, Hapus!',
                             cancelButtonText: 'Batal',
                             showLoaderOnConfirm: true,
                             preConfirm: () => {
@@ -4964,6 +5229,174 @@ ${text}
             }
         });
     });
+
+    // ==================== FITUR PEMBATALAN PESERTA MUNAQOSAH ====================
+    window.batalkanPeserta = function(idPeserta, namaSantri, namaTpq, hasNilaiFinal) {
+        const isAdmin = <?= ($isAdmin ?? false) ? 'true' : 'false' ?>;
+        if (hasNilaiFinal && !isAdmin) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Akses Ditolak',
+                text: 'Santri telah memiliki nilai Munaqosah Final. Demi integritas data ujian, pembatalan hanya dapat dilakukan oleh Admin FKPQ.'
+            });
+            return;
+        }
+
+        if (hasNilaiFinal && isAdmin) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Perhatian Khusus Admin',
+                text: 'Santri ini sudah memiliki nilai ujian Munaqosah Final. Pembatalan akan memengaruhi hasil ujian/kelulusan. Apakah Anda tetap ingin melanjutkan pembatalan?',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Lanjutkan Pembatalan',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    showModalBatalkan(idPeserta, namaSantri, namaTpq);
+                }
+            });
+        } else {
+            showModalBatalkan(idPeserta, namaSantri, namaTpq);
+        }
+    };
+
+    // Toggle required untuk rincian alasan berdasarkan pilihan kategori
+    $(document).on('change', '#batal_kategori_alasan', function() {
+        const val = $(this).val();
+        if (val === 'lainnya') {
+            $('#batal_alasan_required_star').show();
+            $('#batal_alasan_optional_text').hide();
+            $('#batal_alasan').prop('required', true).attr('placeholder', 'Wajib diisi: Tuliskan rincian alasan pembatalan santri...');
+        } else {
+            $('#batal_alasan_required_star').hide();
+            $('#batal_alasan_optional_text').show();
+            $('#batal_alasan').prop('required', false).attr('placeholder', 'Tuliskan keterangan tambahan jika ada (opsional)...');
+        }
+    });
+
+    function showModalBatalkan(idPeserta, namaSantri, namaTpq) {
+        $('#batal_peserta_id').val(idPeserta);
+        $('#batal_nama_santri').text(namaSantri);
+        $('#batal_nama_tpq').text(namaTpq ? 'Lembaga TPQ: ' + namaTpq : '');
+        $('#batal_kategori_alasan').val('').trigger('change');
+        $('#batal_alasan').val('');
+        $('#batal_alasan_required_star').hide();
+        $('#batal_alasan_optional_text').show();
+        $('#batal_alasan').prop('required', false).attr('placeholder', 'Tuliskan keterangan tambahan jika ada (opsional)...');
+        $('#modalBatalkanPeserta').modal('show');
+    }
+
+    $('#formBatalkanPeserta').on('submit', function(e) {
+        e.preventDefault();
+        const idPeserta = $('#batal_peserta_id').val();
+        const kategoriAlasan = $('#batal_kategori_alasan').val();
+        let alasan = $('#batal_alasan').val().trim();
+
+        if (!kategoriAlasan) {
+            Swal.fire('Peringatan', 'Silakan pilih Kategori Alasan terlebih dahulu', 'warning');
+            $('#batal_kategori_alasan').focus();
+            return;
+        }
+
+        // Validasi: Wajib diisi HANYA jika kategori adalah "Lainnya"
+        if (kategoriAlasan === 'lainnya' && !alasan) {
+            Swal.fire('Peringatan', 'Keterangan / rincian alasan wajib diisi jika memilih kategori "Lainnya"', 'warning');
+            $('#batal_alasan').focus();
+            return;
+        }
+
+        // Jika kategori selain lainnya dan rincian kosong, otomatis gunakan teks opsi kategori
+        if (!alasan) {
+            alasan = $('#batal_kategori_alasan option:selected').text();
+        }
+
+        $('#btnSubmitBatalkan').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Menyimpan...');
+
+        $.ajax({
+            url: '<?= base_url('backend/munaqosah/batalkan-peserta') ?>',
+            type: 'POST',
+            data: {
+                id: idPeserta,
+                kategori_alasan: kategoriAlasan,
+                alasan: alasan
+            },
+            dataType: 'json',
+            success: function(response) {
+                $('#btnSubmitBatalkan').prop('disabled', false).html('<i class="fas fa-check"></i> Ya, Batalkan Peserta');
+                if (response.success) {
+                    $('#modalBatalkanPeserta').modal('hide');
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Berhasil',
+                        text: response.message
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire('Gagal', response.message, 'error');
+                }
+            },
+            error: function(xhr, status, error) {
+                $('#btnSubmitBatalkan').prop('disabled', false).html('<i class="fas fa-check"></i> Ya, Batalkan Peserta');
+                Swal.fire('Error', 'Terjadi kesalahan sistem: ' + error, 'error');
+            }
+        });
+    });
+
+    window.aktifkanPeserta = function(idPeserta, namaSantri, hasNilaiFinal) {
+        const isAdmin = <?= ($isAdmin ?? false) ? 'true' : 'false' ?>;
+        if (hasNilaiFinal && !isAdmin) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Akses Ditolak',
+                text: 'Santri telah memiliki nilai Munaqosah Final. Pemulihan status hanya dapat dilakukan oleh Admin FKPQ.'
+            });
+            return;
+        }
+
+        Swal.fire({
+            title: 'Aktifkan Kembali Peserta?',
+            html: `Apakah Anda yakin ingin memulihkan status keikutsertaan santri <strong>${namaSantri}</strong> untuk Munaqosah Final?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#28a745',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Ya, Aktifkan Kembali',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'Memproses...',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                $.ajax({
+                    url: '<?= base_url('backend/munaqosah/aktifkan-peserta') ?>',
+                    type: 'POST',
+                    data: { id: idPeserta },
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.success) {
+                            Swal.fire('Berhasil', response.message, 'success').then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire('Gagal', response.message, 'error');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        Swal.fire('Error', 'Terjadi kesalahan sistem: ' + error, 'error');
+                    }
+                });
+            }
+        });
+    };
+
 </script>
 
 

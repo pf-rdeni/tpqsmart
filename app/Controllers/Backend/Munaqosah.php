@@ -4365,7 +4365,7 @@ class Munaqosah extends BaseController
         // Untuk getPesertaWithRelations, kita perlu query manual jika multiple
         if (!empty($filterTpqFinalArray) || !empty($normalizedTahunAjaranArray) || $filterKelurahanDesa) {
             $builder = $this->db->table('tbl_munaqosah_peserta pm');
-            $builder->select('pm.*, s.*, t.*, k.NamaKelas, k.IdKelas');
+            $builder->select('s.*, t.*, k.NamaKelas, k.IdKelas, pm.*');
             $builder->join('tbl_santri_baru s', 's.IdSantri = pm.IdSantri', 'left');
             $builder->join('tbl_tpq t', 't.IdTpq = pm.IdTpq', 'left');
             $builder->join('tbl_kelas_santri ks', 'ks.IdSantri = s.IdSantri AND ks.IdTahunAjaran = pm.IdTahunAjaran AND ks.Status = 1', 'left');
@@ -4403,13 +4403,25 @@ class Munaqosah extends BaseController
             );
         }
 
-        // Pisahkan peserta berdasarkan status verifikasi
+        // Pisahkan peserta berdasarkan status verifikasi & cek status pembatalan
         $pesertaValid = [];
         $pesertaPerluPerbaikan = [];
         $pesertaBelumDikonfirmasi = [];
+        $totalPesertaBatal = 0;
 
         if (!empty($peserta) && is_array($peserta)) {
             foreach ($peserta as $row) {
+                // Parse pembatalan status dari keterangan
+                $pembatalan = $this->pesertaMunaqosahModel->parsePembatalanData($row->keterangan ?? '');
+                $row->is_batal = $pembatalan['is_batal'];
+                $row->data_batal = $pembatalan['data'];
+                $row->has_nilai_pra = $this->pesertaMunaqosahModel->hasNilaiPraMunaqosah($row->IdSantri, $row->IdTahunAjaran);
+                $row->has_nilai_final = $this->pesertaMunaqosahModel->hasNilaiMunaqosahFinal($row->IdSantri, $row->IdTahunAjaran);
+
+                if ($row->is_batal) {
+                    $totalPesertaBatal++;
+                }
+
                 $statusVerifikasi = $row->status_verifikasi ?? null;
                 if ($statusVerifikasi === 'valid' || $statusVerifikasi === 'dikonfirmasi') {
                     $pesertaValid[] = $row;
@@ -4657,6 +4669,7 @@ class Munaqosah extends BaseController
             'total_status_perbaikan' => $totalStatusPerbaikan,
             'total_status_belum_dikonfirmasi' => $totalStatusBelumDikonfirmasi,
             'total_santri_terdaftar' => $totalSantriTerdaftar,
+            'total_peserta_batal' => $totalPesertaBatal,
             'statistikPesertaPerTahun' => $statistikPesertaPerTahun,
             'statistikGroupedByTahun' => $statistikGroupedByTahun,
             'listKelurahanDesa' => $listKelurahanDesa,
@@ -4730,6 +4743,197 @@ class Munaqosah extends BaseController
             return $this->response->setJSON([
                 'success' => false,
                 'message' => 'Gagal mengkonfirmasi perbaikan. Silakan coba lagi.'
+            ]);
+        }
+    }
+
+    /**
+     * Menandai santri Batal mengikuti Munaqosah Final (Soft Cancel pada kolom keterangan)
+     */
+    public function batalkanPeserta()
+    {
+        try {
+            $id = $this->request->getPost('id');
+            $kategoriAlasan = $this->request->getPost('kategori_alasan') ?? 'lainnya';
+            $alasan = trim($this->request->getPost('alasan') ?? '');
+
+            if (empty($id)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'ID peserta tidak boleh kosong'
+                ]);
+            }
+
+            if (empty($kategoriAlasan)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Kategori alasan pembatalan wajib dipilih'
+                ]);
+            }
+
+            // Validasi: Wajib diisi HANYA jika kategori adalah "lainnya"
+            if ($kategoriAlasan === 'lainnya' && empty($alasan)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Keterangan / rincian alasan wajib diisi jika memilih kategori "Lainnya"'
+                ]);
+            }
+
+            // Jika bukan lainnya dan rincian kosong, isi dengan label kategori
+            if (empty($alasan)) {
+                $kategoriMap = [
+                    'permintaan_wali' => 'Permintaan Orang Tua / Wali Santri',
+                    'belum_siap' => 'Belum Siap Materi / Mental',
+                    'sakit_keluarga' => 'Sakit / Urusan Keluarga',
+                    'pindah_domisili' => 'Pindah Domisili / Keluar TPQ'
+                ];
+                $alasan = $kategoriMap[$kategoriAlasan] ?? 'Dibatalkan dari Munaqosah Final';
+            }
+
+            $peserta = $this->pesertaMunaqosahModel->find($id);
+            if (empty($peserta)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Data peserta tidak ditemukan'
+                ]);
+            }
+
+            $isAdmin = in_groups('Admin');
+            $isPanitia = in_groups('Panitia');
+            $isOperator = in_groups('Operator');
+
+            $sessionIdTpq = session()->get('IdTpq');
+            // Jika Operator, pastikan peserta milik TPQ-nya
+            if ($isOperator && !empty($sessionIdTpq) && $sessionIdTpq != 0) {
+                if ((string)$peserta['IdTpq'] !== (string)$sessionIdTpq) {
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'message' => 'Akses ditolak: Anda hanya dapat membatalkan santri dari lembaga TPQ Anda sendiri.'
+                    ]);
+                }
+            }
+
+            // Cek apakah santri sudah memiliki nilai munaqosah final
+            $hasNilaiFinal = $this->pesertaMunaqosahModel->hasNilaiMunaqosahFinal($peserta['IdSantri'], $peserta['IdTahunAjaran']);
+
+            // INTEGRITAS DATA: Jika sudah ada nilai munaqosah final, operator dilarang membatalkan! Hanya Admin.
+            if ($hasNilaiFinal && !$isAdmin) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Akses ditolak: Santri telah memiliki nilai Munaqosah Final. Demi integritas data ujian, operator lembaga tidak diizinkan membatalkan peserta ini. Silakan hubungi Admin FKPQ.'
+                ]);
+            }
+
+            $user = user();
+            $username = $user->username ?? $user->email ?? session()->get('username') ?? 'Operator';
+            $roleName = $isAdmin ? 'Admin' : ($isPanitia ? 'Panitia' : 'Operator');
+
+            $payloadBatal = [
+                'status' => 'batal',
+                'alasan' => $alasan,
+                'kategori_alasan' => $kategoriAlasan,
+                'batal_at' => date('Y-m-d H:i:s'),
+                'batal_by' => $username,
+                'role_by' => $roleName
+            ];
+
+            $newKeterangan = $this->pesertaMunaqosahModel->amendPembatalanKeterangan($peserta['keterangan'] ?? '', $payloadBatal);
+
+            if ($this->pesertaMunaqosahModel->update($id, ['keterangan' => $newKeterangan])) {
+                return $this->response->setJSON([
+                    'success' => true,
+                    'message' => 'Santri berhasil ditandai Batal Munaqosah.'
+                ]);
+            } else {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Gagal memperbarui status santri.'
+                ]);
+            }
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Memulihkan / mengaktifkan kembali santri yang sebelumnya dibatalkan
+     */
+    public function aktifkanPeserta()
+    {
+        try {
+            $id = $this->request->getPost('id');
+
+            if (empty($id)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'ID peserta tidak boleh kosong'
+                ]);
+            }
+
+            $peserta = $this->pesertaMunaqosahModel->find($id);
+            if (empty($peserta)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Data peserta tidak ditemukan'
+                ]);
+            }
+
+            $isAdmin = in_groups('Admin');
+            $isPanitia = in_groups('Panitia');
+            $isOperator = in_groups('Operator');
+
+            $sessionIdTpq = session()->get('IdTpq');
+            if ($isOperator && !empty($sessionIdTpq) && $sessionIdTpq != 0) {
+                if ((string)$peserta['IdTpq'] !== (string)$sessionIdTpq) {
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'message' => 'Akses ditolak: Anda hanya dapat memulihkan santri dari lembaga TPQ Anda sendiri.'
+                    ]);
+                }
+            }
+
+            $hasNilaiFinal = $this->pesertaMunaqosahModel->hasNilaiMunaqosahFinal($peserta['IdSantri'], $peserta['IdTahunAjaran']);
+            if ($hasNilaiFinal && !$isAdmin) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Akses ditolak: Santri telah memiliki nilai Munaqosah Final. Pemulihan status hanya dapat dilakukan oleh Admin FKPQ.'
+                ]);
+            }
+
+            $currentPembatalan = $this->pesertaMunaqosahModel->parsePembatalanData($peserta['keterangan'] ?? '');
+
+            $user = user();
+            $username = $user->username ?? $user->email ?? session()->get('username') ?? 'Operator';
+            $roleName = $isAdmin ? 'Admin' : ($isPanitia ? 'Panitia' : 'Operator');
+
+            $payloadAktif = [
+                'status' => 'aktif',
+                'riwayat_batal' => $currentPembatalan['data'] ?? null,
+                'pulih_at' => date('Y-m-d H:i:s'),
+                'pulih_by' => $username,
+                'role_by' => $roleName
+            ];
+
+            $newKeterangan = $this->pesertaMunaqosahModel->amendPembatalanKeterangan($peserta['keterangan'] ?? '', $payloadAktif);
+
+            if ($this->pesertaMunaqosahModel->update($id, ['keterangan' => $newKeterangan])) {
+                return $this->response->setJSON([
+                    'success' => true,
+                    'message' => 'Status keikutsertaan santri berhasil diaktifkan kembali.'
+                ]);
+            } else {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Gagal mengaktifkan kembali peserta.'
+                ]);
+            }
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
             ]);
         }
     }
@@ -5634,11 +5838,37 @@ class Munaqosah extends BaseController
 
             $nilaiMunaqosah = $nilaiBuilder->get()->getResultArray();
             
+            $hasNilaiFinal = false;
+            $hasNilaiPra = false;
             if (!empty($nilaiMunaqosah)) {
+                $nilaiByType = [];
+                foreach ($nilaiMunaqosah as $n) {
+                    $type = $n['TypeUjian'] ?? 'munaqosah';
+                    if (!isset($nilaiByType[$type])) {
+                        $nilaiByType[$type] = 0;
+                    }
+                    $nilaiByType[$type]++;
+                    if ($type === 'munaqosah') {
+                        $hasNilaiFinal = true;
+                    } elseif ($type === 'pra-munaqosah') {
+                        $hasNilaiPra = true;
+                    }
+                }
                 $dataTerkait['nilai_munaqosah'] = [
                     'count' => count($nilaiMunaqosah),
-                    'data' => $nilaiMunaqosah
+                    'data' => $nilaiMunaqosah,
+                    'by_type' => $nilaiByType,
+                    'has_nilai_final' => $hasNilaiFinal,
+                    'has_nilai_pra' => $hasNilaiPra
                 ];
+            }
+
+            $isAdmin = in_groups('Admin');
+            if ($hasNilaiFinal && !$isAdmin) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Santri telah memiliki nilai Munaqosah Final. Demi integritas data ujian, penghapusan hanya dapat dilakukan oleh Admin FKPQ.'
+                ]);
             }
 
             // Cek di tbl_munaqosah_antrian
@@ -5693,18 +5923,71 @@ class Munaqosah extends BaseController
             }
             
             $idSantri = $peserta['IdSantri'];
+            $idTahunAjaran = $peserta['IdTahunAjaran'] ?? null;
+
+            $isAdmin = in_groups('Admin');
+            $isPanitia = in_groups('Panitia');
+            $isOperator = in_groups('Operator');
+            $sessionIdTpq = session()->get('IdTpq');
+
+            // Cek kepemilikan TPQ untuk operator
+            if ($isOperator && !empty($sessionIdTpq) && $sessionIdTpq != 0) {
+                if ((string)$peserta['IdTpq'] !== (string)$sessionIdTpq) {
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'message' => 'Akses ditolak: Anda hanya dapat menghapus santri dari lembaga TPQ Anda sendiri.'
+                    ]);
+                }
+            }
+
+            // Cek apakah ada nilai munaqosah final
+            $hasNilaiFinal = $this->pesertaMunaqosahModel->hasNilaiMunaqosahFinal($idSantri, $idTahunAjaran);
+            if ($hasNilaiFinal && !$isAdmin) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Akses ditolak: Santri telah memiliki nilai Munaqosah Final. Demi integritas data, penghapusan hanya dapat dilakukan oleh Admin FKPQ.'
+                ]);
+            }
+
             $db = \Config\Database::connect();
-            
-            // Hapus data terkait terlebih dahulu
-            $db->table('tbl_munaqosah_nilai')->where('IdSantri', $idSantri)->delete();
-            $db->table('tbl_munaqosah_antrian')->where('IdSantri', $idSantri)->delete();
-            
-            // Hapus peserta munaqosah
+            $db->transStart();
+
+            // 1. Hapus data nilai
+            $nilaiBuilder = $db->table('tbl_munaqosah_nilai')->where('IdSantri', $idSantri);
+            if (!empty($idTahunAjaran)) {
+                $nilaiBuilder->where('IdTahunAjaran', $idTahunAjaran);
+            }
+            $nilaiBuilder->delete();
+
+            // 2. Hapus data antrian
+            $antrianBuilder = $db->table('tbl_munaqosah_antrian')->where('IdSantri', $idSantri);
+            if (!empty($idTahunAjaran)) {
+                $antrianBuilder->where('IdTahunAjaran', $idTahunAjaran);
+            }
+            $antrianBuilder->delete();
+
+            // 3. Hapus data registrasi uji
+            $regBuilder = $db->table('tbl_munaqosah_registrasi_uji')->where('IdSantri', $idSantri);
+            if (!empty($idTahunAjaran)) {
+                $regBuilder->where('IdTahunAjaran', $idTahunAjaran);
+            }
+            $regBuilder->delete();
+
+            // 4. Hapus peserta munaqosah
             $this->pesertaMunaqosahModel->delete($id);
+
+            $db->transComplete();
+
+            if ($db->transStatus() === false) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Gagal menghapus data peserta dari database.'
+                ]);
+            }
             
             return $this->response->setJSON([
                 'success' => true,
-                'message' => 'Peserta dan semua data terkait berhasil dihapus'
+                'message' => 'Peserta dan seluruh data ujian terkait berhasil dihapus permanen'
             ]);
         } catch (\Exception $e) {
             return $this->response->setJSON([
@@ -5727,6 +6010,31 @@ class Munaqosah extends BaseController
             }
 
             $idTahunAjaran = $peserta['IdTahunAjaran'] ?? null;
+
+            $isAdmin = in_groups('Admin');
+            $isPanitia = in_groups('Panitia');
+            $isOperator = in_groups('Operator');
+            $sessionIdTpq = session()->get('IdTpq');
+
+            // Cek kepemilikan TPQ untuk operator
+            if ($isOperator && !empty($sessionIdTpq) && $sessionIdTpq != 0) {
+                if ((string)$peserta['IdTpq'] !== (string)$sessionIdTpq) {
+                    return $this->response->setJSON([
+                        'success' => false,
+                        'message' => 'Akses ditolak: Anda hanya dapat menghapus santri dari lembaga TPQ Anda sendiri.'
+                    ]);
+                }
+            }
+
+            // Cek apakah ada nilai munaqosah final
+            $hasNilaiFinal = $this->pesertaMunaqosahModel->hasNilaiMunaqosahFinal($idSantri, $idTahunAjaran);
+            if ($hasNilaiFinal && !$isAdmin) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Akses ditolak: Santri telah memiliki nilai Munaqosah Final. Demi integritas data ujian, penghapusan hanya dapat dilakukan oleh Admin FKPQ.'
+                ]);
+            }
+
             $db = \Config\Database::connect();
 
             // Mulai transaksi

@@ -428,6 +428,8 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->post('munaqosah/save-peserta', 'Munaqosah::savePesertaMunaqosah');
     $routes->post('munaqosah/save-peserta-multiple', 'Munaqosah::savePesertaMunaqosahMultiple');
     $routes->post('munaqosah/konfirmasi-perbaikan-peserta', 'Munaqosah::konfirmasiPerbaikanPeserta');
+    $routes->post('munaqosah/batalkan-peserta', 'Munaqosah::batalkanPeserta');
+    $routes->post('munaqosah/aktifkan-peserta', 'Munaqosah::aktifkanPeserta');
     $routes->get('munaqosah/check-data-terkait/(:num)', 'Munaqosah::checkDataTerkait/$1');
     $routes->delete('munaqosah/delete-peserta/(:num)', 'Munaqosah::deletePesertaMunaqosah/$1');
     $routes->delete('munaqosah/delete-peserta-by-santri/(:num)', 'Munaqosah::deletePesertaBySantri/$1');
