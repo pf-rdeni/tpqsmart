@@ -50,19 +50,25 @@ class MunaqosahPesertaModel extends Model
     public function getPesertaWithRelations($idTpq = null, $idKelas = null, $idTahunAjaran = null)
     {
         $builder = $this->db->table($this->table . ' pm');
-        $builder->select('s.*, t.*, k.NamaKelas, COALESCE(ks.IdKelas, ks_aktif.IdKelas) as IdKelas, pm.*');
+        $select = 's.*, t.*, pm.*, '
+            . 'COALESCE('
+            . '(SELECT k.NamaKelas FROM tbl_kelas_santri ks LEFT JOIN tbl_kelas k ON k.IdKelas = ks.IdKelas WHERE ks.IdSantri = pm.IdSantri ORDER BY (ks.IdTahunAjaran = pm.IdTahunAjaran AND ks.IdTpq = pm.IdTpq AND ks.Status = 1) DESC, (ks.IdTahunAjaran = pm.IdTahunAjaran AND ks.Status = 1) DESC, (ks.IdTahunAjaran = pm.IdTahunAjaran) DESC, (ks.Status = 1) DESC, ks.Id DESC LIMIT 1), '
+            . '(SELECT k2.NamaKelas FROM tbl_kelas k2 WHERE k2.IdKelas = s.IdKelas)'
+            . ') AS NamaKelas, '
+            . 'COALESCE('
+            . '(SELECT ks.IdKelas FROM tbl_kelas_santri ks WHERE ks.IdSantri = pm.IdSantri ORDER BY (ks.IdTahunAjaran = pm.IdTahunAjaran AND ks.IdTpq = pm.IdTpq AND ks.Status = 1) DESC, (ks.IdTahunAjaran = pm.IdTahunAjaran AND ks.Status = 1) DESC, (ks.IdTahunAjaran = pm.IdTahunAjaran) DESC, (ks.Status = 1) DESC, ks.Id DESC LIMIT 1), '
+            . 's.IdKelas'
+            . ') AS IdKelas';
+        $builder->select($select, false);
         $builder->join('tbl_santri_baru s', 's.IdSantri = pm.IdSantri', 'left');
         $builder->join('tbl_tpq t', 't.IdTpq = pm.IdTpq', 'left');
-        $builder->join('tbl_kelas_santri ks', 'ks.IdSantri = pm.IdSantri AND ks.IdTahunAjaran = pm.IdTahunAjaran', 'left');
-        $builder->join('tbl_kelas_santri ks_aktif', 'ks_aktif.IdSantri = pm.IdSantri AND ks_aktif.Status = 1', 'left');
-        $builder->join('tbl_kelas k', 'k.IdKelas = COALESCE(ks.IdKelas, ks_aktif.IdKelas)', 'left');
 
         if ($idTpq) {
             $builder->where('pm.IdTpq', $idTpq);
         }
 
         if ($idKelas) {
-            $builder->where('COALESCE(ks.IdKelas, ks_aktif.IdKelas)', $idKelas);
+            $builder->having('IdKelas', $idKelas);
         }
 
         if ($idTahunAjaran) {

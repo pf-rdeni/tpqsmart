@@ -4373,12 +4373,18 @@ class Munaqosah extends BaseController
         // Untuk getPesertaWithRelations, kita perlu query manual jika multiple
         if (!empty($filterTpqFinalArray) || !empty($normalizedTahunAjaranArray) || $filterKelurahanDesa || $isAllTahunAjaran) {
             $builder = $this->db->table('tbl_munaqosah_peserta pm');
-            $builder->select('s.*, t.*, k.NamaKelas, COALESCE(ks.IdKelas, ks_aktif.IdKelas) as IdKelas, pm.*');
+            $select = 's.*, t.*, pm.*, '
+                . 'COALESCE('
+                . '(SELECT k.NamaKelas FROM tbl_kelas_santri ks LEFT JOIN tbl_kelas k ON k.IdKelas = ks.IdKelas WHERE ks.IdSantri = pm.IdSantri ORDER BY (ks.IdTahunAjaran = pm.IdTahunAjaran AND ks.IdTpq = pm.IdTpq AND ks.Status = 1) DESC, (ks.IdTahunAjaran = pm.IdTahunAjaran AND ks.Status = 1) DESC, (ks.IdTahunAjaran = pm.IdTahunAjaran) DESC, (ks.Status = 1) DESC, ks.Id DESC LIMIT 1), '
+                . '(SELECT k2.NamaKelas FROM tbl_kelas k2 WHERE k2.IdKelas = s.IdKelas)'
+                . ') AS NamaKelas, '
+                . 'COALESCE('
+                . '(SELECT ks.IdKelas FROM tbl_kelas_santri ks WHERE ks.IdSantri = pm.IdSantri ORDER BY (ks.IdTahunAjaran = pm.IdTahunAjaran AND ks.IdTpq = pm.IdTpq AND ks.Status = 1) DESC, (ks.IdTahunAjaran = pm.IdTahunAjaran AND ks.Status = 1) DESC, (ks.IdTahunAjaran = pm.IdTahunAjaran) DESC, (ks.Status = 1) DESC, ks.Id DESC LIMIT 1), '
+                . 's.IdKelas'
+                . ') AS IdKelas';
+            $builder->select($select, false);
             $builder->join('tbl_santri_baru s', 's.IdSantri = pm.IdSantri', 'left');
             $builder->join('tbl_tpq t', 't.IdTpq = pm.IdTpq', 'left');
-            $builder->join('tbl_kelas_santri ks', 'ks.IdSantri = pm.IdSantri AND ks.IdTahunAjaran = pm.IdTahunAjaran', 'left');
-            $builder->join('tbl_kelas_santri ks_aktif', 'ks_aktif.IdSantri = pm.IdSantri AND ks_aktif.Status = 1', 'left');
-            $builder->join('tbl_kelas k', 'k.IdKelas = COALESCE(ks.IdKelas, ks_aktif.IdKelas)', 'left');
 
             // Filter multiple TPQ
             if (!empty($filterTpqFinalArray)) {
@@ -6779,15 +6785,21 @@ class Munaqosah extends BaseController
 
             // Ambil data peserta munaqosah dengan relasi ke tabel santri
             $builder = $this->db->table('tbl_munaqosah_peserta mp');
-            $builder->select('mp.*, s.*, mp.IdTpq, t.NamaTpq, t.KelurahanDesa, k.NamaKelas, 
-                            mn_munaqosah.NoPeserta as NoPesertaMunaqosah,
-                            mn_pra.NoPeserta as NoPesertaPraMunaqosah');
+            $select = 'mp.*, s.*, mp.IdTpq, t.NamaTpq, t.KelurahanDesa, '
+                . 'mn_munaqosah.NoPeserta as NoPesertaMunaqosah, '
+                . 'mn_pra.NoPeserta as NoPesertaPraMunaqosah, '
+                . 'COALESCE('
+                . '(SELECT k.NamaKelas FROM tbl_kelas_santri ks LEFT JOIN tbl_kelas k ON k.IdKelas = ks.IdKelas WHERE ks.IdSantri = mp.IdSantri ORDER BY (ks.IdTahunAjaran = mp.IdTahunAjaran AND ks.IdTpq = mp.IdTpq AND ks.Status = 1) DESC, (ks.IdTahunAjaran = mp.IdTahunAjaran AND ks.Status = 1) DESC, (ks.IdTahunAjaran = mp.IdTahunAjaran) DESC, (ks.Status = 1) DESC, ks.Id DESC LIMIT 1), '
+                . '(SELECT k2.NamaKelas FROM tbl_kelas k2 WHERE k2.IdKelas = s.IdKelas)'
+                . ') AS NamaKelas, '
+                . 'COALESCE('
+                . '(SELECT ks.IdKelas FROM tbl_kelas_santri ks WHERE ks.IdSantri = mp.IdSantri ORDER BY (ks.IdTahunAjaran = mp.IdTahunAjaran AND ks.IdTpq = mp.IdTpq AND ks.Status = 1) DESC, (ks.IdTahunAjaran = mp.IdTahunAjaran AND ks.Status = 1) DESC, (ks.IdTahunAjaran = mp.IdTahunAjaran) DESC, (ks.Status = 1) DESC, ks.Id DESC LIMIT 1), '
+                . 's.IdKelas'
+                . ') AS IdKelas';
+            $builder->select($select, false);
             // Note: HasKey diambil dari tbl_munaqosah_peserta (mp) melalui mp.*
             $builder->join('tbl_santri_baru s', 's.IdSantri = mp.IdSantri', 'left');
             $builder->join('tbl_tpq t', 't.IdTpq = mp.IdTpq', 'left');
-            $builder->join('tbl_kelas_santri ks', 'ks.IdSantri = mp.IdSantri AND ks.IdTahunAjaran = mp.IdTahunAjaran', 'left');
-            $builder->join('tbl_kelas_santri ks_aktif', 'ks_aktif.IdSantri = mp.IdSantri AND ks_aktif.Status = 1', 'left');
-            $builder->join('tbl_kelas k', 'k.IdKelas = COALESCE(ks.IdKelas, ks_aktif.IdKelas)', 'left');
             // Join untuk data munaqosah
             $builder->join('tbl_munaqosah_registrasi_uji mn_munaqosah', 'mn_munaqosah.IdSantri = mp.IdSantri AND mn_munaqosah.IdTahunAjaran = mp.IdTahunAjaran AND mn_munaqosah.TypeUjian = "munaqosah"', 'left');
             // Join untuk data pra-munaqosah
@@ -6801,7 +6813,7 @@ class Munaqosah extends BaseController
             
             // Filter Kelas
             if ($filterKelas != 0) {
-                $builder->where('COALESCE(ks.IdKelas, ks_aktif.IdKelas)', $filterKelas);
+                $builder->having('IdKelas', $filterKelas);
             }
 
             // Group by untuk menghindari duplikasi
@@ -6961,13 +6973,19 @@ class Munaqosah extends BaseController
 
             // Ambil data peserta munaqosah dengan relasi
             $builder = $this->db->table('tbl_munaqosah_peserta mp');
-            $builder->select('mp.*, s.*, t.NamaTpq, k.NamaKelas, 
-                            mn.NoPeserta, mn.TypeUjian');
+            $select = 'mp.*, s.*, t.NamaTpq, '
+                . 'mn.NoPeserta, mn.TypeUjian, '
+                . 'COALESCE('
+                . '(SELECT k.NamaKelas FROM tbl_kelas_santri ks LEFT JOIN tbl_kelas k ON k.IdKelas = ks.IdKelas WHERE ks.IdSantri = mp.IdSantri ORDER BY (ks.IdTahunAjaran = mp.IdTahunAjaran AND ks.IdTpq = mp.IdTpq AND ks.Status = 1) DESC, (ks.IdTahunAjaran = mp.IdTahunAjaran AND ks.Status = 1) DESC, (ks.IdTahunAjaran = mp.IdTahunAjaran) DESC, (ks.Status = 1) DESC, ks.Id DESC LIMIT 1), '
+                . '(SELECT k2.NamaKelas FROM tbl_kelas k2 WHERE k2.IdKelas = s.IdKelas)'
+                . ') AS NamaKelas, '
+                . 'COALESCE('
+                . '(SELECT ks.IdKelas FROM tbl_kelas_santri ks WHERE ks.IdSantri = mp.IdSantri ORDER BY (ks.IdTahunAjaran = mp.IdTahunAjaran AND ks.IdTpq = mp.IdTpq AND ks.Status = 1) DESC, (ks.IdTahunAjaran = mp.IdTahunAjaran AND ks.Status = 1) DESC, (ks.IdTahunAjaran = mp.IdTahunAjaran) DESC, (ks.Status = 1) DESC, ks.Id DESC LIMIT 1), '
+                . 's.IdKelas'
+                . ') AS IdKelas';
+            $builder->select($select, false);
             $builder->join('tbl_santri_baru s', 's.IdSantri = mp.IdSantri', 'left');
             $builder->join('tbl_tpq t', 't.IdTpq = mp.IdTpq', 'left');
-            $builder->join('tbl_kelas_santri ks', 'ks.IdSantri = mp.IdSantri AND ks.IdTahunAjaran = mp.IdTahunAjaran', 'left');
-            $builder->join('tbl_kelas_santri ks_aktif', 'ks_aktif.IdSantri = mp.IdSantri AND ks_aktif.Status = 1', 'left');
-            $builder->join('tbl_kelas k', 'k.IdKelas = COALESCE(ks.IdKelas, ks_aktif.IdKelas)', 'left');
             $builder->join('tbl_munaqosah_registrasi_uji mn', 'mn.IdSantri = mp.IdSantri AND mn.IdTahunAjaran = mp.IdTahunAjaran AND mn.TypeUjian = "' . $typeUjian . '"', 'left');
             $builder->where('mp.IdTpq', $idTpq);
             $builder->where('mp.IdTahunAjaran', $tahunAjaran);
@@ -7971,13 +7989,19 @@ class Munaqosah extends BaseController
 
             // Ambil data peserta munaqosah dengan relasi
             $builder = $this->db->table('tbl_munaqosah_peserta mp');
-            $builder->select('mp.*, s.*, t.NamaTpq, k.NamaKelas, 
-                            mn.NoPeserta, mn.TypeUjian');
+            $select = 'mp.*, s.*, t.NamaTpq, '
+                . 'mn.NoPeserta, mn.TypeUjian, '
+                . 'COALESCE('
+                . '(SELECT k.NamaKelas FROM tbl_kelas_santri ks LEFT JOIN tbl_kelas k ON k.IdKelas = ks.IdKelas WHERE ks.IdSantri = mp.IdSantri ORDER BY (ks.IdTahunAjaran = mp.IdTahunAjaran AND ks.IdTpq = mp.IdTpq AND ks.Status = 1) DESC, (ks.IdTahunAjaran = mp.IdTahunAjaran AND ks.Status = 1) DESC, (ks.IdTahunAjaran = mp.IdTahunAjaran) DESC, (ks.Status = 1) DESC, ks.Id DESC LIMIT 1), '
+                . '(SELECT k2.NamaKelas FROM tbl_kelas k2 WHERE k2.IdKelas = s.IdKelas)'
+                . ') AS NamaKelas, '
+                . 'COALESCE('
+                . '(SELECT ks.IdKelas FROM tbl_kelas_santri ks WHERE ks.IdSantri = mp.IdSantri ORDER BY (ks.IdTahunAjaran = mp.IdTahunAjaran AND ks.IdTpq = mp.IdTpq AND ks.Status = 1) DESC, (ks.IdTahunAjaran = mp.IdTahunAjaran AND ks.Status = 1) DESC, (ks.IdTahunAjaran = mp.IdTahunAjaran) DESC, (ks.Status = 1) DESC, ks.Id DESC LIMIT 1), '
+                . 's.IdKelas'
+                . ') AS IdKelas';
+            $builder->select($select, false);
             $builder->join('tbl_santri_baru s', 's.IdSantri = mp.IdSantri', 'left');
             $builder->join('tbl_tpq t', 't.IdTpq = mp.IdTpq', 'left');
-            $builder->join('tbl_kelas_santri ks', 'ks.IdSantri = mp.IdSantri AND ks.IdTahunAjaran = mp.IdTahunAjaran', 'left');
-            $builder->join('tbl_kelas_santri ks_aktif', 'ks_aktif.IdSantri = mp.IdSantri AND ks_aktif.Status = 1', 'left');
-            $builder->join('tbl_kelas k', 'k.IdKelas = COALESCE(ks.IdKelas, ks_aktif.IdKelas)', 'left');
             $builder->join('tbl_munaqosah_registrasi_uji mn', 'mn.IdSantri = mp.IdSantri AND mn.IdTahunAjaran = mp.IdTahunAjaran AND mn.TypeUjian = "' . $typeUjian . '"', 'left');
             $builder->whereIn('mp.IdSantri', $santriIds);
             $builder->where('mp.IdTahunAjaran', $tahunAjaran);
@@ -7990,7 +8014,7 @@ class Munaqosah extends BaseController
 
             // Filter Kelas
             if ($filterKelas != 0) {
-                $builder->where('COALESCE(ks.IdKelas, ks_aktif.IdKelas)', $filterKelas);
+                $builder->having('IdKelas', $filterKelas);
             }
 
             $builder->groupBy('mp.IdSantri');
