@@ -3940,128 +3940,71 @@ if (ENVIRONMENT === 'production') {
     /* ===== Region: Validasi Tanggal Lahir Santri ===== */
     // Deklarasikan fungsi validateTanggalLahir di scope global
     window.validateTanggalLahir = function() {
-        const kelasSelect = document.getElementById('IdKelas');
         const tanggalLahirInput = document.getElementById('TanggalLahirSantri');
 
-        // Abaikan validasi jika input kosong
-        if (!tanggalLahirInput.value || !kelasSelect.value) {
-            // Hapus semua class validasi dan pesan error
-            tanggalLahirInput.classList.remove('is-invalid', 'is-valid');
-            tanggalLahirInput.style.borderColor = ''; // Reset border color
-            const existingError = document.getElementById('TanggalLahirSantriError');
-            // if (existingError) {
-            // existingError.remove();
-            // }
-            return true;
+        if (!tanggalLahirInput) return true;
+
+        // Bersihkan pesan error custom jika ada
+        const existingCustomError = document.getElementById('TanggalLahirCustomError');
+        if (existingCustomError) {
+            existingCustomError.remove();
         }
 
-        const selectedKelasId = parseInt(kelasSelect.value);
+        // Hapus juga alert lama jika ada
+        const oldAlert = document.getElementById('TanggalLahirSantriInfo');
+        if (oldAlert) {
+            oldAlert.remove();
+        }
+
+        // Jika input tanggal kosong
+        if (!tanggalLahirInput.value) {
+            tanggalLahirInput.classList.remove('is-valid');
+            return false;
+        }
+
         const tanggalLahir = new Date(tanggalLahirInput.value);
         const today = new Date();
-        const umur = today.getFullYear() - tanggalLahir.getFullYear();
+        today.setHours(0, 0, 0, 0);
 
-        // Hapus pesan error yang ada
-        const existingError = document.getElementById('TanggalLahirSantriError');
-        if (existingError) {
-            existingError.remove();
-        }
-
-        // Validasi berdasarkan kelas
-        let isValid = true;
-        let errorMessage = '';
-
-        // Fungsi helper untuk format pesan error
-        const formatErrorMessage = (kelasName, minAge, maxAge) => {
-            return `Untuk kelas ${kelasName} yang dipilih, usia kisaran antara ${minAge}-${maxAge} tahun (lahir tahun ${today.getFullYear()-maxAge} sampai ${today.getFullYear()-minAge})`;
-        };
-
-        let kelasSd = "";
-        // Validasi berdasarkan ID kelas
-        switch (selectedKelasId) {
-            case 1: // TK
-            case 2: // TKA
-            case 3: // TKB
-                if (umur < 3 || umur > 7) {
-                    isValid = false;
-                    errorMessage = formatErrorMessage('TK/TKA/TKB', 3, 7);
-                }
-                break;
-
-            case 4: // TPQ1/SD1
-                if (selectedKelasId == 4) {
-                    kelasSd = "TPQ1/SD1";
-                }
-            case 5: // TPQ2/SD2
-                if (selectedKelasId == 5) {
-                    kelasSd = "TPQ2/SD2";
-                }
-            case 6: // TPQ3/SD3   
-                if (selectedKelasId == 6) {
-                    kelasSd = "TPQ3/SD3";
-                }
-            case 7: // TPQ4/SD4   
-                if (selectedKelasId == 7) {
-                    kelasSd = "TPQ4/SD4";
-                }
-            case 8: // TPQ5/SD5
-                if (selectedKelasId == 8) {
-                    kelasSd = "TPQ5/SD5";
-                }
-            case 9: // TPQ6/SD6
-                if (selectedKelasId == 9) {
-                    kelasSd = "TPQ6/SD6";
-                }
-                if (umur < 6 || umur > 12) {
-                    isValid = false;
-                    errorMessage = formatErrorMessage(kelasSd, 6, 12);
-                }
-                break;
-
-            default:
-                isValid = false;
-                errorMessage = 'Silakan pilih kelas terlebih dahulu';
-        }
-
-        if (!isValid) {
-            // Tambahkan class is-invalid dan atur border merah
+        // Validasi: Tanggal lahir tidak boleh di masa depan (melebihi hari ini)
+        if (tanggalLahir > today) {
             tanggalLahirInput.classList.add('is-invalid');
             tanggalLahirInput.classList.remove('is-valid');
             tanggalLahirInput.style.borderColor = '#dc3545';
 
-            // Tampilkan pesan error
             const errorDiv = document.createElement('div');
-            errorDiv.id = 'TanggalLahirSantriError';
-            errorDiv.className = 'alert alert-danger mt-2 small';
-            errorDiv.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${errorMessage}`;
+            errorDiv.id = 'TanggalLahirCustomError';
+            errorDiv.className = 'alert alert-danger mt-2 small p-2';
+            errorDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> Tanggal lahir tidak boleh melebihi tanggal hari ini.';
             tanggalLahirInput.parentElement.appendChild(errorDiv);
-        } else {
-            // Jika valid, tambahkan class is-valid dan atur border hijau
-            tanggalLahirInput.classList.remove('is-invalid');
-            tanggalLahirInput.classList.add('is-valid');
-            tanggalLahirInput.style.borderColor = '#28a745';
-
-            // Hapus pesan error jika ada
-            const errorDiv = document.getElementById('TanggalLahirSantriError');
-            if (errorDiv) {
-                errorDiv.remove();
-            }
+            return false;
         }
 
-        return isValid;
-    }
+        // Sembunyikan error required bawaan jika ada
+        const requiredError = document.getElementById('TanggalLahirSantriError');
+        if (requiredError) {
+            requiredError.style.display = 'none';
+        }
+
+        // Tanggal lahir valid
+        tanggalLahirInput.classList.remove('is-invalid');
+        tanggalLahirInput.classList.add('is-valid');
+        tanggalLahirInput.style.borderColor = '#28a745';
+
+        return true;
+    };
 
     document.addEventListener('DOMContentLoaded', function() {
-        const kelasSelect = document.getElementById('IdKelas');
         const tanggalLahirInput = document.getElementById('TanggalLahirSantri');
 
-        // Tambahkan event listener untuk perubahan tanggal lahir
-        tanggalLahirInput.addEventListener('change', validateTanggalLahir);
-        // Tambahkan event listener untuk perubahan kelas
-        kelasSelect.addEventListener('change', validateTanggalLahir);
+        if (tanggalLahirInput) {
+            tanggalLahirInput.addEventListener('change', window.validateTanggalLahir);
+            tanggalLahirInput.addEventListener('input', window.validateTanggalLahir);
 
-        // Jalankan validasi awal jika kedua field sudah memiliki nilai
-        if (tanggalLahirInput.value && kelasSelect.value) {
-            validateTanggalLahir();
+            // Jalankan validasi awal jika tanggal lahir sudah memiliki nilai
+            if (tanggalLahirInput.value) {
+                window.validateTanggalLahir();
+            }
         }
     });
     /* ===== End Region: Validasi Tanggal Lahir Santri ===== */
