@@ -4373,11 +4373,12 @@ class Munaqosah extends BaseController
         // Untuk getPesertaWithRelations, kita perlu query manual jika multiple
         if (!empty($filterTpqFinalArray) || !empty($normalizedTahunAjaranArray) || $filterKelurahanDesa || $isAllTahunAjaran) {
             $builder = $this->db->table('tbl_munaqosah_peserta pm');
-            $builder->select('s.*, t.*, k.NamaKelas, k.IdKelas, pm.*');
+            $builder->select('s.*, t.*, k.NamaKelas, COALESCE(ks.IdKelas, ks_aktif.IdKelas) as IdKelas, pm.*');
             $builder->join('tbl_santri_baru s', 's.IdSantri = pm.IdSantri', 'left');
             $builder->join('tbl_tpq t', 't.IdTpq = pm.IdTpq', 'left');
-            $builder->join('tbl_kelas_santri ks', 'ks.IdSantri = s.IdSantri AND ks.IdTahunAjaran = pm.IdTahunAjaran AND ks.Status = 1', 'left');
-            $builder->join('tbl_kelas k', 'k.IdKelas = ks.IdKelas', 'left');
+            $builder->join('tbl_kelas_santri ks', 'ks.IdSantri = pm.IdSantri AND ks.IdTahunAjaran = pm.IdTahunAjaran', 'left');
+            $builder->join('tbl_kelas_santri ks_aktif', 'ks_aktif.IdSantri = pm.IdSantri AND ks_aktif.Status = 1', 'left');
+            $builder->join('tbl_kelas k', 'k.IdKelas = COALESCE(ks.IdKelas, ks_aktif.IdKelas)', 'left');
 
             // Filter multiple TPQ
             if (!empty($filterTpqFinalArray)) {
@@ -6784,7 +6785,9 @@ class Munaqosah extends BaseController
             // Note: HasKey diambil dari tbl_munaqosah_peserta (mp) melalui mp.*
             $builder->join('tbl_santri_baru s', 's.IdSantri = mp.IdSantri', 'left');
             $builder->join('tbl_tpq t', 't.IdTpq = mp.IdTpq', 'left');
-            $builder->join('tbl_kelas k', 'k.IdKelas = s.IdKelas', 'left');
+            $builder->join('tbl_kelas_santri ks', 'ks.IdSantri = mp.IdSantri AND ks.IdTahunAjaran = mp.IdTahunAjaran', 'left');
+            $builder->join('tbl_kelas_santri ks_aktif', 'ks_aktif.IdSantri = mp.IdSantri AND ks_aktif.Status = 1', 'left');
+            $builder->join('tbl_kelas k', 'k.IdKelas = COALESCE(ks.IdKelas, ks_aktif.IdKelas)', 'left');
             // Join untuk data munaqosah
             $builder->join('tbl_munaqosah_registrasi_uji mn_munaqosah', 'mn_munaqosah.IdSantri = mp.IdSantri AND mn_munaqosah.IdTahunAjaran = mp.IdTahunAjaran AND mn_munaqosah.TypeUjian = "munaqosah"', 'left');
             // Join untuk data pra-munaqosah
@@ -6798,7 +6801,7 @@ class Munaqosah extends BaseController
             
             // Filter Kelas
             if ($filterKelas != 0) {
-                $builder->where('s.IdKelas', $filterKelas);
+                $builder->where('COALESCE(ks.IdKelas, ks_aktif.IdKelas)', $filterKelas);
             }
 
             // Group by untuk menghindari duplikasi
@@ -6962,7 +6965,9 @@ class Munaqosah extends BaseController
                             mn.NoPeserta, mn.TypeUjian');
             $builder->join('tbl_santri_baru s', 's.IdSantri = mp.IdSantri', 'left');
             $builder->join('tbl_tpq t', 't.IdTpq = mp.IdTpq', 'left');
-            $builder->join('tbl_kelas k', 'k.IdKelas = s.IdKelas', 'left');
+            $builder->join('tbl_kelas_santri ks', 'ks.IdSantri = mp.IdSantri AND ks.IdTahunAjaran = mp.IdTahunAjaran', 'left');
+            $builder->join('tbl_kelas_santri ks_aktif', 'ks_aktif.IdSantri = mp.IdSantri AND ks_aktif.Status = 1', 'left');
+            $builder->join('tbl_kelas k', 'k.IdKelas = COALESCE(ks.IdKelas, ks_aktif.IdKelas)', 'left');
             $builder->join('tbl_munaqosah_registrasi_uji mn', 'mn.IdSantri = mp.IdSantri AND mn.IdTahunAjaran = mp.IdTahunAjaran AND mn.TypeUjian = "' . $typeUjian . '"', 'left');
             $builder->where('mp.IdTpq', $idTpq);
             $builder->where('mp.IdTahunAjaran', $tahunAjaran);
@@ -7855,8 +7860,9 @@ class Munaqosah extends BaseController
         }
 
         try {
-            // Ambil data santri dari SantriBaruModel
-            $santriData = $this->santriBaruModel->getDetailSantri($idSantri);
+            $tahunAjaran = $this->helpFunction->getTahunAjaranSaatIni();
+            // Ambil data santri dari SantriBaruModel dengan relasi tbl_kelas_santri sesuai tahun ajaran
+            $santriData = $this->santriBaruModel->getDetailSantriById($idSantri, $tahunAjaran) ?: $this->santriBaruModel->getDetailSantri($idSantri);
             
             if (!$santriData) {
                 return $this->response->setJSON([
@@ -7866,7 +7872,6 @@ class Munaqosah extends BaseController
             }
 
             // Ambil data verifikasi peserta munaqosah jika ada
-            $tahunAjaran = $this->helpFunction->getTahunAjaranSaatIni();
             $pesertaData = $this->pesertaMunaqosahModel
                 ->where('IdSantri', $idSantri)
                 ->where('IdTahunAjaran', $tahunAjaran)
@@ -7970,7 +7975,9 @@ class Munaqosah extends BaseController
                             mn.NoPeserta, mn.TypeUjian');
             $builder->join('tbl_santri_baru s', 's.IdSantri = mp.IdSantri', 'left');
             $builder->join('tbl_tpq t', 't.IdTpq = mp.IdTpq', 'left');
-            $builder->join('tbl_kelas k', 'k.IdKelas = s.IdKelas', 'left');
+            $builder->join('tbl_kelas_santri ks', 'ks.IdSantri = mp.IdSantri AND ks.IdTahunAjaran = mp.IdTahunAjaran', 'left');
+            $builder->join('tbl_kelas_santri ks_aktif', 'ks_aktif.IdSantri = mp.IdSantri AND ks_aktif.Status = 1', 'left');
+            $builder->join('tbl_kelas k', 'k.IdKelas = COALESCE(ks.IdKelas, ks_aktif.IdKelas)', 'left');
             $builder->join('tbl_munaqosah_registrasi_uji mn', 'mn.IdSantri = mp.IdSantri AND mn.IdTahunAjaran = mp.IdTahunAjaran AND mn.TypeUjian = "' . $typeUjian . '"', 'left');
             $builder->whereIn('mp.IdSantri', $santriIds);
             $builder->where('mp.IdTahunAjaran', $tahunAjaran);
@@ -7983,7 +7990,7 @@ class Munaqosah extends BaseController
 
             // Filter Kelas
             if ($filterKelas != 0) {
-                $builder->where('s.IdKelas', $filterKelas);
+                $builder->where('COALESCE(ks.IdKelas, ks_aktif.IdKelas)', $filterKelas);
             }
 
             $builder->groupBy('mp.IdSantri');

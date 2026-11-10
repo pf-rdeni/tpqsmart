@@ -50,18 +50,19 @@ class MunaqosahPesertaModel extends Model
     public function getPesertaWithRelations($idTpq = null, $idKelas = null, $idTahunAjaran = null)
     {
         $builder = $this->db->table($this->table . ' pm');
-        $builder->select('s.*, t.*, k.NamaKelas, k.IdKelas, pm.*');
+        $builder->select('s.*, t.*, k.NamaKelas, COALESCE(ks.IdKelas, ks_aktif.IdKelas) as IdKelas, pm.*');
         $builder->join('tbl_santri_baru s', 's.IdSantri = pm.IdSantri', 'left');
         $builder->join('tbl_tpq t', 't.IdTpq = pm.IdTpq', 'left');
-        $builder->join('tbl_kelas_santri ks', 'ks.IdSantri = s.IdSantri AND ks.IdTahunAjaran = pm.IdTahunAjaran AND ks.Status = 1', 'left');
-        $builder->join('tbl_kelas k', 'k.IdKelas = ks.IdKelas', 'left');
+        $builder->join('tbl_kelas_santri ks', 'ks.IdSantri = pm.IdSantri AND ks.IdTahunAjaran = pm.IdTahunAjaran', 'left');
+        $builder->join('tbl_kelas_santri ks_aktif', 'ks_aktif.IdSantri = pm.IdSantri AND ks_aktif.Status = 1', 'left');
+        $builder->join('tbl_kelas k', 'k.IdKelas = COALESCE(ks.IdKelas, ks_aktif.IdKelas)', 'left');
 
         if ($idTpq) {
             $builder->where('pm.IdTpq', $idTpq);
         }
 
         if ($idKelas) {
-            $builder->where('ks.IdKelas', $idKelas);
+            $builder->where('COALESCE(ks.IdKelas, ks_aktif.IdKelas)', $idKelas);
         }
 
         if ($idTahunAjaran) {
