@@ -379,7 +379,25 @@ class Kelas extends BaseController
     {
         // ambil IdTpq dari session
         $IdTpq = session()->get('IdTpq');
-        $IdTpqForQuery = (!empty($IdTpq) && $IdTpq != 0) ? $IdTpq : null;
+        
+        if (!empty($IdTpq) && $IdTpq != 0) {
+            // Lembaga: Terkunci hanya TPQ miliknya sendiri
+            $IdTpqForQuery = $IdTpq;
+        } else {
+            // Admin: Cek parameter tpq dari query string (bisa single atau multiple)
+            $tpqParam = $this->request->getGet('tpq');
+            if (!empty($tpqParam)) {
+                if (is_array($tpqParam)) {
+                    $IdTpqForQuery = $tpqParam;
+                } elseif (strpos($tpqParam, ',') !== false) {
+                    $IdTpqForQuery = explode(',', $tpqParam);
+                } else {
+                    $IdTpqForQuery = $tpqParam;
+                }
+            } else {
+                $IdTpqForQuery = null; // Semua TPQ
+            }
+        }
 
         $santriList = $this->kelasModel->getSantriWithNamaByTahunAjaranDanKelas($idTahunAjaran, $idKelas, $IdTpqForQuery);
 
@@ -1755,6 +1773,595 @@ class Kelas extends BaseController
             return $this->response->setJSON([
                 'success' => false,
                 'message' => 'Gagal melakukan update: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    // =========================================================================
+    // KENAIKAN KELAS MANUAL
+    // =========================================================================
+
+    /**
+     * Menampilkan halaman Kenaikan Kelas Manual.
+     * Admin memilih TA sumber, kelas sumber, lalu memilih santri satu per satu.
+     */
+    public function showNaikKelasManual()
+    {
+        $IdTpq = session()->get('IdTpq');
+        $isAdmin = (empty($IdTpq) || $IdTpq == 0);
+
+        // Ambil data TPQ (semua untuk admin, atau hanya TPQ session jika login lembaga)
+        if ($isAdmin) {
+            $dataTpq = $this->helpFunction->getDataTpq();
+        } else {
+            $dataTpq = $this->helpFunction->getDataTpq($IdTpq);
+        }
+
+        // Ambil list tahun ajaran dari DB
+        $db = \Config\Database::connect();
+        $yearsFromDb = $db->table('tbl_kelas_santri')
+                          ->select('IdTahunAjaran')
+                          ->distinct()
+                          ->orderBy('IdTahunAjaran', 'DESC')
+                          ->get()
+                          ->getResultArray();
+        $tahunAjaranList = array_column($yearsFromDb, 'IdTahunAjaran');
+
+        // Pastikan tahun ajaran saat ini dan berikutnya selalu ada
+        $tahunAjaranSaatIni    = $this->helpFunction->getTahunAjaranSaatIni();
+        $tahunAjaranBerikutnya = $this->helpFunction->getTahuanAjaranBerikutnya($tahunAjaranSaatIni);
+        if (!in_array($tahunAjaranSaatIni, $tahunAjaranList)) {
+            $tahunAjaranList[] = $tahunAjaranSaatIni;
+        }
+        if (!in_array($tahunAjaranBerikutnya, $tahunAjaranList)) {
+            $tahunAjaranList[] = $tahunAjaranBerikutnya;
+        }
+        rsort($tahunAjaranList);
+
+        // Ambil semua kelas (untuk dropdown sumber & tujuan)
+        $allClasses = $this->helpFunction->getDataKelas();
+
+        // Baca query param untuk auto-load setelah redirect sukses
+        $selectedTahunAjaran       = $this->request->getGet('ta')        ?? '';
+        $selectedTahunAjaranTarget = $this->request->getGet('ta_target') ?? '';
+        $selectedKelas             = $this->request->getGet('kelas')     ?? '';
+
+        $data = [
+            'page_title'                => 'Kenaikan / Perubahan Kelas Manual',
+            'tahunAjaranList'           => $tahunAjaranList,
+            'allClasses'                => $allClasses,
+            'dataTpq'                   => $dataTpq,
+            'isAdmin'                   => $isAdmin,
+            'selectedTahunAjaran'       => $selectedTahunAjaran,
+            'selectedTahunAjaranTarget' => $selectedTahunAjaranTarget,
+            'selectedKelas'             => $selectedKelas,
+            'idTpqSession'              => $IdTpq,
+        ];
+
+        return view('backend/kelas/naikKelasManual', $data);
+    }
+
+    /**
+     * Memproses kenaikan / penyesuaian kelas manual berdasarkan payload JSON dari frontend.
+     * Menerima: idTahunAjaran, idTahunAjaranTarget (bisa sama atau beda), idKelas (sumber), santriList [{IdSantri, IdKelasTujuan}]
+     * Mendukung:
+     * 1. Tahun Ajaran yang SAMA tapi kelas BERBEDA (Koreksi / Pindah Kelas di TA sama)
+     * 2. Tahun Ajaran BERBEDA (Kenaikan Kelas Baru ke TA berikutnya)
+     */
+    public function prosesNaikKelasManual()
+    {
+        $IdTpq = session()->get('IdTpq');
+
+        try {
+            $json = $this->request->getJSON();
+
+            $idTahunAjaranSumber = $json->idTahunAjaran       ?? null;
+            $idTahunAjaranTarget = $json->idTahunAjaranTarget ?? null;
+            $idKelasSumber       = $json->idKelas             ?? null;
+            $santriList          = $json->santriList          ?? [];
+
+            // Validasi input dasar
+            if (empty($idTahunAjaranSumber) || empty($idKelasSumber) || empty($santriList)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Data tidak lengkap. Pastikan tahun ajaran, kelas, dan minimal 1 santri dipilih.'
+                ]);
+            }
+
+            // Jika idTahunAjaranTarget tidak dikirim, fallback ke tahun ajaran berikutnya
+            if (empty($idTahunAjaranTarget)) {
+                $idTahunAjaranTarget = $this->helpFunction->getTahuanAjaranBerikutnya($idTahunAjaranSumber);
+            }
+
+            $isSameAcademicYear = ($idTahunAjaranTarget === $idTahunAjaranSumber);
+            $db = \Config\Database::connect();
+
+            $totalDitimpa  = 0;
+            $totalBerhasil = 0;
+            $totalLulus    = 0;
+            $errors        = [];
+
+            foreach ($santriList as $item) {
+                $idSantri    = $item->IdSantri      ?? null;
+                $idKelasBaru = $item->IdKelasTujuan ?? null;
+
+                if (empty($idSantri) || empty($idKelasBaru)) {
+                    $errors[] = "Data santri tidak valid (IdSantri={$idSantri})";
+                    continue;
+                }
+
+                // Ambil data santri dari tbl_santri_baru
+                $santriData = $db->table('tbl_santri_baru')
+                    ->where('IdSantri', $idSantri)
+                    ->get()->getRowArray();
+
+                if (!$santriData) {
+                    $errors[] = "Santri ID {$idSantri} tidak ditemukan.";
+                    continue;
+                }
+
+                $idTpqSantri = $santriData['IdTpq'];
+
+                // =============================================================
+                // KASUS KHUSUS: KELULUSAN SANTRI (IdKelas = 10 / ALUMNI)
+                // Berdasarkan kesepakatan Opsi B:
+                // Santri dinonaktifkan (Active = 2, IdKelas = 10), kelas lama
+                // di-set Status = 0, dan TIDAK membuat record baru di TA target.
+                // =============================================================
+                if ($idKelasBaru == 10) {
+                    // 1. Update status santri menjadi Alumni / Nonaktif
+                    $db->table('tbl_santri_baru')
+                        ->where('IdSantri', $idSantri)
+                        ->update([
+                            'IdKelas' => 10,
+                            'Active'  => 2 // 2 = Nonaktif / Alumni
+                        ]);
+
+                    // 2. Nonaktifkan record kelas di TA Sumber
+                    $db->table('tbl_kelas_santri')
+                        ->where('IdSantri', $idSantri)
+                        ->where('IdTahunAjaran', $idTahunAjaranSumber)
+                        ->update(['Status' => 0]);
+
+                    // 3. Bersihkan data di TA Target jika ada data nyangkut
+                    if (!empty($idTahunAjaranTarget) && $idTahunAjaranTarget !== $idTahunAjaranSumber) {
+                        $db->table('tbl_nilai')
+                            ->where('IdSantri', $idSantri)
+                            ->where('IdTahunAjaran', $idTahunAjaranTarget)
+                            ->where('IdTpq', $idTpqSantri)
+                            ->delete();
+
+                        $db->table('tbl_kelas_santri')
+                            ->where('IdSantri', $idSantri)
+                            ->where('IdTahunAjaran', $idTahunAjaranTarget)
+                            ->where('IdTpq', $idTpqSantri)
+                            ->delete();
+                    }
+
+                    // Nilai historis kelas 6 di TA sumber tetap tersimpan utuh.
+                    // Tidak membuat row kelas_santri baru atau nilai baru.
+                    $totalLulus++;
+                    $totalBerhasil++;
+                    continue;
+                }
+
+                // =============================================================
+                // KASUS REGULER: SANTRI AKTIF (IdKelas 1 s/d 9)
+                // =============================================================
+
+                // 1. Selalu pastikan Active = 1 dan update IdKelas
+                $db->table('tbl_santri_baru')
+                    ->where('IdSantri', $idSantri)
+                    ->update([
+                        'IdKelas' => $idKelasBaru,
+                        'Active'  => 1
+                    ]);
+
+                if ($isSameAcademicYear) {
+                    // =========================================================
+                    // KASUS A: TAHUN AJARAN SAMA (Koreksi / Pindah Kelas di TA Sama)
+                    // =========================================================
+
+                    // Periksa record di tbl_kelas_santri pada TA ini
+                    $existingRows = $db->table('tbl_kelas_santri')
+                        ->where('IdSantri', $idSantri)
+                        ->where('IdTahunAjaran', $idTahunAjaranSumber)
+                        ->orderBy('Id', 'ASC')
+                        ->get()->getResultArray();
+
+                    if (!empty($existingRows)) {
+                        // Update record pertama ke kelas baru dan aktifkan (Status = 1)
+                        $firstRow = $existingRows[0];
+                        $db->table('tbl_kelas_santri')
+                            ->where('Id', $firstRow['Id'])
+                            ->update([
+                                'IdKelas' => $idKelasBaru,
+                                'IdTpq'   => $idTpqSantri,
+                                'Status'  => 1
+                            ]);
+
+                        // Hapus duplikat lainnya di TA ini jika ada
+                        if (count($existingRows) > 1) {
+                            $dupIds = array_column(array_slice($existingRows, 1), 'Id');
+                            $db->table('tbl_kelas_santri')
+                                ->whereIn('Id', $dupIds)
+                                ->delete();
+                        }
+                    } else {
+                        // Belum ada record di tbl_kelas_santri, insert baru
+                        $db->table('tbl_kelas_santri')->insert([
+                            'IdKelas'       => $idKelasBaru,
+                            'IdTpq'         => $idTpqSantri,
+                            'IdSantri'      => $idSantri,
+                            'IdTahunAjaran' => $idTahunAjaranSumber,
+                            'Status'        => 1
+                        ]);
+                    }
+
+                    // Hapus nilai materi kelas lama pada TA ini agar bersih
+                    $db->table('tbl_nilai')
+                        ->where('IdSantri', $idSantri)
+                        ->where('IdTahunAjaran', $idTahunAjaranSumber)
+                        ->where('IdTpq', $idTpqSantri)
+                        ->where('IdKelas', $idKelasSumber)
+                        ->delete();
+
+                    // Generate nilai materi baru untuk kelas baru di TA ini
+                    $listMateri = $this->helpFunction->getKelasMateriPelajaran($idKelasBaru, $idTpqSantri);
+                    foreach ($listMateri as $materi) {
+                        if ($materi->SemesterGanjil == 1) {
+                            $existsGanjil = $db->table('tbl_nilai')
+                                ->where('IdSantri', $idSantri)
+                                ->where('IdTahunAjaran', $idTahunAjaranSumber)
+                                ->where('IdTpq', $idTpqSantri)
+                                ->where('IdKelas', $materi->IdKelas)
+                                ->where('IdMateri', $materi->IdMateri)
+                                ->where('Semester', 'Ganjil')
+                                ->countAllResults();
+
+                            if ($existsGanjil == 0) {
+                                $db->table('tbl_nilai')->insert([
+                                    'IdTpq'         => $idTpqSantri,
+                                    'IdSantri'      => $idSantri,
+                                    'IdKelas'       => $materi->IdKelas,
+                                    'IdMateri'      => $materi->IdMateri,
+                                    'IdTahunAjaran' => $idTahunAjaranSumber,
+                                    'Semester'      => 'Ganjil',
+                                ]);
+                            }
+                        }
+
+                        if ($materi->SemesterGenap == 1) {
+                            $existsGenap = $db->table('tbl_nilai')
+                                ->where('IdSantri', $idSantri)
+                                ->where('IdTahunAjaran', $idTahunAjaranSumber)
+                                ->where('IdTpq', $idTpqSantri)
+                                ->where('IdKelas', $materi->IdKelas)
+                                ->where('IdMateri', $materi->IdMateri)
+                                ->where('Semester', 'Genap')
+                                ->countAllResults();
+
+                            if ($existsGenap == 0) {
+                                $db->table('tbl_nilai')->insert([
+                                    'IdTpq'         => $idTpqSantri,
+                                    'IdSantri'      => $idSantri,
+                                    'IdKelas'       => $materi->IdKelas,
+                                    'IdMateri'      => $materi->IdMateri,
+                                    'IdTahunAjaran' => $idTahunAjaranSumber,
+                                    'Semester'      => 'Genap',
+                                ]);
+                            }
+                        }
+                    }
+
+                    $totalBerhasil++;
+
+                } else {
+                    // =========================================================
+                    // KASUS B: TAHUN AJARAN BERBEDA (Kenaikan Kelas ke TA Baru)
+                    // =========================================================
+
+                    // 1. Nonaktifkan status di kelas lama TA Sumber
+                    $db->table('tbl_kelas_santri')
+                        ->where('IdSantri', $idSantri)
+                        ->where('IdTahunAjaran', $idTahunAjaranSumber)
+                        ->where('IdKelas', $idKelasSumber)
+                        ->update(['Status' => 0]);
+
+                    // 2. Timpa jika sudah pernah ada record di TA Target
+                    $existingTarget = $db->table('tbl_kelas_santri')
+                        ->where('IdSantri', $idSantri)
+                        ->where('IdTahunAjaran', $idTahunAjaranTarget)
+                        ->where('IdTpq', $idTpqSantri)
+                        ->get()->getResultArray();
+
+                    if (!empty($existingTarget)) {
+                        $db->table('tbl_nilai')
+                            ->where('IdSantri', $idSantri)
+                            ->where('IdTahunAjaran', $idTahunAjaranTarget)
+                            ->where('IdTpq', $idTpqSantri)
+                            ->delete();
+
+                        $db->table('tbl_kelas_santri')
+                            ->where('IdSantri', $idSantri)
+                            ->where('IdTahunAjaran', $idTahunAjaranTarget)
+                            ->where('IdTpq', $idTpqSantri)
+                            ->delete();
+
+                        $totalDitimpa++;
+                    }
+
+                    // 3. Insert kelas baru di TA Target
+                    $db->table('tbl_kelas_santri')->insert([
+                        'IdKelas'       => $idKelasBaru,
+                        'IdTpq'         => $idTpqSantri,
+                        'IdSantri'      => $idSantri,
+                        'IdTahunAjaran' => $idTahunAjaranTarget,
+                        'Status'        => 1
+                    ]);
+
+                    // 4. Generate nilai materi baru di TA Target
+                    $listMateri = $this->helpFunction->getKelasMateriPelajaran($idKelasBaru, $idTpqSantri);
+                    $dataNilaiBaru = [];
+                    foreach ($listMateri as $materi) {
+                        if ($materi->SemesterGanjil == 1) {
+                            $dataNilaiBaru[] = [
+                                'IdTpq'         => $idTpqSantri,
+                                'IdSantri'      => $idSantri,
+                                'IdKelas'       => $materi->IdKelas,
+                                'IdMateri'      => $materi->IdMateri,
+                                'IdTahunAjaran' => $idTahunAjaranTarget,
+                                'Semester'      => 'Ganjil',
+                            ];
+                        }
+                        if ($materi->SemesterGenap == 1) {
+                            $dataNilaiBaru[] = [
+                                'IdTpq'         => $idTpqSantri,
+                                'IdSantri'      => $idSantri,
+                                'IdKelas'       => $materi->IdKelas,
+                                'IdMateri'      => $materi->IdMateri,
+                                'IdTahunAjaran' => $idTahunAjaranTarget,
+                                'Semester'      => 'Genap',
+                            ];
+                        }
+                    }
+                    if (!empty($dataNilaiBaru)) {
+                        $db->table('tbl_nilai')->insertBatch($dataNilaiBaru);
+                    }
+
+                    $totalBerhasil++;
+                }
+            }
+
+            $totalInput  = count($santriList);
+            $actionLabel = $isSameAcademicYear ? 'penyesuaian kelas' : 'kenaikan kelas';
+
+            if ($totalLulus > 0 && $totalLulus == $totalBerhasil) {
+                $message = "Berhasil memproses kelulusan {$totalLulus} santri menjadi Alumni (status non-aktif).";
+            } else {
+                $message = "Berhasil melakukan {$actionLabel} untuk {$totalBerhasil} dari {$totalInput} santri di TA " .
+                           $this->formatTahunAjaran($idTahunAjaranTarget) . ".";
+                if ($totalLulus > 0) {
+                    $message .= " ({$totalLulus} santri diluluskan menjadi Alumni).";
+                }
+            }
+
+            if ($totalDitimpa > 0) {
+                $message .= " ({$totalDitimpa} data ditimpa karena sudah ada di TA target.)";
+            }
+
+            log_message('info', "[NAIK/PINDAH KELAS MANUAL] {$message}");
+
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => $message,
+                'data'    => [
+                    'total_input'    => $totalInput,
+                    'total_berhasil' => $totalBerhasil,
+                    'total_lulus'    => $totalLulus,
+                    'total_ditimpa'  => $totalDitimpa,
+                    'is_same_ta'     => $isSameAcademicYear,
+                    'id_ta_target'   => $idTahunAjaranTarget,
+                    'errors'         => $errors,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', '[NAIK KELAS MANUAL] Error: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Terjadi kesalahan sistem: ' . $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Helper: format IdTahunAjaran (mis. "20252026") menjadi "2025/2026"
+     */
+    private function formatTahunAjaran(string $ta): string
+    {
+        if (strlen($ta) !== 8) return $ta;
+        return substr($ta, 0, 4) . '/' . substr($ta, 4, 4);
+    }
+
+    // =========================================================================
+    // SINKRONISASI OTOMATIS IDKELAS TBL_SANTRI_BARU ➔ TBL_KELAS_SANTRI
+    // =========================================================================
+
+    /**
+     * Cek santri yang IdKelas di data induk (tbl_santri_baru) belum sinkron
+     * dengan kelas aktif di riwayat akademik (tbl_kelas_santri)
+     */
+    public function checkSinkronisasiIdKelas()
+    {
+        $IdTpq = session()->get('IdTpq');
+        $isAdmin = (empty($IdTpq) || $IdTpq == 0);
+
+        try {
+            $db = \Config\Database::connect();
+            $json = $this->request->getJSON();
+            $idTahunAjaran = $json->idTahunAjaran ?? $this->helpFunction->getTahunAjaranSaatIni();
+            $filterTpq     = $json->tpq ?? null;
+
+            $builder = $db->table('tbl_santri_baru s');
+            $builder->select('
+                s.IdSantri, s.NamaSantri, s.IdTpq, s.IdKelas AS IdKelasInduk, s.Active,
+                ks.Id AS IdKelasSantri, ks.IdKelas AS IdKelasAktif, ks.IdTahunAjaran,
+                k1.NamaKelas AS NamaKelasInduk, k2.NamaKelas AS NamaKelasAktif,
+                t.NamaTpq
+            ');
+            $builder->join('tbl_tpq t', 't.IdTpq = s.IdTpq', 'left');
+            $builder->join('tbl_kelas k1', 'k1.IdKelas = s.IdKelas', 'left');
+            $builder->join('tbl_kelas_santri ks', 'ks.IdSantri = s.IdSantri AND ks.IdTahunAjaran = ' . $db->escape($idTahunAjaran) . ' AND ks.Status = 1', 'inner');
+            $builder->join('tbl_kelas k2', 'k2.IdKelas = ks.IdKelas', 'left');
+
+            // Santri aktif dan kelasnya berbeda antara induk vs riwayat akademik
+            $builder->where('s.Active', 1);
+            $builder->where('s.IdKelas != ks.IdKelas', null, false);
+            $builder->where('s.IdKelas IS NOT NULL', null, false);
+            $builder->where('ks.IdKelas IS NOT NULL', null, false);
+
+            if (!$isAdmin) {
+                $builder->where('s.IdTpq', $IdTpq);
+            } elseif (!empty($filterTpq)) {
+                if (is_array($filterTpq)) {
+                    $cleanIds = array_filter($filterTpq, fn($v) => !empty($v) && $v != 0);
+                    if (!empty($cleanIds)) {
+                        $builder->whereIn('s.IdTpq', $cleanIds);
+                    }
+                } elseif ($filterTpq != 0) {
+                    $builder->where('s.IdTpq', $filterTpq);
+                }
+            }
+
+            $builder->orderBy('t.NamaTpq', 'ASC')->orderBy('s.NamaSantri', 'ASC');
+            $result = $builder->get()->getResultArray();
+
+            return $this->response->setJSON([
+                'success'         => true,
+                'id_tahun_ajaran' => $idTahunAjaran,
+                'total'           => count($result),
+                'data'            => $result,
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', '[SINKRONISASI KELAS] Check Error: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat memeriksa data: ' . $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Proses persetujuan sinkronisasi: update tbl_santri_baru.IdKelas mengikuti tbl_kelas_santri.IdKelas
+     */
+    public function prosesSinkronisasiIdKelas()
+    {
+        try {
+            $db = \Config\Database::connect();
+            $json = $this->request->getJSON();
+            $santriItems   = $json->santri ?? [];
+            $idTahunAjaran = $json->idTahunAjaran ?? $this->helpFunction->getTahunAjaranSaatIni();
+
+            if (empty($santriItems) || !is_array($santriItems)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Tidak ada santri yang dipilih untuk disinkronkan.'
+                ]);
+            }
+
+            $syncedCount = 0;
+            $errors = [];
+
+            foreach ($santriItems as $item) {
+                $idSantri     = is_object($item) ? ($item->IdSantri ?? null) : ($item['IdSantri'] ?? null);
+                $idKelasAktif = is_object($item) ? ($item->IdKelasAktif ?? null) : ($item['IdKelasAktif'] ?? null);
+
+                if (empty($idSantri) || empty($idKelasAktif)) {
+                    continue;
+                }
+
+                $santri = $db->table('tbl_santri_baru')->where('IdSantri', $idSantri)->get()->getRowArray();
+                if (!$santri) {
+                    $errors[] = "Santri ID {$idSantri} tidak ditemukan.";
+                    continue;
+                }
+
+                $updateData = ['IdKelas' => $idKelasAktif];
+                if ($idKelasAktif == 10) {
+                    $updateData['Active'] = 2; // Jika kelas aktifnya Alumni, update Active = 2
+                } else {
+                    $updateData['Active'] = 1;
+                }
+
+                $db->table('tbl_santri_baru')->where('IdSantri', $idSantri)->update($updateData);
+
+                // Pastikan nilai materi di tbl_nilai tersedia untuk kelas aktif jika bukan alumni
+                if ($idKelasAktif != 10) {
+                    $listMateri = $this->helpFunction->getKelasMateriPelajaran($idKelasAktif, $santri['IdTpq']);
+                    foreach ($listMateri as $materi) {
+                        if ($materi->SemesterGanjil == 1) {
+                            $existsGanjil = $db->table('tbl_nilai')
+                                ->where('IdSantri', $idSantri)
+                                ->where('IdTahunAjaran', $idTahunAjaran)
+                                ->where('IdTpq', $santri['IdTpq'])
+                                ->where('IdKelas', $materi->IdKelas)
+                                ->where('IdMateri', $materi->IdMateri)
+                                ->where('Semester', 'Ganjil')
+                                ->countAllResults();
+
+                            if ($existsGanjil == 0) {
+                                $db->table('tbl_nilai')->insert([
+                                    'IdTpq'         => $santri['IdTpq'],
+                                    'IdSantri'      => $idSantri,
+                                    'IdKelas'       => $materi->IdKelas,
+                                    'IdMateri'      => $materi->IdMateri,
+                                    'IdTahunAjaran' => $idTahunAjaran,
+                                    'Semester'      => 'Ganjil',
+                                ]);
+                            }
+                        }
+
+                        if ($materi->SemesterGenap == 1) {
+                            $existsGenap = $db->table('tbl_nilai')
+                                ->where('IdSantri', $idSantri)
+                                ->where('IdTahunAjaran', $idTahunAjaran)
+                                ->where('IdTpq', $santri['IdTpq'])
+                                ->where('IdKelas', $materi->IdKelas)
+                                ->where('IdMateri', $materi->IdMateri)
+                                ->where('Semester', 'Genap')
+                                ->countAllResults();
+
+                            if ($existsGenap == 0) {
+                                $db->table('tbl_nilai')->insert([
+                                    'IdTpq'         => $santri['IdTpq'],
+                                    'IdSantri'      => $idSantri,
+                                    'IdKelas'       => $materi->IdKelas,
+                                    'IdMateri'      => $materi->IdMateri,
+                                    'IdTahunAjaran' => $idTahunAjaran,
+                                    'Semester'      => 'Genap',
+                                ]);
+                            }
+                        }
+                    }
+                }
+
+                $syncedCount++;
+            }
+
+            $message = "Berhasil menyinkronkan {$syncedCount} dari " . count($santriItems) . " santri.";
+            log_message('info', "[SINKRONISASI KELAS] {$message}");
+
+            return $this->response->setJSON([
+                'success'      => true,
+                'message'      => $message,
+                'synced_count' => $syncedCount,
+                'errors'       => $errors,
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', '[SINKRONISASI KELAS] Proses Error: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal melakukan sinkronisasi: ' . $e->getMessage(),
             ]);
         }
     }

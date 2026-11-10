@@ -272,8 +272,15 @@ class KelasModel extends Model
             ->where('ks.Status', 1)
             ->where('s.Active', 1);
 
-        if (!empty($IdTpq) && $IdTpq != 0) {
-            $builder->where('ks.IdTpq', $IdTpq);
+        if (!empty($IdTpq)) {
+            if (is_array($IdTpq)) {
+                $cleanIds = array_filter($IdTpq, fn($v) => !empty($v) && $v != 0);
+                if (!empty($cleanIds)) {
+                    $builder->whereIn('ks.IdTpq', $cleanIds);
+                }
+            } elseif ($IdTpq != 0) {
+                $builder->where('ks.IdTpq', $IdTpq);
+            }
         }
 
         $builder->orderBy('t.NamaTpq', 'ASC')

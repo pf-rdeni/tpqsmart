@@ -6,10 +6,10 @@
     <div class="card mb-3">
         <div class="card-body">
             <div class="row align-items-center">
-                <div class="col-md-6">
-                    <h5 class="mb-0"><i class="fas fa-filter text-purple"></i> Pilih Tahun Ajaran Asal untuk Proses Kenaikan</h5>
+                <div class="col-md-3">
+                    <h5 class="mb-0"><i class="fas fa-filter text-purple"></i> Pilih Tahun Ajaran Asal</h5>
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-5">
                     <select class="form-control" id="selectSourceTahunAjaran">
                         <?php foreach ($tahunAjaranList as $ta): ?>
                             <?php 
@@ -21,6 +21,15 @@
                             </option>
                         <?php endforeach; ?>
                     </select>
+                </div>
+                <div class="col-md-4 text-right">
+                    <button type="button" class="btn btn-outline-info btn-sm mr-1" id="btnSinkronisasiOtomatis" title="Periksa dan sinkronkan IdKelas santri mengikuti kelas aktif">
+                        <i class="fas fa-sync-alt mr-1"></i> Sinkronisasi IdKelas
+                    </button>
+                    <a href="<?= base_url('backend/kelas/showNaikKelasManual') ?>"
+                       class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-hand-pointer mr-1"></i> Kenaikan Manual
+                    </a>
                 </div>
             </div>
         </div>
@@ -543,6 +552,199 @@
                     });
             });
         });
+
+        /* ── Fitur Cek & Sinkronisasi IdKelas Otomatis ─────────── */
+        const btnSync = document.getElementById('btnSinkronisasiOtomatis');
+        if (btnSync) {
+            btnSync.addEventListener('click', function () {
+                const taVal = selectSourceTahunAjaran ? selectSourceTahunAjaran.value : null;
+
+                Swal.fire({
+                    title: 'Memeriksa Keselarasan Data...',
+                    text: 'Sedang memeriksa data santri yang kelasnya belum sinkron...',
+                    allowOutsideClick: false,
+                    didOpen: () => Swal.showLoading()
+                });
+
+                const checkBody = {
+                    idTahunAjaran: taVal,
+                    '<?= csrf_token() ?>': '<?= csrf_hash() ?>'
+                };
+
+                fetch('<?= base_url('backend/kelas/checkSinkronisasiIdKelas') ?>', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify(checkBody)
+                })
+                .then(r => r.json())
+                .then(res => {
+                    if (!res.success) {
+                        Swal.fire('Error', res.message || 'Gagal memeriksa data.', 'error');
+                        return;
+                    }
+
+                    if (res.total === 0) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Semua Data Sudah Sinkron!',
+                            html: `<p class="mb-0">Tidak ditemukan santri yang IdKelas di data induk (<code>tbl_santri_baru</code>) berbeda dengan kelas aktif di riwayat akademik (<code>tbl_kelas_santri</code>) pada TA <strong>${res.id_tahun_ajaran}</strong>.</p>`,
+                            confirmButtonText: 'Bagus'
+                        });
+                        return;
+                    }
+
+                    let rowsHtml = '';
+                    res.data.forEach((s, idx) => {
+                        const tpqCell = !idTpqSession || idTpqSession == 0 ? `<td>${s.NamaTpq || '—'}</td>` : '';
+                        rowsHtml += `
+                        <tr>
+                            <td class="text-center align-middle">
+                                <input type="checkbox" class="cb-sync" value="${s.IdSantri}" data-target-class="${s.IdKelasAktif}" checked>
+                            </td>
+                            <td class="text-center align-middle">${idx + 1}</td>
+                            <td class="align-middle font-weight-bold">${s.NamaSantri || 'Tanpa Nama'}</td>
+                            ${tpqCell}
+                            <td class="text-center align-middle">
+                                <span class="badge badge-secondary py-1 px-2">${s.NamaKelasInduk || 'Belum Ada'}</span>
+                            </td>
+                            <td class="text-center align-middle text-primary font-weight-bold">➔</td>
+                            <td class="text-center align-middle">
+                                <span class="badge badge-success py-1 px-2">${s.NamaKelasAktif || 'Belum Ada'}</span>
+                            </td>
+                        </tr>`;
+                    });
+
+                    const syncModalHtml = `
+                        <div class="text-left" style="font-size:0.88rem;">
+                            <p class="mb-2">Ditemukan <strong class="text-danger">${res.total} santri</strong> yang <code>IdKelas</code> di data induk (<strong>tbl_santri_baru</strong>) belum sama dengan kelas aktif di <strong>tbl_kelas_santri</strong> pada TA <strong>${res.id_tahun_ajaran}</strong>.</p>
+                            
+                            <div class="d-flex align-items-center mb-2">
+                                <small class="text-muted"><span id="syncSelectedCount">${res.total}</span> santri dipilih untuk disinkronkan</small>
+                            </div>
+
+                            <div style="max-height: 300px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 4px;">
+                                <table class="table table-sm table-bordered table-hover mb-0" style="font-size:0.82rem;">
+                                    <thead class="thead-light" style="position:sticky; top:0; z-index:1;">
+                                        <tr>
+                                            <th style="width:30px; text-align:center;">
+                                                <input type="checkbox" id="checkAllSync" checked>
+                                            </th>
+                                            <th style="width:35px; text-align:center;">No</th>
+                                            <th>Nama Santri</th>
+                                            ${!idTpqSession || idTpqSession == 0 ? '<th>TPQ</th>' : ''}
+                                            <th class="text-center">Data Induk (Lama)</th>
+                                            <th class="text-center" style="width:25px;">➔</th>
+                                            <th class="text-center">Kelas Aktif (Baru)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${rowsHtml}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="alert alert-info py-2 mt-2 mb-0" style="font-size:0.83rem;">
+                                <i class="fas fa-info-circle mr-1"></i>
+                                <strong>Persetujuan Sinkronisasi:</strong> Menyetujui akan memperbarui <code>tbl_santri_baru.IdKelas</code> agar sama persis mengikuti <code>tbl_kelas_santri.IdKelas</code> yang aktif.
+                            </div>
+                        </div>`;
+
+                    Swal.fire({
+                        title: 'Persetujuan Sinkronisasi IdKelas',
+                        html: syncModalHtml,
+                        width: '820px',
+                        showCancelButton: true,
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonColor: '#28a745',
+                        confirmButtonText: '<i class="fas fa-check-double mr-1"></i> Setuju & Sinkronkan Sekarang!',
+                        cancelButtonText: 'Batal',
+                        didOpen: () => {
+                            const modal = Swal.getHtmlContainer();
+                            const checkAllSyncEl = modal.querySelector('#checkAllSync');
+                            const countEl = modal.querySelector('#syncSelectedCount');
+                            const itemBoxes = modal.querySelectorAll('.cb-sync');
+
+                            function updateSyncCount() {
+                                const checked = modal.querySelectorAll('.cb-sync:checked').length;
+                                countEl.textContent = checked;
+                                checkAllSyncEl.checked = checked === itemBoxes.length && checked > 0;
+                                checkAllSyncEl.indeterminate = checked > 0 && checked < itemBoxes.length;
+                            }
+
+                            checkAllSyncEl.addEventListener('change', function () {
+                                itemBoxes.forEach(cb => cb.checked = checkAllSyncEl.checked);
+                                updateSyncCount();
+                            });
+
+                            itemBoxes.forEach(cb => cb.addEventListener('change', updateSyncCount));
+                        }
+                    }).then(confirmRes => {
+                        if (!confirmRes.isConfirmed) return;
+
+                        const checkedItems = [];
+                        document.querySelectorAll('.cb-sync:checked').forEach(cb => {
+                            checkedItems.push({
+                                IdSantri: cb.value,
+                                IdKelasAktif: cb.getAttribute('data-target-class')
+                            });
+                        });
+
+                        if (checkedItems.length === 0) {
+                            Swal.fire('Perhatian', 'Tidak ada santri yang dicentang untuk disinkronkan.', 'warning');
+                            return;
+                        }
+
+                        Swal.fire({
+                            title: 'Menyinkronkan Data...',
+                            text: 'Sedang memperbarui IdKelas santri...',
+                            allowOutsideClick: false,
+                            didOpen: () => Swal.showLoading()
+                        });
+
+                        const prosesBody = {
+                            santri: checkedItems,
+                            idTahunAjaran: res.id_tahun_ajaran,
+                            '<?= csrf_token() ?>': '<?= csrf_hash() ?>'
+                        };
+
+                        fetch('<?= base_url('backend/kelas/prosesSinkronisasiIdKelas') ?>', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
+                            body: JSON.stringify(prosesBody)
+                        })
+                        .then(r => r.json())
+                        .then(syncRes => {
+                            if (syncRes.success) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Sinkronisasi Berhasil!',
+                                    html: `<p>${syncRes.message}</p>`,
+                                    confirmButtonText: 'Selesai'
+                                }).then(() => {
+                                    window.location.reload();
+                                });
+                            } else {
+                                Swal.fire('Gagal', syncRes.message || 'Gagal memproses sinkronisasi.', 'error');
+                            }
+                        })
+                        .catch(err => {
+                            console.error(err);
+                            Swal.fire('Error', 'Terjadi kesalahan sistem saat sinkronisasi.', 'error');
+                        });
+                    });
+                })
+                .catch(err => {
+                    console.error(err);
+                    Swal.fire('Error', 'Gagal menghubungi server untuk pemeriksaan.', 'error');
+                });
+            });
+        }
     });
 </script>
 <?= $this->endSection(); ?>

@@ -172,6 +172,11 @@ $routes->post('backend/kelas/checkSantriAktifTanpaKelas', 'Backend\Kelas::checkS
 $routes->post('backend/kelas/updateSantriAktifTanpaKelas', 'Backend\Kelas::updateSantriAktifTanpaKelas');
 $routes->post('backend/kelas/checkSantriKelasTidakSesuai', 'Backend\Kelas::checkSantriKelasTidakSesuai');
 $routes->post('backend/kelas/updateSantriKelasTidakSesuai', 'Backend\Kelas::updateSantriKelasTidakSesuai');
+// Kenaikan Kelas Manual
+$routes->get('backend/kelas/showNaikKelasManual', 'Backend\Kelas::showNaikKelasManual');
+$routes->post('backend/kelas/prosesNaikKelasManual', 'Backend\Kelas::prosesNaikKelasManual');
+$routes->post('backend/kelas/checkSinkronisasiIdKelas', 'Backend\Kelas::checkSinkronisasiIdKelas');
+$routes->post('backend/kelas/prosesSinkronisasiIdKelas', 'Backend\Kelas::prosesSinkronisasiIdKelas');
 $routes->get('backend/santri/showSuccessEmisStep/(:segment)', 'Backend\Santri::showSuccessEmisStep/$1');
 $routes->get('backend/santri/statistikAbsensi', 'Backend\Santri::statistikAbsensi');
 $routes->get('backend/santri/getStatistikAbsensiAjax', 'Backend\Santri::getStatistikAbsensiAjax');
