@@ -600,7 +600,7 @@
                                         <td><?= $no++ ?></td>
                                         <td>
                                             <div class="dropdown">
-                                                <button type="button" class="btn btn-outline-info btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                <button type="button" class="btn btn-outline-info btn-sm dropdown-toggle" data-toggle="dropdown" data-boundary="viewport" aria-haspopup="true" aria-expanded="false">
                                                     <i class="fas fa-cog mr-1"></i> Aksi
                                                 </button>
                                                 <div class="dropdown-menu shadow">
@@ -739,7 +739,7 @@
                                         <td><?= $no++ ?></td>
                                         <td>
                                             <div class="dropdown">
-                                                <button type="button" class="btn btn-outline-success btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                <button type="button" class="btn btn-outline-success btn-sm dropdown-toggle" data-toggle="dropdown" data-boundary="viewport" aria-haspopup="true" aria-expanded="false">
                                                     <i class="fas fa-cog mr-1"></i> Aksi
                                                 </button>
                                                 <div class="dropdown-menu shadow">
@@ -895,7 +895,7 @@
                                         <td><?= $no++ ?></td>
                                         <td>
                                             <div class="dropdown">
-                                                <button type="button" class="btn btn-outline-secondary btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                <button type="button" class="btn btn-outline-secondary btn-sm dropdown-toggle" data-toggle="dropdown" data-boundary="viewport" aria-haspopup="true" aria-expanded="false">
                                                     <i class="fas fa-cog mr-1"></i> Aksi
                                                 </button>
                                                 <div class="dropdown-menu shadow">
@@ -1514,11 +1514,15 @@
     .table-responsive {
         overflow-y: visible !important;
     }
+    /* Pastikan container scroll DataTables memiliki tinggi minimum agar dropdown tidak terpotong saat baris sedikit */
+    .dataTables_scrollBody {
+        min-height: 180px;
+    }
     .table td .dropdown-menu {
-        z-index: 1060 !important;
+        z-index: 1065 !important;
         min-width: 195px;
         border-radius: 0.35rem;
-        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+        box-shadow: 0 0.5rem 1.25rem rgba(0, 0, 0, 0.2) !important;
     }
     .table td .dropdown-item {
         padding: 0.45rem 1rem;
@@ -2272,6 +2276,21 @@
 <script>
     $(document).ready(function() {
         console.log('Document ready - initializing...');
+
+        // Fix dropdown menu aksi agar melayang bebas di atas tabel dan tidak terpotong oleh overflow DataTables
+        $(document).on('show.bs.dropdown', '.dataTables_wrapper .dropdown, .table td .dropdown, .table-responsive .dropdown', function() {
+            var $scrollContainer = $(this).closest('.dataTables_scrollBody, .table-responsive');
+            if ($scrollContainer.length) {
+                $scrollContainer.css('overflow', 'visible');
+            }
+        });
+
+        $(document).on('hide.bs.dropdown hidden.bs.dropdown', '.dataTables_wrapper .dropdown, .table td .dropdown, .table-responsive .dropdown', function() {
+            var $scrollContainer = $(this).closest('.dataTables_scrollBody, .table-responsive');
+            if ($scrollContainer.length) {
+                $scrollContainer.css('overflow', 'auto');
+            }
+        });
 
         // Tentukan kolom untuk export berdasarkan apakah TPQ/Alamat disembunyikan
         var hideTpqColumn = <?= !empty($hideTpqColumn) ? 'true' : 'false' ?>;
