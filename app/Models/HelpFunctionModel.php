@@ -53,7 +53,7 @@ class HelpFunctionModel extends Model
                     tbl_tpq.NamaTpq AS NamaTpq, 
                     tbl_tpq.KelurahanDesa AS NamaKelDesa
                 ');
-                $builder->join('tbl_kelas_santri ks', 'ks.IdSantri = tbl_santri_baru.IdSantri AND ks.IdTahunAjaran = "' . $IdTahunAjaran . '"', 'left');
+                $builder->join('tbl_kelas_santri ks', 'ks.IdSantri = tbl_santri_baru.IdSantri AND ks.IdTahunAjaran = "' . $IdTahunAjaran . '" AND ks.Status = 1', 'left');
                 $builder->join('tbl_kelas', 'tbl_kelas.IdKelas = ks.IdKelas', 'left');
                 $builder->join('tbl_kelas k_pendaftaran', 'k_pendaftaran.IdKelas = tbl_santri_baru.IdKelas', 'left');
                 $builder->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq', 'left');
@@ -67,6 +67,9 @@ class HelpFunctionModel extends Model
                 // Filter Kelas - hanya jika IdKelas tidak 0 (bukan "semua")
                 if ($IdKelas != 0) {
                     $builder->where('ks.IdKelas', $IdKelas);
+                } else {
+                    // Jika semua kelas, pastikan hanya santri yang memiliki rombel/kelas aktif di tahun ajaran ini
+                    $builder->where('ks.IdKelas IS NOT NULL');
                 }
 
                 $builder->orderBy('ks.IdTpq', 'ASC');

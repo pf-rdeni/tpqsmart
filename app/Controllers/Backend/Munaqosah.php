@@ -5800,7 +5800,7 @@ class Munaqosah extends BaseController
 
     // ==================== API METHODS ====================
 
-    public function getSantriData($idKelas, $idTpq)
+    public function getSantriData($idKelas, $idTpq, $idTahunAjaranParam = null)
     {
         // Ambil IdTpq dari session jika user bukan admin
         $sessionIdTpq = session()->get('IdTpq');
@@ -5814,14 +5814,19 @@ class Munaqosah extends BaseController
         $filterTpq = ($idTpq == 0) ? 0 : $idTpq;
         $filterKelas = ($idKelas == 0) ? 0 : $idKelas;
 
-        // Ambil tahun ajaran saat ini
-        $tahunAjaran = $this->helpFunction->getTahunAjaranSaatIni();
+        // Ambil tahun ajaran dari parameter route atau query GET ?tahun_ajaran=...
+        $tahunAjaranInput = $idTahunAjaranParam ?? $this->request->getGet('tahun_ajaran');
+
+        // Jika tidak ada atau bernilai "all", gunakan tahun ajaran saat ini
+        if (empty($tahunAjaranInput) || $tahunAjaranInput === 'all') {
+            $tahunAjaranInput = $this->helpFunction->getTahunAjaranSaatIni();
+        }
 
         // Normalisasi tahun ajaran
-        $idTahunAjaran = $this->helpFunction->normalizeTahunAjaran($tahunAjaran);
+        $idTahunAjaran = $this->helpFunction->normalizeTahunAjaran($tahunAjaranInput);
 
-        // Ambil data santri
-        $santri = $this->helpFunction->getDataSantriStatus(1, $filterTpq, $filterKelas);
+        // Ambil data santri dengan IdTahunAjaran eksplisit (memfilter tbl_kelas_santri aktif)
+        $santri = $this->helpFunction->getDataSantriStatus(1, $filterTpq, $filterKelas, $idTahunAjaran);
 
         // Ambil semua IdSantri yang sudah terdaftar sebagai peserta munaqosah
         $pesertaTerdaftar = $this->pesertaMunaqosahModel

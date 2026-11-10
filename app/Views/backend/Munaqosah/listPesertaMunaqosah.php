@@ -3012,9 +3012,10 @@
         // Handle parameter 0 untuk "semua"
         var urlKelas = (idKelas == 0) ? 0 : idKelas;
         var urlTpq = (idTpq == 0) ? 0 : idTpq;
+        var tahunAjaran = $('#IdTahunAjaran').val() || '<?= $tahunAjaran ?>';
 
         $.ajax({
-            url: '<?= base_url('backend/munaqosah/getSantriData/') ?>' + urlKelas + '/' + urlTpq,
+            url: '<?= base_url('backend/munaqosah/getSantriData/') ?>' + urlKelas + '/' + urlTpq + '?tahun_ajaran=' + encodeURIComponent(tahunAjaran),
             type: 'GET',
             dataType: 'json',
             timeout: 30000, // 30 detik timeout
