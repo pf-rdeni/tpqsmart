@@ -375,7 +375,7 @@
                         const tpqKeys = Object.keys(grouped);
 
                         if (tpqKeys.length === 0) {
-                            studentTableHtml = `<tr><td colspan="2" class="text-center text-muted">Tidak ada santri aktif di kelas ini</td></tr>`;
+                            studentTableHtml = `<tr><td colspan="3" class="text-center text-muted">Tidak ada santri aktif di kelas ini</td></tr>`;
                         } else {
                             tpqKeys.forEach(tpqId => {
                                 const group = grouped[tpqId];
@@ -383,14 +383,14 @@
                                 // Render header group
                                 if (isAdmin) {
                                     studentTableHtml += `<tr class="bg-purple text-white tpq-group-header" data-tpq-id="${tpqId}" style="cursor: pointer;">` +
-                                                        `  <td colspan="2">` +
+                                                        `  <td colspan="3">` +
                                                         `    <i class="fas fa-chevron-right mr-2 toggle-icon-${tpqId}"></i>` +
                                                         `    <strong>${group.tpqName}</strong> (${group.students.length} anak) - <span style="font-size: 0.75rem; text-decoration: underline;">Klik untuk sesuaikan kelas individu</span>` +
                                                         `  </td>` +
                                                         `</tr>`;
                                 } else {
                                     studentTableHtml += `<tr class="bg-info text-white tpq-group-header" data-tpq-id="${tpqId}" style="cursor: pointer;">` +
-                                                        `  <td colspan="2">` +
+                                                        `  <td colspan="3">` +
                                                         `    <i class="fas fa-chevron-right mr-2 toggle-icon-${tpqId}"></i>` +
                                                         `    <strong>Klik di sini jika ingin menyesuaikan kelas per anak (${group.students.length} santri)</strong>` +
                                                         `  </td>` +
@@ -400,6 +400,7 @@
                                 // Render baris santri
                                 group.students.forEach(santri => {
                                     studentTableHtml += `<tr class="tpq-student-rows-${tpqId}" style="display: none;">` +
+                                                        `  <td class="text-center align-middle font-weight-bold text-muted">${santri.IdSantri}</td>` +
                                                         `  <td style="padding-left: 20px; vertical-align: middle;">${santri.NamaSantri || 'Tanpa Nama'}</td>` +
                                                         `  <td>` +
                                                         `    <select name="target_kelas_santri[${santri.IdSantri}]" class="form-control form-control-sm select-target-kelas-santri" style="width: 100%;">` +
@@ -439,6 +440,7 @@
                                         `  <table class="table table-sm table-bordered mb-0 text-left" style="font-size: 0.85rem; width: 100%;">` +
                                         `    <thead>` +
                                         `      <tr class="bg-light">` +
+                                        `        <th style="width: 90px; text-align: center;">Id Santri</th>` +
                                         `        <th>Nama Santri</th>` +
                                         `        <th style="width: 45%">Kelas Tujuan</th>` +
                                         `      </tr>` +
@@ -605,6 +607,7 @@
                                 <input type="checkbox" class="cb-sync" value="${s.IdSantri}" data-target-class="${s.IdKelasAktif}" checked>
                             </td>
                             <td class="text-center align-middle">${idx + 1}</td>
+                            <td class="text-center align-middle font-weight-bold text-muted">${s.IdSantri}</td>
                             <td class="align-middle font-weight-bold">${s.NamaSantri || 'Tanpa Nama'}</td>
                             ${tpqCell}
                             <td class="text-center align-middle">
@@ -633,6 +636,7 @@
                                                 <input type="checkbox" id="checkAllSync" checked>
                                             </th>
                                             <th style="width:35px; text-align:center;">No</th>
+                                            <th style="width:85px; text-align:center;">Id Santri</th>
                                             <th>Nama Santri</th>
                                             ${!idTpqSession || idTpqSession == 0 ? '<th>TPQ</th>' : ''}
                                             <th class="text-center">Data Induk (Lama)</th>

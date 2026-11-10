@@ -250,6 +250,7 @@
                                     <input type="checkbox" id="checkAll" title="Pilih / Batal semua">
                                 </th>
                                 <th style="width:40px;text-align:center;">No</th>
+                                <th style="width:100px;text-align:center;">Id Santri</th>
                                 <th>Nama Santri</th>
                                 <?php if ($isAdmin): ?>
                                     <th>TPQ / Lembaga</th>
@@ -487,6 +488,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     <input type="checkbox" class="cb" value="${s.IdSantri}" checked>
                 </td>
                 <td class="text-center align-middle">${i+1}</td>
+                <td class="text-center align-middle font-weight-bold text-muted">${esc(s.IdSantri)}</td>
                 <td class="align-middle font-weight-bold">${esc(s.NamaSantri || 'Tanpa Nama')}</td>
                 ${tpqCol}
                 <td>
@@ -857,6 +859,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             <input type="checkbox" class="cb-sync" value="${s.IdSantri}" data-target-class="${s.IdKelasAktif}" checked>
                         </td>
                         <td class="text-center align-middle">${idx + 1}</td>
+                        <td class="text-center align-middle font-weight-bold text-muted">${esc(s.IdSantri)}</td>
                         <td class="align-middle font-weight-bold">${esc(s.NamaSantri || 'Tanpa Nama')}</td>
                         ${tpqCell}
                         <td class="text-center align-middle">
@@ -885,6 +888,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                             <input type="checkbox" id="checkAllSync" checked>
                                         </th>
                                         <th style="width:35px; text-align:center;">No</th>
+                                        <th style="width:85px; text-align:center;">Id Santri</th>
                                         <th>Nama Santri</th>
                                         ${isAdmin ? '<th>TPQ</th>' : ''}
                                         <th class="text-center">Data Induk (Lama)</th>
