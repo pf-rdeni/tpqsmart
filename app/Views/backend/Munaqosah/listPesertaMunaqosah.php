@@ -3786,8 +3786,13 @@
         // Format tanggal untuk display
         const formatDateForDisplay = (dateStr) => {
             if (!dateStr) return '';
+            if (/^\d{2}-\d{2}-\d{4}$/.test(dateStr)) return dateStr;
+            const m = String(dateStr).match(/^(\d{4})-(\d{2})-(\d{2})/);
+            if (m) {
+                return `${m[3]}-${m[2]}-${m[1]}`;
+            }
             try {
-                const date = new Date(dateStr + 'T00:00:00');
+                const date = new Date(dateStr);
                 if (!isNaN(date.getTime())) {
                     const day = String(date.getDate()).padStart(2, '0');
                     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -3800,13 +3805,25 @@
             return dateStr;
         };
 
-        // Format tanggal untuk input date
+        // Format tanggal untuk input date (YYYY-MM-DD)
         const formatDateForInput = (dateStr) => {
             if (!dateStr) return '';
+            if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+            const m = String(dateStr).match(/^(\d{2})-(\d{2})-(\d{4})/);
+            if (m) {
+                return `${m[3]}-${m[2]}-${m[1]}`;
+            }
+            const m2 = String(dateStr).match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+            if (m2) {
+                return `${m2[3]}-${m2[2]}-${m2[1]}`;
+            }
             try {
-                const date = new Date(dateStr + 'T00:00:00');
+                const date = new Date(dateStr);
                 if (!isNaN(date.getTime())) {
-                    return dateStr; // Return as is if valid date
+                    const day = String(date.getDate()).padStart(2, '0');
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const year = date.getFullYear();
+                    return `${year}-${month}-${day}`;
                 }
             } catch (e) {
                 // Ignore error
@@ -3983,14 +4000,9 @@
             if (normalizedValue === '') {
                 // Input kosong - Toggle OFF (Tidak)
                 toggleInput.prop('checked', false);
-            } else if (normalizedValue === normalizedUsulan) {
-                // Input sama dengan usulan - Ya active
-                btnYes.addClass('active');
-                btnNo.removeClass('active');
             } else {
-                // Input berbeda dari usulan - tidak ada yang active (user edit manual)
-                btnYes.removeClass('active');
-                btnNo.removeClass('active');
+                // Input diisi (baik sama dengan usulan maupun diedit manual) - Toggle ON (Terima)
+                toggleInput.prop('checked', true);
             }
         });
 
@@ -4732,7 +4744,7 @@
 
                 if (response.success) {
                     // Cek apakah ada perubahan atau tidak
-                    if (response.no_changes) {
+                    if (response.no_changes && !response.verifikasi_confirmed) {
                         Swal.fire({
                             icon: 'info',
                             title: 'Tidak Ada Perubahan',

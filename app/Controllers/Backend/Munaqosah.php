@@ -11132,6 +11132,36 @@ class Munaqosah extends BaseController
             
             // Cek apakah ada perubahan
             if (empty($changes)) {
+                $idPeserta = $this->request->getPost('IdPeserta');
+                $statusVerifikasi = $this->request->getPost('StatusVerifikasi');
+
+                // Jika sedang dalam proses Review & Konfirmasi (status_verifikasi = perlu_perbaikan),
+                // maka walaupun data santri sama dengan sebelumnya (misal usulan tanggal lahir sama dengan data yang tersimpan),
+                // verifikasi tetap disetujui dan status diubah menjadi 'valid'.
+                if (!empty($idPeserta) && $statusVerifikasi === 'perlu_perbaikan') {
+                    $user = user();
+                    $confirmedBy = $user->username ?? $user->email ?? session()->get('username') ?? 'Unknown';
+
+                    $updateVerifikasiData = [
+                        'status_verifikasi' => 'valid',
+                        'confirmed_at' => date('Y-m-d H:i:s'),
+                        'confirmed_by' => $confirmedBy
+                    ];
+
+                    $this->pesertaMunaqosahModel->update($idPeserta, $updateVerifikasiData);
+
+                    log_message('info', 'Status verifikasi updated to valid for peserta ID: ' . $idPeserta . ' (konfirmasi perbaikan disetujui)');
+
+                    return $this->response->setJSON([
+                        'success' => true,
+                        'message' => 'Perbaikan data telah direview dan disetujui. Status verifikasi peserta berhasil dikonfirmasi menjadi Valid.',
+                        'changes' => "Tanggal Lahir: '{$existingTanggal}' → '{$tanggalLahirSantri}'",
+                        'change_count' => 1,
+                        'data' => $existingSantri,
+                        'verifikasi_confirmed' => true
+                    ]);
+                }
+
                 return $this->response->setJSON([
                     'success' => true,
                     'message' => 'Tidak ada perubahan data. Semua data sudah sesuai dengan yang tersimpan.',
