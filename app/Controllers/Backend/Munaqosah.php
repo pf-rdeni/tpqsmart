@@ -5846,6 +5846,15 @@ class Munaqosah extends BaseController
             $idSantriTerdaftar[$peserta['IdSantri']] = true;
         }
 
+        // Deduplikasi data santri jika ada duplikat IdSantri
+        $uniqueSantri = [];
+        foreach ($santri as $item) {
+            if (!isset($uniqueSantri[$item['IdSantri']])) {
+                $uniqueSantri[$item['IdSantri']] = $item;
+            }
+        }
+        $santri = array_values($uniqueSantri);
+
         // Tambahkan status untuk setiap santri
         foreach ($santri as &$item) {
             $item['sudah_terdaftar'] = isset($idSantriTerdaftar[$item['IdSantri']]);

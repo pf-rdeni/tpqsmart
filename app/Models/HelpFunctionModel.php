@@ -53,7 +53,8 @@ class HelpFunctionModel extends Model
                     tbl_tpq.NamaTpq AS NamaTpq, 
                     tbl_tpq.KelurahanDesa AS NamaKelDesa
                 ');
-                $builder->join('tbl_kelas_santri ks', 'ks.IdSantri = tbl_santri_baru.IdSantri AND ks.IdTahunAjaran = "' . $IdTahunAjaran . '" AND ks.Status = 1', 'left');
+                $ksSubquery = '(SELECT ks1.* FROM tbl_kelas_santri ks1 INNER JOIN (SELECT MAX(Id) AS max_id FROM tbl_kelas_santri WHERE IdTahunAjaran = "' . $IdTahunAjaran . '" AND Status = 1 GROUP BY IdSantri) ks_max ON ks1.Id = ks_max.max_id) ks';
+                $builder->join($ksSubquery, 'ks.IdSantri = tbl_santri_baru.IdSantri', 'left', false);
                 $builder->join('tbl_kelas', 'tbl_kelas.IdKelas = ks.IdKelas', 'left');
                 $builder->join('tbl_kelas k_pendaftaran', 'k_pendaftaran.IdKelas = tbl_santri_baru.IdKelas', 'left');
                 $builder->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq', 'left');
