@@ -1868,12 +1868,15 @@ class Kelas extends BaseController
                 ]);
             }
 
-            // Jika idTahunAjaranTarget tidak dikirim, fallback ke tahun ajaran berikutnya
+            // Validasi: Tahun Ajaran Target wajib dikirim secara eksplisit (tidak boleh fallback otomatis)
             if (empty($idTahunAjaranTarget)) {
-                $idTahunAjaranTarget = $this->helpFunction->getTahuanAjaranBerikutnya($idTahunAjaranSumber);
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Tahun Ajaran Target wajib dipilih dan tidak boleh kosong.'
+                ]);
             }
 
-            $isSameAcademicYear = ($idTahunAjaranTarget === $idTahunAjaranSumber);
+            $isSameAcademicYear = (trim((string)$idTahunAjaranTarget) === trim((string)$idTahunAjaranSumber));
             $db = \Config\Database::connect();
 
             $totalDitimpa  = 0;

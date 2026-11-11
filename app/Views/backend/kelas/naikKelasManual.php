@@ -35,12 +35,12 @@
                 </ul>
             </div>
 
-            <!-- Step 1: Filter -->
+            <!-- Step 1: Filter & Mode Selection -->
             <div class="row align-items-end">
                 <!-- 1. FILTER TPQ (SEBELUM TAHUN AJARAN SUMBER) -->
-                <div class="col-lg-3 col-md-6">
+                <div class="col-lg-4 col-md-6">
                     <div class="form-group mb-2">
-                        <label class="font-weight-bold">
+                        <label class="font-weight-bold mb-1">
                             <i class="fas fa-mosque mr-1 text-purple"></i>
                             TPQ / Lembaga
                         </label>
@@ -52,7 +52,7 @@
                                     </option>
                                 <?php endforeach; ?>
                             </select>
-                            <small class="text-muted d-block mt-1">Pilih satu / beberapa, atau kosongkan untuk semua TPQ</small>
+                            <small class="text-muted d-block mt-1">Kosongkan untuk semua TPQ, atau pilih spesifik</small>
                         <?php else: ?>
                             <select class="form-control" id="selectTpq" disabled style="width: 100%;">
                                 <?php foreach ($dataTpq as $tpq): ?>
@@ -67,9 +67,9 @@
                 </div>
 
                 <!-- 2. TAHUN AJARAN SUMBER -->
-                <div class="col-lg-2 col-md-6">
+                <div class="col-lg-3 col-md-3 col-sm-6">
                     <div class="form-group mb-2">
-                        <label class="font-weight-bold">
+                        <label class="font-weight-bold mb-1">
                             <i class="fas fa-calendar-alt mr-1 text-primary"></i>
                             TA Sumber
                         </label>
@@ -82,14 +82,14 @@
                                 </option>
                             <?php endforeach; ?>
                         </select>
-                        <small class="text-muted d-block mt-1">TA saat ini</small>
+                        <small class="text-muted d-block mt-1">Tahun ajaran asal santri</small>
                     </div>
                 </div>
 
                 <!-- 3. KELAS SUMBER -->
-                <div class="col-lg-2 col-md-6">
+                <div class="col-lg-3 col-md-3 col-sm-6">
                     <div class="form-group mb-2">
-                        <label class="font-weight-bold">
+                        <label class="font-weight-bold mb-1">
                             <i class="fas fa-chalkboard-teacher mr-1 text-primary"></i>
                             Kelas Sumber
                         </label>
@@ -107,29 +107,87 @@
                     </div>
                 </div>
 
-                <!-- 4. TAHUN AJARAN TARGET -->
-                <div class="col-lg-3 col-md-6">
-                    <div class="form-group mb-2">
-                        <label class="font-weight-bold">
-                            <i class="fas fa-calendar-check mr-1 text-success"></i>
-                            TA Target
-                        </label>
-                        <select class="form-control" id="selectTahunAjaranTarget" disabled>
-                            <option value="">-- Pilih TA Sumber --</option>
-                        </select>
-                        <small class="text-muted d-block mt-1" id="taTargetHint">Pilih TA sama / baru</small>
-                    </div>
-                </div>
-
-                <!-- 5. TOMBOL TAMPILKAN -->
+                <!-- 4. TOMBOL TAMPILKAN -->
                 <div class="col-lg-2 col-md-12">
                     <div class="form-group mb-2">
                         <button type="button" id="btnLoadSantri"
-                                class="btn btn-primary btn-block" disabled>
+                                class="btn btn-primary btn-block mt-4" disabled>
                             <i class="fas fa-search mr-1"></i> Tampilkan
                         </button>
+                        <small class="text-muted d-block mt-1">Tekan untuk menampilkan data</small>
                     </div>
                 </div>
+            </div>
+
+            <!-- Garis pemisah -->
+            <hr class="my-3">
+
+            <!-- Baris 2: Mode & Tahun Ajaran Target (Switch / Radio Buttons) -->
+            <div class="row align-items-center">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap">
+                        <label class="font-weight-bold mb-1">
+                            <i class="fas fa-sliders-h mr-1 text-primary"></i>
+                            Mode & Tahun Ajaran Target:
+                        </label>
+                        <button type="button" class="btn btn-link btn-sm text-secondary p-0 mb-1" id="btnResetSettings" title="Reset filter dan mode ke pengaturan awal">
+                            <i class="fas fa-undo-alt mr-1"></i> Reset Pengaturan Tersimpan
+                        </button>
+                    </div>
+
+                    <!-- Radio Button Group -->
+                    <div class="btn-group btn-group-toggle d-flex flex-wrap mb-2" data-toggle="buttons" id="modeRadioGroup">
+                        <label class="btn btn-outline-info active flex-fill text-left p-2 mr-1 mb-1 rounded" id="lblModeSame" style="min-width: 200px;">
+                            <input type="radio" name="modeTargetTA" id="modeSame" value="same" autocomplete="off" checked>
+                            <div class="font-weight-bold"><i class="fas fa-exchange-alt mr-1"></i> Pindah Kelas (TA Sama)</div>
+                            <small class="d-block text-muted">Tetap di TA ini, hanya ganti kelas</small>
+                        </label>
+                        <label class="btn btn-outline-success flex-fill text-left p-2 mr-1 mb-1 rounded" id="lblModeNext" style="min-width: 200px;">
+                            <input type="radio" name="modeTargetTA" id="modeNext" value="next" autocomplete="off">
+                            <div class="font-weight-bold"><i class="fas fa-level-up-alt mr-1"></i> Naik Kelas (TA Baru)</div>
+                            <small class="d-block text-muted">Naik ke TA berikutnya (+1 tahun)</small>
+                        </label>
+                        <label class="btn btn-outline-warning flex-fill text-left p-2 mr-1 mb-1 rounded" id="lblModePrev" style="min-width: 200px;">
+                            <input type="radio" name="modeTargetTA" id="modePrev" value="prev" autocomplete="off">
+                            <div class="font-weight-bold"><i class="fas fa-history mr-1"></i> Koreksi Data (TA Lalu)</div>
+                            <small class="d-block text-muted">Mundur ke TA sebelumnya (-1 tahun)</small>
+                        </label>
+                        <label class="btn btn-outline-secondary flex-fill text-left p-2 mb-1 rounded" id="lblModeCustom" style="min-width: 200px;">
+                            <input type="radio" name="modeTargetTA" id="modeCustom" value="custom" autocomplete="off">
+                            <div class="font-weight-bold"><i class="fas fa-calendar-check mr-1"></i> Pilih Bebas TA Target</div>
+                            <small class="d-block text-muted">Tentukan tahun target manual</small>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Status Target & Dropdown Custom jika mode = custom -->
+                <div class="col-12 mt-1">
+                    <div class="row align-items-center">
+                        <div class="col-md-7 col-12 mb-2 mb-md-0">
+                            <div id="targetStatusAlert" class="alert alert-info py-2 px-3 mb-0" style="font-size:0.88rem;">
+                                <i class="fas fa-info-circle mr-1" id="targetStatusIcon"></i>
+                                <strong>Target:</strong> <span id="effectiveTargetText">—</span> &mdash; <span id="effectiveTargetDesc">Pilih TA Sumber terlebih dahulu.</span>
+                            </div>
+                        </div>
+                        <div class="col-md-5 col-12" id="wrapCustomTarget" style="display:none;">
+                            <div class="input-group input-group-sm">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text font-weight-bold bg-white text-dark"><i class="fas fa-calendar-alt mr-1"></i> Pilih TA:</span>
+                                </div>
+                                <select class="form-control form-control-sm" id="selectTahunAjaranTargetCustom">
+                                    <?php foreach ($tahunAjaranList as $ta): ?>
+                                        <option value="<?= $ta ?>">
+                                            <?= convertTahunAjaran($ta) ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hidden input untuk menyimpan target TA efektif yang akan dibaca oleh proses load & submit -->
+                <input type="hidden" id="selectTahunAjaranTarget" value="">
             </div>
         </div>
     </div>
@@ -343,6 +401,10 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!ta || ta.length !== 8) return '';
         return String(parseInt(ta.substring(0,4))+1) + String(parseInt(ta.substring(4))+1);
     }
+    function getPrevTA(ta) {
+        if (!ta || ta.length !== 8) return '';
+        return String(parseInt(ta.substring(0,4))-1) + String(parseInt(ta.substring(4))-1);
+    }
     function esc(s) {
         return String(s??'')
             .replace(/&/g,'&amp;').replace(/</g,'&lt;')
@@ -350,31 +412,33 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     /* ── Elemen DOM ────────────────────────────────────────── */
-    const selTA          = document.getElementById('selectTahunAjaran');
-    const selTATarget    = document.getElementById('selectTahunAjaranTarget');
-    const selKelas       = document.getElementById('selectKelas');
-    const btnLoad        = document.getElementById('btnLoadSantri');
-    const taTargetHint   = document.getElementById('taTargetHint');
+    const selTA             = document.getElementById('selectTahunAjaran');
+    const selTATarget       = document.getElementById('selectTahunAjaranTarget');
+    const selCustomTarget   = document.getElementById('selectTahunAjaranTargetCustom');
+    const wrapCustomTarget  = document.getElementById('wrapCustomTarget');
+    const selKelas          = document.getElementById('selectKelas');
+    const btnLoad           = document.getElementById('btnLoadSantri');
+    const btnResetSettings  = document.getElementById('btnResetSettings');
 
-    const cardPilih      = document.getElementById('cardPilihSantri');
-    const cardProses     = document.getElementById('cardProses');
-    const loading        = document.getElementById('santriLoading');
-    const tblWrap        = document.getElementById('santriTableWrap');
-    const tblBody        = document.getElementById('santriBody');
-    const kosong         = document.getElementById('santriKosong');
-    const checkAll       = document.getElementById('checkAll');
+    const cardPilih         = document.getElementById('cardPilihSantri');
+    const cardProses        = document.getElementById('cardProses');
+    const loading           = document.getElementById('santriLoading');
+    const tblWrap           = document.getElementById('santriTableWrap');
+    const tblBody           = document.getElementById('santriBody');
+    const kosong            = document.getElementById('santriKosong');
+    const checkAll          = document.getElementById('checkAll');
 
-    const badgeTotal      = document.getElementById('badgeTotal');
-    const labelTerpilih   = document.getElementById('labelTerpilih');
-    const labelJumlah     = document.getElementById('labelJumlahProses');
-    const infoTpqFilter   = document.getElementById('infoTpqFilter');
-    const infoKelasAsal   = document.getElementById('infoKelasAsal');
-    const infoTASumber    = document.getElementById('infoTASumber');
-    const infoTATarget    = document.getElementById('infoTATarget');
-    const btnProsesLabel  = document.getElementById('btnProsesLabel');
+    const badgeTotal        = document.getElementById('badgeTotal');
+    const labelTerpilih     = document.getElementById('labelTerpilih');
+    const labelJumlah       = document.getElementById('labelJumlahProses');
+    const infoTpqFilter     = document.getElementById('infoTpqFilter');
+    const infoKelasAsal     = document.getElementById('infoKelasAsal');
+    const infoTASumber      = document.getElementById('infoTASumber');
+    const infoTATarget      = document.getElementById('infoTATarget');
+    const btnProsesLabel    = document.getElementById('btnProsesLabel');
 
-    const bulkKelasTujuan = document.getElementById('bulkKelasTujuan');
-    const btnApplyBulk    = document.getElementById('btnApplyBulkKelas');
+    const bulkKelasTujuan   = document.getElementById('bulkKelasTujuan');
+    const btnApplyBulk      = document.getElementById('btnApplyBulkKelas');
 
     /* ── Helper Ambil Nilai Filter TPQ ──────────────────────── */
     function getSelectedTpqList() {
@@ -388,56 +452,160 @@ document.addEventListener('DOMContentLoaded', function () {
         return Array.isArray(val) ? val : [val];
     }
 
-    /* ── Populate Dropdown Target Tahun Ajaran ─────────────── */
-    function populateTATarget(selectedSourceTA, preselectedTarget) {
-        if (!selectedSourceTA) {
-            selTATarget.innerHTML = '<option value="">-- Pilih TA Sumber Dahulu --</option>';
-            selTATarget.disabled = true;
+    /* ── LocalStorage State Persistence ────────────────────── */
+    const STORAGE_PREFIX = 'tpq_manual_';
+
+    function getSelectedMode() {
+        const checked = document.querySelector('input[name="modeTargetTA"]:checked');
+        return checked ? checked.value : 'same';
+    }
+
+    function setModeRadio(mode) {
+        const radio = document.querySelector(`input[name="modeTargetTA"][value="${mode}"]`);
+        if (radio) {
+            radio.checked = true;
+            document.querySelectorAll('#modeRadioGroup label').forEach(lbl => lbl.classList.remove('active'));
+            const parentLabel = radio.closest('label');
+            if (parentLabel) parentLabel.classList.add('active');
+        }
+    }
+
+    function saveToStorage() {
+        try {
+            localStorage.setItem(STORAGE_PREFIX + 'mode', getSelectedMode());
+            if (selTA.value) localStorage.setItem(STORAGE_PREFIX + 'source_ta', selTA.value);
+            if (selKelas.value) localStorage.setItem(STORAGE_PREFIX + 'kelas', selKelas.value);
+            if (selCustomTarget && selCustomTarget.value) {
+                localStorage.setItem(STORAGE_PREFIX + 'custom_target_ta', selCustomTarget.value);
+            }
+            if (isAdmin && typeof $.fn.select2 !== 'undefined') {
+                const tpqVal = $('#selectTpq').val();
+                localStorage.setItem(STORAGE_PREFIX + 'tpq', JSON.stringify(tpqVal || []));
+            }
+        } catch (e) {
+            // Abaikan jika localStorage tidak diizinkan di browser
+        }
+    }
+
+    function loadFromStorage() {
+        try {
+            const savedMode = localStorage.getItem(STORAGE_PREFIX + 'mode');
+            if (savedMode) setModeRadio(savedMode);
+
+            const savedSourceTA = localStorage.getItem(STORAGE_PREFIX + 'source_ta');
+            if (savedSourceTA && !selTA.value) selTA.value = savedSourceTA;
+
+            const savedCustomTarget = localStorage.getItem(STORAGE_PREFIX + 'custom_target_ta');
+            if (savedCustomTarget && selCustomTarget) selCustomTarget.value = savedCustomTarget;
+
+            const savedKelas = localStorage.getItem(STORAGE_PREFIX + 'kelas');
+            if (savedKelas && !selKelas.value) selKelas.value = savedKelas;
+
+            if (isAdmin && typeof $.fn.select2 !== 'undefined') {
+                const savedTpq = localStorage.getItem(STORAGE_PREFIX + 'tpq');
+                if (savedTpq) {
+                    const parsed = JSON.parse(savedTpq);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        $('#selectTpq').val(parsed).trigger('change');
+                    }
+                }
+            }
+        } catch (e) {
+            // Abaikan storage error
+        }
+    }
+
+    function resetStorage() {
+        try {
+            localStorage.removeItem(STORAGE_PREFIX + 'mode');
+            localStorage.removeItem(STORAGE_PREFIX + 'source_ta');
+            localStorage.removeItem(STORAGE_PREFIX + 'custom_target_ta');
+            localStorage.removeItem(STORAGE_PREFIX + 'kelas');
+            localStorage.removeItem(STORAGE_PREFIX + 'tpq');
+        } catch (e) {}
+
+        setModeRadio('same');
+        selTA.value = '';
+        selKelas.value = '';
+        if (isAdmin && typeof $.fn.select2 !== 'undefined') {
+            $('#selectTpq').val(null).trigger('change');
+        }
+        updateEffectiveTarget();
+        cardPilih.style.display = 'none';
+        cardProses.style.display = 'none';
+        tblWrap.style.display = 'none';
+        kosong.style.display = 'none';
+        tblBody.innerHTML = '';
+        Swal.fire({
+            icon: 'info',
+            title: 'Pengaturan Direset',
+            text: 'Semua filter dan mode telah dikembalikan ke kondisi default awal.',
+            timer: 1500,
+            showConfirmButton: false
+        });
+    }
+
+    /* ── Update Effective Target Tahun Ajaran ───────────────── */
+    function updateEffectiveTarget() {
+        const srcTA     = selTA.value;
+        const mode      = getSelectedMode();
+        const alertBox  = document.getElementById('targetStatusAlert');
+        const alertIcon = document.getElementById('targetStatusIcon');
+        const textEl    = document.getElementById('effectiveTargetText');
+        const descEl    = document.getElementById('effectiveTargetDesc');
+
+        if (!srcTA) {
+            selTATarget.value = '';
+            textEl.textContent = '—';
+            descEl.textContent = 'Pilih TA Sumber terlebih dahulu.';
+            alertBox.className = 'alert alert-secondary py-2 px-3 mb-0';
+            alertIcon.className = 'fas fa-info-circle mr-1';
+            wrapCustomTarget.style.display = 'none';
+            checkLoad();
             return;
         }
 
-        const nextTaVal = getNextTA(selectedSourceTA);
-        let opts = '';
-
-        // Opsi 1: Tahun Ajaran SAMA (Koreksi / Pindah Kelas) -> DEFAULT!
-        const isSelSame = (!preselectedTarget || preselectedTarget === selectedSourceTA);
-        opts += `<option value="${selectedSourceTA}" ${isSelSame ? 'selected' : ''}>
-                    ${fmtTA(selectedSourceTA)} — Tahun Ajaran Sama (Koreksi / Pindah Kelas)
-                 </option>`;
-
-        // Opsi 2: Tahun Ajaran BERIKUTNYA (Kenaikan Kelas Baru)
-        if (nextTaVal) {
-            const isSelNext = (preselectedTarget === nextTaVal);
-            opts += `<option value="${nextTaVal}" ${isSelNext ? 'selected' : ''}>
-                        ${fmtTA(nextTaVal)} — Tahun Ajaran Berikutnya (Kenaikan Kelas Baru)
-                     </option>`;
-        }
-
-        // Opsi lainnya dari list tahun ajaran jika ada
-        allTaList.forEach(ta => {
-            if (ta !== selectedSourceTA && ta !== nextTaVal) {
-                const isSel = (preselectedTarget === ta);
-                opts += `<option value="${ta}" ${isSel ? 'selected' : ''}>${fmtTA(ta)}</option>`;
-            }
-        });
-
-        selTATarget.innerHTML = opts;
-        selTATarget.disabled = false;
-        updateTargetHint();
-    }
-
-    function updateTargetHint() {
-        const src = selTA.value;
-        const tgt = selTATarget.value;
-        if (!src || !tgt) return;
-
-        if (src === tgt) {
-            taTargetHint.innerHTML = '<span class="text-info font-weight-bold"><i class="fas fa-info-circle mr-1"></i>Mode: TA Sama</span> (pindah/koreksi kelas santri di TA ini)';
+        let targetTA = '';
+        if (mode === 'same') {
+            targetTA = srcTA;
+            wrapCustomTarget.style.display = 'none';
+            textEl.innerHTML = `<strong>${fmtTA(targetTA)}</strong> <span class="badge badge-info ml-1">TA Sama</span>`;
+            descEl.textContent = 'Santri tetap di tahun ajaran aktif, hanya tingkat kelas yang disesuaikan (Paling Aman).';
+            alertBox.className = 'alert alert-info py-2 px-3 mb-0';
+            alertIcon.className = 'fas fa-check-circle text-info mr-1';
             btnProsesLabel.textContent = 'Proses Perubahan Kelas (TA Sama)';
-        } else {
-            taTargetHint.innerHTML = '<span class="text-success font-weight-bold"><i class="fas fa-level-up-alt mr-1"></i>Mode: Kenaikan Kelas</span> (santri naik ke TA target)';
+        } else if (mode === 'next') {
+            targetTA = getNextTA(srcTA);
+            wrapCustomTarget.style.display = 'none';
+            textEl.innerHTML = `<strong>${fmtTA(targetTA)}</strong> <span class="badge badge-success ml-1">TA Baru (+1)</span>`;
+            descEl.textContent = 'Santri dipromosikan ke tahun ajaran baru berikutnya. Data kelas lama dinonaktifkan.';
+            alertBox.className = 'alert alert-success py-2 px-3 mb-0';
+            alertIcon.className = 'fas fa-level-up-alt text-success mr-1';
             btnProsesLabel.textContent = 'Proses Kenaikan Kelas (TA Baru)';
+        } else if (mode === 'prev') {
+            targetTA = getPrevTA(srcTA);
+            wrapCustomTarget.style.display = 'none';
+            textEl.innerHTML = `<strong>${fmtTA(targetTA)}</strong> <span class="badge badge-warning text-dark ml-1">TA Lalu (-1)</span>`;
+            descEl.textContent = 'Koreksi penempatan santri mundur ke tahun ajaran sebelumnya.';
+            alertBox.className = 'alert alert-warning py-2 px-3 mb-0';
+            alertIcon.className = 'fas fa-history text-warning mr-1';
+            btnProsesLabel.textContent = 'Proses Koreksi Kelas (TA Lalu)';
+        } else if (mode === 'custom') {
+            wrapCustomTarget.style.display = '';
+            targetTA = selCustomTarget.value || srcTA;
+            const isSame = (targetTA === srcTA);
+            textEl.innerHTML = `<strong>${fmtTA(targetTA)}</strong> <span class="badge ${isSame ? 'badge-info' : 'badge-warning text-dark'} ml-1">${isSame ? 'TA Sama' : 'Spesifik'}</span>`;
+            descEl.textContent = isSame
+                ? 'Santri tetap di tahun ajaran aktif.'
+                : 'Santri dipindahkan ke tahun ajaran spesifik yang dipilih manual.';
+            alertBox.className = isSame ? 'alert alert-info py-2 px-3 mb-0' : 'alert alert-warning py-2 px-3 mb-0';
+            alertIcon.className = isSame ? 'fas fa-info-circle mr-1' : 'fas fa-exclamation-triangle mr-1';
+            btnProsesLabel.textContent = isSame ? 'Proses Perubahan Kelas (TA Sama)' : 'Proses Pindah TA';
         }
+
+        selTATarget.value = targetTA;
+        saveToStorage();
+        checkLoad();
     }
 
     /* ── Enable tombol load ─────────────────────────────────── */
@@ -446,14 +614,29 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     selTA.addEventListener('change', function () {
-        populateTATarget(this.value, null);
+        updateEffectiveTarget();
+    });
+
+    selKelas.addEventListener('change', function () {
+        saveToStorage();
         checkLoad();
     });
-    selTATarget.addEventListener('change', function () {
-        updateTargetHint();
-        checkLoad();
+
+    if (btnResetSettings) {
+        btnResetSettings.addEventListener('click', resetStorage);
+    }
+
+    document.querySelectorAll('input[name="modeTargetTA"]').forEach(radio => {
+        radio.addEventListener('change', updateEffectiveTarget);
     });
-    selKelas.addEventListener('change', checkLoad);
+
+    if (selCustomTarget) {
+        selCustomTarget.addEventListener('change', updateEffectiveTarget);
+    }
+
+    if (isAdmin && typeof $.fn.select2 !== 'undefined') {
+        $('#selectTpq').on('change', saveToStorage);
+    }
 
     /* ── Build options kelas tujuan ─────────────────────────── */
     function buildOpts(selectedId) {
@@ -537,9 +720,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
         infoKelasAsal.textContent = getName(parseInt(kelas));
         infoTASumber.textContent  = fmtTA(ta);
-        infoTATarget.innerHTML    = fmtTA(taTarget) + (isSameTA ? ' <span class="badge badge-info ml-1">TA Sama</span>' : ' <span class="badge badge-success ml-1">TA Baru</span>');
+        infoTATarget.innerHTML    = fmtTA(taTarget) + (isSameTA ? ' <span class="badge badge-info ml-1">TA Sama</span>' : ' <span class="badge badge-warning text-dark ml-1">TA Berbeda</span>');
 
-        updateTargetHint();
+        updateEffectiveTarget();
 
         // Tampilkan card, sembunyikan card proses
         cardPilih.style.display  = '';
@@ -647,30 +830,62 @@ document.addEventListener('DOMContentLoaded', function () {
         const totalAlumni = payload.filter(p => p.IdKelasTujuan == 10).length;
         const isAllAlumni = (totalAlumni === payload.length && totalAlumni > 0);
 
-        let modalTitle = isSameTA
-            ? 'Konfirmasi Perubahan Kelas (Tahun Ajaran Sama)'
-            : 'Konfirmasi Kenaikan Kelas (Tahun Ajaran Baru)';
+        let modalTitle      = '';
+        let modalIcon       = 'warning';
+        let confirmColor    = '#f39c12';
+        let confirmBtnText  = '<i class="fas fa-check mr-1"></i> Ya, Proses Sekarang!';
+        let warningAlertHtml = '';
 
         if (isAllAlumni) {
-            modalTitle = 'Konfirmasi Kelulusan Santri (Alumni)';
+            modalTitle     = '<i class="fas fa-graduation-cap text-success mr-1"></i> Konfirmasi Kelulusan Santri (Alumni)';
+            modalIcon      = 'question';
+            confirmColor   = '#28a745';
+            confirmBtnText = '<i class="fas fa-graduation-cap mr-1"></i> Ya, Luluskan Santri!';
+        } else if (isSameTA) {
+            modalTitle     = '<i class="fas fa-exchange-alt text-info mr-1"></i> Konfirmasi Pindah Kelas (Tahun Ajaran Sama)';
+            modalIcon      = 'question';
+            confirmColor   = '#17a2b8';
+            confirmBtnText = '<i class="fas fa-check mr-1"></i> Ya, Pindahkan Kelas!';
+            warningAlertHtml = `
+                <div class="alert alert-info py-2 mb-2 text-left" style="font-size:.85rem;">
+                    <i class="fas fa-check-circle mr-1"></i>
+                    Santri akan disesuaikan kelasnya <strong>di tahun ajaran yang sama (${fmtTA(ta)})</strong>. Riwayat tahun ajaran tetap aktif dan tidak berubah.
+                </div>`;
+        } else {
+            modalTitle     = '<span class="text-danger"><i class="fas fa-exclamation-triangle mr-1"></i> PERINGATAN: Perpindahan Tahun Ajaran Berbeda!</span>';
+            modalIcon      = 'warning';
+            confirmColor   = '#dc3545';
+            confirmBtnText = '<i class="fas fa-level-up-alt mr-1"></i> Ya, Proses Perpindahan TA!';
+            warningAlertHtml = `
+                <div class="alert alert-danger py-2 mb-2 text-left" style="font-size:.85rem;">
+                    <strong class="d-block mb-1"><i class="fas fa-exclamation-circle mr-1"></i> PERHATIAN PENTING:</strong>
+                    Anda memindahkan santri dari <strong>TA ${fmtTA(ta)}</strong> ke <strong>TA ${fmtTA(taTarget)}</strong>.<br>
+                    &bull; Status santri di TA ${fmtTA(ta)} akan <strong>DINONAKTIFKAN (Status = 0)</strong>.<br>
+                    &bull; Santri akan dibuatkan riwayat baru di TA ${fmtTA(taTarget)}.<br>
+                    <div class="bg-white text-danger font-weight-bold p-1 mt-1 rounded border border-danger">
+                        Jika Anda HANYA ingin pindah kelas di tahun ini, klik BATAL dan pilih mode "Pindah Kelas (TA Sama)".
+                    </div>
+                </div>
+                <div class="custom-control custom-checkbox my-2 p-2 bg-light border rounded text-left">
+                    <input type="checkbox" class="custom-control-input" id="checkConfirmDiffTA">
+                    <label class="custom-control-label font-weight-bold text-danger" for="checkConfirmDiffTA" style="font-size:0.85rem; cursor:pointer;">
+                        Saya memahami dan menyetujui pemindahan santri ke TA ${fmtTA(taTarget)}.
+                    </label>
+                </div>`;
         }
 
         let modeBadge = isSameTA
             ? '<span class="badge badge-info">Tahun Ajaran Sama</span>'
-            : '<span class="badge badge-success">Tahun Ajaran Baru</span>';
+            : '<span class="badge badge-warning text-dark font-weight-bold">Tahun Ajaran Berbeda</span>';
 
         if (isAllAlumni) {
-            modeBadge = '<span class="badge badge-primary"><i class="fas fa-graduation-cap mr-1"></i>Kelulusan (Alumni)</span>';
+            modeBadge = '<span class="badge badge-success"><i class="fas fa-graduation-cap mr-1"></i>Kelulusan (Alumni)</span>';
         }
-
-        let warningMsg = isSameTA
-            ? 'Data kelas dan nilai materi santri pada tahun ajaran ini akan disesuaikan dengan kelas baru.'
-            : 'Santri akan dipromosikan ke tahun ajaran target. Data lama di tahun ajaran target akan ditimpa jika sudah ada.';
 
         let alumniAlertHtml = '';
         if (totalAlumni > 0) {
             alumniAlertHtml = `
-                <div class="alert alert-success py-2 mb-2" style="font-size:.85rem;">
+                <div class="alert alert-success py-2 mb-2 text-left" style="font-size:.85rem;">
                     <i class="fas fa-graduation-cap mr-1"></i>
                     Sebanyak <strong>${totalAlumni} santri</strong> akan dinyatakan <strong>Lulus / Alumni</strong> (Active = 2). Santri alumni <strong>tidak dibuatkan kelas baru</strong> di tahun berikutnya.
                 </div>`;
@@ -681,14 +896,15 @@ document.addEventListener('DOMContentLoaded', function () {
             html: `
                 <div class="text-left" style="font-size:.9rem;">
                     ${alumniAlertHtml}
-                    <p class="mb-2">Anda akan memproses perubahan kelas dengan detail berikut:</p>
-                    <table class="table table-sm table-bordered mb-3">
+                    ${warningAlertHtml}
+                    <p class="mb-2">Rincian pemrosesan santri:</p>
+                    <table class="table table-sm table-bordered mb-2">
                         <tr>
                             <th class="bg-light" style="width:40%">Mode</th>
                             <td>${modeBadge}</td>
                         </tr>
                         <tr>
-                            <th class="bg-light">Kelas Sumber</th>
+                            <th class="bg-light">Kelas Asal</th>
                             <td><strong>${esc(getName(parseInt(kelas)))}</strong></td>
                         </tr>
                         <tr>
@@ -697,24 +913,32 @@ document.addEventListener('DOMContentLoaded', function () {
                         </tr>
                         <tr>
                             <th class="bg-light">TA Target</th>
-                            <td><strong>${fmtTA(taTarget)}</strong></td>
+                            <td><strong class="${isSameTA ? 'text-primary' : 'text-danger font-weight-bold'}">${fmtTA(taTarget)}</strong></td>
                         </tr>
                         <tr>
                             <th class="bg-light">Jumlah Santri</th>
                             <td><strong class="text-primary" style="font-size:1.1rem;">${payload.length} santri</strong> ${totalAlumni > 0 ? `(${totalAlumni} Alumni)` : ''}</td>
                         </tr>
                     </table>
-                    <div class="alert alert-warning mb-0 py-2" style="font-size:.82rem;">
-                        <i class="fas fa-exclamation-triangle mr-1"></i>
-                        ${warningMsg}
-                    </div>
                 </div>`,
-            icon: isAllAlumni ? 'question' : 'warning',
-            showCancelButton: true,
-            confirmButtonColor: isAllAlumni ? '#28a745' : '#f39c12',
+            icon: modalIcon,
+            showCancelButton:   true,
+            confirmButtonColor: confirmColor,
             cancelButtonColor:  '#6c757d',
-            confirmButtonText:  isAllAlumni ? '<i class="fas fa-graduation-cap mr-1"></i> Ya, Luluskan Santri!' : '<i class="fas fa-check mr-1"></i> Ya, Proses Sekarang!',
+            confirmButtonText:  confirmBtnText,
             cancelButtonText:   'Batal',
+            didOpen: (modalEl) => {
+                if (!isSameTA && !isAllAlumni) {
+                    const confirmBtn = Swal.getConfirmButton();
+                    confirmBtn.disabled = true;
+                    const chk = modalEl.querySelector('#checkConfirmDiffTA');
+                    if (chk) {
+                        chk.addEventListener('change', function () {
+                            confirmBtn.disabled = !this.checked;
+                        });
+                    }
+                }
+            }
         }).then(result => {
             if (!result.isConfirmed) return;
 
@@ -1005,28 +1229,45 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    /* ── Auto-load jika ada query param ─────────────────────── */
-    const params = new URLSearchParams(window.location.search);
+    /* ── Auto-load dari URL Param atau LocalStorage ─────────── */
+    const params        = new URLSearchParams(window.location.search);
     const paramTA       = params.get('ta');
     const paramTATarget = params.get('ta_target');
     const paramKelas    = params.get('kelas');
     const paramTpq      = params.get('tpq');
 
-    if (paramTpq && isAdmin) {
-        const tpqArr = paramTpq.split(',');
-        $('#selectTpq').val(tpqArr).trigger('change');
-    }
-
     if (paramTA) {
+        // Jika terdapat parameter URL (misalnya dari redirect link luar / aksi sebelumnya)
+        if (paramTpq && isAdmin) {
+            const tpqArr = paramTpq.split(',');
+            $('#selectTpq').val(tpqArr).trigger('change');
+        }
         selTA.value = paramTA;
-        populateTATarget(paramTA, paramTATarget);
+        if (paramTATarget) {
+            if (paramTATarget === paramTA) {
+                setModeRadio('same');
+            } else if (paramTATarget === getNextTA(paramTA)) {
+                setModeRadio('next');
+            } else if (paramTATarget === getPrevTA(paramTA)) {
+                setModeRadio('prev');
+            } else {
+                setModeRadio('custom');
+                if (selCustomTarget) selCustomTarget.value = paramTATarget;
+            }
+        }
         if (paramKelas) {
             selKelas.value = paramKelas;
         }
+        updateEffectiveTarget();
         checkLoad();
         if (!btnLoad.disabled) {
             setTimeout(() => btnLoad.click(), 400);
         }
+    } else {
+        // Jika tidak ada URL parameter, pulihkan filter dan mode dari localStorage
+        loadFromStorage();
+        updateEffectiveTarget();
+        checkLoad();
     }
 });
 </script>
