@@ -649,7 +649,6 @@ class SantriBaruModel extends Model
      * Mendapatkan jumlah santri per TPQ
      * @return array
      */
-    public function getJumlahSantriPerTpq()
     public function getJumlahSantriPerTpq($IdTahunAjaran = null)
     {
         $builder = $this->db->table('tbl_santri_baru');
