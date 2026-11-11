@@ -5,6 +5,9 @@
         <div class="card-header">
             <h3 class="card-title">
                 <i class="fas fa-list"></i> Pilih TPQ - Daftar Santri Per Kelas
+                <?php if (!empty($IdTahunAjaran)): ?>
+                    <span class="badge badge-info ml-2 font-weight-normal"><i class="fas fa-calendar-alt mr-1"></i>TA <?= convertTahunAjaran($IdTahunAjaran) ?></span>
+                <?php endif; ?>
             </h3>
         </div>
         <div class="card-body">

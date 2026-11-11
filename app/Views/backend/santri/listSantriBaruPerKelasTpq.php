@@ -4,7 +4,12 @@
     <div class="card">
         <div class="card-header">
             <div class="d-flex justify-content-between align-items-center">
-                <h3 class="card-title">Daftar Santri Per Kelas <b>TPQ <?= !empty($namaTpq) && is_array($namaTpq) ? (esc($namaTpq['NamaTpq'] ?? '') . ' - ' . esc($namaTpq['Alamat'] ?? '')) : 'Tidak Diketahui' ?></b></h3>
+                <h3 class="card-title">
+                    Daftar Santri Per Kelas <b>TPQ <?= !empty($namaTpq) && is_array($namaTpq) ? (esc($namaTpq['NamaTpq'] ?? '') . ' - ' . esc($namaTpq['Alamat'] ?? '')) : 'Tidak Diketahui' ?></b>
+                    <?php if (!empty($IdTahunAjaran)): ?>
+                        <span class="badge badge-info ml-2 font-weight-normal"><i class="fas fa-calendar-alt mr-1"></i>TA <?= convertTahunAjaran($IdTahunAjaran) ?></span>
+                    <?php endif; ?>
+                </h3>
                 <div class="d-flex">
                     <a href="<?= base_url('backend/santri/createEmisStep') ?>" class="btn btn-primary">
                         <i class="fas fa-plus"></i><span class="d-none d-md-inline">&nbsp;Daftar Santri Baru</span>

@@ -219,6 +219,9 @@ class SantriBaruModel extends Model
         if (empty($IdTahunAjaran)) {
             $IdTahunAjaran = session()->get('IdTahunAjaran');
         }
+        if (empty($IdTahunAjaran)) {
+            $IdTahunAjaran = (new \App\Models\HelpFunctionModel())->getTahunAjaranSaatIni();
+        }
 
         $db = db_connect();
         $builder = $db->table('tbl_santri_baru');
@@ -231,6 +234,13 @@ class SantriBaruModel extends Model
                 tbl_tpq.NamaTpq,
                 tbl_kelas.NamaKelas
             ');
+        $builder->select('
+            tbl_santri_baru.*, 
+            ks.IdKelas as IdKelas,
+            ks.IdTahunAjaran,
+            tbl_tpq.NamaTpq,
+            tbl_kelas.NamaKelas
+        ');
 
             $builder->join('tbl_kelas_santri ks', 'ks.IdSantri = tbl_santri_baru.IdSantri AND ks.IdTahunAjaran = "' . $IdTahunAjaran . '"', 'inner');
             $builder->join('tbl_kelas', 'tbl_kelas.IdKelas = ks.IdKelas', 'left');
@@ -242,13 +252,29 @@ class SantriBaruModel extends Model
                 tbl_tpq.NamaTpq,
                 tbl_kelas.NamaKelas
             ');
+        // Inner join hanya untuk santri aktif di kelas pada tahun ajaran yang ditentukan
+        $builder->join('tbl_kelas_santri ks', 'ks.IdSantri = tbl_santri_baru.IdSantri AND ks.IdTahunAjaran = ' . $db->escape($IdTahunAjaran) . ' AND ks.Status = 1', 'inner');
+        $builder->join('tbl_kelas', 'tbl_kelas.IdKelas = ks.IdKelas', 'inner');
+        $builder->join('tbl_tpq', 'tbl_tpq.IdTpq = ks.IdTpq', 'left');
 
             $builder->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas', 'left');
             $builder->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq', 'left');
             $builder->where('tbl_santri_baru.IdTpq', $IdTpq);
         }
+        // Filter TPQ
+        $builder->where('ks.IdTpq', $IdTpq);
 
         $builder->orderBy('tbl_santri_baru.updated_at', 'DESC'); 
+        // Hanya santri aktif di data induk (Active = 1, bukan alumni / nonaktif Active = 2)
+        $builder->where('tbl_santri_baru.Active', 1);
+
+        // Jangan tampilkan kelas Alumni (IdKelas = 10 atau NamaKelas Alumni)
+        $builder->where('ks.IdKelas !=', 10);
+        $builder->where('tbl_santri_baru.IdKelas !=', 10);
+        $builder->whereNotIn('tbl_kelas.NamaKelas', ['ALUMNI', 'Alumni', 'alumni']);
+
+        $builder->orderBy('tbl_kelas.IdKelas', 'ASC');
+        $builder->orderBy('tbl_santri_baru.NamaSantri', 'ASC');
 
         try {
             $query = $builder->get();
@@ -624,11 +650,25 @@ class SantriBaruModel extends Model
      * @return array
      */
     public function getJumlahSantriPerTpq()
+    public function getJumlahSantriPerTpq($IdTahunAjaran = null)
     {
         $builder = $this->db->table('tbl_santri_baru');
         $builder->select('tbl_tpq.IdTpq, COUNT(tbl_santri_baru.IdSantri) as JumlahSantri')
             ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq', 'right')
             ->groupBy('tbl_tpq.IdTpq');
+        $db = db_connect();
+        $builder = $db->table('tbl_tpq t');
+
+        if (!empty($IdTahunAjaran)) {
+            $builder->select('t.IdTpq, COUNT(DISTINCT ks.IdSantri) as JumlahSantri')
+                ->join('tbl_kelas_santri ks', 'ks.IdTpq = t.IdTpq AND ks.IdTahunAjaran = ' . $db->escape($IdTahunAjaran) . ' AND ks.Status = 1 AND ks.IdKelas != 10', 'left')
+                ->join('tbl_santri_baru s', 's.IdSantri = ks.IdSantri AND s.Active = 1 AND s.IdKelas != 10', 'left')
+                ->groupBy('t.IdTpq');
+        } else {
+            $builder->select('t.IdTpq, COUNT(tbl_santri_baru.IdSantri) as JumlahSantri')
+                ->join('tbl_santri_baru', 'tbl_santri_baru.IdTpq = t.IdTpq AND tbl_santri_baru.Active = 1 AND tbl_santri_baru.IdKelas != 10', 'left')
+                ->groupBy('t.IdTpq');
+        }
 
         return $builder->get()->getResultArray();
     }
@@ -941,4 +981,4 @@ class SantriBaruModel extends Model
         $query = $db->query($sql, $params);
         return $query ? $query->getResultArray() : [];
     }
-}
+}

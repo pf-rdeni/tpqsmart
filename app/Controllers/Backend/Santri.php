@@ -1941,8 +1941,9 @@ class Santri extends BaseController
             // Ambil semua data TPQ untuk dipilih
             $dataTpq = $this->helpFunction->getDataTpq(0);
 
-            // Ambil jumlah santri per TPQ menggunakan method dari model
-            $santriPerTpq = $this->DataSantriBaru->getJumlahSantriPerTpq();
+            // Ambil jumlah santri aktif per TPQ pada tahun ajaran saat ini (non-alumni)
+            $IdTahunAjaranSaatIni = $this->helpFunction->getTahunAjaranSaatIni();
+            $santriPerTpq = $this->DataSantriBaru->getJumlahSantriPerTpq($IdTahunAjaranSaatIni);
             
             // Gabungkan data jumlah santri ke array TPQ
             foreach ($dataTpq as &$t) {
@@ -1961,7 +1962,8 @@ class Santri extends BaseController
                 'page_title' => 'Pilih TPQ - Daftar Santri Per Kelas',
                 'dataTpq' => $dataTpq,
                 'isAdmin' => $isAdmin,
-                'isPanitiaUmum' => $isPanitiaUmum
+                'isPanitiaUmum' => $isPanitiaUmum,
+                'IdTahunAjaran' => $IdTahunAjaranSaatIni
             ];
             
             return view('backend/santri/selectTpqForSantriPerKelas', $data);
@@ -1972,13 +1974,21 @@ class Santri extends BaseController
             return redirect()->back()->with('error', 'TPQ tidak ditemukan. Silakan pilih TPQ terlebih dahulu.');
         }
         
-        $IdTahunAjaran = session()->get('IdTahunAjaran');
+        // Hanya tampilkan santri yang aktif di tahun ajaran saat ini
+        $IdTahunAjaran = $this->helpFunction->getTahunAjaranSaatIni();
         $santriAll = $this->DataSantriBaru->GetDataPerKelasTpq($IdTpq, $IdTahunAjaran);
         $namaTpq = $this->helpFunction->getNamaTpqById($IdTpq);
         
         // Validasi jika namaTpq null
         if (empty($namaTpq) || !is_array($namaTpq)) {
             return redirect()->back()->with('error', 'Data TPQ tidak ditemukan.');
+        }
+
+        // Filter ketat: Pastikan tidak ada santri Alumni (IdKelas = 10)
+        if (!empty($santriAll)) {
+            $santriAll = array_values(array_filter($santriAll, function ($s) {
+                return $s['IdKelas'] != 10 && strtoupper($s['NamaKelas'] ?? '') !== 'ALUMNI';
+            }));
         }
 
         // Konversi nama kelas menjadi MDA jika sesuai dengan mapping
@@ -1995,15 +2005,18 @@ class Santri extends BaseController
             }
         }
 
-        // Mengelompokkan santri berdasarkan kelas secara dinamis
+        // Mengelompokkan santri berdasarkan kelas secara dinamis (tanpa kelas Alumni)
         $santriPerKelas = [];
         $kelasList = []; // Untuk menyimpan informasi kelas yang ada
 
         if (!empty($santriAll)) {
-            // Ambil semua IdKelas unik dari data santri
+            // Ambil semua IdKelas unik dari data santri (kecuali Alumni)
             $uniqueKelas = [];
             foreach ($santriAll as $santri) {
                 $idKelas = $santri['IdKelas'];
+                if ($idKelas == 10 || strtoupper($santri['NamaKelas'] ?? '') === 'ALUMNI') {
+                    continue; // Jangan tampilkan kelas Alumni
+                }
                 if (!isset($uniqueKelas[$idKelas])) {
                     $uniqueKelas[$idKelas] = [
                         'IdKelas' => $idKelas,
@@ -2020,9 +2033,9 @@ class Santri extends BaseController
 
             // Kelompokkan santri berdasarkan IdKelas
             foreach ($uniqueKelas as $idKelas => $kelasInfo) {
-                $santriPerKelas[$idKelas] = array_filter($santriAll, function ($s) use ($idKelas) {
+                $santriPerKelas[$idKelas] = array_values(array_filter($santriAll, function ($s) use ($idKelas) {
                     return $s['IdKelas'] == $idKelas;
-                });
+                }));
             }
         }
 
@@ -2033,6 +2046,7 @@ class Santri extends BaseController
             'kelasList' => $kelasList, // List kelas yang ada untuk membuat tab
             'namaTpq' => $namaTpq ?? ['NamaTpq' => 'TPQ', 'Alamat' => ''],
             'IdTpq' => $IdTpq,
+            'IdTahunAjaran' => $IdTahunAjaran,
         ];
 
         return view('backend/santri/listSantriBaruPerKelasTpq', $data);
