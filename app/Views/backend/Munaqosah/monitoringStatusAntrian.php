@@ -401,16 +401,15 @@
                                                 <div id="iklanSlideInfo" class="position-absolute" style="bottom: 10px; left: 14px; right: 14px; display: none; z-index: 10;">
                                                     <div class="d-flex justify-content-between align-items-center">
                                                         <div id="iklanDots" class="d-flex align-items-center" style="gap: 6px;"></div>
-                                                        <div class="d-flex align-items-center" style="gap: 8px;">
-                                                            <!-- Kontrol Audio Mute & Volume Slider -->
-                                                            <div id="iklanSoundControl" class="d-flex align-items-center bg-dark px-2 py-1 rounded shadow" style="opacity: 0.9; user-select: none;">
-                                                                <button type="button" id="btnToggleMuteIklan" class="btn btn-link text-white p-0 mr-2" style="font-size: 13px; text-decoration: none;" title="Mute / Unmute Suara Video">
-                                                                    <i class="fas fa-volume-mute" id="iconMuteIklan"></i>
-                                                                </button>
-                                                                <input type="range" id="sliderVolumeIklan" min="0" max="100" step="5" value="30" style="width: 70px; height: 14px; cursor: pointer; accent-color: #28a745;" title="Volume Video">
-                                                                <small class="text-white ml-2 font-weight-bold" id="labelVolumeIklan" style="font-size: 11px; min-width: 28px; text-align: right;">30%</small>
+                                                        <!-- Kontrol Audio: Hanya Ikon Speaker, Volume Slider Muncul Saat Mouse Over (Hover) -->
+                                                        <div id="iklanSoundControl" class="iklan-sound-box" title="Suara Media Video">
+                                                            <button type="button" id="btnToggleMuteIklan" class="btn-speaker" title="Mute / Unmute Suara Video">
+                                                                <i class="fas fa-volume-mute" id="iconMuteIklan"></i>
+                                                            </button>
+                                                            <div class="volume-slider-wrapper">
+                                                                <input type="range" id="sliderVolumeIklan" min="0" max="100" step="5" value="30" title="Geser untuk mengatur volume">
+                                                                <span class="text-white ml-2 font-weight-bold" id="labelVolumeIklan" style="font-size: 11px; min-width: 28px; text-align: right;">30%</span>
                                                             </div>
-                                                            <small class="text-white bg-dark px-2 py-1 rounded shadow" id="iklanTimerLabel" style="opacity: 0.85;">10 dtk</small>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -1061,6 +1060,59 @@
         object-fit: cover;
         border-radius: 4px;
         border: 1px solid #dee2e6;
+    }
+    /* Kontrol Audio Speaker & Expandable Hover Volume Slider */
+    .iklan-sound-box {
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(4px);
+        padding: 4px 8px;
+        border-radius: 20px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        display: inline-flex;
+        align-items: center;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+        cursor: pointer;
+    }
+    .iklan-sound-box .volume-slider-wrapper {
+        width: 0;
+        opacity: 0;
+        overflow: hidden;
+        transition: width 0.3s ease, opacity 0.25s ease, margin 0.3s ease;
+        display: flex;
+        align-items: center;
+        margin-left: 0;
+        white-space: nowrap;
+    }
+    .iklan-sound-box:hover .volume-slider-wrapper,
+    .iklan-sound-box:focus-within .volume-slider-wrapper,
+    .iklan-sound-box.is-active .volume-slider-wrapper {
+        width: 115px;
+        opacity: 1;
+        margin-left: 6px;
+    }
+    .iklan-sound-box .btn-speaker {
+        background: none;
+        border: none;
+        color: #fff;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 22px;
+        height: 22px;
+        cursor: pointer;
+        outline: none;
+        font-size: 13px;
+        transition: transform 0.15s ease;
+    }
+    .iklan-sound-box .btn-speaker:hover {
+        transform: scale(1.15);
+    }
+    .iklan-sound-box input[type="range"] {
+        width: 72px;
+        height: 5px;
+        accent-color: #28a745;
+        cursor: pointer;
     }
 </style>
 <script>
@@ -2257,20 +2309,7 @@
         }
 
         function updateTimerLabel() {
-            const total = iklanMediaList ? iklanMediaList.length : 0;
-            const current = iklanCurrentIndex + 1;
-            let modeText = 'Loop';
-            if (iklanMode === 'random') modeText = 'Acak';
-            if (iklanMode === 'single') modeText = 'Tetap';
-
-            const activeSlide = $('#iklanSlideContainer .iklan-slide.active');
-            const isVideo = activeSlide.attr('data-type') === 'video' || activeSlide.attr('data-source') === 'youtube';
-
-            if (isVideo) {
-                $('#iklanTimerLabel').text(current + '/' + total + ' · Video (' + modeText + ')');
-            } else {
-                $('#iklanTimerLabel').text(current + '/' + total + ' · ' + (iklanMode !== 'single' ? iklanInterval + 's (' + modeText + ')' : modeText));
-            }
+            // Label info di layar monitoring telah disederhanakan/dihapus sesuai preferensi UI
         }
 
         // -------------------------------------------------------------
@@ -2521,6 +2560,12 @@
             localStorage.setItem('monitoringIklanSoundEnabled', iklanSoundEnabled);
             applyAudioSettingsToActiveMedia();
             saveSoundSettingsToServer();
+        }).on('mousedown touchstart', function() {
+            $('#iklanSoundControl').addClass('is-active');
+        });
+
+        $(document).on('mouseup touchend', function() {
+            $('#iklanSoundControl').removeClass('is-active');
         });
 
         // Inisialisasi awal UI Iklan
