@@ -212,6 +212,24 @@
                         </div>
 
                         <div class="form-group">
+                            <label class="font-weight-bold">Suara Media Video (YouTube & MP4)</label>
+                            <div class="custom-control custom-switch">
+                                <input type="checkbox" class="custom-control-input" id="settingSoundEnabled" name="iklan_sound_enabled" <?= !empty($settings['iklan_sound_enabled']) ? 'checked' : '' ?>>
+                                <label class="custom-control-label" for="settingSoundEnabled">Keluarkan Suara Video (Unmute)</label>
+                            </div>
+                            <small class="text-muted">Jika nonaktif, video berputar tanpa suara (Mute). Jika aktif, suara video keluar sesuai batas volume di bawah.</small>
+                        </div>
+
+                        <div class="form-group" id="settingVolumeRow" style="<?= !empty($settings['iklan_sound_enabled']) ? '' : 'display: none;' ?>">
+                            <label class="font-weight-bold d-flex justify-content-between align-items-center">
+                                <span>Volume Suara Video</span>
+                                <span class="badge badge-info" id="settingVolumeLabel"><?= esc($settings['iklan_volume'] ?? 30) ?>%</span>
+                            </label>
+                            <input type="range" class="custom-range" id="settingVolume" name="iklan_volume" min="5" max="100" step="5" value="<?= esc($settings['iklan_volume'] ?? 30) ?>">
+                            <small class="text-muted">Disarankan disetel 20% - 30% agar suara panggilan antrian tetap terdengar dominan di ruang tunggu.</small>
+                        </div>
+
+                        <div class="form-group">
                             <label class="font-weight-bold">Penyesuaian Rasio Gambar (Aspect Ratio)</label>
                             <select class="form-control" id="settingFit" name="iklan_fit">
                                 <option value="contain_blur" <?= (($settings['iklan_fit'] ?? 'contain_blur') == 'contain_blur') ? 'selected' : '' ?>>
@@ -666,6 +684,19 @@ $(function() {
         }
     });
 
+    // Toggle row volume sound
+    $('#settingSoundEnabled').on('change', function() {
+        if ($(this).is(':checked')) {
+            $('#settingVolumeRow').slideDown(200);
+        } else {
+            $('#settingVolumeRow').slideUp(200);
+        }
+    });
+
+    $('#settingVolume').on('input', function() {
+        $('#settingVolumeLabel').text($(this).val() + '%');
+    });
+
     // Form Upload Submit
     $('#formUploadIklan').on('submit', function(e) {
         e.preventDefault();
@@ -716,6 +747,8 @@ $(function() {
             iklan_mode: $('#settingMode').val(),
             iklan_single_id: $('#settingSingleId').val(),
             iklan_video_enabled: $('#settingVideoEnabled').is(':checked') ? 1 : 0,
+            iklan_sound_enabled: $('#settingSoundEnabled').is(':checked') ? 1 : 0,
+            iklan_volume: $('#settingVolume').val(),
             header_format: $('#settingHeaderFormat').val(),
             iklan_fit: $('#settingFit').val(),
             tpq: currentTpq
@@ -734,6 +767,8 @@ $(function() {
                 localStorage.setItem('monitoringIklanSingleId', data.iklan_single_id);
                 localStorage.setItem('monitoringHeaderFormat', data.header_format);
                 localStorage.setItem('monitoringIklanFit', data.iklan_fit);
+                localStorage.setItem('monitoringIklanSoundEnabled', data.iklan_sound_enabled);
+                localStorage.setItem('monitoringIklanVolume', data.iklan_volume);
             } else {
                 Swal.fire('Gagal!', res.message || 'Gagal menyimpan pengaturan.', 'error');
             }

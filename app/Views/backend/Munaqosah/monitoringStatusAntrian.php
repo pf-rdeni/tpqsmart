@@ -401,7 +401,17 @@
                                                 <div id="iklanSlideInfo" class="position-absolute" style="bottom: 10px; left: 14px; right: 14px; display: none; z-index: 10;">
                                                     <div class="d-flex justify-content-between align-items-center">
                                                         <div id="iklanDots" class="d-flex align-items-center" style="gap: 6px;"></div>
-                                                        <small class="text-white bg-dark px-2 py-1 rounded shadow" id="iklanTimerLabel" style="opacity: 0.85;">10 dtk</small>
+                                                        <div class="d-flex align-items-center" style="gap: 8px;">
+                                                            <!-- Kontrol Audio Mute & Volume Slider -->
+                                                            <div id="iklanSoundControl" class="d-flex align-items-center bg-dark px-2 py-1 rounded shadow" style="opacity: 0.9; user-select: none;">
+                                                                <button type="button" id="btnToggleMuteIklan" class="btn btn-link text-white p-0 mr-2" style="font-size: 13px; text-decoration: none;" title="Mute / Unmute Suara Video">
+                                                                    <i class="fas fa-volume-mute" id="iconMuteIklan"></i>
+                                                                </button>
+                                                                <input type="range" id="sliderVolumeIklan" min="0" max="100" step="5" value="30" style="width: 70px; height: 14px; cursor: pointer; accent-color: #28a745;" title="Volume Video">
+                                                                <small class="text-white ml-2 font-weight-bold" id="labelVolumeIklan" style="font-size: 11px; min-width: 28px; text-align: right;">30%</small>
+                                                            </div>
+                                                            <small class="text-white bg-dark px-2 py-1 rounded shadow" id="iklanTimerLabel" style="opacity: 0.85;">10 dtk</small>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -642,6 +652,25 @@
                                             <label class="custom-control-label" for="settingVideoEnabled">Izinkan unggah file video (.mp4)</label>
                                         </div>
                                         <small class="text-muted">Default: Nonaktif. Aktifkan jika ingin memutar video profil lembaga.</small>
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <label class="col-sm-4 col-form-label col-form-label-sm font-weight-bold">Suara Video Iklan</label>
+                                    <div class="col-sm-8">
+                                        <div class="custom-control custom-switch">
+                                            <input type="checkbox" class="custom-control-input" id="settingSoundEnabled" name="iklan_sound_enabled">
+                                            <label class="custom-control-label" for="settingSoundEnabled">Keluarkan Suara Video (Unmute)</label>
+                                        </div>
+                                        <small class="text-muted">Aktifkan untuk mengeluarkan audio video YouTube / MP4.</small>
+                                    </div>
+                                </div>
+                                <div class="form-group row" id="settingVolumeRow" style="display: none;">
+                                    <label class="col-sm-4 col-form-label col-form-label-sm font-weight-bold">
+                                        Volume Suara Video (<span id="settingVolumeValBadge">30%</span>)
+                                    </label>
+                                    <div class="col-sm-8">
+                                        <input type="range" class="custom-range" id="settingVolume" name="iklan_volume" min="5" max="100" step="5" value="30">
+                                        <small class="text-muted">Disarankan disetel 20% - 30% agar suara panggilan antrian tetap dominan.</small>
                                     </div>
                                 </div>
                                 <hr>
@@ -1646,11 +1675,81 @@
         let iklanMode = localStorage.getItem('monitoringIklanMode') || '<?= esc($iklan_settings['iklan_mode'] ?? 'loop') ?>';
         let iklanSingleId = parseInt(localStorage.getItem('monitoringIklanSingleId') || '<?= esc($iklan_settings['iklan_single_id'] ?? 0) ?>');
         let iklanFit = localStorage.getItem('monitoringIklanFit') || '<?= esc($iklan_settings['iklan_fit'] ?? 'contain_blur') ?>';
+        let iklanSoundEnabled = localStorage.getItem('monitoringIklanSoundEnabled') !== null 
+            ? (localStorage.getItem('monitoringIklanSoundEnabled') === 'true' || localStorage.getItem('monitoringIklanSoundEnabled') === '1')
+            : <?= !empty($iklan_settings['iklan_sound_enabled']) ? 'true' : 'false' ?>;
+        let iklanVolume = parseInt(localStorage.getItem('monitoringIklanVolume') || '<?= esc($iklan_settings['iklan_volume'] ?? 30) ?>');
 
         function applyIklanFitClass(fit) {
             $('#iklanPlayerContainer')
                 .removeClass('fit-contain_blur fit-fill fit-cover fit-contain')
                 .addClass('fit-' + (fit || 'contain_blur'));
+        }
+
+        function updateSoundUI() {
+            $('#sliderVolumeIklan').val(iklanVolume);
+            $('#labelVolumeIklan').text(iklanVolume + '%');
+
+            const $icon = $('#iconMuteIklan');
+            const $btn = $('#btnToggleMuteIklan');
+
+            if (!iklanSoundEnabled || iklanVolume === 0) {
+                $icon.removeClass('fa-volume-up fa-volume-down text-success text-warning').addClass('fa-volume-mute text-muted');
+                $btn.attr('title', 'Suara Dibisukan (Klik untuk Mengaktifkan Suara)');
+            } else {
+                if (iklanVolume < 50) {
+                    $icon.removeClass('fa-volume-mute fa-volume-up text-muted text-warning').addClass('fa-volume-down text-success');
+                } else {
+                    $icon.removeClass('fa-volume-mute fa-volume-down text-muted text-warning').addClass('fa-volume-up text-success');
+                }
+                $btn.attr('title', 'Suara Aktif ' + iklanVolume + '% (Klik untuk Membisukan)');
+            }
+        }
+
+        function applyAudioSettingsToActiveMedia() {
+            updateSoundUI();
+
+            const activeSlide = $('#iklanSlideContainer .iklan-slide.active');
+            const vid = activeSlide.find('video')[0];
+            const frame = activeSlide.find('iframe')[0];
+
+            if (vid) {
+                vid.muted = !iklanSoundEnabled;
+                vid.volume = Math.min(Math.max(iklanVolume / 100, 0), 1);
+            }
+
+            if (frame) {
+                const frameId = frame.id;
+                if (ytPlayers[frameId] && typeof ytPlayers[frameId].setVolume === 'function') {
+                    try {
+                        if (iklanSoundEnabled) {
+                            ytPlayers[frameId].unMute();
+                            ytPlayers[frameId].setVolume(iklanVolume);
+                        } else {
+                            ytPlayers[frameId].mute();
+                        }
+                    } catch(e) {}
+                } else if (frame.contentWindow) {
+                    if (iklanSoundEnabled) {
+                        frame.contentWindow.postMessage('{"event":"command","func":"unMute","args":""}', '*');
+                        frame.contentWindow.postMessage('{"event":"command","func":"setVolume","args":[' + iklanVolume + ']}', '*');
+                    } else {
+                        frame.contentWindow.postMessage('{"event":"command","func":"mute","args":""}', '*');
+                    }
+                }
+            }
+        }
+
+        let soundSaveTimer = null;
+        function saveSoundSettingsToServer() {
+            clearTimeout(soundSaveTimer);
+            soundSaveTimer = setTimeout(function() {
+                $.post(iklanSettingsUrl, {
+                    iklan_sound_enabled: iklanSoundEnabled ? 1 : 0,
+                    iklan_volume: iklanVolume,
+                    tpq: pageTpq
+                });
+            }, 600);
         }
 
         function initIklanUI() {
@@ -1659,6 +1758,7 @@
             $('#iklanMode').val(iklanMode);
             $('#iklanFit').val(iklanFit);
             applyIklanFitClass(iklanFit);
+            updateSoundUI();
 
             if (iklanEnabled) {
                 $('#iklanPlaySettings').show();
@@ -1909,7 +2009,14 @@
                             ytPlayers[frameId] = new YT.Player(frameId, {
                                 events: {
                                     'onReady': function(event) {
-                                        try { event.target.mute(); } catch(e) {}
+                                        try {
+                                            if (iklanSoundEnabled) {
+                                                event.target.unMute();
+                                                event.target.setVolume(iklanVolume);
+                                            } else {
+                                                event.target.mute();
+                                            }
+                                        } catch(e) {}
                                         const frameElem = event.target.getIframe ? event.target.getIframe() : document.getElementById(frameId);
                                         const parentSlide = $(frameElem).closest('.iklan-slide');
                                         if (parentSlide.hasClass('active')) {
@@ -2013,6 +2120,8 @@
                 // Video Lokal MP4: Matikan timer slide, putar dari awal dan tunggu sampai selesai (ended)
                 stopIklanTimer();
                 activeVideo.currentTime = 0;
+                activeVideo.muted = !iklanSoundEnabled;
+                activeVideo.volume = Math.min(Math.max(iklanVolume / 100, 0), 1);
                 activeVideo.play().catch(function() {});
                 $(activeVideo).off('ended').on('ended', function() {
                     if (iklanMode === 'single') {
@@ -2030,12 +2139,22 @@
                 if (ytPlayers[frameId] && typeof ytPlayers[frameId].playVideo === 'function') {
                     try {
                         ytPlayers[frameId].seekTo(0, true);
-                        ytPlayers[frameId].mute();
+                        if (iklanSoundEnabled) {
+                            ytPlayers[frameId].unMute();
+                            ytPlayers[frameId].setVolume(iklanVolume);
+                        } else {
+                            ytPlayers[frameId].mute();
+                        }
                         ytPlayers[frameId].playVideo();
                     } catch(e) {}
                 } else if (activeIframe.contentWindow) {
                     activeIframe.contentWindow.postMessage('{"event":"command","func":"seekTo","args":[0, true]}', '*');
-                    activeIframe.contentWindow.postMessage('{"event":"command","func":"mute","args":""}', '*');
+                    if (iklanSoundEnabled) {
+                        activeIframe.contentWindow.postMessage('{"event":"command","func":"unMute","args":""}', '*');
+                        activeIframe.contentWindow.postMessage('{"event":"command","func":"setVolume","args":[' + iklanVolume + ']}', '*');
+                    } else {
+                        activeIframe.contentWindow.postMessage('{"event":"command","func":"mute","args":""}', '*');
+                    }
                     activeIframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
                     activeIframe.contentWindow.postMessage('{"event":"listening"}', '*');
                 }
@@ -2047,6 +2166,7 @@
             }
 
             updateTimerLabel();
+            updateSoundUI();
         }
 
         // Global listener fallback untuk event YouTube iframe API (HANYA digunakan jika YT.Player belum aktif)
@@ -2175,6 +2295,18 @@
             }
         });
 
+        $('#settingSoundEnabled').on('change', function() {
+            if ($(this).is(':checked')) {
+                $('#settingVolumeRow').slideDown(200);
+            } else {
+                $('#settingVolumeRow').slideUp(200);
+            }
+        });
+
+        $('#settingVolume').on('input', function() {
+            $('#settingVolumeValBadge').text($(this).val() + '%');
+        });
+
         function initModalSettings() {
             $('#settingInterval').val(iklanInterval);
             $('#settingMode').val(iklanMode);
@@ -2182,6 +2314,14 @@
                 $('#settingSingleRow').show();
             } else {
                 $('#settingSingleRow').hide();
+            }
+            $('#settingSoundEnabled').prop('checked', iklanSoundEnabled);
+            $('#settingVolume').val(iklanVolume);
+            $('#settingVolumeValBadge').text(iklanVolume + '%');
+            if (iklanSoundEnabled) {
+                $('#settingVolumeRow').show();
+            } else {
+                $('#settingVolumeRow').hide();
             }
         }
 
@@ -2308,6 +2448,8 @@
                 iklan_mode: $('#settingMode').val(),
                 iklan_single_id: $('#settingSingleId').val(),
                 iklan_video_enabled: $('#settingVideoEnabled').is(':checked') ? 1 : 0,
+                iklan_sound_enabled: $('#settingSoundEnabled').is(':checked') ? 1 : 0,
+                iklan_volume: $('#settingVolume').val(),
                 header_format: currentHeaderFormat,
                 tpq: params.get('tpq') || ''
             };
@@ -2326,13 +2468,19 @@
                         iklanInterval = parseInt(data.iklan_interval);
                         iklanMode = data.iklan_mode;
                         iklanSingleId = parseInt(data.iklan_single_id);
+                        iklanSoundEnabled = data.iklan_sound_enabled === 1;
+                        iklanVolume = parseInt(data.iklan_volume);
 
                         localStorage.setItem('monitoringIklanInterval', iklanInterval);
                         localStorage.setItem('monitoringIklanMode', iklanMode);
                         localStorage.setItem('monitoringIklanSingleId', iklanSingleId);
+                        localStorage.setItem('monitoringIklanSoundEnabled', iklanSoundEnabled);
+                        localStorage.setItem('monitoringIklanVolume', iklanVolume);
 
                         $('#iklanInterval').val(iklanInterval);
                         $('#iklanMode').val(iklanMode);
+
+                        applyAudioSettingsToActiveMedia();
 
                         if (iklanEnabled) {
                             renderIklanPlayer();
@@ -2348,6 +2496,31 @@
                     alert('Terjadi kesalahan saat menyimpan pengaturan.');
                 }
             });
+        });
+
+        // Handler Audio Quick Control di Player
+        $('#btnToggleMuteIklan').on('click', function() {
+            iklanSoundEnabled = !iklanSoundEnabled;
+            if (iklanSoundEnabled && iklanVolume === 0) {
+                iklanVolume = 30;
+            }
+            localStorage.setItem('monitoringIklanSoundEnabled', iklanSoundEnabled);
+            localStorage.setItem('monitoringIklanVolume', iklanVolume);
+            applyAudioSettingsToActiveMedia();
+            saveSoundSettingsToServer();
+        });
+
+        $('#sliderVolumeIklan').on('input change', function() {
+            iklanVolume = parseInt($(this).val()) || 0;
+            if (iklanVolume > 0 && !iklanSoundEnabled) {
+                iklanSoundEnabled = true;
+            } else if (iklanVolume === 0) {
+                iklanSoundEnabled = false;
+            }
+            localStorage.setItem('monitoringIklanVolume', iklanVolume);
+            localStorage.setItem('monitoringIklanSoundEnabled', iklanSoundEnabled);
+            applyAudioSettingsToActiveMedia();
+            saveSoundSettingsToServer();
         });
 
         // Inisialisasi awal UI Iklan

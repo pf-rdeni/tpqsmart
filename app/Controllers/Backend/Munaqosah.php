@@ -3217,6 +3217,8 @@ class Munaqosah extends BaseController
             'header_format'       => $this->munaqosahKonfigurasiModel->getSetting($iklanConfigIdTpq, 'Monitoring_Header_Format') ?? 'A',
             'iklan_fit'           => $this->munaqosahKonfigurasiModel->getSetting($iklanConfigIdTpq, 'Monitoring_Iklan_Fit') ?? 'contain_blur',
             'iklan_enabled'       => $this->munaqosahKonfigurasiModel->getSetting($iklanConfigIdTpq, 'Monitoring_Iklan_Enabled') ?? 0,
+            'iklan_sound_enabled' => $this->munaqosahKonfigurasiModel->getSetting($iklanConfigIdTpq, 'Monitoring_Iklan_SoundEnabled') ?? 0,
+            'iklan_volume'        => $this->munaqosahKonfigurasiModel->getSetting($iklanConfigIdTpq, 'Monitoring_Iklan_Volume') ?? 30,
         ];
 
         $data = [
@@ -16783,6 +16785,8 @@ class Munaqosah extends BaseController
             'header_format'       => $this->munaqosahKonfigurasiModel->getSetting($configIdTpq, 'Monitoring_Header_Format') ?? 'A',
             'iklan_fit'           => $this->munaqosahKonfigurasiModel->getSetting($configIdTpq, 'Monitoring_Iklan_Fit') ?? 'contain_blur',
             'iklan_enabled'       => $this->munaqosahKonfigurasiModel->getSetting($configIdTpq, 'Monitoring_Iklan_Enabled') ?? 0,
+            'iklan_sound_enabled' => $this->munaqosahKonfigurasiModel->getSetting($configIdTpq, 'Monitoring_Iklan_SoundEnabled') ?? 0,
+            'iklan_volume'        => $this->munaqosahKonfigurasiModel->getSetting($configIdTpq, 'Monitoring_Iklan_Volume') ?? 30,
         ];
 
         $data = [
@@ -17243,6 +17247,14 @@ class Munaqosah extends BaseController
 
         if ($this->request->getPost('iklan_enabled') !== null) {
             $configs['Monitoring_Iklan_Enabled'] = ['value' => (string) $this->request->getPost('iklan_enabled'), 'type' => 'boolean'];
+        }
+
+        if ($this->request->getPost('iklan_sound_enabled') !== null) {
+            $configs['Monitoring_Iklan_SoundEnabled'] = ['value' => (string) $this->request->getPost('iklan_sound_enabled'), 'type' => 'boolean'];
+        }
+
+        if ($this->request->getPost('iklan_volume') !== null) {
+            $configs['Monitoring_Iklan_Volume'] = ['value' => (string) $this->request->getPost('iklan_volume'), 'type' => 'number'];
         }
 
         $table = $this->db->table('tbl_munaqosah_konfigurasi');
