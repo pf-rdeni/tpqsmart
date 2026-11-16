@@ -250,7 +250,10 @@
         <div class="col-lg-7 col-md-6 mb-3">
             <div class="card card-outline card-secondary shadow-sm">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h3 class="card-title"><i class="fas fa-list mr-1"></i> Daftar Media Iklan Aktif</h3>
+                    <h3 class="card-title m-0">
+                        <i class="fas fa-list mr-1"></i> Daftar Media Iklan
+                        <small class="text-muted ml-2 font-weight-normal d-none d-sm-inline"><i class="fas fa-info-circle mr-1"></i>Tarik baris <i class="fas fa-grip-vertical"></i> untuk mengubah urutan</small>
+                    </h3>
                     <button type="button" class="btn btn-tool" onclick="loadTableMedia()" title="Refresh Tabel">
                         <i class="fas fa-sync-alt"></i>
                     </button>
@@ -260,13 +263,13 @@
                         <table class="table table-striped table-hover mb-0" id="tableIklan">
                             <thead class="thead-light">
                                 <tr>
-                                    <th style="width: 40px;" class="text-center">No</th>
-                                    <th style="width: 90px;" class="text-center">Preview</th>
+                                    <th style="width: 35px;" class="text-center" title="Geser baris untuk mengubah urutan"><i class="fas fa-arrows-alt text-muted"></i></th>
+                                    <th style="width: 35px;" class="text-center">No</th>
+                                    <th style="width: 85px;" class="text-center">Preview</th>
                                     <th>Judul & Berkas</th>
-                                    <th style="width: 130px;" class="text-center">Target Ujian</th>
-                                    <th style="width: 70px;" class="text-center">Tipe</th>
-                                    <th style="width: 110px;" class="text-center">Status</th>
-                                    <th style="width: 60px;" class="text-center">Aksi</th>
+                                    <th style="width: 140px;" class="text-center">Target & Tipe</th>
+                                    <th style="width: 105px;" class="text-center">Status</th>
+                                    <th style="width: 55px;" class="text-center">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody id="tbodyIklan">
@@ -295,7 +298,31 @@
         border: 1px solid #dee2e6;
         box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
+    .drag-handle {
+        cursor: grab;
+        padding: 8px 4px !important;
+        user-select: none;
+    }
+    .drag-handle:active {
+        cursor: grabbing;
+    }
+    .drag-handle:hover i {
+        color: #007bff !important;
+    }
+    .iklan-row.ui-sortable-helper {
+        background-color: #ffffff !important;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.2) !important;
+        display: table;
+    }
+    .iklan-row-placeholder {
+        background-color: #f1f8ff !important;
+        border: 2px dashed #007bff !important;
+        height: 55px;
+    }
 </style>
+
+<!-- jQuery UI untuk Drag and Drop Sortable Baris Tabel -->
+<script src="<?= base_url('plugins/jquery-ui/jquery-ui.min.js') ?>"></script>
 
 <script>
 $(function() {
@@ -304,6 +331,7 @@ $(function() {
     const deleteUrl = '<?= base_url('backend/munaqosah/delete-iklan-ajax') ?>';
     const settingsUrl = '<?= base_url('backend/munaqosah/update-iklan-settings-ajax') ?>';
     const toggleStatusUrl = '<?= base_url('backend/munaqosah/toggle-iklan-status-ajax') ?>';
+    const reorderUrl = '<?= base_url('backend/munaqosah/reorder-iklan-ajax') ?>';
 
     const currentTpq = '<?= esc($selectedTpq) ?>';
     const currentTahun = '<?= esc($selectedTahun) ?>';
@@ -342,13 +370,15 @@ $(function() {
         }
     });
 
-    // Helper untuk invalidate cache
+    // Helper untuk invalidate cache & broadcast perubahan ke layar monitoring secara instan
     function clearLocalIklanCache() {
         const targetType = (currentTpq === '0') ? 'munaqosah' : 'pra-munaqosah';
         sessionStorage.removeItem('iklanMediaCache_' + targetType + '_' + currentTpq);
         sessionStorage.removeItem('iklanMediaVersion_' + targetType + '_' + currentTpq);
         sessionStorage.removeItem('iklanMediaCache');
         sessionStorage.removeItem('iklanMediaVersion');
+        // Broadcast sinyal perubahan ke tab layar monitoring secara instan (0 delay via storage event)
+        localStorage.setItem('iklanLastChange', Date.now());
     }
 
     // Load tabel data media (sertakan all=1 agar yang nonaktif tetap bisa dikelola)
@@ -433,18 +463,21 @@ $(function() {
                                  '</label>' +
                                  '</div>';
 
-            html += '<tr>';
-            html += '<td class="text-center align-middle">' + (idx + 1) + '</td>';
+            html += '<tr data-id="' + item.id + '" class="iklan-row">';
+            html += '<td class="text-center align-middle drag-handle" title="Tahan dan geser untuk mengatur urutan"><i class="fas fa-grip-vertical text-muted"></i></td>';
+            html += '<td class="text-center align-middle row-number">' + (idx + 1) + '</td>';
             html += '<td class="text-center align-middle">' + preview + '</td>';
             html += '<td class="align-middle"><strong>' + $('<div>').text(item.Judul).html() + '</strong><br>' + detailSub + '</td>';
-            html += '<td class="text-center align-middle">' + targetBadge + '</td>';
-            html += '<td class="text-center align-middle">' + typeBadge + '</td>';
+            html += '<td class="text-center align-middle"><div>' + targetBadge + '</div><div class="mt-1">' + typeBadge + '</div></td>';
             html += '<td class="text-center align-middle">' + statusSwitch + '</td>';
             html += '<td class="text-center align-middle"><button type="button" class="btn btn-danger btn-sm btn-delete" data-id="' + item.id + '" title="Hapus"><i class="fas fa-trash"></i></button></td>';
             html += '</tr>';
         });
 
         $('#tbodyIklan').html(html);
+
+        // Inisialisasi drag-and-drop sortable baris tabel
+        initSortableTable();
 
         // Bind switch status change event (langsung tersimpan ke database via AJAX)
         $('.switch-status').off('change').on('change', function() {
@@ -522,6 +555,85 @@ $(function() {
                 opt.prop('selected', true);
             }
             $sel.append(opt);
+        });
+    }
+
+    function initSortableTable() {
+        if (typeof $.fn.sortable === 'undefined') {
+            console.warn('jQuery UI Sortable belum dimuat.');
+            return;
+        }
+
+        if ($('#tbodyIklan').hasClass('ui-sortable')) {
+            $('#tbodyIklan').sortable('destroy');
+        }
+
+        $('#tbodyIklan').sortable({
+            handle: '.drag-handle',
+            items: 'tr.iklan-row',
+            placeholder: 'iklan-row-placeholder',
+            axis: 'y',
+            cursor: 'grabbing',
+            opacity: 0.85,
+            helper: function(e, tr) {
+                const $originals = tr.children();
+                const $helper = tr.clone();
+                $helper.children().each(function(index) {
+                    $(this).width($originals.eq(index).width());
+                });
+                return $helper;
+            },
+            start: function(e, ui) {
+                ui.placeholder.html('<td colspan="7">&nbsp;</td>');
+            },
+            update: function(e, ui) {
+                // Perbarui visual nomor urut tabel
+                $('#tbodyIklan tr.iklan-row').each(function(index) {
+                    $(this).find('.row-number').text(index + 1);
+                });
+
+                // Kumpulkan urutan ID
+                const orderIds = [];
+                $('#tbodyIklan tr.iklan-row').each(function() {
+                    const id = $(this).data('id');
+                    if (id) {
+                        orderIds.push(id);
+                    }
+                });
+
+                if (orderIds.length <= 1) return;
+
+                // Kirim AJAX reorder
+                $.ajax({
+                    url: reorderUrl,
+                    type: 'POST',
+                    data: { ids: orderIds },
+                    dataType: 'json',
+                    success: function(res) {
+                        if (res.success) {
+                            clearLocalIklanCache();
+                            const Toast = Swal.mixin({
+                                toast: true,
+                                position: 'top-end',
+                                showConfirmButton: false,
+                                timer: 2000,
+                                timerProgressBar: true
+                            });
+                            Toast.fire({
+                                icon: 'success',
+                                title: res.message || 'Urutan media iklan berhasil diperbarui.'
+                            });
+                        } else {
+                            Swal.fire('Gagal!', res.message || 'Gagal menyimpan urutan media.', 'error');
+                            loadTableMedia();
+                        }
+                    },
+                    error: function() {
+                        Swal.fire('Error!', 'Terjadi kesalahan koneksi server saat memperbarui urutan.', 'error');
+                        loadTableMedia();
+                    }
+                });
+            }
         });
     }
 

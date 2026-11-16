@@ -419,6 +419,7 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->post('munaqosah/upload-iklan-ajax', 'Munaqosah::uploadIklanAjax');
     $routes->post('munaqosah/delete-iklan-ajax', 'Munaqosah::deleteIklanAjax');
     $routes->post('munaqosah/toggle-iklan-status-ajax', 'Munaqosah::toggleIklanStatusAjax');
+    $routes->post('munaqosah/reorder-iklan-ajax', 'Munaqosah::reorderIklanAjax');
     $routes->post('munaqosah/update-iklan-settings-ajax', 'Munaqosah::updateIklanSettingsAjax');
     $routes->get('munaqosah/get-antrian-ajax', 'Munaqosah::getAntrianAjax');
     $routes->get('munaqosah/monitoring-antrian-peserta-ruangan-juri', 'Munaqosah::monitoringAntrianPesertaRuanganJuri');

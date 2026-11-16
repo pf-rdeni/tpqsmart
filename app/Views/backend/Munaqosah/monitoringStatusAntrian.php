@@ -1175,6 +1175,11 @@
 
                         // Update antrian per grup
                         updateAntrianPerGrup(response.antrianData);
+
+                        // Cek pembaruan database untuk playlist iklan jika iklan aktif
+                        if (iklanEnabled) {
+                            checkIklanVersion();
+                        }
                     }
                 },
                 error: function(xhr, status, error) {
@@ -1717,14 +1722,14 @@
         // Load media iklan (menggunakan sessionStorage cache terisolasi per type & tpq)
         function loadIklanData() {
             const cachedData = sessionStorage.getItem(cacheKey);
-            const cachedVersion = parseInt(sessionStorage.getItem(cacheVersionKey) || '0');
+            const cachedVersion = sessionStorage.getItem(cacheVersionKey) || '';
 
-            if (cachedData && cachedVersion > 0) {
+            if (cachedData && cachedVersion) {
                 try {
                     iklanMediaList = JSON.parse(cachedData);
                     iklanCacheVersion = cachedVersion;
-                    renderIklanPlayer();
-                    checkIklanVersion(); // Cek versi di background (hanya query 1 integer)
+                    renderIklanPlayer(false);
+                    checkIklanVersion(); // Cek versi di background
                     return;
                 } catch (e) {
                     sessionStorage.removeItem(cacheKey);
@@ -1734,21 +1739,32 @@
             fetchIklanFromServer();
         }
 
+        let isCheckingIklanVersion = false;
         function checkIklanVersion() {
+            if (isCheckingIklanVersion) return;
+            isCheckingIklanVersion = true;
+
             const query = '?tahun=<?= esc($selected_tahun) ?>&type=' + encodeURIComponent(pageType) + '&tpq=' + encodeURIComponent(pageTpq);
             $.ajax({
                 url: iklanVersionUrl + query,
                 type: 'GET',
                 dataType: 'json',
                 success: function(res) {
-                    if (res.success && res.version > 0 && res.version !== iklanCacheVersion) {
+                    if (res.success && res.version && String(res.version) !== String(iklanCacheVersion)) {
                         fetchIklanFromServer();
                     }
+                },
+                complete: function() {
+                    isCheckingIklanVersion = false;
                 }
             });
         }
 
+        let isFetchingIklan = false;
         function fetchIklanFromServer(callback) {
+            if (isFetchingIklan) return;
+            isFetchingIklan = true;
+
             const query = '?tahun=<?= esc($selected_tahun) ?>&type=' + encodeURIComponent(pageType) + '&tpq=' + encodeURIComponent(pageTpq);
             $.ajax({
                 url: iklanListUrl + query,
@@ -1757,26 +1773,58 @@
                 success: function(res) {
                     if (res.success) {
                         iklanMediaList = res.data || [];
-                        iklanCacheVersion = res.version || Date.now();
+                        iklanCacheVersion = String(res.version || Date.now());
                         sessionStorage.setItem(cacheKey, JSON.stringify(iklanMediaList));
                         sessionStorage.setItem(cacheVersionKey, iklanCacheVersion);
                         if (iklanEnabled) {
-                            renderIklanPlayer();
+                            renderIklanPlayer(true);
                         }
                         if (typeof callback === 'function') {
                             callback(iklanMediaList);
                         }
                     }
+                },
+                complete: function() {
+                    isFetchingIklan = false;
                 }
             });
         }
 
-        // Render Slideshow Player
-        function renderIklanPlayer() {
+        // Render Slideshow Player (preserveActive: true jika update dari background agar tidak me-reset video yang sedang tayang)
+        function renderIklanPlayer(preserveActive) {
             const container = $('#iklanSlideContainer');
-            container.find('.iklan-slide').remove();
-            $('#iklanDots').empty();
+            const activeSlide = container.find('.iklan-slide.active');
+            const currentActiveId = activeSlide.length ? parseInt(activeSlide.attr('data-id')) : null;
+
+            if (!iklanMediaList || iklanMediaList.length === 0) {
+                // Bersihkan YT players
+                Object.keys(ytPlayers).forEach(function(key) {
+                    try { if (ytPlayers[key] && typeof ytPlayers[key].destroy === 'function') ytPlayers[key].destroy(); } catch(e) {}
+                });
+                ytPlayers = {};
+                container.find('.iklan-slide').remove();
+                $('#iklanDots').empty();
+                $('#iklanEmptyState').show();
+                $('#iklanSlideInfo').hide();
+                stopIklanTimer();
+                return;
+            }
+
+            $('#iklanEmptyState').hide();
+            $('#iklanSlideInfo').show();
             applyIklanFitClass(iklanFit);
+
+            // Cek apakah media yang sedang tayang masih ada di playlist baru
+            let targetSlideIdx = 0;
+            if (preserveActive && currentActiveId !== null) {
+                const stillExistsIdx = iklanMediaList.findIndex(function(m) { return parseInt(m.id) === currentActiveId; });
+                if (stillExistsIdx >= 0) {
+                    targetSlideIdx = stillExistsIdx;
+                }
+            } else if (iklanMode === 'single' && iklanSingleId > 0) {
+                const targetIdx = iklanMediaList.findIndex(function(m) { return parseInt(m.id) === iklanSingleId; });
+                targetSlideIdx = targetIdx >= 0 ? targetIdx : 0;
+            }
 
             // Bersihkan instance YT.Player lama jika ada
             Object.keys(ytPlayers).forEach(function(key) {
@@ -1788,15 +1836,8 @@
             });
             ytPlayers = {};
 
-            if (!iklanMediaList || iklanMediaList.length === 0) {
-                $('#iklanEmptyState').show();
-                $('#iklanSlideInfo').hide();
-                stopIklanTimer();
-                return;
-            }
-
-            $('#iklanEmptyState').hide();
-            $('#iklanSlideInfo').show();
+            container.find('.iklan-slide').remove();
+            $('#iklanDots').empty();
 
             iklanMediaList.forEach(function(media, idx) {
                 let mediaTag = '';
@@ -1843,15 +1884,10 @@
             // Inisialisasi API YouTube Player
             initYouTubePlayers();
 
-            // Tentukan slide awal
-            if (iklanMode === 'single' && iklanSingleId > 0) {
-                const targetIdx = iklanMediaList.findIndex(function(m) { return parseInt(m.id) === iklanSingleId; });
-                iklanCurrentIndex = targetIdx >= 0 ? targetIdx : 0;
-                goToSlide(iklanCurrentIndex);
+            iklanCurrentIndex = targetSlideIdx;
+            goToSlide(iklanCurrentIndex);
+            if (iklanMode === 'single') {
                 stopIklanTimer();
-            } else {
-                iklanCurrentIndex = 0;
-                goToSlide(0);
             }
         }
 
@@ -2266,6 +2302,20 @@
 
         // Inisialisasi awal UI Iklan
         initIklanUI();
+
+        // Polling berkala (setiap 10 detik) untuk mendeteksi perubahan database iklan secara otomatis
+        setInterval(function() {
+            if (iklanEnabled) {
+                checkIklanVersion();
+            }
+        }, 10000);
+
+        // Deteksi instan jika ada perubahan database dari tab kelola iklan pada browser yang sama (cross-tab sync)
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'iklanLastChange') {
+                checkIklanVersion();
+            }
+        });
     });
 </script>
 <?= $this->endSection() ?>

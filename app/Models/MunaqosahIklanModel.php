@@ -100,22 +100,33 @@ class MunaqosahIklanModel extends Model
     }
 
     /**
-     * Dapatkan versi (timestamp UNIX tertinggi dari UpdatedAt) untuk cache-busting.
+     * Dapatkan versi tanda tangan data aktif untuk deteksi perubahan real-time (tambah, edit, hapus, status aktif/nonaktif, urutan).
      *
-     * @param string $idTpq  ID TPQ spesifik atau '0'
-     * @return int   UNIX timestamp atau 0 jika tidak ada data
+     * @param string      $idTpq  ID TPQ spesifik atau '0'
+     * @param string|null $tahun  Tahun ajaran atau null
+     * @return string     Hash versi unik
      */
-    public function getLatestVersion(string $idTpq = '0'): int
+    public function getLatestVersion(string $idTpq = '0', ?string $tahun = null): string
     {
         $builder = $this->db->table($this->table);
-        $builder->selectMax('UNIX_TIMESTAMP(UpdatedAt)', 'latest_ts');
+        $builder->where('IdTpq', $idTpq);
         $builder->where('IsActive', 1);
 
-        $builder->where('IdTpq', $idTpq);
+        if ($tahun !== null) {
+            $builder->groupStart()
+                        ->where('Tahun', $tahun)
+                        ->orWhere('Tahun IS NULL', null, false)
+                    ->groupEnd();
+        }
 
+        $builder->select("COUNT(*) as total, MAX(UNIX_TIMESTAMP(UpdatedAt)) as latest_ts, GROUP_CONCAT(CONCAT(id, '_', UNIX_TIMESTAMP(UpdatedAt), '_', Urutan) ORDER BY Urutan ASC) as signature");
         $row = $builder->get()->getRowArray();
 
-        return isset($row['latest_ts']) ? (int) $row['latest_ts'] : 0;
+        if (!$row || empty($row['total'])) {
+            return 'empty_0';
+        }
+
+        return md5($row['total'] . '|' . ($row['latest_ts'] ?? 0) . '|' . ($row['signature'] ?? ''));
     }
 
     /**
@@ -135,7 +146,10 @@ class MunaqosahIklanModel extends Model
         foreach ($ids as $position => $id) {
             $this->db->table($this->table)
                      ->where('id', (int) $id)
-                     ->update(['Urutan' => (int) $position]);
+                     ->update([
+                         'Urutan'    => (int) ($position + 1),
+                         'UpdatedAt' => date('Y-m-d H:i:s')
+                     ]);
         }
 
         $this->db->transComplete();

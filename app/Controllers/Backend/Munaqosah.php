@@ -16847,7 +16847,7 @@ class Munaqosah extends BaseController
             $item = $this->formatIklanItem($item);
         }
 
-        $version = $this->munaqosahIklanModel->getLatestVersion((string) $idTpq);
+        $version = $this->munaqosahIklanModel->getLatestVersion((string) $idTpq, (string) $tahun);
 
         return $this->response->setJSON([
             'success' => true,
@@ -16930,6 +16930,34 @@ class Munaqosah extends BaseController
     }
 
     /**
+     * Ubah urutan (reorder) media iklan via Drag and Drop
+     */
+    public function reorderIklanAjax()
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Request harus menggunakan AJAX'
+            ]);
+        }
+
+        $ids = $this->request->getPost('ids');
+        if (!is_array($ids) || empty($ids)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Daftar urutan ID tidak valid'
+            ]);
+        }
+
+        $success = $this->munaqosahIklanModel->reorder($ids);
+
+        return $this->response->setJSON([
+            'success' => $success,
+            'message' => $success ? 'Urutan media iklan berhasil disimpan' : 'Gagal memperbarui urutan media iklan'
+        ]);
+    }
+
+    /**
      * Ambil versi timestamp iklan untuk cache invalidation ringan
      */
     public function getIklanVersionAjax()
@@ -16962,7 +16990,10 @@ class Munaqosah extends BaseController
             }
         }
 
-        $version = $this->munaqosahIklanModel->getLatestVersion((string) $idTpq);
+        $currentTahunAjaran = $this->helpFunction->getTahunAjaranSaatIni();
+        $tahun = $this->request->getGet('tahun') ?? $currentTahunAjaran;
+
+        $version = $this->munaqosahIklanModel->getLatestVersion((string) $idTpq, (string) $tahun);
 
         return $this->response->setJSON([
             'success' => true,
