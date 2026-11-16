@@ -1008,6 +1008,11 @@
         width: 100% !important;
         height: 100% !important;
     }
+    .iklan-slide iframe.iklan-media-item {
+        width: 100% !important;
+        height: 100% !important;
+        border: none !important;
+    }
     .iklan-dot {
         width: 10px;
         height: 10px;
@@ -1615,6 +1620,19 @@
         let iklanCurrentIndex = 0;
         let iklanTimer = null;
         let iklanCacheVersion = 0;
+        let ytPlayers = {};
+
+        // Load YouTube IFrame Player API jika belum ada
+        if (!window.YT) {
+            const ytTag = document.createElement('script');
+            ytTag.src = "https://www.youtube.com/iframe_api";
+            const firstScript = document.getElementsByTagName('script')[0];
+            if (firstScript && firstScript.parentNode) {
+                firstScript.parentNode.insertBefore(ytTag, firstScript);
+            } else {
+                document.head.appendChild(ytTag);
+            }
+        }
 
         let iklanEnabled = localStorage.getItem('monitoringIklanEnabled') !== null 
             ? localStorage.getItem('monitoringIklanEnabled') === 'true' 
@@ -1760,6 +1778,16 @@
             $('#iklanDots').empty();
             applyIklanFitClass(iklanFit);
 
+            // Bersihkan instance YT.Player lama jika ada
+            Object.keys(ytPlayers).forEach(function(key) {
+                try {
+                    if (ytPlayers[key] && typeof ytPlayers[key].destroy === 'function') {
+                        ytPlayers[key].destroy();
+                    }
+                } catch(e) {}
+            });
+            ytPlayers = {};
+
             if (!iklanMediaList || iklanMediaList.length === 0) {
                 $('#iklanEmptyState').show();
                 $('#iklanSlideInfo').hide();
@@ -1772,11 +1800,20 @@
 
             iklanMediaList.forEach(function(media, idx) {
                 let mediaTag = '';
-                if (media.MediaType === 'video') {
+                const srcType = media.SourceType || 'local';
+
+                if (srcType === 'youtube') {
+                    const ytId = media.videoId || '';
+                    const origin = window.location.protocol + '//' + window.location.host;
+                    // Catatan penting: loop=0 agar event ENDED (playerState=0) terpicu saat video selesai
+                    const embedUrl = 'https://www.youtube.com/embed/' + ytId + '?enablejsapi=1&autoplay=0&mute=1&controls=0&rel=0&modestbranding=1&loop=0&origin=' + encodeURIComponent(origin);
+                    mediaTag = '<iframe id="ytPlayer_' + media.id + '" class="iklan-media-item iklan-yt-frame" src="' + embedUrl + '" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>';
+                } else if (media.MediaType === 'video') {
                     mediaTag = '<video src="' + media.url + '" class="iklan-media-item" muted playsinline preload="auto"></video>';
                 } else {
-                    mediaTag = '<div class="iklan-bg-blur" style="background-image: url(\'' + media.url + '\');"></div>' +
-                               '<img src="' + media.url + '" class="iklan-media-item" alt="' + $('<div>').text(media.Judul).html() + '" loading="lazy">';
+                    const imgUrl = media.url;
+                    mediaTag = '<div class="iklan-bg-blur" style="background-image: url(\'' + imgUrl + '\');"></div>' +
+                               '<img src="' + imgUrl + '" class="iklan-media-item" alt="' + $('<div>').text(media.Judul).html() + '" loading="lazy" onerror="this.onerror=null;this.src=\'data:image/svg+xml;utf8,<svg xmlns=\\\'http://www.w3.org/2000/svg\\\' width=\\\'1920\\\' height=\\\'1080\\\'><rect width=\\\'100%\\\' height=\\\'100%\\\' fill=\\\'%23111\\\'/><text x=\\\'50%\\\' y=\\\'50%\\\' fill=\\\'%23777\\\' text-anchor=\\\'middle\\\' dy=\\\'.3em\\\' font-size=\\\'32\\\'>Gagal Memuat Gambar</text></svg>\';">';
                 }
 
                 const slide = $('<div>')
@@ -1784,6 +1821,7 @@
                     .attr('data-index', idx)
                     .attr('data-id', media.id)
                     .attr('data-type', media.MediaType)
+                    .attr('data-source', srcType)
                     .html(mediaTag);
 
                 container.append(slide);
@@ -1802,6 +1840,9 @@
                 $('#iklanDots').append(dot);
             });
 
+            // Inisialisasi API YouTube Player
+            initYouTubePlayers();
+
             // Tentukan slide awal
             if (iklanMode === 'single' && iklanSingleId > 0) {
                 const targetIdx = iklanMediaList.findIndex(function(m) { return parseInt(m.id) === iklanSingleId; });
@@ -1811,9 +1852,69 @@
             } else {
                 iklanCurrentIndex = 0;
                 goToSlide(0);
-                startIklanTimer();
             }
         }
+
+        // Inisialisasi official YouTube IFrame Player API untuk mendeteksi akhir video
+        function initYouTubePlayers() {
+            if (!window.YT || !window.YT.Player) return;
+
+            iklanMediaList.forEach(function(media) {
+                if ((media.SourceType || 'local') === 'youtube') {
+                    const frameId = 'ytPlayer_' + media.id;
+                    const elem = document.getElementById(frameId);
+                    if (elem && !ytPlayers[frameId]) {
+                        try {
+                            ytPlayers[frameId] = new YT.Player(frameId, {
+                                events: {
+                                    'onReady': function(event) {
+                                        try { event.target.mute(); } catch(e) {}
+                                        const parentSlide = $('#' + frameId).closest('.iklan-slide');
+                                        if (parentSlide.hasClass('active')) {
+                                            event.target.playVideo();
+                                        }
+                                    },
+                                    'onStateChange': function(event) {
+                                        // event.data === 0 (YT.PlayerState.ENDED)
+                                        if (event.data === 0) {
+                                            if (iklanEnabled) {
+                                                if (iklanMode === 'single') {
+                                                    try {
+                                                        event.target.seekTo(0);
+                                                        event.target.playVideo();
+                                                    } catch(e) {}
+                                                } else {
+                                                    // Video YouTube telah SELESAI diputar, lanjutkan ke slide berikutnya!
+                                                    nextSlide();
+                                                }
+                                            }
+                                        }
+                                    },
+                                    'onError': function(event) {
+                                        console.warn('YouTube playback error on ' + frameId + ':', event.data);
+                                        // Jika video diblokir/error, pindah slide setelah 3 detik agar tidak macet
+                                        if (iklanEnabled && iklanMode !== 'single') {
+                                            setTimeout(function() {
+                                                const parentSlide = $('#' + frameId).closest('.iklan-slide');
+                                                if (parentSlide.hasClass('active')) {
+                                                    nextSlide();
+                                                }
+                                            }, 3000);
+                                        }
+                                    }
+                                }
+                            });
+                        } catch(err) {
+                            console.warn('Gagal inisialisasi YT.Player:', err);
+                        }
+                    }
+                }
+            });
+        }
+
+        window.onYouTubeIframeAPIReady = function() {
+            initYouTubePlayers();
+        };
 
         function goToSlide(idx) {
             const slides = $('#iklanSlideContainer .iklan-slide');
@@ -1830,26 +1931,86 @@
             currentSlide.addClass('active');
             $(dots[idx]).addClass('active');
 
-            // Handle video playback jika slide adalah video
+            // Hentikan video & YouTube di semua slide yang tidak aktif
             slides.each(function() {
                 const vid = $(this).find('video')[0];
                 if (vid) {
                     vid.pause();
                     vid.currentTime = 0;
                 }
+                const frame = $(this).find('iframe')[0];
+                if (frame) {
+                    const frameId = frame.id;
+                    if (ytPlayers[frameId] && typeof ytPlayers[frameId].pauseVideo === 'function') {
+                        try { ytPlayers[frameId].pauseVideo(); } catch(e) {}
+                    } else if (frame.contentWindow) {
+                        frame.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
+                    }
+                }
             });
 
             const activeVideo = currentSlide.find('video')[0];
+            const activeIframe = currentSlide.find('iframe')[0];
+
             if (activeVideo) {
+                // Video Lokal MP4: Matikan timer slide, tunggu video sampai selesai (ended)
                 stopIklanTimer();
                 activeVideo.play().catch(function() {});
                 $(activeVideo).off('ended').on('ended', function() {
-                    nextSlide();
+                    if (iklanMode === 'single') {
+                        activeVideo.currentTime = 0;
+                        activeVideo.play().catch(function() {});
+                    } else {
+                        nextSlide();
+                    }
                 });
+            } else if (activeIframe) {
+                // Video YouTube: MATIKAN timer slide agar tidak berpindah sebelum video YouTube selesai!
+                stopIklanTimer();
+
+                const frameId = activeIframe.id;
+                if (ytPlayers[frameId] && typeof ytPlayers[frameId].playVideo === 'function') {
+                    try {
+                        ytPlayers[frameId].mute();
+                        ytPlayers[frameId].playVideo();
+                    } catch(e) {}
+                } else if (activeIframe.contentWindow) {
+                    activeIframe.contentWindow.postMessage('{"event":"command","func":"mute","args":""}', '*');
+                    activeIframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+                    activeIframe.contentWindow.postMessage('{"event":"listening"}', '*');
+                }
+            } else {
+                // Slide Gambar (Biasa / Drive / External): Aktifkan timer durasi per slide
+                if (iklanMode !== 'single') {
+                    startIklanTimer();
+                }
             }
 
             updateTimerLabel();
         }
+
+        // Global listener fallback untuk event YouTube iframe API (playerState 0 = ended)
+        window.addEventListener('message', function(e) {
+            try {
+                let data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+                if (data && iklanEnabled) {
+                    const isEnded = (data.event === 'infoDelivery' && data.info && data.info.playerState === 0) ||
+                                    (data.event === 'onStateChange' && data.info === 0);
+                    if (isEnded) {
+                        if (iklanMode === 'single') {
+                            const activeSlide = $('#iklanSlideContainer .iklan-slide.active');
+                            const frame = activeSlide.find('iframe')[0];
+                            if (frame && frame.contentWindow) {
+                                frame.contentWindow.postMessage('{"event":"command","func":"seekTo","args":[0, true]}', '*');
+                                frame.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+                            }
+                        } else {
+                            nextSlide();
+                        }
+                    }
+                }
+            } catch (err) {}
+        });
 
         function nextSlide() {
             if (!iklanMediaList || iklanMediaList.length === 0) return;
@@ -1896,7 +2057,14 @@
             if (iklanMode === 'random') modeText = 'Acak';
             if (iklanMode === 'single') modeText = 'Tetap';
 
-            $('#iklanTimerLabel').text(current + '/' + total + ' · ' + (iklanMode !== 'single' ? iklanInterval + 's (' + modeText + ')' : modeText));
+            const activeSlide = $('#iklanSlideContainer .iklan-slide.active');
+            const isVideo = activeSlide.attr('data-type') === 'video' || activeSlide.attr('data-source') === 'youtube';
+
+            if (isVideo) {
+                $('#iklanTimerLabel').text(current + '/' + total + ' · Video (' + modeText + ')');
+            } else {
+                $('#iklanTimerLabel').text(current + '/' + total + ' · ' + (iklanMode !== 'single' ? iklanInterval + 's (' + modeText + ')' : modeText));
+            }
         }
 
         // -------------------------------------------------------------

@@ -16769,9 +16769,9 @@ class Munaqosah extends BaseController
             }
         }
 
-        $iklanList = $this->munaqosahIklanModel->getActiveByTpq($selectedTpq, (string) $selectedTahun);
+        $iklanList = $this->munaqosahIklanModel->getAllByTpq($selectedTpq, (string) $selectedTahun);
         foreach ($iklanList as &$item) {
-            $item['url'] = base_url('uploads/iklan/' . $item['FileName']);
+            $item = $this->formatIklanItem($item);
         }
 
         $configIdTpq = ($selectedTpq === '0' || empty($selectedTpq)) ? '0' : $selectedTpq;
@@ -16816,6 +16816,7 @@ class Munaqosah extends BaseController
         $currentTahunAjaran = $this->helpFunction->getTahunAjaranSaatIni();
         $tahun = $this->request->getGet('tahun') ?? $currentTahunAjaran;
         $type = $this->request->getGet('type');
+        $all = (bool) $this->request->getGet('all');
 
         $sessionIdTpq = session()->get('IdTpq');
         $isPanitia = in_groups('Panitia');
@@ -16836,9 +16837,14 @@ class Munaqosah extends BaseController
             }
         }
 
-        $items = $this->munaqosahIklanModel->getActiveByTpq((string) $idTpq, (string) $tahun);
+        if ($all) {
+            $items = $this->munaqosahIklanModel->getAllByTpq((string) $idTpq, (string) $tahun);
+        } else {
+            $items = $this->munaqosahIklanModel->getActiveByTpq((string) $idTpq, (string) $tahun);
+        }
+
         foreach ($items as &$item) {
-            $item['url'] = base_url('uploads/iklan/' . $item['FileName']);
+            $item = $this->formatIklanItem($item);
         }
 
         $version = $this->munaqosahIklanModel->getLatestVersion((string) $idTpq);
@@ -16847,6 +16853,79 @@ class Munaqosah extends BaseController
             'success' => true,
             'data'    => $items,
             'version' => $version
+        ]);
+    }
+
+    /**
+     * Helper format item media iklan untuk response JSON & view
+     */
+    private function formatIklanItem(array $item): array
+    {
+        $sourceType = $item['SourceType'] ?? 'local';
+
+        if ($sourceType === 'youtube') {
+            $videoId = $item['FileName'] ?? '';
+            $item['url'] = 'https://www.youtube.com/embed/' . $videoId;
+            $item['thumb'] = 'https://img.youtube.com/vi/' . $videoId . '/mqdefault.jpg';
+            $item['videoId'] = $videoId;
+        } elseif ($sourceType === 'gdrive' || $sourceType === 'external') {
+            $item['url'] = $item['ExternalUrl'] ?? '';
+            $item['thumb'] = $item['ExternalUrl'] ?? '';
+            $item['videoId'] = null;
+        } else {
+            $item['url'] = base_url('uploads/iklan/' . ($item['FileName'] ?? ''));
+            $item['thumb'] = $item['url'];
+            $item['videoId'] = null;
+        }
+
+        $item['IsActive'] = (int) ($item['IsActive'] ?? 1);
+
+        return $item;
+    }
+
+    /**
+     * Ubah status aktif / tidak aktif media iklan secara instan via AJAX
+     */
+    public function toggleIklanStatusAjax()
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Request harus menggunakan AJAX'
+            ]);
+        }
+
+        $id = (int) $this->request->getPost('id');
+        $isActive = (int) $this->request->getPost('is_active');
+
+        $item = $this->munaqosahIklanModel->find($id);
+        if (!$item) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Data iklan tidak ditemukan'
+            ]);
+        }
+
+        // Cek hak akses bila panitia
+        $isPanitia = in_groups('Panitia');
+        $idTpqPanitia = $isPanitia ? $this->getIdTpqFromPanitiaUsername(user()->username) : null;
+        if (!empty($idTpqPanitia) && $idTpqPanitia != 0 && (string)$item['IdTpq'] !== (string)$idTpqPanitia) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Anda tidak memiliki hak akses mengubah iklan ini'
+            ]);
+        }
+
+        $newStatus = ($isActive === 1) ? 1 : 0;
+        $this->munaqosahIklanModel->update($id, [
+            'IsActive'  => $newStatus,
+            'UpdatedAt' => date('Y-m-d H:i:s')
+        ]);
+
+        return $this->response->setJSON([
+            'success'   => true,
+            'is_active' => $newStatus,
+            'message'   => 'Status iklan berhasil diubah menjadi ' . ($newStatus === 1 ? 'Aktif' : 'Tidak Aktif')
         ]);
     }
 
@@ -16892,7 +16971,7 @@ class Munaqosah extends BaseController
     }
 
     /**
-     * Upload media iklan (gambar landscape 16:9 / video mp4 jika aktif)
+     * Upload / Simpan media iklan (berkas lokal, video YouTube, Google Drive, atau URL gambar eksternal)
      */
     public function uploadIklanAjax()
     {
@@ -16927,71 +17006,129 @@ class Munaqosah extends BaseController
             $judul = 'Iklan Monitoring ' . date('Y-m-d H:i');
         }
 
-        $file = $this->request->getFile('iklan_file');
-        if (!$file || !$file->isValid()) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => $file ? $file->getErrorString() : 'File tidak ditemukan'
-            ]);
+        $sourceType = $this->request->getPost('source_type') ?? 'local';
+        $newFileName = null;
+        $externalUrl = null;
+        $mediaType = 'image';
+
+        if ($sourceType === 'youtube') {
+            $youtubeUrl = trim((string) $this->request->getPost('youtube_url'));
+            if (empty($youtubeUrl)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'URL YouTube tidak boleh kosong'
+                ]);
+            }
+            if (preg_match('/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/|youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/i', $youtubeUrl, $matches)) {
+                $videoId = $matches[1];
+                $mediaType = 'video';
+                $newFileName = $videoId;
+                $externalUrl = 'https://www.youtube.com/embed/' . $videoId;
+            } else {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Format URL YouTube tidak valid. Contoh: https://youtu.be/xxxx atau https://www.youtube.com/watch?v=xxxx'
+                ]);
+            }
+        } elseif ($sourceType === 'gdrive') {
+            $gdriveUrl = trim((string) $this->request->getPost('gdrive_url'));
+            if (empty($gdriveUrl)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Link Google Drive tidak boleh kosong'
+                ]);
+            }
+            if (preg_match('/\/file\/d\/([a-zA-Z0-9_-]+)/i', $gdriveUrl, $matches) || preg_match('/[?&]id=([a-zA-Z0-9_-]+)/i', $gdriveUrl, $matches)) {
+                $fileId = $matches[1];
+                $mediaType = 'image';
+                $newFileName = $fileId;
+                $externalUrl = 'https://lh3.googleusercontent.com/d/' . $fileId . '=w1920-h1080';
+            } else {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Link Google Drive tidak valid. Gunakan format link share publik: https://drive.google.com/file/d/ID_FILE/view'
+                ]);
+            }
+        } elseif ($sourceType === 'external') {
+            $rawUrl = trim((string) $this->request->getPost('external_url'));
+            if (empty($rawUrl) || !filter_var($rawUrl, FILTER_VALIDATE_URL)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'URL Gambar eksternal tidak valid'
+                ]);
+            }
+            $mediaType = 'image';
+            $newFileName = basename(parse_url($rawUrl, PHP_URL_PATH)) ?: 'gambar_eksternal';
+            $externalUrl = $rawUrl;
+        } else {
+            // Local file upload
+            $sourceType = 'local';
+            $file = $this->request->getFile('iklan_file');
+            if (!$file || !$file->isValid()) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => $file ? $file->getErrorString() : 'File tidak ditemukan'
+                ]);
+            }
+
+            $configIdTpq = ($idTpq === '0') ? '0' : $idTpq;
+            $videoEnabled = $this->munaqosahKonfigurasiModel->getSetting($configIdTpq, 'Monitoring_Iklan_VideoEnabled');
+            $allowedExts = ['jpg', 'jpeg', 'png', 'webp'];
+            $maxSizeKb = 5120; // 5MB
+
+            if ($videoEnabled) {
+                $allowedExts[] = 'mp4';
+                $maxSizeKb = 25600; // 25MB
+            }
+
+            $ext = strtolower($file->getExtension());
+            if (!in_array($ext, $allowedExts, true)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Format file tidak diizinkan. Hanya: ' . implode(', ', $allowedExts)
+                ]);
+            }
+
+            if ($file->getSizeByUnit('kb') > $maxSizeKb) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Ukuran file melebihi batas maksimal (' . ($maxSizeKb / 1024) . ' MB)'
+                ]);
+            }
+
+            $uploadDir = FCPATH . 'uploads/iklan/';
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0755, true);
+            }
+
+            $newFileName = 'iklan_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
+            $file->move($uploadDir, $newFileName);
+            $mediaType = ($ext === 'mp4') ? 'video' : 'image';
         }
-
-        // Cek apakah video diizinkan untuk target TPQ ini
-        $configIdTpq = ($idTpq === '0') ? '0' : $idTpq;
-        $videoEnabled = $this->munaqosahKonfigurasiModel->getSetting($configIdTpq, 'Monitoring_Iklan_VideoEnabled');
-        $allowedExts = ['jpg', 'jpeg', 'png', 'webp'];
-        $maxSizeKb = 5120; // 5MB
-
-        if ($videoEnabled) {
-            $allowedExts[] = 'mp4';
-            $maxSizeKb = 25600; // 25MB
-        }
-
-        $ext = strtolower($file->getExtension());
-        if (!in_array($ext, $allowedExts, true)) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Format file tidak diizinkan. Hanya: ' . implode(', ', $allowedExts)
-            ]);
-        }
-
-        if ($file->getSizeByUnit('kb') > $maxSizeKb) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Ukuran file melebihi batas maksimal (' . ($maxSizeKb / 1024) . ' MB)'
-            ]);
-        }
-
-        $uploadDir = FCPATH . 'uploads/iklan/';
-        if (!is_dir($uploadDir)) {
-            mkdir($uploadDir, 0755, true);
-        }
-
-        $newFileName = 'iklan_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
-        $file->move($uploadDir, $newFileName);
 
         // Hitung max urutan untuk target TPQ tersebut
         $maxOrder = $this->db->table('tbl_munaqosah_iklan')->where('IdTpq', (string)$idTpq)->selectMax('Urutan', 'max_order')->get()->getRowArray();
         $nextOrder = isset($maxOrder['max_order']) ? ((int) $maxOrder['max_order'] + 1) : 1;
 
-        $mediaType = ($ext === 'mp4') ? 'video' : 'image';
-
         $insertData = [
-            'IdTpq'     => (string) $idTpq,
-            'Tahun'     => (string) $tahun,
-            'Judul'     => $judul,
-            'FileName'  => $newFileName,
-            'MediaType' => $mediaType,
-            'Urutan'    => $nextOrder,
-            'IsActive'  => 1,
-            'CreatedAt' => date('Y-m-d H:i:s'),
-            'UpdatedAt' => date('Y-m-d H:i:s')
+            'IdTpq'       => (string) $idTpq,
+            'Tahun'       => (string) $tahun,
+            'Judul'       => $judul,
+            'FileName'    => $newFileName,
+            'MediaType'   => $mediaType,
+            'SourceType'  => $sourceType,
+            'ExternalUrl' => $externalUrl,
+            'Urutan'      => $nextOrder,
+            'IsActive'    => 1,
+            'CreatedAt'   => date('Y-m-d H:i:s'),
+            'UpdatedAt'   => date('Y-m-d H:i:s')
         ];
 
         $this->munaqosahIklanModel->insert($insertData);
 
         return $this->response->setJSON([
             'success' => true,
-            'message' => 'Iklan berhasil diunggah'
+            'message' => 'Media iklan berhasil disimpan'
         ]);
     }
 
@@ -17017,9 +17154,11 @@ class Munaqosah extends BaseController
             ]);
         }
 
-        $filePath = FCPATH . 'uploads/iklan/' . $item['FileName'];
-        if (file_exists($filePath) && is_file($filePath)) {
-            unlink($filePath);
+        if (($item['SourceType'] ?? 'local') === 'local' && !empty($item['FileName'])) {
+            $filePath = FCPATH . 'uploads/iklan/' . $item['FileName'];
+            if (file_exists($filePath) && is_file($filePath)) {
+                unlink($filePath);
+            }
         }
 
         $this->munaqosahIklanModel->delete($id);

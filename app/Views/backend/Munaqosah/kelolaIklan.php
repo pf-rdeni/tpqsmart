@@ -81,23 +81,79 @@
                         <input type="hidden" name="tpq" value="<?= esc($selectedTpq) ?>">
                         <input type="hidden" name="tahun" value="<?= esc($selectedTahun) ?>">
 
-                        <div class="form-group">
-                            <label class="font-weight-bold">File Media <span class="text-danger">*</span></label>
-                            <div class="custom-file">
-                                <input type="file" class="custom-file-input" id="iklanFileInput" name="iklan_file" accept=".jpg,.jpeg,.png,.webp,.mp4" required>
-                                <label class="custom-file-label" for="iklanFileInput">Pilih file gambar (16:9)...</label>
+                        <!-- Pemilihan Sumber Media -->
+                        <div class="form-group mb-3">
+                            <label class="font-weight-bold d-block">Sumber Media Iklan:</label>
+                            <div class="btn-group btn-group-toggle w-100" data-toggle="buttons" id="sourceTypeGroup">
+                                <label class="btn btn-outline-primary active btn-sm">
+                                    <input type="radio" name="source_type" value="local" checked> <i class="fas fa-file-upload mr-1"></i> Berkas
+                                </label>
+                                <label class="btn btn-outline-danger btn-sm">
+                                    <input type="radio" name="source_type" value="youtube"> <i class="fab fa-youtube mr-1"></i> YouTube
+                                </label>
+                                <label class="btn btn-outline-warning text-dark btn-sm">
+                                    <input type="radio" name="source_type" value="gdrive"> <i class="fab fa-google-drive mr-1"></i> G-Drive
+                                </label>
+                                <label class="btn btn-outline-info btn-sm">
+                                    <input type="radio" name="source_type" value="external"> <i class="fas fa-link mr-1"></i> Link Gambar
+                                </label>
                             </div>
-                            <small class="form-text text-muted">
-                                Format gambar: <strong>JPG, PNG, WebP</strong> (maks. 5MB, disarankan lanskap 16:9).<br>
-                                Format video: <strong>MP4</strong> (maks. 25MB) aktif jika opsi video diaktifkan.
-                            </small>
                         </div>
+
+                        <!-- 1. Input Berkas Lokal -->
+                        <div class="source-container" id="sourceLocal">
+                            <div class="form-group">
+                                <label class="font-weight-bold">File Media <span class="text-danger">*</span></label>
+                                <div class="custom-file">
+                                    <input type="file" class="custom-file-input" id="iklanFileInput" name="iklan_file" accept=".jpg,.jpeg,.png,.webp,.mp4" required>
+                                    <label class="custom-file-label" for="iklanFileInput">Pilih file gambar (16:9)...</label>
+                                </div>
+                                <small class="form-text text-muted">
+                                    Format gambar: <strong>JPG, PNG, WebP</strong> (maks. 5MB, disarankan lanskap 16:9).<br>
+                                    Format video: <strong>MP4</strong> (maks. 25MB) aktif jika opsi video diaktifkan.
+                                </small>
+                            </div>
+                        </div>
+
+                        <!-- 2. Input YouTube -->
+                        <div class="source-container" id="sourceYoutube" style="display: none;">
+                            <div class="form-group">
+                                <label class="font-weight-bold text-danger"><i class="fab fa-youtube mr-1"></i> Tautan Video YouTube <span class="text-danger">*</span></label>
+                                <input type="url" class="form-control" name="youtube_url" id="iklanYoutubeUrl" placeholder="Contoh: https://www.youtube.com/watch?v=xxxx atau https://youtu.be/xxxx">
+                                <small class="form-text text-muted">
+                                    Mendukung video YouTube biasa atau YouTube Shorts. Video akan diputar otomatis tanpa kontrol tombol.
+                                </small>
+                            </div>
+                        </div>
+
+                        <!-- 3. Input Google Drive -->
+                        <div class="source-container" id="sourceGdrive" style="display: none;">
+                            <div class="form-group">
+                                <label class="font-weight-bold text-warning text-dark"><i class="fab fa-google-drive mr-1"></i> Link Gambar Google Drive <span class="text-danger">*</span></label>
+                                <input type="url" class="form-control" name="gdrive_url" id="iklanGdriveUrl" placeholder="Contoh: https://drive.google.com/file/d/xxxx/view?usp=sharing">
+                                <small class="form-text text-muted">
+                                    Pastikan hak akses file di Google Drive diset publik (<strong>Anyone with the link / Siapa saja yang memiliki link</strong>).
+                                </small>
+                            </div>
+                        </div>
+
+                        <!-- 4. Input URL Gambar Eksternal -->
+                        <div class="source-container" id="sourceExternal" style="display: none;">
+                            <div class="form-group">
+                                <label class="font-weight-bold text-info"><i class="fas fa-link mr-1"></i> Tautan URL Gambar Langsung <span class="text-danger">*</span></label>
+                                <input type="url" class="form-control" name="external_url" id="iklanExternalUrl" placeholder="Contoh: https://domain-lembaga.com/poster.jpg">
+                                <small class="form-text text-muted">
+                                    Tautan langsung file gambar dari internet (format .jpg, .png, .webp).
+                                </small>
+                            </div>
+                        </div>
+
                         <div class="form-group">
                             <label class="font-weight-bold">Judul / Keterangan <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" name="judul" id="iklanJudul" placeholder="Contoh: Brosur PSB TPQ Smart TA <?= esc($selectedTahun) ?>" required>
                         </div>
                         <button type="submit" class="btn btn-primary btn-block" id="btnSubmitUpload">
-                            <i class="fas fa-upload mr-1"></i> Unggah Media untuk <?= ($selectedTpq === '0') ? 'Munaqosah' : 'Pra-Munaqosah' ?>
+                            <i class="fas fa-save mr-1"></i> Simpan Media untuk <?= ($selectedTpq === '0') ? 'Munaqosah' : 'Pra-Munaqosah' ?>
                         </button>
                     </form>
                 </div>
@@ -207,14 +263,15 @@
                                     <th style="width: 40px;" class="text-center">No</th>
                                     <th style="width: 90px;" class="text-center">Preview</th>
                                     <th>Judul & Berkas</th>
-                                    <th style="width: 140px;" class="text-center">Target Ujian</th>
+                                    <th style="width: 130px;" class="text-center">Target Ujian</th>
                                     <th style="width: 70px;" class="text-center">Tipe</th>
-                                    <th style="width: 70px;" class="text-center">Aksi</th>
+                                    <th style="width: 110px;" class="text-center">Status</th>
+                                    <th style="width: 60px;" class="text-center">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody id="tbodyIklan">
                                 <tr>
-                                    <td colspan="6" class="text-center py-4 text-muted">
+                                    <td colspan="7" class="text-center py-4 text-muted">
                                         <i class="fas fa-spinner fa-spin mr-1"></i> Memuat data media...
                                     </td>
                                 </tr>
@@ -246,6 +303,7 @@ $(function() {
     const uploadUrl = '<?= base_url('backend/munaqosah/upload-iklan-ajax') ?>';
     const deleteUrl = '<?= base_url('backend/munaqosah/delete-iklan-ajax') ?>';
     const settingsUrl = '<?= base_url('backend/munaqosah/update-iklan-settings-ajax') ?>';
+    const toggleStatusUrl = '<?= base_url('backend/munaqosah/toggle-iklan-status-ajax') ?>';
 
     const currentTpq = '<?= esc($selectedTpq) ?>';
     const currentTahun = '<?= esc($selectedTahun) ?>';
@@ -259,6 +317,31 @@ $(function() {
         });
     }
 
+    // Source Type Switcher Handler
+    $('input[name="source_type"]').on('change', function() {
+        const val = $(this).val();
+        $('.source-container').hide();
+
+        $('#iklanFileInput').prop('required', false);
+        $('#iklanYoutubeUrl').prop('required', false);
+        $('#iklanGdriveUrl').prop('required', false);
+        $('#iklanExternalUrl').prop('required', false);
+
+        if (val === 'local') {
+            $('#sourceLocal').slideDown(200);
+            $('#iklanFileInput').prop('required', true);
+        } else if (val === 'youtube') {
+            $('#sourceYoutube').slideDown(200);
+            $('#iklanYoutubeUrl').prop('required', true);
+        } else if (val === 'gdrive') {
+            $('#sourceGdrive').slideDown(200);
+            $('#iklanGdriveUrl').prop('required', true);
+        } else if (val === 'external') {
+            $('#sourceExternal').slideDown(200);
+            $('#iklanExternalUrl').prop('required', true);
+        }
+    });
+
     // Helper untuk invalidate cache
     function clearLocalIklanCache() {
         const targetType = (currentTpq === '0') ? 'munaqosah' : 'pra-munaqosah';
@@ -268,35 +351,47 @@ $(function() {
         sessionStorage.removeItem('iklanMediaVersion');
     }
 
-    // Load tabel data media
+    // Load tabel data media (sertakan all=1 agar yang nonaktif tetap bisa dikelola)
     window.loadTableMedia = function() {
-        $('#tbodyIklan').html('<tr><td colspan="6" class="text-center py-4 text-muted"><i class="fas fa-spinner fa-spin mr-1"></i> Memuat data media...</td></tr>');
-        const query = '?tahun=' + encodeURIComponent(currentTahun) + '&tpq=' + encodeURIComponent(currentTpq);
+        $('#tbodyIklan').html('<tr><td colspan="7" class="text-center py-4 text-muted"><i class="fas fa-spinner fa-spin mr-1"></i> Memuat data media...</td></tr>');
+        const query = '?tahun=' + encodeURIComponent(currentTahun) + '&tpq=' + encodeURIComponent(currentTpq) + '&all=1';
         $.getJSON(listUrl + query, function(res) {
             if (res.success) {
                 renderTable(res.data);
                 updateSingleSelectOptions(res.data);
             } else {
-                $('#tbodyIklan').html('<tr><td colspan="6" class="text-center py-4 text-danger">Gagal memuat media iklan.</td></tr>');
+                $('#tbodyIklan').html('<tr><td colspan="7" class="text-center py-4 text-danger">Gagal memuat media iklan.</td></tr>');
             }
         }).fail(function() {
-            $('#tbodyIklan').html('<tr><td colspan="6" class="text-center py-4 text-danger">Terjadi kesalahan koneksi server.</td></tr>');
+            $('#tbodyIklan').html('<tr><td colspan="7" class="text-center py-4 text-danger">Terjadi kesalahan koneksi server.</td></tr>');
         });
     };
 
     function renderTable(data) {
         if (!data || data.length === 0) {
-            $('#tbodyIklan').html('<tr><td colspan="6" class="text-center py-4 text-muted"><i class="fas fa-info-circle mr-1"></i> Belum ada media iklan untuk target ini. Silakan upload melalui form di sebelah kiri.</td></tr>');
+            $('#tbodyIklan').html('<tr><td colspan="7" class="text-center py-4 text-muted"><i class="fas fa-info-circle mr-1"></i> Belum ada media iklan untuk target ini. Silakan upload melalui form di sebelah kiri.</td></tr>');
             return;
         }
 
         let html = '';
         data.forEach(function(item, idx) {
             let preview = '';
-            if (item.MediaType === 'video') {
+            const srcType = item.SourceType || 'local';
+            const thumbUrl = item.thumb || item.url;
+            const viewUrl = item.url;
+            const isActive = parseInt(item.IsActive) === 1;
+
+            if (srcType === 'youtube') {
+                const ytWatch = 'https://www.youtube.com/watch?v=' + (item.videoId || '');
+                preview = '<a href="' + ytWatch + '" target="_blank" title="Lihat di YouTube">' +
+                          '<img src="' + thumbUrl + '" class="iklan-thumb" alt="' + $('<div>').text(item.Judul).html() + '">' +
+                          '</a>';
+            } else if (item.MediaType === 'video') {
                 preview = '<span class="badge badge-secondary p-2"><i class="fas fa-film mr-1"></i> Video</span>';
             } else {
-                preview = '<a href="' + item.url + '" target="_blank" title="Lihat ukuran penuh"><img src="' + item.url + '" class="iklan-thumb" alt="' + $('<div>').text(item.Judul).html() + '"></a>';
+                preview = '<a href="' + viewUrl + '" target="_blank" title="Lihat ukuran penuh">' +
+                          '<img src="' + thumbUrl + '" class="iklan-thumb" alt="' + $('<div>').text(item.Judul).html() + '" onerror="this.onerror=null;this.src=\'data:image/svg+xml;utf8,<svg xmlns=\\\'http://www.w3.org/2000/svg\\\' width=\\\'85\\\' height=\\\'50\\\'><rect width=\\\'100%\\\' height=\\\'100%\\\' fill=\\\'%23eee\\\'/><text x=\\\'50%\\\' y=\\\'50%\\\' fill=\\\'%23999\\\' text-anchor=\\\'middle\\\' dy=\\\'.3em\\\' font-size=\\\'10\\\'>Gambar</text></svg>\';">' +
+                          '</a>';
             }
 
             let targetBadge = '';
@@ -306,17 +401,95 @@ $(function() {
                 targetBadge = '<span class="badge badge-info"><i class="fas fa-mosque mr-1"></i> Pra-Munaqosah (' + item.IdTpq + ')</span>';
             }
 
+            let typeBadge = '';
+            if (srcType === 'youtube') {
+                typeBadge = '<span class="badge badge-danger"><i class="fab fa-youtube mr-1"></i> YouTube</span>';
+            } else if (srcType === 'gdrive') {
+                typeBadge = '<span class="badge badge-warning text-dark"><i class="fab fa-google-drive mr-1"></i> G-Drive</span>';
+            } else if (srcType === 'external') {
+                typeBadge = '<span class="badge badge-info"><i class="fas fa-link mr-1"></i> Web Link</span>';
+            } else if (item.MediaType === 'video') {
+                typeBadge = '<span class="badge badge-primary"><i class="fas fa-film mr-1"></i> Video MP4</span>';
+            } else {
+                typeBadge = '<span class="badge badge-secondary"><i class="fas fa-image mr-1"></i> Berkas</span>';
+            }
+
+            let detailSub = '';
+            if (srcType === 'youtube') {
+                detailSub = '<small class="text-danger"><i class="fab fa-youtube mr-1"></i> ID: ' + (item.videoId || '-') + '</small>';
+            } else if (srcType === 'gdrive') {
+                detailSub = '<small class="text-warning text-dark"><i class="fab fa-google-drive mr-1"></i> Google Drive</small>';
+            } else if (srcType === 'external') {
+                detailSub = '<small class="text-info text-truncate d-inline-block" style="max-width: 250px;" title="' + item.ExternalUrl + '"><i class="fas fa-link mr-1"></i> ' + item.ExternalUrl + '</small>';
+            } else {
+                detailSub = '<small class="text-muted"><i class="fas fa-file mr-1"></i> ' + (item.FileName || '-') + '</small>';
+            }
+
+            // Switch toggle status Aktif / Tidak Aktif
+            const statusSwitch = '<div class="custom-control custom-switch" title="Klik untuk mengaktifkan / menonaktifkan">' +
+                                 '<input type="checkbox" class="custom-control-input switch-status" id="switchStatus_' + item.id + '" data-id="' + item.id + '" ' + (isActive ? 'checked' : '') + '>' +
+                                 '<label class="custom-control-label font-weight-bold ' + (isActive ? 'text-success' : 'text-muted') + '" for="switchStatus_' + item.id + '" id="labelStatus_' + item.id + '">' +
+                                 (isActive ? 'Aktif' : 'Tidak Aktif') +
+                                 '</label>' +
+                                 '</div>';
+
             html += '<tr>';
             html += '<td class="text-center align-middle">' + (idx + 1) + '</td>';
             html += '<td class="text-center align-middle">' + preview + '</td>';
-            html += '<td class="align-middle"><strong>' + $('<div>').text(item.Judul).html() + '</strong><br><small class="text-muted">' + item.FileName + '</small></td>';
+            html += '<td class="align-middle"><strong>' + $('<div>').text(item.Judul).html() + '</strong><br>' + detailSub + '</td>';
             html += '<td class="text-center align-middle">' + targetBadge + '</td>';
-            html += '<td class="text-center align-middle"><span class="badge ' + (item.MediaType === 'video' ? 'badge-primary' : 'badge-secondary') + '">' + item.MediaType + '</span></td>';
+            html += '<td class="text-center align-middle">' + typeBadge + '</td>';
+            html += '<td class="text-center align-middle">' + statusSwitch + '</td>';
             html += '<td class="text-center align-middle"><button type="button" class="btn btn-danger btn-sm btn-delete" data-id="' + item.id + '" title="Hapus"><i class="fas fa-trash"></i></button></td>';
             html += '</tr>';
         });
 
         $('#tbodyIklan').html(html);
+
+        // Bind switch status change event (langsung tersimpan ke database via AJAX)
+        $('.switch-status').off('change').on('change', function() {
+            const $switch = $(this);
+            const id = $switch.data('id');
+            const isChecked = $switch.is(':checked');
+            const $label = $('#labelStatus_' + id);
+            const newStatusVal = isChecked ? 1 : 0;
+
+            $switch.prop('disabled', true);
+
+            $.post(toggleStatusUrl, {
+                id: id,
+                is_active: newStatusVal
+            }, function(res) {
+                $switch.prop('disabled', false);
+                if (res.success) {
+                    clearLocalIklanCache();
+                    if (isChecked) {
+                        $label.text('Aktif').removeClass('text-muted').addClass('text-success font-weight-bold');
+                    } else {
+                        $label.text('Tidak Aktif').removeClass('text-success font-weight-bold').addClass('text-muted');
+                    }
+
+                    const Toast = Swal.mixin({
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 2000,
+                        timerProgressBar: true
+                    });
+                    Toast.fire({
+                        icon: 'success',
+                        title: res.message || 'Status iklan berhasil disimpan.'
+                    });
+                } else {
+                    $switch.prop('checked', !isChecked);
+                    Swal.fire('Gagal!', res.message || 'Gagal mengubah status iklan.', 'error');
+                }
+            }, 'json').fail(function() {
+                $switch.prop('disabled', false);
+                $switch.prop('checked', !isChecked);
+                Swal.fire('Error!', 'Terjadi kesalahan koneksi server saat mengubah status.', 'error');
+            });
+        });
 
         // Bind delete event
         $('.btn-delete').on('click', function() {
@@ -343,7 +516,8 @@ $(function() {
         const currentVal = $sel.val();
         $sel.find('option:not(:first)').remove();
         data.forEach(function(item) {
-            const opt = $('<option>').val(item.id).text(item.Judul + ' (' + item.MediaType + ')');
+            const srcLabel = (item.SourceType && item.SourceType !== 'local') ? (' - ' + item.SourceType.toUpperCase()) : '';
+            const opt = $('<option>').val(item.id).text(item.Judul + ' (' + item.MediaType + srcLabel + ')');
             if (item.id == currentVal) {
                 opt.prop('selected', true);
             }
@@ -388,7 +562,7 @@ $(function() {
         formData.set('tpq', currentTpq);
 
         const $btn = $('#btnSubmitUpload');
-        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-1"></i> Mengunggah...');
+        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-1"></i> Menyimpan...');
 
         $.ajax({
             url: uploadUrl,
@@ -398,20 +572,26 @@ $(function() {
             contentType: false,
             dataType: 'json',
             success: function(res) {
-                $btn.prop('disabled', false).html('<i class="fas fa-upload mr-1"></i> Unggah Media');
+                $btn.prop('disabled', false).html('<i class="fas fa-save mr-1"></i> Simpan Media untuk ' + (currentTpq === '0' ? 'Munaqosah' : 'Pra-Munaqosah'));
                 if (res.success) {
-                    Swal.fire('Berhasil!', res.message || 'Media iklan berhasil diunggah.', 'success');
+                    Swal.fire('Berhasil!', res.message || 'Media iklan berhasil disimpan.', 'success');
                     clearLocalIklanCache();
                     $('#formUploadIklan')[0].reset();
                     $('.custom-file-label').text('Pilih file gambar (16:9)...');
+
+                    // Reset radio to local
+                    $('input[name="source_type"][value="local"]').prop('checked', true).trigger('change');
+                    $('#sourceTypeGroup label').removeClass('active');
+                    $('#sourceTypeGroup label:first').addClass('active');
+
                     loadTableMedia();
                 } else {
-                    Swal.fire('Gagal!', res.message || 'Gagal mengunggah media.', 'error');
+                    Swal.fire('Gagal!', res.message || 'Gagal menyimpan media.', 'error');
                 }
             },
             error: function() {
-                $btn.prop('disabled', false).html('<i class="fas fa-upload mr-1"></i> Unggah Media');
-                Swal.fire('Error!', 'Terjadi kesalahan server saat mengunggah file.', 'error');
+                $btn.prop('disabled', false).html('<i class="fas fa-save mr-1"></i> Simpan Media untuk ' + (currentTpq === '0' ? 'Munaqosah' : 'Pra-Munaqosah'));
+                Swal.fire('Error!', 'Terjadi kesalahan server saat menyimpan data.', 'error');
             }
         });
     });

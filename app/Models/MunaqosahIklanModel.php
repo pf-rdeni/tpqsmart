@@ -15,6 +15,8 @@ class MunaqosahIklanModel extends Model
         'Judul',
         'FileName',
         'MediaType',
+        'SourceType',
+        'ExternalUrl',
         'Urutan',
         'IsActive',
         'CreatedAt',
@@ -26,16 +28,42 @@ class MunaqosahIklanModel extends Model
     protected $updatedField   = 'UpdatedAt';
 
     protected $validationRules = [
-        'Judul'     => 'required|max_length[255]',
-        'FileName'  => 'required|max_length[255]',
-        'MediaType' => 'permit_empty|in_list[image,video]',
-        'IdTpq'     => 'permit_empty|max_length[50]',
-        'Tahun'     => 'permit_empty|max_length[20]',
+        'Judul'       => 'required|max_length[255]',
+        'FileName'    => 'permit_empty|max_length[255]',
+        'MediaType'   => 'permit_empty|in_list[image,video,youtube]',
+        'SourceType'  => 'permit_empty|in_list[local,youtube,gdrive,external]',
+        'ExternalUrl' => 'permit_empty',
+        'IdTpq'       => 'permit_empty|max_length[50]',
+        'Tahun'       => 'permit_empty|max_length[20]',
     ];
 
     // -------------------------------------------------------------------------
     // Public Methods
     // -------------------------------------------------------------------------
+
+    /**
+     * Ambil semua iklan (aktif & tidak aktif) berdasarkan IdTpq untuk halaman manajemen.
+     *
+     * @param string      $idTpq  ID TPQ spesifik atau '0' (semua TPQ)
+     * @param string|null $tahun  Tahun ajaran atau null untuk semua tahun
+     * @return array
+     */
+    public function getAllByTpq(string $idTpq = '0', ?string $tahun = null): array
+    {
+        $builder = $this->db->table($this->table);
+        $builder->where('IdTpq', $idTpq);
+
+        if ($tahun !== null) {
+            $builder->groupStart()
+                        ->where('Tahun', $tahun)
+                        ->orWhere('Tahun IS NULL', null, false)
+                    ->groupEnd();
+        }
+
+        $builder->orderBy('Urutan', 'ASC');
+
+        return $builder->get()->getResultArray();
+    }
 
     /**
      * Ambil iklan aktif berdasarkan IdTpq (dan opsional Tahun).
