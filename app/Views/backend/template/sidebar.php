@@ -512,6 +512,12 @@
                                     </a>
                                 </li>
                                 <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/munaqosah/iklan') ?> class="nav-link">
+                                        <i class="fas fa-images nav-icon text-warning"></i>
+                                        <p>Kelola Iklan</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
                                     <a href=<?php echo base_url('backend/munaqosah/juri') ?> class="nav-link">
                                         <i class="fas fa-user-tie nav-icon text-warning"></i>
                                         <p>Data Juri dan Panitia</p>
@@ -574,6 +580,12 @@
                                     <a href=<?php echo base_url('backend/munaqosah/monitoring?type=munaqosah&tpq=0') ?> class="nav-link">
                                         <i class="fas fa-chart-line nav-icon text-warning"></i>
                                         <p>Monitoring Munaqosah</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href=<?php echo base_url('backend/munaqosah/iklan') ?> class="nav-link">
+                                        <i class="fas fa-images nav-icon text-warning"></i>
+                                        <p>Kelola Iklan</p>
                                     </a>
                                 </li>
                             <?php endif; ?>

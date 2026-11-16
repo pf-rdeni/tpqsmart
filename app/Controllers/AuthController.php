@@ -140,6 +140,45 @@ class AuthController extends MythAuthController
             }
         }
 
+        // Cek apakah user adalah Panitia (Panitia Munaqosah Pusat / Panitia TPQ)
+        if (in_groups('Panitia')) {
+            try {
+                $username = user()->username ?? '';
+                $idTpq = '0';
+
+                // Format: panitia.munaqosah = 0
+                // Jika di akhir ada 3 digit (atau panitia.munaqosah.215, panitia.munaqosah.215.1, panitia.munaqosah215):
+                // itu untuk TPQ sendiri (3 digit kode TPQ)
+                if (preg_match('/panitia\.munaqosah[\._-]?(\d{3})(?:\D|$)/', $username, $matches)) {
+                    $idTpqTrim = $matches[1];
+                    $db = \Config\Database::connect();
+                    $tpqData = $db->table('tbl_tpq')
+                        ->select('IdTpq')
+                        ->where("SUBSTRING(CAST(IdTpq AS CHAR), -3) =", $idTpqTrim)
+                        ->get()
+                        ->getRowArray();
+                    if (!$tpqData) {
+                        $tpqData = $db->table('tbl_tpq')
+                            ->select('IdTpq')
+                            ->like('IdTpq', $idTpqTrim, 'both')
+                            ->get()
+                            ->getRowArray();
+                    }
+                    if ($tpqData) {
+                        $idTpq = (string) $tpqData['IdTpq'];
+                    }
+                }
+
+                session()->set('IdTpq', $idTpq);
+
+                // Set default tahun ajaran saat ini untuk panitia
+                $tahunAjaranSaatIni = $this->helpFunctionModel->getTahunAjaranSaatIni();
+                session()->set('IdTahunAjaran', $tahunAjaranSaatIni);
+            } catch (\Exception $e) {
+                log_message('error', 'Gagal setup session untuk Panitia: ' . $e->getMessage());
+            }
+        }
+
         // Cek apakah ada redirect_url yang disimpan sebelumnya
         if (session()->has('redirect_url')) {
             $redirectUrl = session()->get('redirect_url');

@@ -26,6 +26,7 @@ use App\Models\KategoriMateriModel;
 use App\Models\MdaModel;
 use App\Models\FkpqModel;
 use App\Models\SignatureModel;
+use App\Models\MunaqosahIklanModel;
 use Myth\Auth\Password;
 use chillerlan\QRCode\QRCode;
 use chillerlan\QRCode\QROptions;
@@ -54,6 +55,7 @@ class Munaqosah extends BaseController
     protected $mdaModel;
     protected $fkpqModel;
     protected $signatureModel;
+    protected $munaqosahIklanModel;
     protected $db;
     private array $bobotWeightCache = [];
     private array $kelulusanThresholdCache = [];
@@ -83,6 +85,7 @@ class Munaqosah extends BaseController
         $this->mdaModel = new MdaModel();
         $this->fkpqModel = new FkpqModel();
         $this->signatureModel = new SignatureModel();
+        $this->munaqosahIklanModel = new MunaqosahIklanModel();
         $this->db = \Config\Database::connect();
     }
 
@@ -3205,6 +3208,17 @@ class Munaqosah extends BaseController
             ];
         }
 
+        $iklanConfigIdTpq = ($selectedType === 'munaqosah' || empty($selectedTpq) || $selectedTpq === '0') ? '0' : (string)$selectedTpq;
+        $iklanSettings = [
+            'iklan_interval'      => $this->munaqosahKonfigurasiModel->getSetting($iklanConfigIdTpq, 'Monitoring_Iklan_Interval') ?? 10,
+            'iklan_mode'          => $this->munaqosahKonfigurasiModel->getSetting($iklanConfigIdTpq, 'Monitoring_Iklan_Mode') ?? 'loop',
+            'iklan_single_id'     => $this->munaqosahKonfigurasiModel->getSetting($iklanConfigIdTpq, 'Monitoring_Iklan_SingleId') ?? 0,
+            'iklan_video_enabled' => $this->munaqosahKonfigurasiModel->getSetting($iklanConfigIdTpq, 'Monitoring_Iklan_VideoEnabled') ?? 0,
+            'header_format'       => $this->munaqosahKonfigurasiModel->getSetting($iklanConfigIdTpq, 'Monitoring_Header_Format') ?? 'A',
+            'iklan_fit'           => $this->munaqosahKonfigurasiModel->getSetting($iklanConfigIdTpq, 'Monitoring_Iklan_Fit') ?? 'contain_blur',
+            'iklan_enabled'       => $this->munaqosahKonfigurasiModel->getSetting($iklanConfigIdTpq, 'Monitoring_Iklan_Enabled') ?? 0,
+        ];
+
         $data = [
             'page_title' => 'Monitoring Status Antrian',
             'queue' => $queue,
@@ -3222,6 +3236,7 @@ class Munaqosah extends BaseController
             'refresh_interval' => $refreshInterval,
             'is_panitia_tpq' => $isPanitiaTpq,
             'antrianData' => $antrianData,
+            'iklan_settings' => $iklanSettings,
             'statistics' => [
                 'total' => $totalPeserta,
                 'completed' => $totalSelesai,
@@ -10629,14 +10644,14 @@ class Munaqosah extends BaseController
 
     /**
      * Get IdTpq from panitia username
-     * Format: panitia.munaqosah.{idTpqTrim}.{number} atau panitia.munaqosah.{number}
+     * Format: panitia.munaqosah = 0 (Munaqosah Pusat)
+     * Jika di akhir ada 3 digit (misal: panitia.munaqosah.215, panitia.munaqosah.215.1, panitia.munaqosah215):
+     * itu untuk TPQ sendiri (cari TPQ yang 3 digit terakhir sama)
      */
     private function getIdTpqFromPanitiaUsername($username)
     {
-        // Extract IdTpq dari username
-        // Format: panitia.munaqosah.{idTpqTrim}.{number} atau panitia.munaqosah.{number}
-        if (preg_match('/^panitia\.munaqosah\.(\d{3})\.(\d+)$/', $username, $matches)) {
-            // Panitia TPQ tertentu: panitia.munaqosah.215.2
+        // Extract IdTpq dari username jika memiliki 3 digit kode TPQ
+        if (preg_match('/panitia\.munaqosah[\._-]?(\d{3})(?:\D|$)/', $username, $matches)) {
             $idTpqTrim = $matches[1];
             // Cari TPQ yang memiliki 3 digit terakhir sama
             $tpqData = $this->db->table('tbl_tpq')
@@ -10653,13 +10668,10 @@ class Munaqosah extends BaseController
                     ->getRowArray();
             }
             return $tpqData ? $tpqData['IdTpq'] : 0;
-        } else if (preg_match('/^panitia\.munaqosah\.(\d+)$/', $username, $matches)) {
-            // Panitia umum: panitia.munaqosah.2
-            return 0;
-        } else {
-            // Format tidak dikenal, default ke 0
-            return 0;
         }
+
+        // Panitia umum: panitia.munaqosah atau panitia.munaqosah.{1-2 digit} -> IdTpq = 0
+        return 0;
     }
 
     /**
@@ -10671,17 +10683,20 @@ class Munaqosah extends BaseController
         $builder->select('u.id, u.username, u.email, u.active');
         $builder->join('auth_groups_users agu', 'agu.user_id = u.id', 'inner');
         $builder->where('agu.group_id', 6); // Group ID untuk Panitia
-        $builder->where('u.username LIKE', 'panitia.munaqosah.%');
+        $builder->where('u.username LIKE', 'panitia.munaqosah%');
 
         // Filter berdasarkan IdTpq dari username pattern
         if ($idTpq !== null) {
             if ($idTpq == 0 || $idTpq == '0') {
-                // Untuk panitia umum (IdTpq = 0), username format: panitia.munaqosah.{number}
-                $builder->where("u.username REGEXP '^panitia\\.munaqosah\\.([0-9]+)$'", null, false);
+                // Untuk panitia umum (IdTpq = 0), username format: panitia.munaqosah atau panitia.munaqosah.{1-2 digit}
+                $builder->groupStart()
+                    ->where("u.username", "panitia.munaqosah")
+                    ->orWhere("u.username REGEXP '^panitia\\.munaqosah\\.([0-9]{1,2})$'", null, false)
+                ->groupEnd();
             } else {
-                // Untuk panitia TPQ tertentu, username format: panitia.munaqosah.{idTpqTrim}.{number}
+                // Untuk panitia TPQ tertentu, username format: panitia.munaqosah.{idTpqTrim}
                 $idTpqTrim = substr($idTpq, -3);
-                $builder->where('u.username LIKE', 'panitia.munaqosah.' . $idTpqTrim . '.%');
+                $builder->where("u.username REGEXP '^panitia\\\\.munaqosah[\\\\._-]?" . $idTpqTrim . "'", null, false);
             }
         }
 
@@ -10691,19 +10706,14 @@ class Munaqosah extends BaseController
         // Process results untuk menambahkan informasi IdTpq dan NamaTpq dari username
         foreach ($results as &$result) {
             $username = $result['username'];
-            // Extract IdTpq dari username
-            // Format: panitia.munaqosah.{idTpqTrim}.{number} atau panitia.munaqosah.{number}
-            if (preg_match('/^panitia\.munaqosah\.(\d{3})\.(\d+)$/', $username, $matches)) {
-                // Panitia TPQ tertentu: panitia.munaqosah.215.2
+            if (preg_match('/panitia\.munaqosah[\._-]?(\d{3})(?:\D|$)/', $username, $matches)) {
                 $idTpqTrim = $matches[1];
-                // Cari TPQ yang memiliki 3 digit terakhir sama
                 $tpqData = $this->db->table('tbl_tpq')
                     ->select('IdTpq, NamaTpq')
                     ->where("SUBSTRING(CAST(IdTpq AS CHAR), -3) =", $idTpqTrim)
                     ->get()
                     ->getRowArray();
                 if (!$tpqData) {
-                    // Jika tidak ditemukan dengan SUBSTRING, coba dengan LIKE
                     $tpqData = $this->db->table('tbl_tpq')
                         ->select('IdTpq, NamaTpq')
                         ->like('IdTpq', $idTpqTrim, 'both')
@@ -10712,13 +10722,9 @@ class Munaqosah extends BaseController
                 }
                 $result['IdTpq'] = $tpqData ? $tpqData['IdTpq'] : null;
                 $result['NamaTpq'] = $tpqData ? $tpqData['NamaTpq'] : '-';
-            } else if (preg_match('/^panitia\.munaqosah\.(\d+)$/', $username, $matches)) {
-                // Panitia umum: panitia.munaqosah.2
-                $result['IdTpq'] = 0;
-                $result['NamaTpq'] = 'Umum';
             } else {
-                $result['IdTpq'] = null;
-                $result['NamaTpq'] = '-';
+                $result['IdTpq'] = 0;
+                $result['NamaTpq'] = 'Munaqosah Pusat';
             }
             // Set Status berdasarkan active
             $result['Status'] = $result['active'] == 1 ? 'Aktif' : 'Tidak Aktif';
@@ -11701,9 +11707,6 @@ class Munaqosah extends BaseController
         $idTpq = session()->get('IdTpq');
         $sessionIdTpq = session()->get('IdTpq');
         $selectedTpq = $this->request->getGet('tpq');
-        $selectedType = $this->request->getGet('type') ?? 'pra-munaqosah'; // Default untuk dashboard
-
-        // Cek apakah user adalah Panitia
         $isPanitia = in_groups('Panitia');
         $isPanitiaTpq = false;
 
@@ -16721,6 +16724,387 @@ class Munaqosah extends BaseController
         $dompdf->render();
 
         return $dompdf;
+    }
+
+    // ==================== IKLAN MONITORING ANTRIAN ====================
+
+    /**
+     * Halaman Kelola Iklan Monitoring Antrian
+     */
+    public function kelolaIklan()
+    {
+        $currentTahunAjaran = $this->helpFunction->getTahunAjaranSaatIni();
+        $selectedTahun = $this->request->getGet('tahun') ?? $currentTahunAjaran;
+        
+        $sessionIdTpq = session()->get('IdTpq');
+        $isPanitia = in_groups('Panitia');
+        $idTpqPanitia = $isPanitia ? $this->getIdTpqFromPanitiaUsername(user()->username) : null;
+        $isPanitiaTpq = (!empty($idTpqPanitia) && $idTpqPanitia != 0);
+
+        $canSelectTpq = empty($sessionIdTpq) && !$isPanitiaTpq;
+        
+        if ($isPanitiaTpq) {
+            $selectedTpq = (string) $idTpqPanitia;
+        } elseif (!empty($sessionIdTpq) && $sessionIdTpq != 0) {
+            $selectedTpq = (string) $sessionIdTpq;
+        } else {
+            // Admin / Panitia Pusat: default '0' (Munaqosah) jika tidak ada param atau kosong
+            $reqTpq = $this->request->getGet('tpq');
+            $selectedTpq = ($reqTpq === null || $reqTpq === '') ? '0' : (string) $reqTpq;
+        }
+
+        $tpqList = [];
+        if ($canSelectTpq) {
+            $tpqList = $this->tpqModel->GetData();
+        }
+
+        // Ambil nama TPQ terpilih untuk badge/header display
+        $selectedTpqName = 'Ujian Munaqosah (Pusat / Gabungan)';
+        if ($selectedTpq !== '0') {
+            $tpqData = $this->tpqModel->find($selectedTpq);
+            if ($tpqData) {
+                $selectedTpqName = $tpqData['NamaTpq'];
+            } else {
+                $selectedTpqName = 'TPQ ' . $selectedTpq;
+            }
+        }
+
+        $iklanList = $this->munaqosahIklanModel->getActiveByTpq($selectedTpq, (string) $selectedTahun);
+        foreach ($iklanList as &$item) {
+            $item['url'] = base_url('uploads/iklan/' . $item['FileName']);
+        }
+
+        $configIdTpq = ($selectedTpq === '0' || empty($selectedTpq)) ? '0' : $selectedTpq;
+        $settings = [
+            'iklan_interval'      => $this->munaqosahKonfigurasiModel->getSetting($configIdTpq, 'Monitoring_Iklan_Interval') ?? 10,
+            'iklan_mode'          => $this->munaqosahKonfigurasiModel->getSetting($configIdTpq, 'Monitoring_Iklan_Mode') ?? 'loop',
+            'iklan_single_id'     => $this->munaqosahKonfigurasiModel->getSetting($configIdTpq, 'Monitoring_Iklan_SingleId') ?? 0,
+            'iklan_video_enabled' => $this->munaqosahKonfigurasiModel->getSetting($configIdTpq, 'Monitoring_Iklan_VideoEnabled') ?? 0,
+            'header_format'       => $this->munaqosahKonfigurasiModel->getSetting($configIdTpq, 'Monitoring_Header_Format') ?? 'A',
+            'iklan_fit'           => $this->munaqosahKonfigurasiModel->getSetting($configIdTpq, 'Monitoring_Iklan_Fit') ?? 'contain_blur',
+            'iklan_enabled'       => $this->munaqosahKonfigurasiModel->getSetting($configIdTpq, 'Monitoring_Iklan_Enabled') ?? 0,
+        ];
+
+        $data = [
+            'page_title'         => 'Kelola Iklan Monitoring Antrian',
+            'title'              => 'Kelola Iklan Monitoring',
+            'currentTahunAjaran' => $currentTahunAjaran,
+            'selectedTahun'      => $selectedTahun,
+            'selectedTpq'        => $selectedTpq,
+            'selectedTpqName'    => $selectedTpqName,
+            'canSelectTpq'       => $canSelectTpq,
+            'tpqList'            => $tpqList,
+            'iklanList'          => $iklanList,
+            'settings'           => $settings,
+        ];
+
+        return view('backend/Munaqosah/kelolaIklan', $data);
+    }
+
+    /**
+     * Ambil daftar iklan aktif untuk monitoring antrian
+     */
+    public function getIklanListAjax()
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Request harus menggunakan AJAX'
+            ]);
+        }
+
+        $currentTahunAjaran = $this->helpFunction->getTahunAjaranSaatIni();
+        $tahun = $this->request->getGet('tahun') ?? $currentTahunAjaran;
+        $type = $this->request->getGet('type');
+
+        $sessionIdTpq = session()->get('IdTpq');
+        $isPanitia = in_groups('Panitia');
+        $idTpqPanitia = $isPanitia ? $this->getIdTpqFromPanitiaUsername(user()->username) : null;
+        $isPanitiaTpq = (!empty($idTpqPanitia) && $idTpqPanitia != 0);
+
+        if ($isPanitiaTpq) {
+            $idTpq = (string) $idTpqPanitia;
+        } elseif (!empty($sessionIdTpq) && $sessionIdTpq != 0) {
+            $idTpq = (string) $sessionIdTpq;
+        } else {
+            // Super Admin / Panitia Pusat
+            $reqTpq = $this->request->getGet('tpq');
+            if ($type === 'munaqosah' || $reqTpq === '0' || ($reqTpq === null && $type !== 'pra-munaqosah')) {
+                $idTpq = '0';
+            } else {
+                $idTpq = (string) $reqTpq;
+            }
+        }
+
+        $items = $this->munaqosahIklanModel->getActiveByTpq((string) $idTpq, (string) $tahun);
+        foreach ($items as &$item) {
+            $item['url'] = base_url('uploads/iklan/' . $item['FileName']);
+        }
+
+        $version = $this->munaqosahIklanModel->getLatestVersion((string) $idTpq);
+
+        return $this->response->setJSON([
+            'success' => true,
+            'data'    => $items,
+            'version' => $version
+        ]);
+    }
+
+    /**
+     * Ambil versi timestamp iklan untuk cache invalidation ringan
+     */
+    public function getIklanVersionAjax()
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Request harus menggunakan AJAX'
+            ]);
+        }
+
+        $type = $this->request->getGet('type');
+
+        $sessionIdTpq = session()->get('IdTpq');
+        $isPanitia = in_groups('Panitia');
+        $idTpqPanitia = $isPanitia ? $this->getIdTpqFromPanitiaUsername(user()->username) : null;
+        $isPanitiaTpq = (!empty($idTpqPanitia) && $idTpqPanitia != 0);
+
+        if ($isPanitiaTpq) {
+            $idTpq = (string) $idTpqPanitia;
+        } elseif (!empty($sessionIdTpq) && $sessionIdTpq != 0) {
+            $idTpq = (string) $sessionIdTpq;
+        } else {
+            // Super Admin / Panitia Pusat
+            $reqTpq = $this->request->getGet('tpq');
+            if ($type === 'munaqosah' || $reqTpq === '0' || ($reqTpq === null && $type !== 'pra-munaqosah')) {
+                $idTpq = '0';
+            } else {
+                $idTpq = (string) $reqTpq;
+            }
+        }
+
+        $version = $this->munaqosahIklanModel->getLatestVersion((string) $idTpq);
+
+        return $this->response->setJSON([
+            'success' => true,
+            'version' => $version
+        ]);
+    }
+
+    /**
+     * Upload media iklan (gambar landscape 16:9 / video mp4 jika aktif)
+     */
+    public function uploadIklanAjax()
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Request harus menggunakan AJAX'
+            ]);
+        }
+
+        $sessionIdTpq = session()->get('IdTpq');
+        $isPanitia = in_groups('Panitia');
+        $idTpqPanitia = $isPanitia ? $this->getIdTpqFromPanitiaUsername(user()->username) : null;
+        $isPanitiaTpq = (!empty($idTpqPanitia) && $idTpqPanitia != 0);
+
+        if ($isPanitiaTpq) {
+            $idTpq = (string) $idTpqPanitia;
+        } elseif (!empty($sessionIdTpq) && $sessionIdTpq != 0) {
+            $idTpq = (string) $sessionIdTpq;
+        } else {
+            $postedTpq = $this->request->getPost('tpq');
+            if ($postedTpq === null || $postedTpq === '' || $postedTpq === '0') {
+                $idTpq = '0';
+            } else {
+                $idTpq = (string) $postedTpq;
+            }
+        }
+        $currentTahunAjaran = $this->helpFunction->getTahunAjaranSaatIni();
+        $tahun = $this->request->getPost('tahun') ?? $currentTahunAjaran;
+        $judul = trim((string) $this->request->getPost('judul'));
+        if (empty($judul)) {
+            $judul = 'Iklan Monitoring ' . date('Y-m-d H:i');
+        }
+
+        $file = $this->request->getFile('iklan_file');
+        if (!$file || !$file->isValid()) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => $file ? $file->getErrorString() : 'File tidak ditemukan'
+            ]);
+        }
+
+        // Cek apakah video diizinkan untuk target TPQ ini
+        $configIdTpq = ($idTpq === '0') ? '0' : $idTpq;
+        $videoEnabled = $this->munaqosahKonfigurasiModel->getSetting($configIdTpq, 'Monitoring_Iklan_VideoEnabled');
+        $allowedExts = ['jpg', 'jpeg', 'png', 'webp'];
+        $maxSizeKb = 5120; // 5MB
+
+        if ($videoEnabled) {
+            $allowedExts[] = 'mp4';
+            $maxSizeKb = 25600; // 25MB
+        }
+
+        $ext = strtolower($file->getExtension());
+        if (!in_array($ext, $allowedExts, true)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Format file tidak diizinkan. Hanya: ' . implode(', ', $allowedExts)
+            ]);
+        }
+
+        if ($file->getSizeByUnit('kb') > $maxSizeKb) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Ukuran file melebihi batas maksimal (' . ($maxSizeKb / 1024) . ' MB)'
+            ]);
+        }
+
+        $uploadDir = FCPATH . 'uploads/iklan/';
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0755, true);
+        }
+
+        $newFileName = 'iklan_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
+        $file->move($uploadDir, $newFileName);
+
+        // Hitung max urutan untuk target TPQ tersebut
+        $maxOrder = $this->db->table('tbl_munaqosah_iklan')->where('IdTpq', (string)$idTpq)->selectMax('Urutan', 'max_order')->get()->getRowArray();
+        $nextOrder = isset($maxOrder['max_order']) ? ((int) $maxOrder['max_order'] + 1) : 1;
+
+        $mediaType = ($ext === 'mp4') ? 'video' : 'image';
+
+        $insertData = [
+            'IdTpq'     => (string) $idTpq,
+            'Tahun'     => (string) $tahun,
+            'Judul'     => $judul,
+            'FileName'  => $newFileName,
+            'MediaType' => $mediaType,
+            'Urutan'    => $nextOrder,
+            'IsActive'  => 1,
+            'CreatedAt' => date('Y-m-d H:i:s'),
+            'UpdatedAt' => date('Y-m-d H:i:s')
+        ];
+
+        $this->munaqosahIklanModel->insert($insertData);
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Iklan berhasil diunggah'
+        ]);
+    }
+
+    /**
+     * Hapus media iklan
+     */
+    public function deleteIklanAjax()
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Request harus menggunakan AJAX'
+            ]);
+        }
+
+        $id = (int) $this->request->getPost('id');
+        $item = $this->munaqosahIklanModel->find($id);
+
+        if (!$item) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Data iklan tidak ditemukan'
+            ]);
+        }
+
+        $filePath = FCPATH . 'uploads/iklan/' . $item['FileName'];
+        if (file_exists($filePath) && is_file($filePath)) {
+            unlink($filePath);
+        }
+
+        $this->munaqosahIklanModel->delete($id);
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Iklan berhasil dihapus'
+        ]);
+    }
+
+    /**
+     * Update preferensi & pengaturan display iklan
+     */
+    public function updateIklanSettingsAjax()
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Request harus menggunakan AJAX'
+            ]);
+        }
+
+        $sessionIdTpq = session()->get('IdTpq');
+        $isPanitia = in_groups('Panitia');
+        $idTpqPanitia = $isPanitia ? $this->getIdTpqFromPanitiaUsername(user()->username) : null;
+        $isPanitiaTpq = (!empty($idTpqPanitia) && $idTpqPanitia != 0);
+
+        if ($isPanitiaTpq) {
+            $targetTpq = (string) $idTpqPanitia;
+        } elseif (!empty($sessionIdTpq) && $sessionIdTpq != 0) {
+            $targetTpq = (string) $sessionIdTpq;
+        } else {
+            $postedTpq = $this->request->getPost('tpq');
+            if ($postedTpq === null || $postedTpq === '' || $postedTpq === '0') {
+                $targetTpq = '0';
+            } else {
+                $targetTpq = (string) $postedTpq;
+            }
+        }
+
+        $configIdTpq = ($targetTpq === '0') ? '0' : $targetTpq;
+
+        $configs = [
+            'Monitoring_Iklan_Interval'     => ['value' => (string) ($this->request->getPost('iklan_interval') ?? '10'), 'type' => 'number'],
+            'Monitoring_Iklan_Mode'         => ['value' => (string) ($this->request->getPost('iklan_mode') ?? 'loop'), 'type' => 'text'],
+            'Monitoring_Iklan_SingleId'     => ['value' => (string) ($this->request->getPost('iklan_single_id') ?? '0'), 'type' => 'number'],
+            'Monitoring_Iklan_VideoEnabled' => ['value' => (string) ($this->request->getPost('iklan_video_enabled') ?? '0'), 'type' => 'boolean'],
+            'Monitoring_Header_Format'      => ['value' => (string) ($this->request->getPost('header_format') ?? 'A'), 'type' => 'text'],
+            'Monitoring_Iklan_Fit'          => ['value' => (string) ($this->request->getPost('iklan_fit') ?? 'contain_blur'), 'type' => 'text'],
+        ];
+
+        if ($this->request->getPost('iklan_enabled') !== null) {
+            $configs['Monitoring_Iklan_Enabled'] = ['value' => (string) $this->request->getPost('iklan_enabled'), 'type' => 'boolean'];
+        }
+
+        $table = $this->db->table('tbl_munaqosah_konfigurasi');
+
+        foreach ($configs as $key => $cfg) {
+            $existing = $table->where('IdTpq', $configIdTpq)->where('SettingKey', $key)->get()->getRowArray();
+            $table->resetQuery();
+
+            if ($existing) {
+                $table->where('id', $existing['id'])->update([
+                    'SettingValue' => $cfg['value'],
+                    'UpdatedAt'    => date('Y-m-d H:i:s')
+                ]);
+                $table->resetQuery();
+            } else {
+                $table->insert([
+                    'IdTpq'        => $configIdTpq,
+                    'SettingKey'   => $key,
+                    'SettingValue' => $cfg['value'],
+                    'SettingType'  => $cfg['type'],
+                    'Description'  => 'Setting ' . $key,
+                    'CreatedAt'    => date('Y-m-d H:i:s'),
+                    'UpdatedAt'    => date('Y-m-d H:i:s')
+                ]);
+                $table->resetQuery();
+            }
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Pengaturan iklan berhasil disimpan'
+        ]);
     }
 }
 

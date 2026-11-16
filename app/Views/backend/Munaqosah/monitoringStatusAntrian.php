@@ -215,151 +215,196 @@
                             </div>
                             <div class="col-8">
                                 <div class="card card-outline card-primary">
-                                    <div class="card-header d-flex justify-content-between align-items-center">
-                                        <h3 class="card-title mb-0">Info Grafis</h3>
-                                        <span class="badge badge-primary"><?= esc($selectedGroupName) ?></span>
+                                    <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
+                                        <div class="d-flex align-items-center mb-1 mb-md-0">
+                                            <h3 class="card-title mb-0 mr-2">Info Grafis</h3>
+                                            <span class="badge badge-primary"><?= esc($selectedGroupName) ?></span>
+                                        </div>
+                                        <div class="d-flex align-items-center flex-wrap" id="iklanControls">
+                                            <!-- Toggle Format A/B -->
+                                            <div class="btn-group btn-group-sm mr-2 mb-1" role="group" title="Format Header Strip">
+                                                <button type="button" id="btnFormatA" class="btn btn-outline-secondary active" onclick="setHeaderFormat('A')">Format A</button>
+                                                <button type="button" id="btnFormatB" class="btn btn-outline-secondary" onclick="setHeaderFormat('B')">Format B</button>
+                                            </div>
+                                            <!-- Toggle Iklan ON/OFF -->
+                                            <div class="custom-control custom-switch mr-2 mb-1" title="Tampilkan / Sembunyikan Iklan">
+                                                <input type="checkbox" class="custom-control-input" id="toggleIklan">
+                                                <label class="custom-control-label" for="toggleIklan">Iklan</label>
+                                            </div>
+                                            <!-- Play Settings (hanya saat iklan ON) -->
+                                            <div id="iklanPlaySettings" style="display:none;" class="d-flex align-items-center mr-2 mb-1">
+                                                <select id="iklanInterval" class="form-control form-control-sm mr-1" style="width: auto; min-width: 80px;" title="Durasi per slide">
+                                                    <option value="5">5 dtk</option>
+                                                    <option value="10" selected>10 dtk</option>
+                                                    <option value="15">15 dtk</option>
+                                                    <option value="30">30 dtk</option>
+                                                    <option value="60">60 dtk</option>
+                                                </select>
+                                                <select id="iklanMode" class="form-control form-control-sm mr-1" style="width: auto; min-width: 85px;" title="Mode putar">
+                                                    <option value="loop">Loop</option>
+                                                    <option value="random">Acak</option>
+                                                    <option value="single">Tetap</option>
+                                                </select>
+                                                <select id="iklanFit" class="form-control form-control-sm mr-1" style="width: auto; min-width: 95px;" title="Penyesuaian Rasio Gambar">
+                                                    <option value="contain_blur">Fit + Blur</option>
+                                                    <option value="fill">Paksa Isi</option>
+                                                    <option value="cover">Crop Penuh</option>
+                                                    <option value="contain">Letterbox</option>
+                                                </select>
+                                            </div>
+                                        </div>
                                     </div>
                                     <div class="card-body">
-                                        <!-- Status Peserta -->
-                                        <div class="row mb-3">
-                                            <?php
-                                            $total = $statistics['total'];
-                                            $completed = $statistics['completed'];
-                                            $queueing = $statistics['queueing'];
-                                            $inProgress = $statistics['in_progress'] ?? 0;
-                                            $progress = $statistics['progress'];
+                                        <!-- Hidden element untuk kompatibilitas script existing -->
+                                        <div id="roomsContainer" style="display:none;"></div>
+                                        <span id="barCompleted" style="display:none;"></span>
+                                        <span id="barQueueing" style="display:none;"></span>
+                                        <span id="descCompleted" style="display:none;"></span>
+                                        <span id="descQueueing" style="display:none;"></span>
 
-                                            $pctCompleted = $total > 0 ? round(($completed / max($total, 1)) * 100) : 0;
-                                            $pctQueueing = $total > 0 ? round(($queueing / max($total, 1)) * 100) : 0;
-                                            $pctInProgress = $total > 0 ? round(($inProgress / max($total, 1)) * 100) : 0;
-                                            ?>
-                                            <div class="col-md-3 col-sm-6 mb-3">
-                                                <div class="info-box bg-info">
-                                                    <span class="info-box-icon"><i class="fas fa-users"></i></span>
-                                                    <div class="info-box-content">
-                                                        <span class="info-box-text">Total Peserta</span>
-                                                        <span class="info-box-number" id="statTotal"><?= $total ?></span>
-                                                        <div class="progress">
-                                                            <div class="progress-bar" style="width: 100%"></div>
+                                        <?php
+                                        $total = $statistics['total'];
+                                        $completed = $statistics['completed'];
+                                        $queueing = $statistics['queueing'];
+                                        $inProgress = $statistics['in_progress'] ?? 0;
+                                        $progress = $statistics['progress'];
+
+                                        $pctCompleted = $total > 0 ? round(($completed / max($total, 1)) * 100) : 0;
+                                        $pctQueueing = $total > 0 ? round(($queueing / max($total, 1)) * 100) : 0;
+                                        $pctInProgress = $total > 0 ? round(($inProgress / max($total, 1)) * 100) : 0;
+                                        ?>
+
+                                        <!-- COMPACT SUMMARY STRIP: FORMAT A (Dual Column: Progress Kiri, Ruangan Kanan) -->
+                                        <div id="summaryStripA" class="mb-3">
+                                            <div class="row no-gutters">
+                                                <div class="col-md-6 pr-md-1 mb-2 mb-md-0">
+                                                    <div class="p-2 rounded border bg-light h-100">
+                                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                                            <small class="font-weight-bold text-muted"><i class="fas fa-chart-line mr-1"></i>Progres Ujian</small>
+                                                            <small class="text-muted"><span id="statProgress"><?= $progress ?></span>% selesai</small>
                                                         </div>
-                                                        <span class="progress-description">Teregister</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div class="col-md-3 col-sm-6 mb-3">
-                                                <div class="info-box bg-success">
-                                                    <span class="info-box-icon"><i class="fas fa-check-circle"></i></span>
-                                                    <div class="info-box-content">
-                                                        <span class="info-box-text">Sudah diuji</span>
-                                                        <span class="info-box-number" id="statCompleted"><?= $completed ?></span>
-                                                        <div class="progress">
-                                                            <div class="progress-bar" id="barCompleted" style="width: <?= $pctCompleted ?>%"></div>
+                                                        <div class="progress mb-2" style="height: 10px;">
+                                                            <div class="progress-bar bg-success progress-bar-striped progress-bar-animated" id="barProgress" style="width: <?= $progress ?>%" role="progressbar"></div>
                                                         </div>
-                                                        <span class="progress-description"><span id="descCompleted"><?= $pctCompleted ?>%</span> selesai</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div class="col-md-3 col-sm-6 mb-3">
-                                                <div class="info-box bg-warning">
-                                                    <span class="info-box-icon"><i class="fas fa-clock"></i></span>
-                                                    <div class="info-box-content">
-                                                        <span class="info-box-text">Antrian ujian</span>
-                                                        <span class="info-box-number" id="statQueueing"><?= $queueing ?></span>
-                                                        <div class="progress">
-                                                            <div class="progress-bar" id="barQueueing" style="width: <?= $pctQueueing ?>%"></div>
-                                                        </div>
-                                                        <span class="progress-description"><span id="descQueueing"><?= $pctQueueing ?>%</span> menunggu</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div class="col-md-3 col-sm-6 mb-3">
-                                                <div class="info-box bg-primary">
-                                                    <span class="info-box-icon"><i class="fas fa-percentage"></i></span>
-                                                    <div class="info-box-content">
-                                                        <span class="info-box-text">Progress</span>
-                                                        <span class="info-box-number" id="statProgress"><?= $progress ?>%</span>
-                                                        <div class="progress">
-                                                            <div class="progress-bar" id="barProgress" style="width: <?= $progress ?>%"></div>
-                                                        </div>
-                                                        <span class="progress-description">Tingkat penyelesaian</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div> <!-- Kosong untuk sekarang -->
-
-                                        <!-- Status Ruangan -->
-                                        <h5 class="mt-4 mb-3">Status Ruangan</h5>
-                                        <div id="roomsContainer" class="row">
-                                            <?php if (!empty($rooms)): ?>
-                                                <?php
-                                                $totalRooms = count($rooms);
-                                                // Jika hanya 1 ruangan, gunakan full width, jika lebih gunakan grid responsif
-                                                // Desktop: 1 ruangan = full, >1 = 3 kolom | Tablet: 2 kolom | Mobile: 1 kolom
-                                                $colClass = $totalRooms === 1
-                                                    ? 'col-12'
-                                                    : 'col-12 col-sm-6 col-lg-4';
-                                                ?>
-                                                <?php foreach ($rooms as $room): ?>
-                                                    <?php
-                                                    $isOccupied = $room['occupied'] ?? false;
-                                                    $participantCount = $room['participant_count'] ?? 0;
-                                                    $maxCapacity = $room['max_capacity'] ?? 1;
-                                                    $isFull = $room['is_full'] ?? false;
-                                                    $participants = $room['participants'] ?? [];
-                                                    ?>
-                                                    <div class="<?= $colClass ?> mb-3">
-                                                        <div class="p-3 rounded shadow-sm room-card <?= $isFull ? 'bg-danger text-white' : ($isOccupied ? 'bg-warning text-dark' : 'bg-success text-white') ?>">
-                                                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                                                <h5 class="mb-0">Ruangan <?= $room['RoomId'] ?></h5>
-                                                                <?php if ($isFull): ?>
-                                                                    <span class="badge badge-light badge-pill">
-                                                                        <i class="fas fa-users"></i> Penuh
-                                                                    </span>
-                                                                <?php elseif ($isOccupied): ?>
-                                                                    <span class="badge badge-light badge-pill">
-                                                                        <i class="fas fa-user"></i> Digunakan
-                                                                    </span>
-                                                                <?php else: ?>
-                                                                    <span class="badge badge-light badge-pill">
-                                                                        <i class="fas fa-door-open"></i> Kosong
-                                                                    </span>
-                                                                <?php endif; ?>
+                                                        <div class="d-flex justify-content-around text-center">
+                                                            <div class="px-1">
+                                                                <div class="text-muted" style="font-size: 0.7rem;">Total</div>
+                                                                <strong id="statTotal" class="text-dark" style="font-size: 1.1rem;"><?= $total ?></strong>
                                                             </div>
-                                                            <?php if ($maxCapacity > 1): ?>
-                                                            <div class="mb-2">
-                                                                <small>
-                                                                    <strong>Kapasitas:</strong> <?= $participantCount ?> / <?= $maxCapacity ?>
-                                                                </small>
+                                                            <div class="px-1 border-left">
+                                                                <div class="text-muted" style="font-size: 0.7rem;">Diuji</div>
+                                                                <strong id="statCompleted" class="text-success" style="font-size: 1.1rem;"><?= $completed ?></strong>
                                                             </div>
-                                                            <?php endif; ?>
-                                                            <?php if ($isOccupied && !empty($participants)): ?>
-                                                                <div class="room-participant mb-2">
-                                                                    <?php foreach ($participants as $participant): ?>
-                                                                        <div class="mb-1">
-                                                                            <small>
-                                                                                <?= $participant['NoPeserta'] ?> - <?= $participant['NamaSantri'] ?? '-' ?>
-                                                                            </small>
-                                                                        </div>
-                                                                    <?php endforeach; ?>
-                                                                </div>
+                                                            <div class="px-1 border-left">
+                                                                <div class="text-muted" style="font-size: 0.7rem;">Tunggu</div>
+                                                                <strong id="statQueueing" class="text-warning" style="font-size: 1.1rem;"><?= $queueing ?></strong>
+                                                            </div>
+                                                            <div class="px-1 border-left">
+                                                                <div class="text-muted" style="font-size: 0.7rem;">Ujian</div>
+                                                                <strong id="statInProgress" class="text-danger" style="font-size: 1.1rem;"><?= $inProgress ?></strong>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6 pl-md-1">
+                                                    <div class="p-2 rounded border bg-light h-100">
+                                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                                            <small class="font-weight-bold text-muted"><i class="fas fa-door-open mr-1"></i>Status Ruangan</small>
+                                                            <small class="text-muted"><?= count($rooms) ?> Ruangan</small>
+                                                        </div>
+                                                        <div id="roomsPillsContainer" class="d-flex flex-wrap align-items-center" style="gap: 4px; min-height: 48px;">
+                                                            <?php if (!empty($rooms)): ?>
+                                                                <?php foreach ($rooms as $room): ?>
+                                                                    <?php
+                                                                    $isFull = $room['is_full'] ?? false;
+                                                                    $isOccupied = $room['occupied'] ?? false;
+                                                                    $pillClass = $isFull ? 'badge-danger' : ($isOccupied ? 'badge-warning' : 'badge-success');
+                                                                    $icon = $isFull ? 'users' : ($isOccupied ? 'user' : 'door-open');
+                                                                    $participants = $room['participants'] ?? [];
+                                                                    $participantStr = '';
+                                                                    if ($isOccupied && !empty($participants)) {
+                                                                        $pNos = array_map(function($p) { return $p['NoPeserta']; }, $participants);
+                                                                        $participantStr = ': ' . implode(',', $pNos);
+                                                                    }
+                                                                    ?>
+                                                                    <span class="badge <?= $pillClass ?> p-1" style="font-size: 0.85rem;" title="Ruangan <?= $room['RoomId'] ?><?= $participantStr ?>">
+                                                                        <i class="fas fa-<?= $icon ?>"></i> R<?= $room['RoomId'] ?><?= $participantStr ?>
+                                                                    </span>
+                                                                <?php endforeach; ?>
                                                             <?php else: ?>
-                                                                <p class="mb-0">
-                                                                    <i class="fas fa-door-open mr-1"></i>Ruangan tersedia
-                                                                </p>
+                                                                <small class="text-muted">Belum ada ruangan terdaftar</small>
                                                             <?php endif; ?>
                                                         </div>
                                                     </div>
-                                                <?php endforeach; ?>
-                                            <?php else: ?>
-                                                <div class="col-12">
-                                                    <div class="alert alert-info">
-                                                        Belum ada ruangan terdaftar untuk grup materi dan tipe ujian ini.
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- COMPACT SUMMARY STRIP: FORMAT B (Stacked Single-Line Ribbon) -->
+                                        <div id="summaryStripB" class="mb-3" style="display: none;">
+                                            <div class="p-2 rounded border bg-light mb-1">
+                                                <div class="d-flex justify-content-between align-items-center flex-wrap">
+                                                    <div class="d-flex align-items-center flex-wrap mr-2">
+                                                        <span class="badge badge-secondary mr-1 mb-1 p-1">Total: <strong id="statTotalB"><?= $total ?></strong></span>
+                                                        <span class="badge badge-success mr-1 mb-1 p-1">Diuji: <strong id="statCompletedB"><?= $completed ?></strong></span>
+                                                        <span class="badge badge-warning mr-1 mb-1 p-1">Tunggu: <strong id="statQueueingB"><?= $queueing ?></strong></span>
+                                                        <span class="badge badge-danger mr-1 mb-1 p-1">Ujian: <strong id="statInProgressB"><?= $inProgress ?></strong></span>
+                                                    </div>
+                                                    <div class="flex-grow-1" style="min-width: 150px;">
+                                                        <div class="d-flex justify-content-between small text-muted mb-1">
+                                                            <span>Progress</span>
+                                                            <span id="statProgressB"><?= $progress ?>%</span>
+                                                        </div>
+                                                        <div class="progress" style="height: 8px;">
+                                                            <div class="progress-bar bg-success progress-bar-striped progress-bar-animated" id="barProgressB" style="width: <?= $progress ?>%"></div>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            <?php endif; ?>
+                                            </div>
+                                            <div class="p-2 rounded border bg-light">
+                                                <div class="small font-weight-bold text-muted mb-1"><i class="fas fa-door-open mr-1"></i>Ruangan:</div>
+                                                <div id="roomsRibbonContainer" class="d-flex flex-wrap align-items-center" style="gap: 4px;">
+                                                    <?php if (!empty($rooms)): ?>
+                                                        <?php foreach ($rooms as $room): ?>
+                                                            <?php
+                                                            $isFull = $room['is_full'] ?? false;
+                                                            $isOccupied = $room['occupied'] ?? false;
+                                                            $pillClass = $isFull ? 'badge-danger' : ($isOccupied ? 'badge-warning' : 'badge-success');
+                                                            $icon = $isFull ? 'users' : ($isOccupied ? 'user' : 'door-open');
+                                                            $participants = $room['participants'] ?? [];
+                                                            $participantStr = '';
+                                                            if ($isOccupied && !empty($participants)) {
+                                                                $pNos = array_map(function($p) { return $p['NoPeserta']; }, $participants);
+                                                                $participantStr = ': ' . implode(',', $pNos);
+                                                            }
+                                                            ?>
+                                                            <span class="badge <?= $pillClass ?> p-1" style="font-size: 0.85rem;" title="Ruangan <?= $room['RoomId'] ?><?= $participantStr ?>">
+                                                                <i class="fas fa-<?= $icon ?>"></i> R<?= $room['RoomId'] ?><?= $participantStr ?>
+                                                            </span>
+                                                        <?php endforeach; ?>
+                                                    <?php else: ?>
+                                                        <small class="text-muted">Belum ada ruangan terdaftar</small>
+                                                    <?php endif; ?>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Media Player Iklan (Ditukar dengan Monitoring Antrian Grup) -->
+                                        <div id="iklanPlayerContainer" style="display: none;" class="mb-3">
+                                            <div class="iklan-player-wrapper position-relative bg-dark rounded overflow-hidden shadow-sm" style="aspect-ratio: 16/9; width: 100%; min-height: 280px;">
+                                                <div id="iklanSlideContainer" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;">
+                                                    <div id="iklanEmptyState" class="text-white text-center d-flex flex-column align-items-center justify-content-center" style="height: 100%;">
+                                                        <i class="fas fa-images fa-3x mb-2 text-muted"></i>
+                                                        <div class="text-muted">Belum ada media iklan.<br>Silakan upload media pada menu <strong>Munaqosah &gt; Kelola Iklan</strong> di sidebar.</div>
+                                                    </div>
+                                                </div>
+                                                <div id="iklanSlideInfo" class="position-absolute" style="bottom: 10px; left: 14px; right: 14px; display: none; z-index: 10;">
+                                                    <div class="d-flex justify-content-between align-items-center">
+                                                        <div id="iklanDots" class="d-flex align-items-center" style="gap: 6px;"></div>
+                                                        <small class="text-white bg-dark px-2 py-1 rounded shadow" id="iklanTimerLabel" style="opacity: 0.85;">10 dtk</small>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
 
                                         <!-- Monitoring Antrian per Grup Materi -->
@@ -501,6 +546,114 @@
                         </div>
                         <!-- Filter (Read Only untuk display) -->
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Modal Kelola Iklan & Pengaturan Display -->
+    <div class="modal fade" id="modalKelolaIklan" tabindex="-1" role="dialog" aria-labelledby="modalKelolaIklanLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title" id="modalKelolaIklanLabel"><i class="fas fa-images mr-1"></i> Kelola Iklan & Pengaturan Display</h5>
+                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <ul class="nav nav-tabs mb-3" id="iklanModalTabs" role="tablist">
+                        <li class="nav-item">
+                            <a class="nav-link active" id="tabMedia-tab" data-toggle="tab" href="#tabMedia" role="tab"><i class="fas fa-photo-video mr-1"></i>Daftar & Upload Media</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="tabSetting-tab" data-toggle="tab" href="#tabSetting" role="tab"><i class="fas fa-sliders-h mr-1"></i>Pengaturan Display</a>
+                        </li>
+                    </ul>
+                    <div class="tab-content" id="iklanTabContent">
+                        <!-- TAB 1: MEDIA -->
+                        <div class="tab-pane fade show active" id="tabMedia" role="tabpanel">
+                            <form id="formUploadIklan" enctype="multipart/form-data" class="p-3 bg-light rounded border mb-3">
+                                <h6 class="font-weight-bold mb-2"><i class="fas fa-cloud-upload-alt mr-1"></i>Upload Gambar Landscape / Video Iklan</h6>
+                                <div class="form-group mb-2">
+                                    <label class="small text-muted mb-1">Pilih File Media (Rasio disarankan 16:9 Landscape):</label>
+                                    <div class="custom-file">
+                                        <input type="file" class="custom-file-input" id="iklanFileInput" name="iklan_file" accept=".jpg,.jpeg,.png,.webp,.mp4" required>
+                                        <label class="custom-file-label" for="iklanFileInput">Pilih file gambar (landscape)...</label>
+                                    </div>
+                                    <small class="form-text text-muted">Format: JPG, PNG, WebP (maks. 5MB). Format MP4 (maks. 25MB) aktif jika opsi video diaktifkan.</small>
+                                </div>
+                                <div class="form-group mb-2">
+                                    <label class="small text-muted mb-1">Judul / Keterangan Media:</label>
+                                    <input type="text" class="form-control form-control-sm" name="judul" id="iklanJudul" placeholder="Contoh: Penerimaan Santri Baru TA 2026/2027" required>
+                                </div>
+                                <button type="submit" class="btn btn-primary btn-sm" id="btnSubmitUpload">
+                                    <i class="fas fa-upload mr-1"></i> Unggah Media
+                                </button>
+                            </form>
+
+                            <h6 class="font-weight-bold mb-2"><i class="fas fa-list mr-1"></i>Daftar Media Aktif</h6>
+                            <div class="table-responsive">
+                                <div id="iklanMediaList">
+                                    <p class="text-muted text-center py-3"><i class="fas fa-spinner fa-spin mr-1"></i> Memuat daftar media...</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- TAB 2: PENGATURAN -->
+                        <div class="tab-pane fade" id="tabSetting" role="tabpanel">
+                            <form id="formIklanSettings" class="p-3 bg-light rounded border">
+                                <div class="form-group row">
+                                    <label class="col-sm-4 col-form-label col-form-label-sm font-weight-bold">Durasi Tampil per Slide</label>
+                                    <div class="col-sm-8">
+                                        <select class="form-control form-control-sm" id="settingInterval" name="iklan_interval">
+                                            <option value="5">5 detik</option>
+                                            <option value="10" selected>10 detik (Standar)</option>
+                                            <option value="15">15 detik</option>
+                                            <option value="30">30 detik</option>
+                                            <option value="60">1 menit</option>
+                                        </select>
+                                        <small class="text-muted">Berapa detik gambar ditampilkan sebelum berganti.</small>
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <label class="col-sm-4 col-form-label col-form-label-sm font-weight-bold">Mode Putar (Playback)</label>
+                                    <div class="col-sm-8">
+                                        <select class="form-control form-control-sm" id="settingMode" name="iklan_mode">
+                                            <option value="loop">Loop Berurutan (Slide 1, 2, 3...)</option>
+                                            <option value="random">Acak / Shuffle</option>
+                                            <option value="single">Salah Satu Gambar Tetap (Static)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form-group row" id="settingSingleRow" style="display: none;">
+                                    <label class="col-sm-4 col-form-label col-form-label-sm font-weight-bold">Pilih Gambar Tetap</label>
+                                    <div class="col-sm-8">
+                                        <select class="form-control form-control-sm" id="settingSingleId" name="iklan_single_id">
+                                            <option value="0">-- Pilih salah satu gambar --</option>
+                                        </select>
+                                        <small class="text-muted">Gambar yang dipilih akan terus tampil tanpa berganti.</small>
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <label class="col-sm-4 col-form-label col-form-label-sm font-weight-bold">Dukungan Video MP4</label>
+                                    <div class="col-sm-8">
+                                        <div class="custom-control custom-switch">
+                                            <input type="checkbox" class="custom-control-input" id="settingVideoEnabled" name="iklan_video_enabled">
+                                            <label class="custom-control-label" for="settingVideoEnabled">Izinkan unggah file video (.mp4)</label>
+                                        </div>
+                                        <small class="text-muted">Default: Nonaktif. Aktifkan jika ingin memutar video profil lembaga.</small>
+                                    </div>
+                                </div>
+                                <hr>
+                                <button type="submit" class="btn btn-success btn-sm" id="btnSaveSettings">
+                                    <i class="fas fa-save mr-1"></i> Simpan Pengaturan Display
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Tutup</button>
                 </div>
             </div>
         </div>
@@ -785,6 +938,96 @@
         background: linear-gradient(135deg, #fff0f8 0%, #ffe0f0 100%);
         border-left: 3px solid #e91e63;
     }
+
+    /* Iklan Player & Slides */
+    .iklan-player-wrapper {
+        aspect-ratio: 16/9;
+        background-color: #0b0b0b;
+        position: relative;
+    }
+    .iklan-slide {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        transition: opacity 0.8s ease-in-out;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        background-color: #000;
+    }
+    .iklan-slide.active {
+        opacity: 1;
+        z-index: 2;
+    }
+    /* Latar Belakang Blur Artistik untuk menyesuaikan rasio gambar non-16:9 */
+    .iklan-bg-blur {
+        position: absolute;
+        top: -20px;
+        left: -20px;
+        right: -20px;
+        bottom: -20px;
+        background-size: cover;
+        background-position: center;
+        filter: blur(28px) brightness(0.45);
+        transform: scale(1.15);
+        z-index: 1;
+        opacity: 0.9;
+        pointer-events: none;
+        display: none;
+    }
+    .fit-contain_blur .iklan-bg-blur {
+        display: block;
+    }
+    .iklan-media-item {
+        position: relative;
+        z-index: 2;
+        width: 100%;
+        height: 100%;
+        transition: all 0.3s ease;
+    }
+    /* Mode: Proporsional + Blur & Letterbox */
+    .fit-contain_blur .iklan-media-item,
+    .fit-contain .iklan-media-item {
+        object-fit: contain !important;
+        max-width: 100%;
+        max-height: 100%;
+    }
+    /* Mode: Paksa Regangkan (Stretch ke Bingkai 16:9 Penuh) */
+    .fit-fill .iklan-media-item {
+        object-fit: fill !important;
+        width: 100% !important;
+        height: 100% !important;
+    }
+    /* Mode: Isi Penuh (Crop / Cover) */
+    .fit-cover .iklan-media-item {
+        object-fit: cover !important;
+        width: 100% !important;
+        height: 100% !important;
+    }
+    .iklan-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.4);
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    .iklan-dot:hover,
+    .iklan-dot.active {
+        background: #28a745;
+        transform: scale(1.2);
+    }
+    .iklan-thumb {
+        width: 75px;
+        height: 45px;
+        object-fit: cover;
+        border-radius: 4px;
+        border: 1px solid #dee2e6;
+    }
 </style>
 <script>
     $(function() {
@@ -894,7 +1137,16 @@
                         $('#statTotal').text(response.statistics.total);
                         $('#statCompleted').text(response.statistics.completed);
                         $('#statQueueing').text(response.statistics.waiting);
-                        $('#statProgress').text(response.statistics.progress + '%');
+                        $('#statInProgress').text(response.statistics.in_progress || 0);
+                        $('#statProgress').text(response.statistics.progress);
+
+                        // Sync Format B
+                        $('#statTotalB').text(response.statistics.total);
+                        $('#statCompletedB').text(response.statistics.completed);
+                        $('#statQueueingB').text(response.statistics.waiting);
+                        $('#statInProgressB').text(response.statistics.in_progress || 0);
+                        $('#statProgressB').text(response.statistics.progress + '%');
+                        $('#barProgressB').css('width', response.statistics.progress + '%');
 
                         // Update progress bars
                         const pctCompleted = response.statistics.total > 0 
@@ -991,8 +1243,38 @@
             });
         }
 
+        // Fungsi untuk render compact room pills
+        function renderRoomPills(rooms) {
+            if (!rooms || rooms.length === 0) {
+                const emptyHtml = '<small class="text-muted">Belum ada ruangan terdaftar</small>';
+                $('#roomsPillsContainer').html(emptyHtml);
+                $('#roomsRibbonContainer').html(emptyHtml);
+                return;
+            }
+
+            let pillsHtml = '';
+            rooms.forEach(function(room) {
+                const isFull = room.is_full || false;
+                const isOccupied = room.occupied || false;
+                const pillClass = isFull ? 'badge-danger' : (isOccupied ? 'badge-warning' : 'badge-success');
+                const icon = isFull ? 'users' : (isOccupied ? 'user' : 'door-open');
+                const participants = room.participants || [];
+                let participantStr = '';
+                if (isOccupied && participants.length > 0) {
+                    participantStr = ': ' + participants.map(function(p) { return p.NoPeserta; }).join(',');
+                }
+                pillsHtml += '<span class="badge ' + pillClass + ' p-1 mr-1 mb-1" style="font-size: 0.85rem;" title="Ruangan ' + room.RoomId + participantStr + '">';
+                pillsHtml += '<i class="fas fa-' + icon + '"></i> R' + room.RoomId + participantStr;
+                pillsHtml += '</span>';
+            });
+
+            $('#roomsPillsContainer').html(pillsHtml);
+            $('#roomsRibbonContainer').html(pillsHtml);
+        }
+
         // Fungsi untuk update rooms
         function updateRooms(rooms) {
+            renderRoomPills(rooms);
             const container = $('#roomsContainer');
             container.empty();
 
@@ -1285,7 +1567,537 @@
         // Cleanup saat halaman ditutup
         $(window).on('beforeunload', function() {
             stopAutoRefresh();
+            stopIklanTimer();
         });
+
+        // -------------------------------------------------------------
+        // FORMAT HEADER STRIP A / B (KOMBINASI STATUS & RUANGAN)
+        // -------------------------------------------------------------
+        let currentHeaderFormat = localStorage.getItem('monitoringHeaderFormat') || 'A';
+
+        window.setHeaderFormat = function(fmt) {
+            currentHeaderFormat = fmt;
+            localStorage.setItem('monitoringHeaderFormat', fmt);
+            applyHeaderFormat(fmt);
+        };
+
+        function applyHeaderFormat(fmt) {
+            if (fmt === 'A') {
+                $('#summaryStripA').show();
+                $('#summaryStripB').hide();
+                $('#btnFormatA').addClass('active btn-primary').removeClass('btn-outline-secondary');
+                $('#btnFormatB').removeClass('active btn-primary').addClass('btn-outline-secondary');
+            } else {
+                $('#summaryStripA').hide();
+                $('#summaryStripB').show();
+                $('#btnFormatB').addClass('active btn-primary').removeClass('btn-outline-secondary');
+                $('#btnFormatA').removeClass('active btn-primary').addClass('btn-outline-secondary');
+            }
+        }
+
+        applyHeaderFormat(currentHeaderFormat);
+
+        // -------------------------------------------------------------
+        // IKLAN & SLIDESHOW ENGINE (BERBASIS SESSIONSTORAGE CACHE)
+        // -------------------------------------------------------------
+        const iklanListUrl = '<?= base_url('backend/munaqosah/get-iklan-list-ajax') ?>';
+        const iklanVersionUrl = '<?= base_url('backend/munaqosah/get-iklan-version-ajax') ?>';
+        const iklanUploadUrl = '<?= base_url('backend/munaqosah/upload-iklan-ajax') ?>';
+        const iklanDeleteUrl = '<?= base_url('backend/munaqosah/delete-iklan-ajax') ?>';
+        const iklanSettingsUrl = '<?= base_url('backend/munaqosah/update-iklan-settings-ajax') ?>';
+
+        const pageType = '<?= esc($selected_type) ?>';
+        const pageTpq = '<?= esc($selected_type === 'munaqosah' ? '0' : ($selected_tpq ?: '0')) ?>';
+        const cacheKey = 'iklanMediaCache_' + pageType + '_' + pageTpq;
+        const cacheVersionKey = 'iklanMediaVersion_' + pageType + '_' + pageTpq;
+
+        let iklanMediaList = [];
+        let iklanCurrentIndex = 0;
+        let iklanTimer = null;
+        let iklanCacheVersion = 0;
+
+        let iklanEnabled = localStorage.getItem('monitoringIklanEnabled') !== null 
+            ? localStorage.getItem('monitoringIklanEnabled') === 'true' 
+            : <?= !empty($iklan_settings['iklan_enabled']) ? 'true' : 'false' ?>;
+        let iklanInterval = parseInt(localStorage.getItem('monitoringIklanInterval') || '<?= esc($iklan_settings['iklan_interval'] ?? 10) ?>');
+        let iklanMode = localStorage.getItem('monitoringIklanMode') || '<?= esc($iklan_settings['iklan_mode'] ?? 'loop') ?>';
+        let iklanSingleId = parseInt(localStorage.getItem('monitoringIklanSingleId') || '<?= esc($iklan_settings['iklan_single_id'] ?? 0) ?>');
+        let iklanFit = localStorage.getItem('monitoringIklanFit') || '<?= esc($iklan_settings['iklan_fit'] ?? 'contain_blur') ?>';
+
+        function applyIklanFitClass(fit) {
+            $('#iklanPlayerContainer')
+                .removeClass('fit-contain_blur fit-fill fit-cover fit-contain')
+                .addClass('fit-' + (fit || 'contain_blur'));
+        }
+
+        function initIklanUI() {
+            $('#toggleIklan').prop('checked', iklanEnabled);
+            $('#iklanInterval').val(iklanInterval);
+            $('#iklanMode').val(iklanMode);
+            $('#iklanFit').val(iklanFit);
+            applyIklanFitClass(iklanFit);
+
+            if (iklanEnabled) {
+                $('#iklanPlaySettings').show();
+                $('#iklanPlayerContainer').show();
+                $('#sectionAntrian').hide();
+                loadIklanData();
+            } else {
+                $('#iklanPlaySettings').hide();
+                $('#iklanPlayerContainer').hide();
+                $('#sectionAntrian').show();
+                stopIklanTimer();
+            }
+        }
+
+        // Toggle Iklan ON / OFF (Menukar antara Media Player vs Monitoring Antrian Grup)
+        $('#toggleIklan').on('change', function() {
+            iklanEnabled = $(this).is(':checked');
+            localStorage.setItem('monitoringIklanEnabled', iklanEnabled);
+
+            if (iklanEnabled) {
+                $('#iklanPlaySettings').show();
+                $('#iklanPlayerContainer').fadeIn(300);
+                $('#sectionAntrian').hide();
+                loadIklanData();
+            } else {
+                $('#iklanPlaySettings').hide();
+                $('#iklanPlayerContainer').hide();
+                $('#sectionAntrian').fadeIn(300);
+                stopIklanTimer();
+            }
+        });
+
+        // Event ubah interval & mode dari header
+        $('#iklanInterval').on('change', function() {
+            iklanInterval = parseInt($(this).val());
+            localStorage.setItem('monitoringIklanInterval', iklanInterval);
+            if (iklanEnabled && iklanMode !== 'single') {
+                startIklanTimer();
+            }
+        });
+
+        $('#iklanMode').on('change', function() {
+            iklanMode = $(this).val();
+            localStorage.setItem('monitoringIklanMode', iklanMode);
+            if (iklanEnabled) {
+                stopIklanTimer();
+                if (iklanMode !== 'single') {
+                    startIklanTimer();
+                } else {
+                    renderIklanPlayer();
+                }
+            }
+        });
+
+        $('#iklanFit').on('change', function() {
+            iklanFit = $(this).val();
+            localStorage.setItem('monitoringIklanFit', iklanFit);
+            applyIklanFitClass(iklanFit);
+        });
+
+        // Load media iklan (menggunakan sessionStorage cache terisolasi per type & tpq)
+        function loadIklanData() {
+            const cachedData = sessionStorage.getItem(cacheKey);
+            const cachedVersion = parseInt(sessionStorage.getItem(cacheVersionKey) || '0');
+
+            if (cachedData && cachedVersion > 0) {
+                try {
+                    iklanMediaList = JSON.parse(cachedData);
+                    iklanCacheVersion = cachedVersion;
+                    renderIklanPlayer();
+                    checkIklanVersion(); // Cek versi di background (hanya query 1 integer)
+                    return;
+                } catch (e) {
+                    sessionStorage.removeItem(cacheKey);
+                }
+            }
+
+            fetchIklanFromServer();
+        }
+
+        function checkIklanVersion() {
+            const query = '?tahun=<?= esc($selected_tahun) ?>&type=' + encodeURIComponent(pageType) + '&tpq=' + encodeURIComponent(pageTpq);
+            $.ajax({
+                url: iklanVersionUrl + query,
+                type: 'GET',
+                dataType: 'json',
+                success: function(res) {
+                    if (res.success && res.version > 0 && res.version !== iklanCacheVersion) {
+                        fetchIklanFromServer();
+                    }
+                }
+            });
+        }
+
+        function fetchIklanFromServer(callback) {
+            const query = '?tahun=<?= esc($selected_tahun) ?>&type=' + encodeURIComponent(pageType) + '&tpq=' + encodeURIComponent(pageTpq);
+            $.ajax({
+                url: iklanListUrl + query,
+                type: 'GET',
+                dataType: 'json',
+                success: function(res) {
+                    if (res.success) {
+                        iklanMediaList = res.data || [];
+                        iklanCacheVersion = res.version || Date.now();
+                        sessionStorage.setItem(cacheKey, JSON.stringify(iklanMediaList));
+                        sessionStorage.setItem(cacheVersionKey, iklanCacheVersion);
+                        if (iklanEnabled) {
+                            renderIklanPlayer();
+                        }
+                        if (typeof callback === 'function') {
+                            callback(iklanMediaList);
+                        }
+                    }
+                }
+            });
+        }
+
+        // Render Slideshow Player
+        function renderIklanPlayer() {
+            const container = $('#iklanSlideContainer');
+            container.find('.iklan-slide').remove();
+            $('#iklanDots').empty();
+            applyIklanFitClass(iklanFit);
+
+            if (!iklanMediaList || iklanMediaList.length === 0) {
+                $('#iklanEmptyState').show();
+                $('#iklanSlideInfo').hide();
+                stopIklanTimer();
+                return;
+            }
+
+            $('#iklanEmptyState').hide();
+            $('#iklanSlideInfo').show();
+
+            iklanMediaList.forEach(function(media, idx) {
+                let mediaTag = '';
+                if (media.MediaType === 'video') {
+                    mediaTag = '<video src="' + media.url + '" class="iklan-media-item" muted playsinline preload="auto"></video>';
+                } else {
+                    mediaTag = '<div class="iklan-bg-blur" style="background-image: url(\'' + media.url + '\');"></div>' +
+                               '<img src="' + media.url + '" class="iklan-media-item" alt="' + $('<div>').text(media.Judul).html() + '" loading="lazy">';
+                }
+
+                const slide = $('<div>')
+                    .addClass('iklan-slide')
+                    .attr('data-index', idx)
+                    .attr('data-id', media.id)
+                    .attr('data-type', media.MediaType)
+                    .html(mediaTag);
+
+                container.append(slide);
+
+                const dot = $('<div>')
+                    .addClass('iklan-dot')
+                    .attr('data-index', idx)
+                    .attr('title', media.Judul)
+                    .on('click', function() {
+                        goToSlide(idx);
+                        if (iklanMode !== 'single') {
+                            startIklanTimer();
+                        }
+                    });
+
+                $('#iklanDots').append(dot);
+            });
+
+            // Tentukan slide awal
+            if (iklanMode === 'single' && iklanSingleId > 0) {
+                const targetIdx = iklanMediaList.findIndex(function(m) { return parseInt(m.id) === iklanSingleId; });
+                iklanCurrentIndex = targetIdx >= 0 ? targetIdx : 0;
+                goToSlide(iklanCurrentIndex);
+                stopIklanTimer();
+            } else {
+                iklanCurrentIndex = 0;
+                goToSlide(0);
+                startIklanTimer();
+            }
+        }
+
+        function goToSlide(idx) {
+            const slides = $('#iklanSlideContainer .iklan-slide');
+            const dots = $('#iklanDots .iklan-dot');
+            if (slides.length === 0) return;
+
+            idx = ((idx % slides.length) + slides.length) % slides.length;
+            iklanCurrentIndex = idx;
+
+            slides.removeClass('active');
+            dots.removeClass('active');
+
+            const currentSlide = $(slides[idx]);
+            currentSlide.addClass('active');
+            $(dots[idx]).addClass('active');
+
+            // Handle video playback jika slide adalah video
+            slides.each(function() {
+                const vid = $(this).find('video')[0];
+                if (vid) {
+                    vid.pause();
+                    vid.currentTime = 0;
+                }
+            });
+
+            const activeVideo = currentSlide.find('video')[0];
+            if (activeVideo) {
+                stopIklanTimer();
+                activeVideo.play().catch(function() {});
+                $(activeVideo).off('ended').on('ended', function() {
+                    nextSlide();
+                });
+            }
+
+            updateTimerLabel();
+        }
+
+        function nextSlide() {
+            if (!iklanMediaList || iklanMediaList.length === 0) return;
+
+            let nextIdx;
+            if (iklanMode === 'random') {
+                const total = iklanMediaList.length;
+                if (total <= 1) {
+                    nextIdx = 0;
+                } else {
+                    do {
+                        nextIdx = Math.floor(Math.random() * total);
+                    } while (nextIdx === iklanCurrentIndex);
+                }
+            } else {
+                nextIdx = (iklanCurrentIndex + 1) % iklanMediaList.length;
+            }
+
+            goToSlide(nextIdx);
+        }
+
+        function startIklanTimer() {
+            stopIklanTimer();
+            if (iklanMode === 'single') return;
+
+            iklanTimer = setInterval(function() {
+                nextSlide();
+            }, iklanInterval * 1000);
+
+            updateTimerLabel();
+        }
+
+        function stopIklanTimer() {
+            if (iklanTimer) {
+                clearInterval(iklanTimer);
+                iklanTimer = null;
+            }
+        }
+
+        function updateTimerLabel() {
+            const total = iklanMediaList ? iklanMediaList.length : 0;
+            const current = iklanCurrentIndex + 1;
+            let modeText = 'Loop';
+            if (iklanMode === 'random') modeText = 'Acak';
+            if (iklanMode === 'single') modeText = 'Tetap';
+
+            $('#iklanTimerLabel').text(current + '/' + total + ' · ' + (iklanMode !== 'single' ? iklanInterval + 's (' + modeText + ')' : modeText));
+        }
+
+        // -------------------------------------------------------------
+        // MODAL KELOLA IKLAN & PENGATURAN DISPLAY
+        // -------------------------------------------------------------
+        $('#btnKelolaIklan').on('click', function() {
+            $('#modalKelolaIklan').modal('show');
+            loadModalMediaList();
+            initModalSettings();
+        });
+
+        $('#iklanFileInput').on('change', function() {
+            const fileName = $(this).val().split('\\').pop() || $(this).val().split('/').pop();
+            $(this).next('.custom-file-label').text(fileName || 'Pilih file...');
+        });
+
+        $('#settingMode').on('change', function() {
+            if ($(this).val() === 'single') {
+                $('#settingSingleRow').slideDown(200);
+            } else {
+                $('#settingSingleRow').slideUp(200);
+            }
+        });
+
+        function initModalSettings() {
+            $('#settingInterval').val(iklanInterval);
+            $('#settingMode').val(iklanMode);
+            if (iklanMode === 'single') {
+                $('#settingSingleRow').show();
+            } else {
+                $('#settingSingleRow').hide();
+            }
+        }
+
+        function loadModalMediaList() {
+            $('#iklanMediaList').html('<p class="text-muted text-center py-3"><i class="fas fa-spinner fa-spin mr-1"></i> Memuat daftar media...</p>');
+            fetchIklanFromServer(function(list) {
+                renderModalMediaTable(list);
+                // Populate dropdown pilihan single image
+                const $sel = $('#settingSingleId');
+                $sel.find('option:not(:first)').remove();
+                list.forEach(function(m) {
+                    const opt = $('<option>').val(m.id).text(m.Judul + ' (' + m.MediaType + ')');
+                    if (parseInt(m.id) === iklanSingleId) {
+                        opt.prop('selected', true);
+                    }
+                    $sel.append(opt);
+                });
+            });
+        }
+
+        function renderModalMediaTable(list) {
+            if (!list || list.length === 0) {
+                $('#iklanMediaList').html('<div class="alert alert-light text-center border">Belum ada media iklan. Silakan upload gambar di atas.</div>');
+                return;
+            }
+
+            let html = '<table class="table table-sm table-hover table-bordered align-middle">';
+            html += '<thead class="thead-light"><tr><th style="width:40px;">No</th><th style="width:90px;">Preview</th><th>Judul / Keterangan</th><th style="width:80px;">Tipe</th><th style="width:70px;" class="text-center">Aksi</th></tr></thead><tbody>';
+
+            list.forEach(function(item, i) {
+                let preview = '';
+                if (item.MediaType === 'video') {
+                    preview = '<span class="badge badge-secondary p-2"><i class="fas fa-film mr-1"></i>Video</span>';
+                } else {
+                    preview = '<img src="' + item.url + '" class="iklan-thumb">';
+                }
+
+                html += '<tr>';
+                html += '<td class="text-center">' + (i + 1) + '</td>';
+                html += '<td class="text-center">' + preview + '</td>';
+                html += '<td><strong>' + $('<div>').text(item.Judul).html() + '</strong></td>';
+                html += '<td><span class="badge ' + (item.MediaType === 'video' ? 'badge-primary' : 'badge-info') + '">' + item.MediaType + '</span></td>';
+                html += '<td class="text-center"><button type="button" class="btn btn-danger btn-sm btn-delete-iklan" data-id="' + item.id + '" title="Hapus"><i class="fas fa-trash"></i></button></td>';
+                html += '</tr>';
+            });
+
+            html += '</tbody></table>';
+            $('#iklanMediaList').html(html);
+
+            // Handler tombol hapus
+            $('.btn-delete-iklan').on('click', function() {
+                const id = $(this).data('id');
+                if (confirm('Yakin ingin menghapus media ini?')) {
+                    deleteIklanItem(id);
+                }
+            });
+        }
+
+        // Upload media via AJAX
+        $('#formUploadIklan').on('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            const params = new URLSearchParams(window.location.search);
+            formData.append('tahun', params.get('tahun') || '');
+            formData.append('tpq', params.get('tpq') || '');
+
+            const $btn = $('#btnSubmitUpload');
+            $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-1"></i> Mengunggah...');
+
+            $.ajax({
+                url: iklanUploadUrl,
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                dataType: 'json',
+                success: function(res) {
+                    $btn.prop('disabled', false).html('<i class="fas fa-upload mr-1"></i> Unggah Media');
+                    if (res.success) {
+                        sessionStorage.removeItem('iklanMediaCache');
+                        sessionStorage.removeItem('iklanMediaVersion');
+                        $('#formUploadIklan')[0].reset();
+                        $('.custom-file-label').text('Pilih file gambar (landscape)...');
+                        loadModalMediaList();
+                    } else {
+                        alert('Gagal upload: ' + (res.message || 'Terjadi kesalahan'));
+                    }
+                },
+                error: function(xhr, status, error) {
+                    $btn.prop('disabled', false).html('<i class="fas fa-upload mr-1"></i> Unggah Media');
+                    alert('Terjadi kesalahan saat upload media.');
+                }
+            });
+        });
+
+        // Hapus media via AJAX
+        function deleteIklanItem(id) {
+            $.ajax({
+                url: iklanDeleteUrl,
+                type: 'POST',
+                data: { id: id },
+                dataType: 'json',
+                success: function(res) {
+                    if (res.success) {
+                        sessionStorage.removeItem('iklanMediaCache');
+                        sessionStorage.removeItem('iklanMediaVersion');
+                        loadModalMediaList();
+                    } else {
+                        alert('Gagal hapus: ' + (res.message || 'Terjadi kesalahan'));
+                    }
+                },
+                error: function() {
+                    alert('Terjadi kesalahan saat menghapus media.');
+                }
+            });
+        }
+
+        // Simpan pengaturan display via AJAX
+        $('#formIklanSettings').on('submit', function(e) {
+            e.preventDefault();
+            const params = new URLSearchParams(window.location.search);
+            const data = {
+                iklan_interval: $('#settingInterval').val(),
+                iklan_mode: $('#settingMode').val(),
+                iklan_single_id: $('#settingSingleId').val(),
+                iklan_video_enabled: $('#settingVideoEnabled').is(':checked') ? 1 : 0,
+                header_format: currentHeaderFormat,
+                tpq: params.get('tpq') || ''
+            };
+
+            const $btn = $('#btnSaveSettings');
+            $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-1"></i> Menyimpan...');
+
+            $.ajax({
+                url: iklanSettingsUrl,
+                type: 'POST',
+                data: data,
+                dataType: 'json',
+                success: function(res) {
+                    $btn.prop('disabled', false).html('<i class="fas fa-save mr-1"></i> Simpan Pengaturan Display');
+                    if (res.success) {
+                        iklanInterval = parseInt(data.iklan_interval);
+                        iklanMode = data.iklan_mode;
+                        iklanSingleId = parseInt(data.iklan_single_id);
+
+                        localStorage.setItem('monitoringIklanInterval', iklanInterval);
+                        localStorage.setItem('monitoringIklanMode', iklanMode);
+                        localStorage.setItem('monitoringIklanSingleId', iklanSingleId);
+
+                        $('#iklanInterval').val(iklanInterval);
+                        $('#iklanMode').val(iklanMode);
+
+                        if (iklanEnabled) {
+                            renderIklanPlayer();
+                        }
+                        alert('Pengaturan display berhasil disimpan.');
+                        $('#modalKelolaIklan').modal('hide');
+                    } else {
+                        alert('Gagal simpan: ' + (res.message || 'Terjadi kesalahan'));
+                    }
+                },
+                error: function() {
+                    $btn.prop('disabled', false).html('<i class="fas fa-save mr-1"></i> Simpan Pengaturan Display');
+                    alert('Terjadi kesalahan saat menyimpan pengaturan.');
+                }
+            });
+        });
+
+        // Inisialisasi awal UI Iklan
+        initIklanUI();
     });
 </script>
 <?= $this->endSection() ?>

@@ -413,6 +413,12 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->get('munaqosah/antrian', 'Munaqosah::antrian');
     $routes->get('munaqosah/monitoring-status-antrian', 'Munaqosah::monitoringStatusAntrian');
     $routes->get('munaqosah/get-monitoring-status-antrian-ajax', 'Munaqosah::getMonitoringStatusAntrianAjax');
+    $routes->get('munaqosah/iklan', 'Munaqosah::kelolaIklan');
+    $routes->get('munaqosah/get-iklan-list-ajax', 'Munaqosah::getIklanListAjax');
+    $routes->get('munaqosah/get-iklan-version-ajax', 'Munaqosah::getIklanVersionAjax');
+    $routes->post('munaqosah/upload-iklan-ajax', 'Munaqosah::uploadIklanAjax');
+    $routes->post('munaqosah/delete-iklan-ajax', 'Munaqosah::deleteIklanAjax');
+    $routes->post('munaqosah/update-iklan-settings-ajax', 'Munaqosah::updateIklanSettingsAjax');
     $routes->get('munaqosah/get-antrian-ajax', 'Munaqosah::getAntrianAjax');
     $routes->get('munaqosah/monitoring-antrian-peserta-ruangan-juri', 'Munaqosah::monitoringAntrianPesertaRuanganJuri');
     $routes->get('munaqosah/check-status-antrian-juri', 'Munaqosah::checkStatusAntrianJuri');
