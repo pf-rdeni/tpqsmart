@@ -1693,10 +1693,14 @@
 
         // Event ubah interval & mode dari header
         $('#iklanInterval').on('change', function() {
-            iklanInterval = parseInt($(this).val());
+            iklanInterval = parseInt($(this).val()) || 10;
             localStorage.setItem('monitoringIklanInterval', iklanInterval);
             if (iklanEnabled && iklanMode !== 'single') {
-                startIklanTimer();
+                const activeSlide = $('#iklanSlideContainer .iklan-slide.active');
+                const isVideo = activeSlide.attr('data-type') === 'video' || activeSlide.attr('data-source') === 'youtube';
+                if (!isVideo) {
+                    startIklanTimer();
+                }
             }
         });
 
@@ -1706,7 +1710,11 @@
             if (iklanEnabled) {
                 stopIklanTimer();
                 if (iklanMode !== 'single') {
-                    startIklanTimer();
+                    const activeSlide = $('#iklanSlideContainer .iklan-slide.active');
+                    const isVideo = activeSlide.attr('data-type') === 'video' || activeSlide.attr('data-source') === 'youtube';
+                    if (!isVideo) {
+                        startIklanTimer();
+                    }
                 } else {
                     renderIklanPlayer();
                 }
@@ -1873,9 +1881,6 @@
                     .attr('title', media.Judul)
                     .on('click', function() {
                         goToSlide(idx);
-                        if (iklanMode !== 'single') {
-                            startIklanTimer();
-                        }
                     });
 
                 $('#iklanDots').append(dot);
@@ -1905,8 +1910,10 @@
                                 events: {
                                     'onReady': function(event) {
                                         try { event.target.mute(); } catch(e) {}
-                                        const parentSlide = $('#' + frameId).closest('.iklan-slide');
+                                        const frameElem = event.target.getIframe ? event.target.getIframe() : document.getElementById(frameId);
+                                        const parentSlide = $(frameElem).closest('.iklan-slide');
                                         if (parentSlide.hasClass('active')) {
+                                            try { event.target.seekTo(0, true); } catch(e) {}
                                             event.target.playVideo();
                                         }
                                     },
@@ -1914,9 +1921,15 @@
                                         // event.data === 0 (YT.PlayerState.ENDED)
                                         if (event.data === 0) {
                                             if (iklanEnabled) {
+                                                const frameElem = event.target.getIframe ? event.target.getIframe() : document.getElementById(frameId);
+                                                const parentSlide = $(frameElem).closest('.iklan-slide');
+                                                // Pastikan HANYA proses jika slide ini benar-benar slide yang sedang aktif!
+                                                if (!parentSlide.hasClass('active')) {
+                                                    return;
+                                                }
                                                 if (iklanMode === 'single') {
                                                     try {
-                                                        event.target.seekTo(0);
+                                                        event.target.seekTo(0, true);
                                                         event.target.playVideo();
                                                     } catch(e) {}
                                                 } else {
@@ -1931,7 +1944,8 @@
                                         // Jika video diblokir/error, pindah slide setelah 3 detik agar tidak macet
                                         if (iklanEnabled && iklanMode !== 'single') {
                                             setTimeout(function() {
-                                                const parentSlide = $('#' + frameId).closest('.iklan-slide');
+                                                const frameElem = event.target.getIframe ? event.target.getIframe() : document.getElementById(frameId);
+                                                const parentSlide = $(frameElem).closest('.iklan-slide');
                                                 if (parentSlide.hasClass('active')) {
                                                     nextSlide();
                                                 }
@@ -1959,6 +1973,7 @@
 
             idx = ((idx % slides.length) + slides.length) % slides.length;
             iklanCurrentIndex = idx;
+            lastSlideChangeTime = Date.now();
 
             slides.removeClass('active');
             dots.removeClass('active');
@@ -1967,8 +1982,10 @@
             currentSlide.addClass('active');
             $(dots[idx]).addClass('active');
 
-            // Hentikan video & YouTube di semua slide yang tidak aktif
-            slides.each(function() {
+            // Hentikan video & YouTube di semua slide yang tidak aktif dan reset ke detik 0
+            slides.each(function(sIdx) {
+                if (sIdx === idx) return; // Lewati slide yang saat ini aktif
+
                 const vid = $(this).find('video')[0];
                 if (vid) {
                     vid.pause();
@@ -1977,10 +1994,14 @@
                 const frame = $(this).find('iframe')[0];
                 if (frame) {
                     const frameId = frame.id;
-                    if (ytPlayers[frameId] && typeof ytPlayers[frameId].pauseVideo === 'function') {
-                        try { ytPlayers[frameId].pauseVideo(); } catch(e) {}
+                    if (ytPlayers[frameId]) {
+                        try {
+                            if (typeof ytPlayers[frameId].pauseVideo === 'function') ytPlayers[frameId].pauseVideo();
+                            if (typeof ytPlayers[frameId].seekTo === 'function') ytPlayers[frameId].seekTo(0, true);
+                        } catch(e) {}
                     } else if (frame.contentWindow) {
                         frame.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
+                        frame.contentWindow.postMessage('{"event":"command","func":"seekTo","args":[0, true]}', '*');
                     }
                 }
             });
@@ -1989,8 +2010,9 @@
             const activeIframe = currentSlide.find('iframe')[0];
 
             if (activeVideo) {
-                // Video Lokal MP4: Matikan timer slide, tunggu video sampai selesai (ended)
+                // Video Lokal MP4: Matikan timer slide, putar dari awal dan tunggu sampai selesai (ended)
                 stopIklanTimer();
+                activeVideo.currentTime = 0;
                 activeVideo.play().catch(function() {});
                 $(activeVideo).off('ended').on('ended', function() {
                     if (iklanMode === 'single') {
@@ -2007,10 +2029,12 @@
                 const frameId = activeIframe.id;
                 if (ytPlayers[frameId] && typeof ytPlayers[frameId].playVideo === 'function') {
                     try {
+                        ytPlayers[frameId].seekTo(0, true);
                         ytPlayers[frameId].mute();
                         ytPlayers[frameId].playVideo();
                     } catch(e) {}
                 } else if (activeIframe.contentWindow) {
+                    activeIframe.contentWindow.postMessage('{"event":"command","func":"seekTo","args":[0, true]}', '*');
                     activeIframe.contentWindow.postMessage('{"event":"command","func":"mute","args":""}', '*');
                     activeIframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
                     activeIframe.contentWindow.postMessage('{"event":"listening"}', '*');
@@ -2025,7 +2049,7 @@
             updateTimerLabel();
         }
 
-        // Global listener fallback untuk event YouTube iframe API (playerState 0 = ended)
+        // Global listener fallback untuk event YouTube iframe API (HANYA digunakan jika YT.Player belum aktif)
         window.addEventListener('message', function(e) {
             try {
                 let data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
@@ -2033,10 +2057,21 @@
                     const isEnded = (data.event === 'infoDelivery' && data.info && data.info.playerState === 0) ||
                                     (data.event === 'onStateChange' && data.info === 0);
                     if (isEnded) {
+                        const activeSlide = $('#iklanSlideContainer .iklan-slide.active');
+                        if (!activeSlide.length || activeSlide.attr('data-source') !== 'youtube') {
+                            return;
+                        }
+                        const frame = activeSlide.find('iframe')[0];
+                        if (!frame) return;
+
+                        // PENTING: Jika YT.Player instance untuk frame ini sudah aktif,
+                        // abaikan pesan ini agar tidak memicu transisi ganda / loncatan slide!
+                        if (frame.id && ytPlayers[frame.id]) {
+                            return;
+                        }
+
                         if (iklanMode === 'single') {
-                            const activeSlide = $('#iklanSlideContainer .iklan-slide.active');
-                            const frame = activeSlide.find('iframe')[0];
-                            if (frame && frame.contentWindow) {
+                            if (frame.contentWindow) {
                                 frame.contentWindow.postMessage('{"event":"command","func":"seekTo","args":[0, true]}', '*');
                                 frame.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
                             }
@@ -2048,8 +2083,19 @@
             } catch (err) {}
         });
 
+        let isTransitioningSlide = false;
+        let lastSlideChangeTime = 0;
+
         function nextSlide() {
             if (!iklanMediaList || iklanMediaList.length === 0) return;
+
+            const now = Date.now();
+            // Cegah loncatan slide ganda / spamming event (cooldown minimal 1200ms)
+            if (isTransitioningSlide || (now - lastSlideChangeTime < 1200)) {
+                return;
+            }
+            isTransitioningSlide = true;
+            lastSlideChangeTime = now;
 
             let nextIdx;
             if (iklanMode === 'random') {
@@ -2066,6 +2112,10 @@
             }
 
             goToSlide(nextIdx);
+
+            setTimeout(function() {
+                isTransitioningSlide = false;
+            }, 800);
         }
 
         function startIklanTimer() {
