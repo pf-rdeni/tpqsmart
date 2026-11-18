@@ -2,7 +2,6 @@
 <?= $this->section('content'); ?>
 
 <div class="container-fluid">
-    <?= $this->include('backend/administrasi/_partials/page_header'); ?>
 
     <div class="row">
         <!-- Kolom Kiri: Form & Daftar Counter -->
