@@ -154,10 +154,15 @@
                         <div id="templateDesc" class="text-muted small"></div>
                     </div>
                 </div>
-                <div class="card-footer bg-white text-right">
-                    <button type="button" class="btn btn-primary px-4 btn-next" data-next="2">
+                <div class="card-footer bg-white d-flex justify-content-end align-items-center flex-wrap">
+                    <button type="button" class="btn btn-primary px-4 btn-next <?= !empty($isEdit) ? 'mr-2' : '' ?> mb-1" data-next="2">
                         Lanjut ke Kop & Layout <i class="fas fa-arrow-right ml-1"></i>
                     </button>
+                    <?php if (!empty($isEdit)): ?>
+                        <button type="button" class="btn btn-success px-4 btn-submit-wizard font-weight-bold mb-1" title="Simpan Perubahan Surat">
+                            <i class="fas fa-save mr-1"></i> Simpan
+                        </button>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
@@ -259,9 +264,14 @@
                         </div>
                     </div>
                 </div>
-                <div class="card-footer bg-white d-flex justify-content-between">
-                    <button type="button" class="btn btn-secondary btn-prev" data-prev="1"><i class="fas fa-arrow-left mr-1"></i> Kembali</button>
-                    <button type="button" class="btn btn-info px-4 btn-next" data-next="3">Lanjut ke Penerima <i class="fas fa-arrow-right ml-1"></i></button>
+                <div class="card-footer bg-white d-flex justify-content-between align-items-center flex-wrap">
+                    <button type="button" class="btn btn-secondary btn-prev mb-1" data-prev="1"><i class="fas fa-arrow-left mr-1"></i> Kembali</button>
+                    <div class="d-flex align-items-center flex-wrap mb-1">
+                        <button type="button" class="btn btn-info px-4 btn-next <?= !empty($isEdit) ? 'mr-2' : '' ?>" data-next="3">Lanjut ke Penerima <i class="fas fa-arrow-right ml-1"></i></button>
+                        <?php if (!empty($isEdit)): ?>
+                            <button type="button" class="btn btn-success px-4 btn-submit-wizard font-weight-bold" title="Simpan Perubahan Surat"><i class="fas fa-save mr-1"></i> Simpan</button>
+                        <?php endif; ?>
+                    </div>
                 </div>
             </div>
         </div>
@@ -357,9 +367,14 @@
                         </small>
                     </div>
                 </div>
-                <div class="card-footer bg-white d-flex justify-content-between">
-                    <button type="button" class="btn btn-secondary btn-prev" data-prev="2"><i class="fas fa-arrow-left mr-1"></i> Kembali</button>
-                    <button type="button" class="btn btn-success px-4 btn-next" data-next="4">Lanjut ke Perihal & Isi <i class="fas fa-arrow-right ml-1"></i></button>
+                <div class="card-footer bg-white d-flex justify-content-between align-items-center flex-wrap">
+                    <button type="button" class="btn btn-secondary btn-prev mb-1" data-prev="2"><i class="fas fa-arrow-left mr-1"></i> Kembali</button>
+                    <div class="d-flex align-items-center flex-wrap mb-1">
+                        <button type="button" class="btn btn-success px-4 btn-next <?= !empty($isEdit) ? 'mr-2' : '' ?>" data-next="4">Lanjut ke Perihal & Isi <i class="fas fa-arrow-right ml-1"></i></button>
+                        <?php if (!empty($isEdit)): ?>
+                            <button type="button" class="btn btn-success px-4 btn-submit-wizard font-weight-bold" title="Simpan Perubahan Surat"><i class="fas fa-save mr-1"></i> Simpan</button>
+                        <?php endif; ?>
+                    </div>
                 </div>
             </div>
         </div>
@@ -416,9 +431,14 @@
                         <input type="text" name="SalamPenutup" id="inputSalamPenutup" class="form-control" value="<?= esc($surat['SalamPenutup'] ?? "Wassalamu'alaikum Warahmatullahi Wabarakatuh") ?>">
                     </div>
                 </div>
-                <div class="card-footer bg-white d-flex justify-content-between">
-                    <button type="button" class="btn btn-secondary btn-prev" data-prev="3"><i class="fas fa-arrow-left mr-1"></i> Kembali</button>
-                    <button type="button" class="btn btn-warning px-4 btn-next" data-next="5">Lanjut ke Nomor Surat <i class="fas fa-arrow-right ml-1"></i></button>
+                <div class="card-footer bg-white d-flex justify-content-between align-items-center flex-wrap">
+                    <button type="button" class="btn btn-secondary btn-prev mb-1" data-prev="3"><i class="fas fa-arrow-left mr-1"></i> Kembali</button>
+                    <div class="d-flex align-items-center flex-wrap mb-1">
+                        <button type="button" class="btn btn-warning px-4 btn-next <?= !empty($isEdit) ? 'mr-2' : '' ?>" data-next="5">Lanjut ke Nomor Surat <i class="fas fa-arrow-right ml-1"></i></button>
+                        <?php if (!empty($isEdit)): ?>
+                            <button type="button" class="btn btn-success px-4 btn-submit-wizard font-weight-bold" title="Simpan Perubahan Surat"><i class="fas fa-save mr-1"></i> Simpan</button>
+                        <?php endif; ?>
+                    </div>
                 </div>
             </div>
         </div>
@@ -455,9 +475,14 @@
                         <i class="fas fa-shield-alt text-success mr-1"></i> Sistem otomatis mencegah nomor ganda dengan mengunci counter saat Anda menekan tombol Simpan/Finalisasi.
                     </div>
                 </div>
-                <div class="card-footer bg-white d-flex justify-content-between">
-                    <button type="button" class="btn btn-secondary btn-prev" data-prev="4"><i class="fas fa-arrow-left mr-1"></i> Kembali</button>
-                    <button type="button" class="btn btn-secondary px-4 btn-next" data-next="6">Lanjut ke Tanda Tangan <i class="fas fa-arrow-right ml-1"></i></button>
+                <div class="card-footer bg-white d-flex justify-content-between align-items-center flex-wrap">
+                    <button type="button" class="btn btn-secondary btn-prev mb-1" data-prev="4"><i class="fas fa-arrow-left mr-1"></i> Kembali</button>
+                    <div class="d-flex align-items-center flex-wrap mb-1">
+                        <button type="button" class="btn btn-secondary px-4 btn-next <?= !empty($isEdit) ? 'mr-2' : '' ?>" data-next="6">Lanjut ke Tanda Tangan <i class="fas fa-arrow-right ml-1"></i></button>
+                        <?php if (!empty($isEdit)): ?>
+                            <button type="button" class="btn btn-success px-4 btn-submit-wizard font-weight-bold" title="Simpan Perubahan Surat"><i class="fas fa-save mr-1"></i> Simpan</button>
+                        <?php endif; ?>
+                    </div>
                 </div>
             </div>
         </div>
@@ -560,9 +585,14 @@
                         </div>
                     </div>
                 </div>
-                <div class="card-footer bg-white d-flex justify-content-between">
-                    <button type="button" class="btn btn-secondary btn-prev" data-prev="5"><i class="fas fa-arrow-left mr-1"></i> Kembali</button>
-                    <button type="button" class="btn btn-primary px-4 btn-next" data-next="7">Lanjut ke Preview <i class="fas fa-arrow-right ml-1"></i></button>
+                <div class="card-footer bg-white d-flex justify-content-between align-items-center flex-wrap">
+                    <button type="button" class="btn btn-secondary btn-prev mb-1" data-prev="5"><i class="fas fa-arrow-left mr-1"></i> Kembali</button>
+                    <div class="d-flex align-items-center flex-wrap mb-1">
+                        <button type="button" class="btn btn-primary px-4 btn-next <?= !empty($isEdit) ? 'mr-2' : '' ?>" data-next="7">Lanjut ke Preview <i class="fas fa-arrow-right ml-1"></i></button>
+                        <?php if (!empty($isEdit)): ?>
+                            <button type="button" class="btn btn-success px-4 btn-submit-wizard font-weight-bold" title="Simpan Perubahan Surat"><i class="fas fa-save mr-1"></i> Simpan</button>
+                        <?php endif; ?>
+                    </div>
                 </div>
             </div>
         </div>
@@ -583,9 +613,14 @@
                         <iframe id="previewIframe" style="width: 100%; height: 900px; border: none; display: block; background: #fff;" srcdoc=""></iframe>
                     </div>
                 </div>
-                <div class="card-footer bg-white d-flex justify-content-between">
-                    <button type="button" class="btn btn-secondary btn-prev" data-prev="6"><i class="fas fa-arrow-left mr-1"></i> Kembali</button>
-                    <button type="button" class="btn btn-success px-4 btn-next" data-next="8">Lanjut ke Finalisasi <i class="fas fa-arrow-right ml-1"></i></button>
+                <div class="card-footer bg-white d-flex justify-content-between align-items-center flex-wrap">
+                    <button type="button" class="btn btn-secondary btn-prev mb-1" data-prev="6"><i class="fas fa-arrow-left mr-1"></i> Kembali</button>
+                    <div class="d-flex align-items-center flex-wrap mb-1">
+                        <button type="button" class="btn btn-success px-4 btn-next <?= !empty($isEdit) ? 'mr-2' : '' ?>" data-next="8">Lanjut ke Finalisasi <i class="fas fa-arrow-right ml-1"></i></button>
+                        <?php if (!empty($isEdit)): ?>
+                            <button type="button" class="btn btn-success px-4 btn-submit-wizard font-weight-bold" title="Simpan Perubahan Surat"><i class="fas fa-save mr-1"></i> Simpan</button>
+                        <?php endif; ?>
+                    </div>
                 </div>
             </div>
         </div>
@@ -632,10 +667,10 @@
                         <strong>Catatan Efisiensi:</strong> File PDF di-generate secara <em>on-demand (streaming)</em> dan tidak disimpan di server untuk menghemat kapasitas storage. Anda dapat mencetak ulang kapan saja dari menu <strong>Arsip Surat Keluar</strong>.
                     </div>
                 </div>
-                <div class="card-footer bg-white d-flex justify-content-between">
-                    <button type="button" class="btn btn-secondary btn-prev" data-prev="7"><i class="fas fa-arrow-left mr-1"></i> Kembali</button>
-                    <button type="button" class="btn btn-success btn-lg px-4 font-weight-bold" id="btnSubmitFinal">
-                        <?= !empty($isEdit) ? '<i class="fas fa-save mr-2"></i> Simpan Perubahan Surat' : '<i class="fas fa-save mr-2"></i> Finalisasi & Simpan Surat' ?>
+                <div class="card-footer bg-white d-flex justify-content-between align-items-center flex-wrap">
+                    <button type="button" class="btn btn-secondary btn-prev mb-1" data-prev="7"><i class="fas fa-arrow-left mr-1"></i> Kembali</button>
+                    <button type="button" class="btn btn-success <?= !empty($isEdit) ? '' : 'btn-lg' ?> px-4 font-weight-bold btn-submit-wizard mb-1" id="btnSubmitFinal" title="Simpan Perubahan Surat">
+                        <?= !empty($isEdit) ? '<i class="fas fa-save mr-1"></i> Simpan' : '<i class="fas fa-save mr-2"></i> Finalisasi & Simpan Surat' ?>
                     </button>
                 </div>
             </div>
@@ -688,7 +723,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let isEditMode = <?= !empty($isEdit) ? 'true' : 'false' ?>;
     let isDuplicateMode = <?= !empty($isDuplicate) ? 'true' : 'false' ?>;
     let btnSubmitDefaultHtml = isEditMode 
-        ? '<i class="fas fa-save mr-2"></i> Simpan Perubahan Surat' 
+        ? '<i class="fas fa-save mr-1"></i> Simpan' 
         : '<i class="fas fa-save mr-2"></i> Finalisasi & Simpan Surat';
 
     // Pre-populate penerima jika ada (mode edit / duplikat)
@@ -1015,14 +1050,17 @@ document.addEventListener('DOMContentLoaded', function() {
         $('#summaryTtd').text(ttd1 !== '-- Pilih Guru / Kepala --' ? ttd1 : '-');
     }
 
-    // Submit Final
-    $('#btnSubmitFinal').on('click', function(e) {
+    // Submit Final & Simpan Perubahan di Semua Step
+    $(document).on('click', '.btn-submit-wizard, #btnSubmitFinal', function(e) {
         e.preventDefault();
         if (typeof tinymce !== 'undefined') {
             tinymce.triggerSave();
         }
         let btn = $(this);
-        btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-1"></i> Memfinalisasi...');
+        let origHtml = btn.html();
+
+        $('.btn-submit-wizard, #btnSubmitFinal').prop('disabled', true);
+        btn.html('<i class="fas fa-spinner fa-spin mr-1"></i> ' + (isEditMode ? 'Menyimpan...' : 'Memfinalisasi...'));
 
         let formData = $('#wizardForm').serializeArray();
         if (selectedRecipients.length > 0) {
@@ -1065,10 +1103,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             },
             error: function() {
-                Swal.fire('Error', 'Terjadi kesalahan sistem saat memfinalisasi surat', 'error');
+                Swal.fire('Error', 'Terjadi kesalahan sistem saat ' + (isEditMode ? 'menyimpan' : 'memfinalisasi') + ' surat', 'error');
             },
             complete: function() {
-                btn.prop('disabled', false).html(btnSubmitDefaultHtml);
+                $('.btn-submit-wizard, #btnSubmitFinal').prop('disabled', false);
+                btn.html(origHtml);
             }
         });
     });
