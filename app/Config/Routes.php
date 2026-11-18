@@ -1014,6 +1014,82 @@ $routes->match(['GET', 'POST'], 'backend/nilai/get-mdta-status-info', 'Backend\N
 
 
 
+// ===========================================================
+// ADMINISTRASI SURAT — FASE 1
+// ===========================================================
+// Dashboard
+$routes->get('backend/administrasi', 'Backend\Administrasi\AdministrasiDashboard::index');
+
+// Kategori Surat
+$routes->get('backend/administrasi/kategori', 'Backend\Administrasi\SuratKategori::index');
+$routes->post('backend/administrasi/kategori/store', 'Backend\Administrasi\SuratKategori::store');
+$routes->post('backend/administrasi/kategori/update/(:num)', 'Backend\Administrasi\SuratKategori::update/$1');
+$routes->post('backend/administrasi/kategori/delete/(:num)', 'Backend\Administrasi\SuratKategori::delete/$1');
+$routes->post('backend/administrasi/kategori/toggle/(:num)', 'Backend\Administrasi\SuratKategori::toggleActive/$1');
+
+// Tujuan Surat
+$routes->get('backend/administrasi/tujuan', 'Backend\Administrasi\SuratTujuan::index');
+$routes->post('backend/administrasi/tujuan/store', 'Backend\Administrasi\SuratTujuan::store');
+$routes->post('backend/administrasi/tujuan/update/(:num)', 'Backend\Administrasi\SuratTujuan::update/$1');
+$routes->post('backend/administrasi/tujuan/delete/(:num)', 'Backend\Administrasi\SuratTujuan::delete/$1');
+$routes->get('backend/administrasi/tujuan/list/(:segment)', 'Backend\Administrasi\SuratTujuan::getByKategori/$1');
+
+// Penomoran
+$routes->get('backend/administrasi/penomoran', 'Backend\Administrasi\SuratPenomoran::index');
+$routes->post('backend/administrasi/penomoran/save', 'Backend\Administrasi\SuratPenomoran::save');
+$routes->post('backend/administrasi/penomoran/preview', 'Backend\Administrasi\SuratPenomoran::previewNomor');
+$routes->post('backend/administrasi/penomoran/reset/(:num)', 'Backend\Administrasi\SuratPenomoran::resetCounter/$1');
+
+// Kop Kepanitiaan
+$routes->get('backend/administrasi/kop-custom', 'Backend\Administrasi\SuratKopCustom::index');
+$routes->post('backend/administrasi/kop-custom/store', 'Backend\Administrasi\SuratKopCustom::store');
+$routes->post('backend/administrasi/kop-custom/update/(:num)', 'Backend\Administrasi\SuratKopCustom::update/$1');
+$routes->post('backend/administrasi/kop-custom/delete/(:num)', 'Backend\Administrasi\SuratKopCustom::delete/$1');
+$routes->post('backend/administrasi/kop-custom/toggle/(:num)', 'Backend\Administrasi\SuratKopCustom::toggleActive/$1');
+
+// Template Surat
+$routes->get('backend/administrasi/template', 'Backend\Administrasi\SuratTemplate::index');
+$routes->get('backend/administrasi/template/create', 'Backend\Administrasi\SuratTemplate::create');
+$routes->post('backend/administrasi/template/store', 'Backend\Administrasi\SuratTemplate::store');
+$routes->get('backend/administrasi/template/edit/(:num)', 'Backend\Administrasi\SuratTemplate::edit/$1');
+$routes->post('backend/administrasi/template/update/(:num)', 'Backend\Administrasi\SuratTemplate::update/$1');
+$routes->post('backend/administrasi/template/delete/(:num)', 'Backend\Administrasi\SuratTemplate::delete/$1');
+$routes->post('backend/administrasi/template/toggle/(:num)', 'Backend\Administrasi\SuratTemplate::toggleActive/$1');
+$routes->post('backend/administrasi/template/set-default/(:num)', 'Backend\Administrasi\SuratTemplate::setDefault/$1');
+
+// Surat Keluar (Fase 2 & Fase 4)
+$routes->get('backend/administrasi/surat-keluar', 'Backend\Administrasi\SuratKeluar::index');
+$routes->get('backend/administrasi/surat-keluar/buat', 'Backend\Administrasi\SuratKeluar::buat');
+$routes->get('backend/administrasi/surat-keluar/edit/(:num)', 'Backend\Administrasi\SuratKeluar::edit/$1');
+$routes->get('backend/administrasi/surat-keluar/duplikat/(:num)', 'Backend\Administrasi\SuratKeluar::duplikat/$1');
+$routes->get('backend/administrasi/surat-keluar/ajax-template/(:num)', 'Backend\Administrasi\SuratKeluar::ajaxGetTemplate/$1');
+$routes->get('backend/administrasi/surat-keluar/ajax-recipients', 'Backend\Administrasi\SuratKeluar::ajaxGetRecipients');
+$routes->post('backend/administrasi/surat-keluar/ajax-generate-nomor', 'Backend\Administrasi\SuratKeluar::ajaxGenerateNomor');
+$routes->post('backend/administrasi/surat-keluar/ajax-preview-html', 'Backend\Administrasi\SuratKeluar::ajaxPreviewHtml');
+$routes->post('backend/administrasi/surat-keluar/simpan', 'Backend\Administrasi\SuratKeluar::simpan');
+$routes->get('backend/administrasi/surat-keluar/cetak/(:num)', 'Backend\Administrasi\SuratKeluar::cetakPdf/$1');
+$routes->get('backend/administrasi/surat-keluar/cetak-zip/(:num)', 'Backend\Administrasi\SuratKeluar::cetakZip/$1');
+$routes->post('backend/administrasi/surat-keluar/delete/(:num)', 'Backend\Administrasi\SuratKeluar::delete/$1');
+
+// Laporan Rekapitulasi & Ekspor Excel (Fase 4)
+$routes->get('backend/administrasi/laporan', 'Backend\Administrasi\SuratLaporan::index');
+$routes->get('backend/administrasi/laporan/ajax-data', 'Backend\Administrasi\SuratLaporan::ajaxData');
+$routes->get('backend/administrasi/laporan/export-excel', 'Backend\Administrasi\SuratLaporan::exportExcel');
+$routes->post('backend/administrasi/laporan/export-excel', 'Backend\Administrasi\SuratLaporan::exportExcel');
+
+// Surat Masuk & Disposisi (Fase 3)
+$routes->get('backend/administrasi/surat-masuk', 'Backend\Administrasi\SuratMasuk::index');
+$routes->get('backend/administrasi/surat-masuk/create', 'Backend\Administrasi\SuratMasuk::create');
+$routes->post('backend/administrasi/surat-masuk/store', 'Backend\Administrasi\SuratMasuk::store');
+$routes->get('backend/administrasi/surat-masuk/detail/(:num)', 'Backend\Administrasi\SuratMasuk::detail/$1');
+$routes->post('backend/administrasi/surat-masuk/disposisi/store', 'Backend\Administrasi\SuratMasuk::tambahDisposisi');
+$routes->post('backend/administrasi/surat-masuk/disposisi/update-status/(:num)', 'Backend\Administrasi\SuratMasuk::updateStatusDisposisi/$1');
+$routes->get('backend/administrasi/surat-masuk/cetak-disposisi/(:num)', 'Backend\Administrasi\SuratMasuk::cetakDisposisi/$1');
+$routes->post('backend/administrasi/surat-masuk/delete/(:num)', 'Backend\Administrasi\SuratMasuk::delete/$1');
+
+// Validasi Keaslian Surat Publik (Fase 3)
+$routes->get('signature/validateSurat/(:num)', 'Backend\Signature::validateSurat/$1');
+
 $routes->get('logout', 'Dashboard::logout');
 
 /*

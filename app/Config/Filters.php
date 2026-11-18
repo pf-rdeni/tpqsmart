@@ -80,6 +80,8 @@ class Filters extends BaseFilters
                 'except' => [
                     'signature/validateSignature',
                     'signature/validateSignature/*',
+                    'signature/validateSurat',
+                    'signature/validateSurat/*',
                     'frontend/home',
                     'pendaftaran',           // Form pendaftaran publik
                     'pendaftaran/*',         // Semua route pendaftaran

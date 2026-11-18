@@ -1306,6 +1306,89 @@
                 <?php endif; ?>
                 <!-- End Menu Kelembagaan, Data Guru, Data Santri, Raport, Extra -->
 
+                <!-- Start Menu Administrasi Surat -->
+                <?php 
+                $showAdministrasiMenu = (in_groups('Admin') || $isActiveOperator || $isActiveKepalaTpq)
+                    && !$isMyAuthPage && !$isSertifikasiPage 
+                    && !$isMunaqosahPage && !$isPerlombaanPage && !$isLuckydrawPage;
+                ?>
+                <?php if ($showAdministrasiMenu): ?>
+                    <li class="nav-item no-hover">
+                        <a href="#" class="nav-link">
+                            <i class="nav-icon fas fa-envelope-open-text"></i>
+                            <p>
+                                Administrasi Surat
+                                <i class="right fas fa-angle-left"></i>
+                            </p>
+                        </a>
+                        <ul class="nav nav-treeview" style="display: none;">
+                            <li class="nav-item">
+                                <a href="<?= base_url('backend/administrasi') ?>" class="nav-link">
+                                    <i class="fas fa-tachometer-alt nav-icon text-primary"></i>
+                                    <p>Dashboard Surat</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="<?= base_url('backend/administrasi/surat-keluar/buat') ?>" class="nav-link">
+                                    <i class="fas fa-paper-plane nav-icon text-warning"></i>
+                                    <p>Buat Surat Keluar</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="<?= base_url('backend/administrasi/surat-keluar') ?>" class="nav-link">
+                                    <i class="fas fa-archive nav-icon text-success"></i>
+                                    <p>Arsip Surat Keluar</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="<?= base_url('backend/administrasi/surat-masuk') ?>" class="nav-link">
+                                    <i class="fas fa-inbox nav-icon text-info"></i>
+                                    <p>Surat Masuk & Disposisi</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="<?= base_url('backend/administrasi/laporan') ?>" class="nav-link">
+                                    <i class="fas fa-file-excel nav-icon text-success"></i>
+                                    <p>Laporan & Rekap</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="<?= base_url('backend/administrasi/template') ?>" class="nav-link">
+                                    <i class="fas fa-file-invoice nav-icon text-primary"></i>
+                                    <p>Template Surat</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="<?= base_url('backend/administrasi/tujuan') ?>" class="nav-link">
+                                    <i class="fas fa-address-book nav-icon text-success"></i>
+                                    <p>Database Tujuan</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="<?= base_url('backend/administrasi/kop-custom') ?>" class="nav-link">
+                                    <i class="fas fa-stamp nav-icon text-info"></i>
+                                    <p>Kop Kepanitiaan</p>
+                                </a>
+                            </li>
+                            <?php if (in_groups('Admin')): ?>
+                                <li class="nav-item">
+                                    <a href="<?= base_url('backend/administrasi/kategori') ?>" class="nav-link">
+                                        <i class="fas fa-tags nav-icon text-secondary"></i>
+                                        <p>Kategori Surat</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="<?= base_url('backend/administrasi/penomoran') ?>" class="nav-link">
+                                        <i class="fas fa-sort-numeric-down nav-icon text-warning"></i>
+                                        <p>Format Penomoran</p>
+                                    </a>
+                                </li>
+                            <?php endif; ?>
+                        </ul>
+                    </li>
+                <?php endif; ?>
+                <!-- End Menu Administrasi Surat -->
+
                 <!-- Start Menu Survey -->
                 <?php 
                 // Survey tersedia untuk Admin DAN Operator

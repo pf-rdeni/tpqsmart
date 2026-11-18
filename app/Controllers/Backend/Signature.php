@@ -49,4 +49,42 @@ class Signature extends BaseController
             ]);
         }
     }
+
+    /**
+     * Validasi Keaslian Surat Resmi (Fase 3)
+     */
+    public function validateSurat($id = null)
+    {
+        try {
+            $suratModel = new \App\Models\Administrasi\SuratModel();
+            $guruModel  = new \App\Models\GuruModel();
+
+            $surat = $suratModel->select('tbl_surat.*, t.NamaTpq')
+                                ->join('tbl_tpq t', 't.IdTpq = tbl_surat.IdTpq', 'left')
+                                ->where('tbl_surat.Id', $id)
+                                ->where('tbl_surat.Status', 'Final')
+                                ->first();
+
+            if (!$surat) {
+                return view('frontend/signature/invalid', [
+                    'message' => 'Surat tidak ditemukan, nomor surat tidak terdaftar, atau belum difinalisasi secara resmi.'
+                ]);
+            }
+
+            $penandaTangan1 = !empty($surat['IdPenandaTangan1']) ? $guruModel->find($surat['IdPenandaTangan1']) : null;
+            $penandaTangan2 = !empty($surat['IdPenandaTangan2']) ? $guruModel->find($surat['IdPenandaTangan2']) : null;
+
+            return view('frontend/signature/valid_surat', [
+                'surat'          => $surat,
+                'penandaTangan1' => $penandaTangan1,
+                'penandaTangan2' => $penandaTangan2,
+            ]);
+
+        } catch (\Exception $e) {
+            log_message('error', 'Surat validation failed: ' . $e->getMessage());
+            return view('frontend/signature/invalid', [
+                'message' => 'Terjadi kesalahan saat memvalidasi keaslian surat.'
+            ]);
+        }
+    }
 }
