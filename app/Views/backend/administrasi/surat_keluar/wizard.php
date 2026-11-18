@@ -495,7 +495,9 @@
                                         <select name="IdPenandaTangan1" id="selectTtd1" class="form-control form-control-sm">
                                             <option value="">-- Pilih Guru / Kepala --</option>
                                             <?php foreach ($guruList as $g): ?>
-                                                <option value="<?= $g['IdGuru'] ?>" <?= (isset($surat['IdPenandaTangan1']) && $surat['IdPenandaTangan1'] == $g['IdGuru']) ? 'selected' : '' ?>><?= esc($g['Nama']) ?></option>
+                                                <option value="<?= $g['IdGuru'] ?>" data-jabatan="<?= esc($g['Jabatan'] ?? '') ?>" <?= (isset($surat['IdPenandaTangan1']) && (string)$surat['IdPenandaTangan1'] === (string)$g['IdGuru']) ? 'selected' : '' ?>>
+                                                    <?= esc($g['Nama']) ?>
+                                                </option>
                                             <?php endforeach; ?>
                                         </select>
                                     </div>
@@ -531,7 +533,9 @@
                                         <select name="IdPenandaTangan2" id="selectTtd2" class="form-control form-control-sm">
                                             <option value="">-- Pilih Guru / Sekretaris (Opsional) --</option>
                                             <?php foreach ($guruList as $g): ?>
-                                                <option value="<?= $g['IdGuru'] ?>" <?= (isset($surat['IdPenandaTangan2']) && $surat['IdPenandaTangan2'] == $g['IdGuru']) ? 'selected' : '' ?>><?= esc($g['Nama']) ?></option>
+                                                <option value="<?= $g['IdGuru'] ?>" data-jabatan="<?= esc($g['Jabatan'] ?? '') ?>" <?= (isset($surat['IdPenandaTangan2']) && (string)$surat['IdPenandaTangan2'] === (string)$g['IdGuru']) ? 'selected' : '' ?>>
+                                                    <?= esc($g['Nama']) ?>
+                                                </option>
                                             <?php endforeach; ?>
                                         </select>
                                     </div>
@@ -645,19 +649,31 @@
         <div class="modal-content shadow-lg">
             <div class="modal-header bg-success text-white">
                 <h5 class="modal-title font-weight-bold"><?= !empty($isEdit) ? '<i class="fas fa-check-circle mr-2"></i>Surat Berhasil Diperbarui!' : '<i class="fas fa-check-circle mr-2"></i>Surat Berhasil Difinalisasi!' ?></h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close" title="Tutup & Tetap di Halaman Edit">
+                    <span aria-hidden="true">&times;</span>
+                </button>
             </div>
             <div class="modal-body text-center py-4">
                 <p class="mb-4">Pilih format output dokumen yang ingin Anda unduh / cetak sekarang:</p>
                 <div class="d-flex flex-column gap-2">
-                    <a href="#" id="modalBtnPdf" target="_blank" class="btn btn-danger btn-lg mb-2 font-weight-bold">
+                    <a href="#" id="modalBtnPdf" target="_blank" class="btn btn-danger btn-lg mb-2 font-weight-bold shadow-sm">
                         <i class="fas fa-file-pdf mr-2"></i> Buka / Cetak PDF (Gabungan)
                     </a>
-                    <a href="#" id="modalBtnZip" class="btn btn-primary btn-lg mb-3 font-weight-bold">
+                    <a href="#" id="modalBtnZip" class="btn btn-primary btn-lg mb-3 font-weight-bold shadow-sm">
                         <i class="fas fa-file-archive mr-2"></i> Unduh File ZIP (PDF Individual per Penerima)
                     </a>
-                    <a href="<?= base_url('backend/administrasi/surat-keluar') ?>" class="btn btn-outline-secondary">
-                        <i class="fas fa-folder-open mr-1"></i> Ke Arsip Surat Keluar
-                    </a>
+                    <div class="row pt-2 border-top">
+                        <div class="col-6 pr-1">
+                            <a href="<?= base_url('backend/administrasi/surat-keluar') ?>" class="btn btn-outline-primary btn-block">
+                                <i class="fas fa-folder-open mr-1"></i> Ke Arsip Surat
+                            </a>
+                        </div>
+                        <div class="col-6 pl-1">
+                            <button type="button" class="btn btn-outline-secondary btn-block font-weight-bold" data-dismiss="modal">
+                                <i class="fas fa-times mr-1"></i> Tetap di Halaman
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1028,6 +1044,15 @@ document.addEventListener('DOMContentLoaded', function() {
                         $('#modalBtnZip').show();
                     } else {
                         $('#modalBtnZip').hide();
+                    }
+
+                    // Simpan ID Surat di form agar jika disimpan ulang tetap mengupdate surat yang sama
+                    if (res.idSurat) {
+                        if (!$('#wizardIdSurat').length) {
+                            $('#wizardForm').prepend('<input type="hidden" name="IdSurat" id="wizardIdSurat" value="' + res.idSurat + '">');
+                        } else {
+                            $('#wizardIdSurat').val(res.idSurat);
+                        }
                     }
 
                     $('#modalPostFinal').modal('show');

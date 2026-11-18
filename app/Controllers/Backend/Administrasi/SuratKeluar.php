@@ -109,9 +109,7 @@ class SuratKeluar extends BaseController
         $kopCustom = $this->kopCustomModel->where('IsActive', 1)->findAll();
 
         // Data Guru untuk pilihan Tanda Tangan & Penerima
-        $guruList = !empty($idTpq) 
-            ? $this->guruModel->where('IdTpq', $idTpq)->orderBy('Nama', 'ASC')->findAll()
-            : $this->guruModel->orderBy('Nama', 'ASC')->findAll();
+        $guruList = $this->getGuruListForSurat($idTpq, $isAdmin);
 
         // Data Kelas untuk filter santri
         $db = \Config\Database::connect();
@@ -164,9 +162,7 @@ class SuratKeluar extends BaseController
         $kategori     = $this->kategoriModel->getByJenis('Keluar');
         $kopCustom    = $this->kopCustomModel->where('IsActive', 1)->findAll();
 
-        $guruList = !empty($idTpq) 
-            ? $this->guruModel->where('IdTpq', $idTpq)->orderBy('Nama', 'ASC')->findAll()
-            : $this->guruModel->orderBy('Nama', 'ASC')->findAll();
+        $guruList = $this->getGuruListForSurat($idTpq, $isAdmin, $surat);
 
         $db = \Config\Database::connect();
         $kelasList    = $db->table('tbl_kelas')->orderBy('NamaKelas', 'ASC')->get()->getResultArray();
@@ -225,9 +221,7 @@ class SuratKeluar extends BaseController
         $kategori     = $this->kategoriModel->getByJenis('Keluar');
         $kopCustom    = $this->kopCustomModel->where('IsActive', 1)->findAll();
 
-        $guruList = !empty($idTpq) 
-            ? $this->guruModel->where('IdTpq', $idTpq)->orderBy('Nama', 'ASC')->findAll()
-            : $this->guruModel->orderBy('Nama', 'ASC')->findAll();
+        $guruList = $this->getGuruListForSurat($idTpq, $isAdmin, $surat);
 
         $db = \Config\Database::connect();
         $kelasList    = $db->table('tbl_kelas')->orderBy('NamaKelas', 'ASC')->get()->getResultArray();
@@ -793,7 +787,7 @@ class SuratKeluar extends BaseController
         $ttd1 = null;
         $ttd2 = null;
 
-        if (!empty($template['ShowMengetahui'])) {
+        if (!isset($template['ShowMengetahui']) || !empty($template['ShowMengetahui']) || !empty($surat['IdPenandaTangan1']) || !empty($surat['Jabatan1'])) {
             $nama1  = '____________________';
             $nip1   = null;
             $qrSrc1 = null;
@@ -804,15 +798,6 @@ class SuratKeluar extends BaseController
                     $nama1 = $guru1['Nama'];
                     $nip1  = $guru1['IdGuru'] ?? null;
                 }
-                if (($surat['ModeTtd1'] ?? 'Manual') === 'QR') {
-                    $qrRow = $this->qrCodeModel->where('UserId', $surat['IdPenandaTangan1'])->first();
-                    if ($qrRow && !empty($qrRow['FileName'])) {
-                        $qrPath = FCPATH . 'uploads/qr/' . $qrRow['FileName'];
-                        if (file_exists($qrPath)) {
-                            $qrSrc1 = 'data:image/svg+xml;base64,' . base64_encode(file_get_contents($qrPath));
-                        }
-                    }
-                }
             } elseif ($sumberKop === 'FKPQ') {
                 $db = \Config\Database::connect();
                 $fkpq = $db->table('tbl_fkpq')->get()->getRowArray();
@@ -821,6 +806,28 @@ class SuratKeluar extends BaseController
                 }
             } elseif (!empty($tpq['KepalaSekolah'])) {
                 $nama1 = $tpq['KepalaSekolah'];
+            }
+
+            // Generate QR Code Digital Verifikasi Resmi jika Mode QR
+            if (($surat['ModeTtd1'] ?? 'Manual') === 'QR') {
+                $validationUrl = !empty($surat['Id']) 
+                    ? base_url('signature/validateSurat/' . $surat['Id']) 
+                    : base_url('signature/validateSurat?preview=1&no=' . urlencode($surat['NomorSurat'] ?? ''));
+
+                try {
+                    $options = new \chillerlan\QRCode\QROptions([
+                        'outputType'   => \chillerlan\QRCode\Output\QROutputInterface::MARKUP_SVG,
+                        'eccLevel'     => \chillerlan\QRCode\Common\EccLevel::M,
+                        'imageBase64'  => true,
+                        'addQuietzone' => true,
+                        'quietzoneSize'=> 1,
+                    ]);
+                    $qrcode = new \chillerlan\QRCode\QRCode($options);
+                    $qrSrc1 = $qrcode->render($validationUrl);
+                } catch (\Exception $e) {
+                    log_message('error', 'QR Code generation failed (TTD1): ' . $e->getMessage());
+                    $qrSrc1 = null;
+                }
             }
 
             $ttd1 = [
@@ -842,14 +849,26 @@ class SuratKeluar extends BaseController
                         $nama2 = $guru2['Nama'];
                         $nip2  = $guru2['IdGuru'] ?? null;
                     }
-                    if (($surat['ModeTtd2'] ?? 'Manual') === 'QR') {
-                        $qrRow = $this->qrCodeModel->where('UserId', $surat['IdPenandaTangan2'])->first();
-                        if ($qrRow && !empty($qrRow['FileName'])) {
-                            $qrPath = FCPATH . 'uploads/qr/' . $qrRow['FileName'];
-                            if (file_exists($qrPath)) {
-                                $qrSrc2 = 'data:image/svg+xml;base64,' . base64_encode(file_get_contents($qrPath));
-                            }
-                        }
+                }
+
+                if (($surat['ModeTtd2'] ?? 'Manual') === 'QR') {
+                    $validationUrl = !empty($surat['Id']) 
+                        ? base_url('signature/validateSurat/' . $surat['Id']) 
+                        : base_url('signature/validateSurat?preview=1&no=' . urlencode($surat['NomorSurat'] ?? ''));
+
+                    try {
+                        $options = new \chillerlan\QRCode\QROptions([
+                            'outputType'   => \chillerlan\QRCode\Output\QROutputInterface::MARKUP_SVG,
+                            'eccLevel'     => \chillerlan\QRCode\Common\EccLevel::M,
+                            'imageBase64'  => true,
+                            'addQuietzone' => true,
+                            'quietzoneSize'=> 1,
+                        ]);
+                        $qrcode = new \chillerlan\QRCode\QRCode($options);
+                        $qrSrc2 = $qrcode->render($validationUrl);
+                    } catch (\Exception $e) {
+                        log_message('error', 'QR Code generation failed (TTD2): ' . $e->getMessage());
+                        $qrSrc2 = null;
                     }
                 }
 
@@ -895,5 +914,51 @@ class SuratKeluar extends BaseController
             'ttd2'             => $ttd2,
             'renderedIsiSurat' => $renderedIsiSurat,
         ];
+    }
+
+    /**
+     * Ambil daftar guru penanda tangan dengan memastikan guru tersimpan selalu ada di list
+     */
+    private function getGuruListForSurat($idTpq, $isAdmin, $surat = null): array
+    {
+        if ($isAdmin || empty($idTpq)) {
+            $guruList = $this->guruModel->orderBy('Nama', 'ASC')->findAll();
+        } else {
+            $guruList = $this->guruModel->where('IdTpq', $idTpq)->orderBy('Nama', 'ASC')->findAll();
+        }
+
+        if (!empty($surat['IdPenandaTangan1'])) {
+            $found = false;
+            foreach ($guruList as $g) {
+                if ((string)$g['IdGuru'] === (string)$surat['IdPenandaTangan1']) {
+                    $found = true;
+                    break;
+                }
+            }
+            if (!$found) {
+                $g1 = $this->guruModel->find($surat['IdPenandaTangan1']);
+                if ($g1) {
+                    array_unshift($guruList, $g1);
+                }
+            }
+        }
+
+        if (!empty($surat['IdPenandaTangan2'])) {
+            $found = false;
+            foreach ($guruList as $g) {
+                if ((string)$g['IdGuru'] === (string)$surat['IdPenandaTangan2']) {
+                    $found = true;
+                    break;
+                }
+            }
+            if (!$found) {
+                $g2 = $this->guruModel->find($surat['IdPenandaTangan2']);
+                if ($g2) {
+                    $guruList[] = $g2;
+                }
+            }
+        }
+
+        return $guruList;
     }
 }

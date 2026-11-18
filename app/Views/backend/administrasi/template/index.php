@@ -33,20 +33,52 @@
                     <table class="table table-bordered table-striped table-hover" id="tableTemplates">
                         <thead class="thead-light">
                             <tr>
-                                <th style="width: 40px;">No</th>
+                                <th style="width: 40px;" class="text-center">No</th>
+                                <th style="width: 90px;" class="text-center">Aksi</th>
                                 <th>Nama Template</th>
                                 <th>Kategori</th>
                                 <th style="width: 100px;">Format Kertas</th>
                                 <th style="width: 110px;">Sumber Kop</th>
                                 <th style="width: 80px;" class="text-center">Default</th>
                                 <th style="width: 80px;" class="text-center">Status</th>
-                                <th style="width: 130px;" class="text-center">Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php $no = 1; foreach ($templates as $t): ?>
                                 <tr>
-                                    <td><?= $no++ ?></td>
+                                    <td class="text-center"><?= $no++ ?></td>
+                                    <td class="text-center">
+                                        <div class="dropdown">
+                                            <button class="btn btn-primary btn-sm dropdown-toggle shadow-sm" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                <i class="fas fa-cog mr-1"></i> Aksi
+                                            </button>
+                                            <div class="dropdown-menu shadow">
+                                                <!-- Edit Template -->
+                                                <a class="dropdown-item text-warning" href="<?= base_url('backend/administrasi/template/edit/' . $t['Id']) ?>">
+                                                    <i class="fas fa-edit mr-2"></i> Edit Template
+                                                </a>
+
+                                                <!-- Set Default -->
+                                                <?php if (!$t['IsDefault']): ?>
+                                                    <a class="dropdown-item text-primary btn-set-default" href="javascript:void(0)" data-id="<?= $t['Id'] ?>">
+                                                        <i class="fas fa-star mr-2"></i> Jadikan Default
+                                                    </a>
+                                                <?php endif; ?>
+
+                                                <!-- Toggle Aktif/Nonaktif -->
+                                                <a class="dropdown-item text-<?= $t['IsActive'] ? 'secondary' : 'success' ?> btn-toggle-tpl" href="javascript:void(0)" data-id="<?= $t['Id'] ?>">
+                                                    <i class="fas fa-power-off mr-2"></i> <?= $t['IsActive'] ? 'Nonaktifkan' : 'Aktifkan' ?>
+                                                </a>
+
+                                                <div class="dropdown-divider"></div>
+
+                                                <!-- Hapus Template -->
+                                                <a class="dropdown-item text-danger btn-delete-tpl" href="javascript:void(0)" data-id="<?= $t['Id'] ?>" data-nama="<?= esc($t['NamaTemplate']) ?>">
+                                                    <i class="fas fa-trash-alt mr-2"></i> Hapus Template
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </td>
                                     <td>
                                         <strong><?= esc($t['NamaTemplate']) ?></strong>
                                         <div class="mt-1">
@@ -78,11 +110,9 @@
                                     </td>
                                     <td class="text-center">
                                         <?php if ($t['IsDefault']): ?>
-                                            <span class="badge badge-primary"><i class="fas fa-star"></i> Default</span>
+                                            <span class="badge badge-primary"><i class="fas fa-star mr-1"></i> Default</span>
                                         <?php else: ?>
-                                            <button type="button" class="btn btn-outline-secondary btn-xs btn-set-default" data-id="<?= $t['Id'] ?>" title="Jadikan template default untuk kategori ini">
-                                                Set Default
-                                            </button>
+                                            <span class="text-muted">-</span>
                                         <?php endif; ?>
                                     </td>
                                     <td class="text-center">
@@ -91,17 +121,6 @@
                                         <?php else: ?>
                                             <span class="badge badge-secondary">Nonaktif</span>
                                         <?php endif; ?>
-                                    </td>
-                                    <td class="text-center">
-                                        <a href="<?= base_url('backend/administrasi/template/edit/' . $t['Id']) ?>" class="btn btn-warning btn-xs" title="Edit Template">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
-                                        <button type="button" class="btn btn-<?= $t['IsActive'] ? 'secondary' : 'success' ?> btn-xs btn-toggle-tpl" data-id="<?= $t['Id'] ?>" title="<?= $t['IsActive'] ? 'Nonaktifkan' : 'Aktifkan' ?>">
-                                            <i class="fas fa-power-off"></i>
-                                        </button>
-                                        <button type="button" class="btn btn-danger btn-xs btn-delete-tpl" data-id="<?= $t['Id'] ?>" data-nama="<?= esc($t['NamaTemplate']) ?>" title="Hapus">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -118,12 +137,15 @@ document.addEventListener('DOMContentLoaded', function() {
     if ($.fn.DataTable) {
         $('#tableTemplates').DataTable({
             responsive: true,
-            language: { url: '//cdn.datatables.net/plug-ins/1.11.5/i18n/id.json' }
+            language: { url: '//cdn.datatables.net/plug-ins/1.11.5/i18n/id.json' },
+            columnDefs: [
+                { targets: [0, 1], orderable: false }
+            ]
         });
     }
 
     // Set Default
-    $('.btn-set-default').on('click', function() {
+    $(document).on('click', '.btn-set-default', function() {
         let id = $(this).data('id');
         $.post('<?= base_url('backend/administrasi/template/set-default') ?>/' + id, function(res) {
             if (res.success) {
@@ -135,7 +157,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Toggle Active
-    $('.btn-toggle-tpl').on('click', function() {
+    $(document).on('click', '.btn-toggle-tpl', function() {
         let id = $(this).data('id');
         $.post('<?= base_url('backend/administrasi/template/toggle') ?>/' + id, function(res) {
             if (res.success) {
@@ -147,7 +169,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Delete Template
-    $('.btn-delete-tpl').on('click', function() {
+    $(document).on('click', '.btn-delete-tpl', function() {
         let id = $(this).data('id');
         let nama = $(this).data('nama');
         Swal.fire({

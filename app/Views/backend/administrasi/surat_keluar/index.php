@@ -58,20 +58,59 @@
                     <table class="table table-bordered table-striped table-hover" id="tableSuratKeluar">
                         <thead class="thead-light">
                             <tr>
-                                <th style="width: 40px;">No</th>
+                                <th style="width: 40px;" class="text-center">No</th>
+                                <th style="width: 90px;" class="text-center">Aksi</th>
                                 <th>Nomor Surat</th>
                                 <th style="width: 90px;">Tanggal</th>
                                 <th>Perihal / Hal</th>
                                 <th>Tujuan / Penerima</th>
                                 <th>Kategori</th>
                                 <th style="width: 80px;" class="text-center">Status</th>
-                                <th style="width: 150px;" class="text-center">Cetak / Unduh</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php $no = 1; foreach ($suratList as $s): ?>
                                 <tr>
-                                    <td><?= $no++ ?></td>
+                                    <td class="text-center"><?= $no++ ?></td>
+                                    <td class="text-center">
+                                        <div class="dropdown">
+                                            <button class="btn btn-primary btn-sm dropdown-toggle shadow-sm" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                <i class="fas fa-cog mr-1"></i> Aksi
+                                            </button>
+                                            <div class="dropdown-menu shadow">
+                                                <!-- Cetak PDF Gabungan -->
+                                                <a class="dropdown-item text-danger" href="<?= base_url('backend/administrasi/surat-keluar/cetak/' . $s['Id']) ?>" target="_blank">
+                                                    <i class="fas fa-file-pdf mr-2"></i> Buka / Cetak PDF
+                                                </a>
+
+                                                <!-- Unduh ZIP jika banyak penerima -->
+                                                <?php if (!empty($s['TotalPenerima']) && $s['TotalPenerima'] > 1): ?>
+                                                    <a class="dropdown-item text-primary" href="<?= base_url('backend/administrasi/surat-keluar/cetak-zip/' . $s['Id']) ?>">
+                                                        <i class="fas fa-file-archive mr-2"></i> Unduh File ZIP (<?= $s['TotalPenerima'] ?>)
+                                                    </a>
+                                                <?php endif; ?>
+
+                                                <div class="dropdown-divider"></div>
+
+                                                <!-- Edit Surat -->
+                                                <a class="dropdown-item text-warning" href="<?= base_url('backend/administrasi/surat-keluar/edit/' . $s['Id']) ?>">
+                                                    <i class="fas fa-edit mr-2"></i> Edit Surat
+                                                </a>
+
+                                                <!-- Duplikat Surat -->
+                                                <a class="dropdown-item text-info" href="<?= base_url('backend/administrasi/surat-keluar/duplikat/' . $s['Id']) ?>">
+                                                    <i class="fas fa-copy mr-2"></i> Duplikat Surat
+                                                </a>
+
+                                                <div class="dropdown-divider"></div>
+
+                                                <!-- Hapus Surat -->
+                                                <a class="dropdown-item text-danger btn-delete-surat" href="javascript:void(0)" data-id="<?= $s['Id'] ?>" data-nomor="<?= esc($s['NomorSurat']) ?>">
+                                                    <i class="fas fa-trash-alt mr-2"></i> Hapus Surat
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </td>
                                     <td>
                                         <strong><?= esc($s['NomorSurat'] ?: '-') ?></strong>
                                         <?php if ($isAdmin && !empty($s['NamaTpq'])): ?>
@@ -104,49 +143,6 @@
                                             <span class="badge badge-secondary"><?= esc($s['Status']) ?></span>
                                         <?php endif; ?>
                                     </td>
-                                    <td class="text-center">
-                                        <div class="btn-group btn-group-sm">
-                                            <!-- Cetak PDF Gabungan (Streaming) -->
-                                            <a href="<?= base_url('backend/administrasi/surat-keluar/cetak/' . $s['Id']) ?>" 
-                                               target="_blank" 
-                                               class="btn btn-outline-danger" 
-                                               title="Lihat / Cetak PDF">
-                                                <i class="fas fa-file-pdf"></i> PDF
-                                            </a>
-
-                                            <!-- Unduh ZIP jika ada banyak penerima -->
-                                            <?php if (!empty($s['TotalPenerima']) && $s['TotalPenerima'] > 1): ?>
-                                                <a href="<?= base_url('backend/administrasi/surat-keluar/cetak-zip/' . $s['Id']) ?>" 
-                                                   class="btn btn-outline-primary" 
-                                                   title="Unduh ZIP Semua File Individual">
-                                                    <i class="fas fa-file-archive"></i> ZIP
-                                                </a>
-                                            <?php endif; ?>
-
-                                            <!-- Tombol Edit Surat (Fase 4) -->
-                                            <a href="<?= base_url('backend/administrasi/surat-keluar/edit/' . $s['Id']) ?>" 
-                                               class="btn btn-outline-warning" 
-                                               title="Edit / Koreksi Surat">
-                                                <i class="fas fa-edit"></i> Edit
-                                            </a>
-
-                                            <!-- Tombol Duplikat Surat (Fase 4) -->
-                                            <a href="<?= base_url('backend/administrasi/surat-keluar/duplikat/' . $s['Id']) ?>" 
-                                               class="btn btn-outline-info" 
-                                               title="Duplikasi Surat ini sebagai Surat Baru">
-                                                <i class="fas fa-copy"></i> Duplikat
-                                            </a>
-
-                                            <!-- Tombol Hapus -->
-                                            <button type="button" 
-                                                    class="btn btn-outline-secondary btn-delete-surat" 
-                                                    data-id="<?= $s['Id'] ?>" 
-                                                    data-nomor="<?= esc($s['NomorSurat']) ?>" 
-                                                    title="Hapus Surat">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </div>
-                                    </td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
@@ -162,17 +158,21 @@ document.addEventListener('DOMContentLoaded', function() {
     if ($.fn.DataTable) {
         $('#tableSuratKeluar').DataTable({
             responsive: true,
-            language: { url: '//cdn.datatables.net/plug-ins/1.11.5/i18n/id.json' }
+            language: { url: '//cdn.datatables.net/plug-ins/1.11.5/i18n/id.json' },
+            columnDefs: [
+                { targets: [0, 1], orderable: false }
+            ]
         });
     }
 
-    // Hapus Surat
-    $('.btn-delete-surat').on('click', function() {
+    // Hapus Surat via delegated event
+    $(document).on('click', '.btn-delete-surat', function(e) {
+        e.preventDefault();
         let id = $(this).data('id');
         let nomor = $(this).data('nomor');
         Swal.fire({
             title: 'Hapus Surat Keluar?',
-            text: 'Surat nomor "' + nomor + '" akan dihapus.',
+            text: 'Surat nomor "' + nomor + '" akan dihapus permanen.',
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#d33',

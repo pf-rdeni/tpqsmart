@@ -130,15 +130,6 @@
             display: inline-block;
             margin: 5px auto;
         }
-
-        .footer-note {
-            margin-top: 25px;
-            padding-top: 5px;
-            border-top: 1px dashed #bbb;
-            font-size: 7.5pt;
-            color: #666;
-            text-align: center;
-        }
     </style>
 </head>
 <body>
@@ -247,7 +238,7 @@
     <?php endif; ?>
 
     <!-- 8. BAGIAN TANDA TANGAN -->
-    <?php if (!empty($template['ShowMengetahui'])): ?>
+    <?php if (!isset($template['ShowMengetahui']) || !empty($template['ShowMengetahui']) || !empty($ttd1) || !empty($ttd2)): ?>
         <div class="ttd-section">
             <table class="ttd-table">
                 <tr>
@@ -259,7 +250,7 @@
                             <?php if (($surat['ModeTtd1'] ?? 'Manual') === 'QR' && !empty($ttd1['qrSrc'])): ?>
                                 <div class="ttd-qr">
                                     <a href="<?= !empty($surat['Id']) ? base_url('signature/validateSurat/' . $surat['Id']) : '#' ?>" target="_blank">
-                                        <img src="<?= $ttd1['qrSrc'] ?>" alt="QR TTD 1">
+                                        <img src="<?= $ttd1['qrSrc'] ?>" width="75" height="75" alt="QR Code Tanda Tangan Digital">
                                     </a>
                                 </div>
                             <?php else: ?>
@@ -267,9 +258,6 @@
                             <?php endif; ?>
 
                             <div style="font-weight: bold; text-decoration: underline;">( <?= esc($ttd1['nama'] ?? '____________________') ?> )</div>
-                            <?php if (!empty($ttd1['nip'])): ?>
-                                <div style="font-size: 9pt;">NIP/NIY: <?= esc($ttd1['nip']) ?></div>
-                            <?php endif; ?>
                         </td>
                     <?php endif; ?>
 
@@ -281,7 +269,7 @@
                             <?php if (($surat['ModeTtd2'] ?? 'Manual') === 'QR' && !empty($ttd2['qrSrc'])): ?>
                                 <div class="ttd-qr">
                                     <a href="<?= !empty($surat['Id']) ? base_url('signature/validateSurat/' . $surat['Id']) : '#' ?>" target="_blank">
-                                        <img src="<?= $ttd2['qrSrc'] ?>" alt="QR TTD 2">
+                                        <img src="<?= $ttd2['qrSrc'] ?>" width="75" height="75" alt="QR Code Tanda Tangan Digital">
                                     </a>
                                 </div>
                             <?php else: ?>
@@ -289,20 +277,12 @@
                             <?php endif; ?>
 
                             <div style="font-weight: bold; text-decoration: underline;">( <?= esc($ttd2['nama'] ?? '____________________') ?> )</div>
-                            <?php if (!empty($ttd2['nip'])): ?>
-                                <div style="font-size: 9pt;">NIP/NIY: <?= esc($ttd2['nip']) ?></div>
-                            <?php endif; ?>
                         </td>
                     <?php endif; ?>
                 </tr>
             </table>
         </div>
     <?php endif; ?>
-
-    <!-- FOOTER INFO CETAK ON-DEMAND -->
-    <div class="footer-note">
-        Dokumen ini di-generate secara digital melalui Aplikasi Administrasi <strong>TPQ Smart</strong> (<?= base_url() ?>) pada <?= date('d-m-Y H:i:s') ?>
-    </div>
 
 </body>
 </html>
