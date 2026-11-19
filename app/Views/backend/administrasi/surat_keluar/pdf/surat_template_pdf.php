@@ -120,15 +120,33 @@
             text-align: center;
         }
 
-        .ttd-space-manual {
-            height: 65px;
+        .ttd-col-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0 auto;
         }
 
-        .ttd-qr img {
-            width: 75px;
-            height: 75px;
+        .ttd-col-table td {
+            border: none;
+            padding: 0;
+            text-align: center;
+        }
+
+        .ttd-qr-cell {
+            text-align: center;
+            height: 65pt;
+            vertical-align: middle;
+        }
+
+        .ttd-qr-img {
+            width: 52pt;
+            height: 52pt;
             display: inline-block;
-            margin: 5px auto;
+            margin: 0 auto;
+        }
+
+        .ttd-space-manual {
+            height: 52pt;
         }
     </style>
 </head>
@@ -240,43 +258,69 @@
     <!-- 8. BAGIAN TANDA TANGAN -->
     <?php if (!isset($template['ShowMengetahui']) || !empty($template['ShowMengetahui']) || !empty($ttd1) || !empty($ttd2)): ?>
         <div class="ttd-section">
-            <table class="ttd-table">
+            <table class="ttd-table" style="width: 100%; border-collapse: collapse;">
                 <tr>
                     <?php if (!empty($ttd1)): ?>
-                        <td style="width: <?= !empty($ttd2) ? '50%' : '100%' ?>;">
-                            <div>Mengetahui,</div>
-                            <div style="font-weight: bold;"><?= esc($surat['Jabatan1'] ?? $ttd1['jabatan'] ?? 'Kepala Lembaga') ?></div>
-
-                            <?php if (($surat['ModeTtd1'] ?? 'Manual') === 'QR' && !empty($ttd1['qrSrc'])): ?>
-                                <div class="ttd-qr">
-                                    <a href="<?= !empty($surat['Id']) ? base_url('signature/validateSurat/' . $surat['Id']) : '#' ?>" target="_blank">
-                                        <img src="<?= $ttd1['qrSrc'] ?>" width="75" height="75" alt="QR Code Tanda Tangan Digital">
-                                    </a>
-                                </div>
-                            <?php else: ?>
-                                <div class="ttd-space-manual"></div>
-                            <?php endif; ?>
-
-                            <div style="font-weight: bold; text-decoration: underline;">( <?= esc($ttd1['nama'] ?? '____________________') ?> )</div>
+                        <td style="width: <?= !empty($ttd2) ? '50%' : '100%' ?>; vertical-align: top; text-align: center;">
+                            <table class="ttd-col-table" style="width: 100%; border-collapse: collapse; margin: 0 auto;">
+                                <tr>
+                                    <td style="text-align: center; padding-bottom: 2pt;">Mengetahui,</td>
+                                </tr>
+                                <tr>
+                                    <td style="text-align: center; font-weight: bold; padding-bottom: 8pt;"><?= esc($surat['Jabatan1'] ?? $ttd1['jabatan'] ?? 'Kepala Lembaga') ?></td>
+                                </tr>
+                                <tr>
+                                    <td class="ttd-qr-cell" style="text-align: center; height: 65pt; vertical-align: middle;">
+                                        <?php if (($surat['ModeTtd1'] ?? 'Manual') === 'QR' && !empty($ttd1['qrSrc'])): ?>
+                                            <a href="<?= !empty($surat['Id']) ? base_url('signature/validateSurat/' . $surat['Id']) : '#' ?>" target="_blank" style="text-decoration: none; display: inline-block;">
+                                                <img src="<?= $ttd1['qrSrc'] ?>" class="ttd-qr-img" style="width: 52pt; height: 52pt;" alt="QR Code Tanda Tangan Digital">
+                                            </a>
+                                        <?php else: ?>
+                                            <div class="ttd-space-manual" style="height: 52pt;"></div>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="text-align: center; padding-top: 10pt; font-weight: bold; text-decoration: underline;">( <?= esc($ttd1['nama'] ?? '____________________') ?> )</td>
+                                </tr>
+                                <?php if (!empty($ttd1['nip'])): ?>
+                                    <tr>
+                                        <td style="text-align: center; font-size: 9pt; padding-top: 2pt;">NIP/ID: <?= esc($ttd1['nip']) ?></td>
+                                    </tr>
+                                <?php endif; ?>
+                            </table>
                         </td>
                     <?php endif; ?>
 
                     <?php if (!empty($ttd2)): ?>
-                        <td style="width: 50%;">
-                            <div>Hormat kami,</div>
-                            <div style="font-weight: bold;"><?= esc($surat['Jabatan2'] ?? $ttd2['jabatan'] ?? 'Sekretaris / Pembuat') ?></div>
-
-                            <?php if (($surat['ModeTtd2'] ?? 'Manual') === 'QR' && !empty($ttd2['qrSrc'])): ?>
-                                <div class="ttd-qr">
-                                    <a href="<?= !empty($surat['Id']) ? base_url('signature/validateSurat/' . $surat['Id']) : '#' ?>" target="_blank">
-                                        <img src="<?= $ttd2['qrSrc'] ?>" width="75" height="75" alt="QR Code Tanda Tangan Digital">
-                                    </a>
-                                </div>
-                            <?php else: ?>
-                                <div class="ttd-space-manual"></div>
-                            <?php endif; ?>
-
-                            <div style="font-weight: bold; text-decoration: underline;">( <?= esc($ttd2['nama'] ?? '____________________') ?> )</div>
+                        <td style="width: <?= !empty($ttd1) ? '50%' : '100%' ?>; vertical-align: top; text-align: center;">
+                            <table class="ttd-col-table" style="width: 100%; border-collapse: collapse; margin: 0 auto;">
+                                <tr>
+                                    <td style="text-align: center; padding-bottom: 2pt;">Hormat kami,</td>
+                                </tr>
+                                <tr>
+                                    <td style="text-align: center; font-weight: bold; padding-bottom: 8pt;"><?= esc($surat['Jabatan2'] ?? $ttd2['jabatan'] ?? 'Sekretaris / Pembuat') ?></td>
+                                </tr>
+                                <tr>
+                                    <td class="ttd-qr-cell" style="text-align: center; height: 65pt; vertical-align: middle;">
+                                        <?php if (($surat['ModeTtd2'] ?? 'Manual') === 'QR' && !empty($ttd2['qrSrc'])): ?>
+                                            <a href="<?= !empty($surat['Id']) ? base_url('signature/validateSurat/' . $surat['Id']) : '#' ?>" target="_blank" style="text-decoration: none; display: inline-block;">
+                                                <img src="<?= $ttd2['qrSrc'] ?>" class="ttd-qr-img" style="width: 52pt; height: 52pt;" alt="QR Code Tanda Tangan Digital">
+                                            </a>
+                                        <?php else: ?>
+                                            <div class="ttd-space-manual" style="height: 52pt;"></div>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="text-align: center; padding-top: 10pt; font-weight: bold; text-decoration: underline;">( <?= esc($ttd2['nama'] ?? '____________________') ?> )</td>
+                                </tr>
+                                <?php if (!empty($ttd2['nip'])): ?>
+                                    <tr>
+                                        <td style="text-align: center; font-size: 9pt; padding-top: 2pt;">NIP/ID: <?= esc($ttd2['nip']) ?></td>
+                                    </tr>
+                                <?php endif; ?>
+                            </table>
                         </td>
                     <?php endif; ?>
                 </tr>
