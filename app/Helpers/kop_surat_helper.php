@@ -13,11 +13,13 @@ if (!function_exists('getKopSuratData')) {
      *
      * @param string $sumberKop ('TPQ', 'MDA', 'FKPQ', 'Kepanitiaan', 'TanpaKop')
      * @param int|null $idTpq
-     * @param int|null $idKopCustom
+     * @param int|string|null $idKopCustom
      * @return array ['imageSrc' => string|null, 'text' => array|null, 'hasGaris' => bool]
      */
-    function getKopSuratData(?string $sumberKop, ?int $idTpq = null, ?int $idKopCustom = null): array
+    function getKopSuratData(?string $sumberKop, ?int $idTpq = null, $idKopCustom = null): array
     {
+        $idKopCustom = !empty($idKopCustom) ? (int)$idKopCustom : null;
+        $idTpq       = !empty($idTpq) ? (int)$idTpq : null;
         $db = \Config\Database::connect();
         $kopImageSrc = null;
         $kopText     = null;

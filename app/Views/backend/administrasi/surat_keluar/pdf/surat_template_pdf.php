@@ -3,7 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <title><?= esc($surat['NomorSurat'] ?? 'Surat') ?> - <?= esc($penerima['NamaPenerima'] ?? $surat['TujuanNama'] ?? 'Dokumen') ?></title>
+    <?php
+        $rawKertas = strtoupper(trim($template['UkuranKertas'] ?? 'A4'));
+        $rawOrient = strtolower(trim($template['Orientasi'] ?? 'portrait'));
+        $isLandscape = ($rawOrient === 'landscape' || $rawOrient === 'l');
+
+        if (in_array($rawKertas, ['F4', 'FOLIO'])) {
+            $paperWidthMm  = $isLandscape ? 330 : 215;
+            $paperHeightMm = $isLandscape ? 215 : 330;
+        } elseif ($rawKertas === 'A5') {
+            $paperWidthMm  = $isLandscape ? 210 : 148;
+            $paperHeightMm = $isLandscape ? 148 : 210;
+        } elseif ($rawKertas === 'LEGAL') {
+            $paperWidthMm  = $isLandscape ? 356 : 216;
+            $paperHeightMm = $isLandscape ? 216 : 356;
+        } else { // Default A4
+            $paperWidthMm  = $isLandscape ? 297 : 210;
+            $paperHeightMm = $isLandscape ? 210 : 297;
+        }
+
+        $marginTopMm    = !empty($template['MarginAtas']) ? (float)$template['MarginAtas'] : 20;
+        $marginBottomMm = !empty($template['MarginBawah']) ? (float)$template['MarginBawah'] : 20;
+        $marginLeftMm   = !empty($template['MarginKiri']) ? (float)$template['MarginKiri'] : 25;
+        $marginRightMm  = !empty($template['MarginKanan']) ? (float)$template['MarginKanan'] : 15;
+    ?>
     <style>
+        @page {
+            size: <?= $paperWidthMm ?>mm <?= $paperHeightMm ?>mm;
+            margin-top: <?= $marginTopMm ?>mm;
+            margin-bottom: <?= $marginBottomMm ?>mm;
+            margin-left: <?= $marginLeftMm ?>mm;
+            margin-right: <?= $marginRightMm ?>mm;
+        }
+
+        @media screen {
+            html, body {
+                background-color: #525659;
+                margin: 0;
+                padding: 15px 0;
+                display: flex;
+                justify-content: center;
+                min-height: 100%;
+            }
+            .page-sheet {
+                background: #ffffff;
+                width: <?= $paperWidthMm ?>mm;
+                min-height: <?= $paperHeightMm ?>mm;
+                padding: <?= $marginTopMm ?>mm <?= $marginRightMm ?>mm <?= $marginBottomMm ?>mm <?= $marginLeftMm ?>mm;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                box-sizing: border-box;
+                margin: 0 auto;
+            }
+        }
+
         body {
             font-family: <?= !empty($template['FontFamily']) ? esc($template['FontFamily']) : 'Times New Roman' ?>, serif;
             font-size: <?= !empty($template['FontSize']) ? (int)$template['FontSize'] : 12 ?>pt;
@@ -151,6 +203,7 @@
     </style>
 </head>
 <body>
+    <div class="page-sheet">
 
     <!-- 1. KOP SURAT -->
     <?php if (!empty($template['ShowKopLembaga']) && $template['ShowKopLembaga'] == 1 && !empty($kopImageSrc)): ?>
@@ -328,5 +381,6 @@
         </div>
     <?php endif; ?>
 
+    </div>
 </body>
 </html>

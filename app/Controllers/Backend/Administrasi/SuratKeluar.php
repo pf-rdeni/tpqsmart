@@ -579,6 +579,8 @@ class SuratKeluar extends BaseController
 
         // Inisialisasi mPDF
         $ukuranKertas = !empty($template['UkuranKertas']) ? $template['UkuranKertas'] : 'A4';
+        $mpdfFormat   = $this->resolveMpdfPaperFormat($ukuranKertas);
+        $dompdfFormat = $this->resolveDompdfPaperFormat($ukuranKertas);
         $orientasi    = !empty($template['Orientasi']) ? ($template['Orientasi'] === 'Landscape' ? 'L' : 'P') : 'P';
         $marginTop    = !empty($template['MarginAtas']) ? (float)$template['MarginAtas'] : 20;
         $marginBottom = !empty($template['MarginBawah']) ? (float)$template['MarginBawah'] : 20;
@@ -587,7 +589,7 @@ class SuratKeluar extends BaseController
 
         try {
             $mpdf = new Mpdf([
-                'format'        => $ukuranKertas,
+                'format'        => $mpdfFormat,
                 'orientation'   => $orientasi,
                 'margin_top'    => $marginTop,
                 'margin_bottom' => $marginBottom,
@@ -629,7 +631,7 @@ class SuratKeluar extends BaseController
             $viewData = $this->prepareSuratViewData($surat, $penerima[0] ?? null, $template);
             $html = view('backend/administrasi/surat_keluar/pdf/surat_template_pdf', $viewData);
             $dompdf->loadHtml($html);
-            $dompdf->setPaper($ukuranKertas, $orientasi === 'L' ? 'landscape' : 'portrait');
+            $dompdf->setPaper($dompdfFormat, $orientasi === 'L' ? 'landscape' : 'portrait');
             $dompdf->render();
 
             $cleanNomor = preg_replace('/[^A-Za-z0-9\-]/', '-', $surat['NomorSurat'] ?: 'SURAT');
@@ -663,6 +665,7 @@ class SuratKeluar extends BaseController
         }
 
         $ukuranKertas = !empty($template['UkuranKertas']) ? $template['UkuranKertas'] : 'A4';
+        $mpdfFormat   = $this->resolveMpdfPaperFormat($ukuranKertas);
         $orientasi    = !empty($template['Orientasi']) ? ($template['Orientasi'] === 'Landscape' ? 'L' : 'P') : 'P';
         $marginTop    = !empty($template['MarginAtas']) ? (float)$template['MarginAtas'] : 20;
         $marginBottom = !empty($template['MarginBawah']) ? (float)$template['MarginBawah'] : 20;
@@ -680,7 +683,7 @@ class SuratKeluar extends BaseController
 
         foreach ($penerima as $p) {
             $mpdf = new Mpdf([
-                'format'        => $ukuranKertas,
+                'format'        => $mpdfFormat,
                 'orientation'   => $orientasi,
                 'margin_top'    => $marginTop,
                 'margin_bottom' => $marginBottom,
@@ -772,14 +775,47 @@ class SuratKeluar extends BaseController
         if (empty($template) && !empty($surat['IdTemplate'])) {
             $template = $this->templateModel->find($surat['IdTemplate']);
         }
+        $template = $template ?? [];
+
+        // Timpa konfigurasi layout jika dispesifikasikan dalam input surat (misal saat live preview wizard)
+        if (!empty($surat['UkuranKertas'])) {
+            $template['UkuranKertas'] = $surat['UkuranKertas'];
+        }
+        if (!empty($surat['Orientasi'])) {
+            $template['Orientasi'] = $surat['Orientasi'];
+        }
+        if (!empty($surat['FontFamily'])) {
+            $template['FontFamily'] = $surat['FontFamily'];
+        }
+        if (!empty($surat['FontSize'])) {
+            $template['FontSize'] = $surat['FontSize'];
+        }
+        if (isset($surat['MarginAtas']) && $surat['MarginAtas'] !== '') {
+            $template['MarginAtas'] = $surat['MarginAtas'];
+        }
+        if (isset($surat['MarginBawah']) && $surat['MarginBawah'] !== '') {
+            $template['MarginBawah'] = $surat['MarginBawah'];
+        }
+        if (isset($surat['MarginKiri']) && $surat['MarginKiri'] !== '') {
+            $template['MarginKiri'] = $surat['MarginKiri'];
+        }
+        if (isset($surat['MarginKanan']) && $surat['MarginKanan'] !== '') {
+            $template['MarginKanan'] = $surat['MarginKanan'];
+        }
+        if (!empty($surat['SumberKop'])) {
+            $template['SumberKop'] = $surat['SumberKop'];
+        }
+        if (isset($surat['IdKopCustom'])) {
+            $template['IdKopCustom'] = !empty($surat['IdKopCustom']) ? (int)$surat['IdKopCustom'] : null;
+        }
 
         $idTpq = isset($surat['IdTpq']) ? (int)$surat['IdTpq'] : 0;
         $tpq   = ($idTpq > 0) ? $this->tpqModel->find($idTpq) : null;
 
         // 1. Resolve Kop menggunakan Helper Unified
         $sumberKop   = $template['SumberKop'] ?? 'TPQ';
-        $idKopCustom = $template['IdKopCustom'] ?? null;
-        $kopData     = getKopSuratData($sumberKop, $idTpq, $idKopCustom);
+        $idKopCustom = !empty($template['IdKopCustom']) ? (int)$template['IdKopCustom'] : null;
+        $kopData     = getKopSuratData($sumberKop, $idTpq ?: null, $idKopCustom);
         $kopImageSrc = $kopData['imageSrc'];
         $kopText     = $kopData['text'];
 
@@ -960,5 +996,29 @@ class SuratKeluar extends BaseController
         }
 
         return $guruList;
+    }
+
+    /**
+     * Resolve format kertas untuk mPDF (mPDF memerlukan array [w, h] dalam mm untuk F4 / Folio)
+     */
+    private function resolveMpdfPaperFormat(string $ukuran): string|array
+    {
+        $ukuranUpper = strtoupper(trim($ukuran));
+        if (in_array($ukuranUpper, ['F4', 'FOLIO'])) {
+            return [215, 330];
+        }
+        return $ukuran;
+    }
+
+    /**
+     * Resolve format kertas untuk Dompdf (Dompdf memerlukan bounding box [0, 0, w, h] dalam pt untuk F4)
+     */
+    private function resolveDompdfPaperFormat(string $ukuran): string|array
+    {
+        $ukuranUpper = strtoupper(trim($ukuran));
+        if (in_array($ukuranUpper, ['F4', 'FOLIO'])) {
+            return [0, 0, 609.45, 935.43];
+        }
+        return $ukuran;
     }
 }
