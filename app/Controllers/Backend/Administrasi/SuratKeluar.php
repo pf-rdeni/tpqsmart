@@ -329,11 +329,19 @@ class SuratKeluar extends BaseController
                 }
             }
         }
-        elseif ($type === 'tujuan_master') {
+        elseif ($type === 'tujuan_master' || $type === 'master') {
             $kategoriTujuan = $this->request->getGet('kategori_tujuan');
             $builder = $db->table('tbl_surat_tujuan_master')
-                          ->select('Id as id, NamaTujuan as nama, Jabatan, Instansi, Kota, NoHp as kontak')
+                          ->select('Id as id, NamaTujuan as nama, Jabatan, Instansi, Alamat, Kota, NoHp as kontak, KategoriTujuan')
                           ->where('IsActive', 1);
+
+            if (!empty($idTpq)) {
+                $builder->groupStart()
+                        ->where('IdTpq', $idTpq)
+                        ->orWhere('IdTpq IS NULL', null, false)
+                        ->orWhere('IdTpq', 0)
+                        ->groupEnd();
+            }
 
             if (!empty($kategoriTujuan)) {
                 $builder->where('KategoriTujuan', $kategoriTujuan);
@@ -342,10 +350,15 @@ class SuratKeluar extends BaseController
             foreach ($raw as $r) {
                 $info = trim(($r['Jabatan'] ? $r['Jabatan'] . ' - ' : '') . ($r['Instansi'] ?: ''));
                 $results[] = [
-                    'id'     => $r['id'],
-                    'nama'   => $r['nama'],
-                    'info'   => $info ?: ($r['Kota'] ?: '-'),
-                    'kontak' => $r['kontak']
+                    'id'       => $r['id'],
+                    'nama'     => $r['nama'],
+                    'info'     => $info ?: ($r['Kota'] ?: '-'),
+                    'jabatan'  => $r['Jabatan'] ?? '',
+                    'instansi' => $r['Instansi'] ?? '',
+                    'alamat'   => $r['Alamat'] ?? '',
+                    'kota'     => $r['Kota'] ?? '',
+                    'kontak'   => $r['kontak'] ?? '',
+                    'kategori' => $r['KategoriTujuan'] ?? ''
                 ];
             }
         }

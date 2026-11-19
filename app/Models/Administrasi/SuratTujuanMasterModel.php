@@ -37,6 +37,7 @@ class SuratTujuanMasterModel extends Model
             $builder->groupStart()
                     ->where('tbl_surat_tujuan_master.IdTpq', $idTpq)
                     ->orWhere('tbl_surat_tujuan_master.IdTpq IS NULL', null, false)
+                    ->orWhere('tbl_surat_tujuan_master.IdTpq', 0)
                     ->groupEnd();
         }
 

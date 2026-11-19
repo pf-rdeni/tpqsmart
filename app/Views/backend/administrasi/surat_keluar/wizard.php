@@ -311,6 +311,34 @@
                     <!-- Mode A: Single Manual -->
                     <div id="wrapperSingleRecipient">
                         <div class="row">
+                            <div class="col-md-12 form-group mb-3">
+                                <div class="card bg-light border p-2 mb-0">
+                                    <div class="d-flex align-items-center justify-content-between flex-wrap" style="gap: 10px;">
+                                        <span class="small font-weight-bold text-dark">
+                                            <i class="fas fa-database text-primary mr-1"></i> Ambil dari Database Tujuan:
+                                        </span>
+                                        <div style="flex: 1; min-width: 260px;">
+                                            <select id="selectQuickTujuanMaster" class="form-control form-control-sm">
+                                                <option value="">-- Pilih Tujuan dari Database untuk Mengisi Otomatis --</option>
+                                                <?php if (!empty($tujuanMaster)): ?>
+                                                    <?php foreach ($tujuanMaster as $tm): ?>
+                                                        <option value="<?= $tm['Id'] ?>"
+                                                                data-nama="<?= esc($tm['NamaTujuan']) ?>"
+                                                                data-jabatan="<?= esc($tm['Jabatan'] ?? '') ?>"
+                                                                data-instansi="<?= esc($tm['Instansi'] ?? '') ?>"
+                                                                data-alamat="<?= esc($tm['Alamat'] ?? '') ?>"
+                                                                data-kota="<?= esc($tm['Kota'] ?? '') ?>">
+                                                            <?= esc($tm['NamaTujuan']) ?><?= !empty($tm['Jabatan']) ? ' - ' . esc($tm['Jabatan']) : '' ?><?= !empty($tm['Instansi']) ? ' (' . esc($tm['Instansi']) . ')' : '' ?>
+                                                        </option>
+                                                    <?php endforeach; ?>
+                                                <?php endif; ?>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
                             <div class="col-md-6 form-group">
                                 <label>Nama Penerima / Pejabat <span class="text-danger">*</span></label>
                                 <input type="text" name="TujuanNama" id="inputTujuanNama" class="form-control" value="<?= esc($surat['TujuanNama'] ?? '') ?>" placeholder="Contoh: Sudarno, S.Pd">
@@ -348,7 +376,17 @@
                                     <?php endforeach; ?>
                                 </select>
                             </div>
-                            <div class="col-md-6 ml-auto text-right align-self-end">
+                            <div class="col-md-6 form-group" id="filterKategoriMasterWrapper" style="display: none;">
+                                <label>Filter Kategori Tujuan:</label>
+                                <select id="filterKategoriMasterSelect" class="form-control">
+                                    <option value="">-- Semua Kategori Tujuan --</option>
+                                    <option value="Pemerintah">Pemerintah</option>
+                                    <option value="Lembaga">Lembaga</option>
+                                    <option value="Perorangan">Perorangan</option>
+                                    <option value="Donatur">Donatur</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 ml-auto text-right align-self-end mb-3">
                                 <button type="button" class="btn btn-outline-primary btn-sm" id="btnSelectAllRecipients">
                                     <i class="fas fa-check-double mr-1"></i> Pilih Semua
                                 </button>
@@ -361,9 +399,18 @@
                         <div class="border rounded p-2" style="max-height: 280px; overflow-y: auto;" id="recipientCheckboxList">
                             <div class="text-center py-4 text-muted">Memuat data penerima...</div>
                         </div>
-                        <small class="text-muted mt-2 d-block">
-                            Terpilih: <strong id="countSelectedRecipients">0</strong> penerima. File PDF dapat digenerate sekaligus atau per individual dalam file ZIP.
-                        </small>
+                        <div class="d-flex justify-content-between align-items-center mt-2 flex-wrap">
+                            <small class="text-muted">
+                                Terpilih: <strong id="countSelectedRecipients">0</strong> penerima. File PDF dapat digenerate sekaligus atau per individual dalam file ZIP.
+                            </small>
+                        </div>
+                        <!-- Box Daftar Penerima Terpilih (Chips/Badges) -->
+                        <div class="mt-2 p-2 bg-light rounded border" id="boxSelectedRecipientsBadges" style="max-height: 115px; overflow-y: auto;">
+                            <div class="small font-weight-bold text-muted mb-1"><i class="fas fa-check-circle text-success mr-1"></i> Penerima Terpilih (Klik &times; untuk membatalkan):</div>
+                            <div id="selectedRecipientsBadges" class="d-flex flex-wrap" style="gap: 5px;">
+                                <span class="text-muted small">Belum ada penerima yang dipilih.</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="card-footer bg-white d-flex justify-content-between align-items-center flex-wrap">
@@ -725,26 +772,99 @@ document.addEventListener('DOMContentLoaded', function() {
         ? '<i class="fas fa-save mr-1"></i> Simpan' 
         : '<i class="fas fa-save mr-2"></i> Finalisasi & Simpan Surat';
 
+    // Helper escapeHtml
+    function escapeHtml(text) {
+        if (!text) return '';
+        return String(text)
+            .replace(/&/g, '&amp;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+    }
+
+    // Helper cek apakah suatu item penerima sudah ada di selectedRecipients
+    function isRecipientSelected(item) {
+        if (!selectedRecipients || selectedRecipients.length === 0) return false;
+        let itemNamaNorm = (item.nama || '').trim().toLowerCase();
+        let itemIdStr = String(item.id || item.id_ref || '');
+
+        return selectedRecipients.some(function(r) {
+            if (r.id_ref && String(r.id_ref) !== '2147483647' && String(r.id_ref) === itemIdStr) {
+                return true;
+            }
+            let rNamaNorm = (r.nama || '').trim().toLowerCase();
+            if (rNamaNorm && itemNamaNorm && rNamaNorm === itemNamaNorm) {
+                return true;
+            }
+            return false;
+        });
+    }
+
+    // Render badge / chips penerima terpilih
+    function renderSelectedBadges() {
+        let container = $('#selectedRecipientsBadges');
+        if (!container.length) return;
+
+        if (!selectedRecipients || selectedRecipients.length === 0) {
+            container.html('<span class="text-muted small">Belum ada penerima massal yang dipilih.</span>');
+            return;
+        }
+
+        let html = '';
+        selectedRecipients.forEach(function(r, idx) {
+            let label = escapeHtml(r.nama);
+            if (r.jabatan) {
+                label += ' <small class="text-white-50">(' + escapeHtml(r.jabatan) + ')</small>';
+            }
+            html += `
+                <span class="badge badge-primary py-1 px-2 font-weight-normal d-inline-flex align-items-center" style="font-size: 85%;">
+                    <span>${label}</span>
+                    <a href="javascript:void(0)" class="text-white ml-2 btn-remove-recipient" data-index="${idx}" title="Hapus Penerima" style="font-weight: bold; font-size: 110%; line-height: 1;">&times;</a>
+                </span>
+            `;
+        });
+        container.html(html);
+    }
+
     // Pre-populate penerima jika ada (mode edit / duplikat)
     let preloadedRecipients = <?= !empty($penerima) ? json_encode($penerima) : '[]' ?>;
-    if (preloadedRecipients && preloadedRecipients.length > 1) {
-        $('.tipe-penerima-tab').removeClass('active');
-        $('.tipe-penerima-tab[data-type="master"]').addClass('active');
-        $('#wrapperSingleRecipient').hide();
-        $('#wrapperMultiRecipient').show();
+    if (preloadedRecipients && preloadedRecipients.length > 0) {
+        if (preloadedRecipients.length > 1 || (preloadedRecipients.length === 1 && preloadedRecipients[0].TipePenerima !== 'Manual')) {
+            let initialType = 'guru';
+            if (preloadedRecipients[0].TipePenerima) {
+                let tLower = preloadedRecipients[0].TipePenerima.toLowerCase();
+                if (tLower.includes('wali') || tLower.includes('santri')) {
+                    initialType = 'wali_santri';
+                } else if (tLower.includes('master')) {
+                    initialType = 'master';
+                } else if (tLower.includes('guru')) {
+                    initialType = 'guru';
+                }
+            }
 
-        selectedRecipients = preloadedRecipients.map(function(p) {
-            return {
-                id_ref: p.IdReferensi,
-                nama: p.NamaPenerima,
-                jabatan: p.JabatanPenerima || '',
-                santri: '',
-                wali: '',
-                kelas: '',
-                tipe: p.TipePenerima || 'Massal'
-            };
-        });
-        $('#countSelectedRecipients').text(selectedRecipients.length);
+            $('.tipe-penerima-tab').removeClass('active');
+            $('.tipe-penerima-tab[data-type="' + initialType + '"]').addClass('active');
+            $('#wrapperSingleRecipient').hide();
+            $('#wrapperMultiRecipient').show();
+
+            selectedRecipients = preloadedRecipients.map(function(p) {
+                return {
+                    id_ref: p.IdReferensi,
+                    nama: p.NamaPenerima,
+                    jabatan: p.JabatanPenerima || '',
+                    santri: '',
+                    wali: '',
+                    kelas: '',
+                    tipe: p.TipePenerima || 'Massal'
+                };
+            });
+            $('#countSelectedRecipients').text(selectedRecipients.length);
+            renderSelectedBadges();
+
+            // Panggil loadRecipientList agar daftar termuat dan nama penerima otomatis tercentang!
+            loadRecipientList(initialType);
+        }
     }
 
     // Tampilkan info template jika sudah terpilih saat page load
@@ -885,6 +1005,18 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // Quick autofill Penerima Tunggal dari Database Tujuan
+    $('#selectQuickTujuanMaster').on('change', function() {
+        let opt = $(this).find('option:selected');
+        if (opt.val()) {
+            $('#inputTujuanNama').val(opt.data('nama') || '');
+            $('#inputTujuanJabatan').val(opt.data('jabatan') || '');
+            $('#inputTujuanInstansi').val(opt.data('instansi') || '');
+            $('#inputTujuanKota').val(opt.data('kota') || 'Bintan');
+            $('#inputTujuanAlamat').val(opt.data('alamat') || '');
+        }
+    });
+
     // Recipient mode tabs
     $('.tipe-penerima-tab').on('click', function() {
         $('.tipe-penerima-tab').removeClass('active');
@@ -894,18 +1026,23 @@ document.addEventListener('DOMContentLoaded', function() {
         if (type === 'single') {
             $('#wrapperSingleRecipient').show();
             $('#wrapperMultiRecipient').hide();
-            selectedRecipients = [];
         } else {
             $('#wrapperSingleRecipient').hide();
             $('#wrapperMultiRecipient').show();
 
             if (type === 'wali_santri' || type === 'santri') {
                 $('#filterKelasWrapper').show();
+                $('#filterKategoriMasterWrapper').hide();
+                loadRecipientList(type, $('#filterKelasSelect').val());
+            } else if (type === 'master' || type === 'tujuan_master') {
+                $('#filterKelasWrapper').hide();
+                $('#filterKategoriMasterWrapper').show();
+                loadRecipientList('master', '', $('#filterKategoriMasterSelect').val());
             } else {
                 $('#filterKelasWrapper').hide();
+                $('#filterKategoriMasterWrapper').hide();
+                loadRecipientList(type);
             }
-
-            loadRecipientList(type);
         }
     });
 
@@ -913,29 +1050,46 @@ document.addEventListener('DOMContentLoaded', function() {
         loadRecipientList('wali_santri', $(this).val());
     });
 
-    function loadRecipientList(type, idKelas = '') {
-        $('#recipientCheckboxList').html('<div class="text-center py-4 text-muted"><i class="fas fa-spinner fa-spin mr-1"></i> Memuat daftar...</div>');
+    $('#filterKategoriMasterSelect').on('change', function() {
+        loadRecipientList('master', '', $(this).val());
+    });
 
-        $.getJSON('<?= base_url('backend/administrasi/surat-keluar/ajax-recipients') ?>', { type: type, id_kelas: idKelas }, function(res) {
+    function loadRecipientList(type, idKelas = '', kategoriTujuan = '') {
+        $('#recipientCheckboxList').html('<div class="text-center py-4 text-muted"><i class="fas fa-spinner fa-spin mr-1"></i> Memuat daftar penerima...</div>');
+
+        $.getJSON('<?= base_url('backend/administrasi/surat-keluar/ajax-recipients') ?>', { 
+            type: type, 
+            id_kelas: idKelas,
+            kategori_tujuan: kategoriTujuan 
+        }, function(res) {
             if (res.success && res.data.length > 0) {
                 let html = '<div class="row">';
                 res.data.forEach(function(item) {
+                    let checked = isRecipientSelected(item);
+                    let checkedAttr = checked ? 'checked' : '';
+                    let selectedClass = checked ? 'recipient-item-selected' : '';
+
                     html += `
                         <div class="col-md-6 mb-2">
-                            <div class="border rounded p-2 recipient-box" style="cursor: pointer;">
+                            <div class="border rounded p-2 recipient-box ${selectedClass}" style="cursor: pointer;">
                                 <div class="custom-control custom-checkbox">
                                     <input type="checkbox" class="custom-control-input chk-recipient" id="rec_${item.id}" 
                                            value="${item.id}" 
-                                           data-nama="${item.nama}" 
-                                           data-jabatan="${item.info || ''}" 
-                                           data-santri="${item.santri || ''}" 
-                                           data-wali="${item.wali || ''}" 
-                                           data-kelas="${item.kelas || ''}">
+                                           data-type="${type}"
+                                           data-nama="${escapeHtml(item.nama)}" 
+                                           data-jabatan="${escapeHtml(item.jabatan || item.info || '')}" 
+                                           data-instansi="${escapeHtml(item.instansi || '')}" 
+                                           data-alamat="${escapeHtml(item.alamat || '')}" 
+                                           data-kota="${escapeHtml(item.kota || '')}" 
+                                           data-santri="${escapeHtml(item.santri || '')}" 
+                                           data-wali="${escapeHtml(item.wali || '')}" 
+                                           data-kelas="${escapeHtml(item.kelas || '')}"
+                                           ${checkedAttr}>
                                     <label class="custom-control-label font-weight-bold" for="rec_${item.id}">
-                                        ${item.nama}
+                                        ${escapeHtml(item.nama)}
                                     </label>
                                 </div>
-                                <small class="text-muted d-block ml-4">${item.info || ''} ${item.kontak ? ' | ' + item.kontak : ''}</small>
+                                <small class="text-muted d-block ml-4">${escapeHtml(item.info || '')} ${item.kontak ? ' | ' + escapeHtml(item.kontak) : ''}</small>
                             </div>
                         </div>
                     `;
@@ -950,39 +1104,146 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function bindRecipientCheckboxEvents() {
-        $('.chk-recipient').on('change', function() {
-            rebuildSelectedRecipients();
-        });
-    }
+        $('.chk-recipient').off('change').on('change', function() {
+            let isChecked = $(this).is(':checked');
+            let curType = $(this).data('type') || $('.tipe-penerima-tab.active').data('type');
+            let tipeRec = 'Massal';
+            if (curType === 'master' || curType === 'tujuan_master') {
+                tipeRec = 'Master';
+            } else if (curType === 'guru') {
+                tipeRec = 'Guru';
+            } else if (curType === 'wali_santri' || curType === 'santri') {
+                tipeRec = 'Wali Santri';
+            }
 
-    function rebuildSelectedRecipients() {
-        selectedRecipients = [];
-        $('.chk-recipient:checked').each(function() {
-            selectedRecipients.push({
+            let itemData = {
                 id_ref: $(this).val(),
                 nama: $(this).data('nama'),
                 jabatan: $(this).data('jabatan'),
+                instansi: $(this).data('instansi'),
+                alamat: $(this).data('alamat'),
+                kota: $(this).data('kota'),
                 santri: $(this).data('santri'),
                 wali: $(this).data('wali'),
                 kelas: $(this).data('kelas'),
-                tipe: 'Massal'
-            });
-            $(this).closest('.recipient-box').addClass('recipient-item-selected');
+                tipe: tipeRec
+            };
+
+            if (isChecked) {
+                if (!isRecipientSelected(itemData)) {
+                    selectedRecipients.push(itemData);
+                }
+                $(this).closest('.recipient-box').addClass('recipient-item-selected');
+            } else {
+                let itemNamaNorm = (itemData.nama || '').trim().toLowerCase();
+                let itemIdStr = String(itemData.id_ref || '');
+                selectedRecipients = selectedRecipients.filter(function(r) {
+                    if (r.id_ref && String(r.id_ref) !== '2147483647' && String(r.id_ref) === itemIdStr) {
+                        return false;
+                    }
+                    let rNamaNorm = (r.nama || '').trim().toLowerCase();
+                    if (rNamaNorm && itemNamaNorm && rNamaNorm === itemNamaNorm) {
+                        return false;
+                    }
+                    return true;
+                });
+                $(this).closest('.recipient-box').removeClass('recipient-item-selected');
+            }
+
+            $('#countSelectedRecipients').text(selectedRecipients.length);
+            renderSelectedBadges();
         });
-        $('.chk-recipient:not(:checked)').each(function() {
-            $(this).closest('.recipient-box').removeClass('recipient-item-selected');
-        });
-        $('#countSelectedRecipients').text(selectedRecipients.length);
     }
 
+    // Klik pada area recipient-box untuk men-toggle checkbox
+    $(document).off('click', '.recipient-box').on('click', '.recipient-box', function(e) {
+        if ($(e.target).is('input[type="checkbox"]') || $(e.target).is('label') || $(e.target).closest('label').length) {
+            return;
+        }
+        let chk = $(this).find('.chk-recipient');
+        chk.prop('checked', !chk.prop('checked')).trigger('change');
+    });
+
+    // Tombol hapus dari badge penerima terpilih
+    $(document).off('click', '.btn-remove-recipient').on('click', '.btn-remove-recipient', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        let idx = parseInt($(this).data('index'));
+        if (!isNaN(idx) && idx >= 0 && idx < selectedRecipients.length) {
+            let removed = selectedRecipients[idx];
+            selectedRecipients.splice(idx, 1);
+
+            let remNamaNorm = (removed.nama || '').trim().toLowerCase();
+            let remIdStr = String(removed.id_ref || '');
+            $('.chk-recipient').each(function() {
+                let thisNamaNorm = ($(this).data('nama') || '').trim().toLowerCase();
+                let thisIdStr = String($(this).val() || '');
+                if ((remIdStr !== '2147483647' && thisIdStr === remIdStr) || (thisNamaNorm && remNamaNorm && thisNamaNorm === remNamaNorm)) {
+                    $(this).prop('checked', false);
+                    $(this).closest('.recipient-box').removeClass('recipient-item-selected');
+                }
+            });
+
+            $('#countSelectedRecipients').text(selectedRecipients.length);
+            renderSelectedBadges();
+        }
+    });
+
     $('#btnSelectAllRecipients').on('click', function() {
-        $('.chk-recipient').prop('checked', true);
-        rebuildSelectedRecipients();
+        let curType = $('.tipe-penerima-tab.active').data('type');
+        let tipeRec = 'Massal';
+        if (curType === 'master' || curType === 'tujuan_master') {
+            tipeRec = 'Master';
+        } else if (curType === 'guru') {
+            tipeRec = 'Guru';
+        } else if (curType === 'wali_santri' || curType === 'santri') {
+            tipeRec = 'Wali Santri';
+        }
+
+        $('.chk-recipient').each(function() {
+            if (!$(this).is(':checked')) {
+                $(this).prop('checked', true);
+                let itemData = {
+                    id_ref: $(this).val(),
+                    nama: $(this).data('nama'),
+                    jabatan: $(this).data('jabatan'),
+                    instansi: $(this).data('instansi'),
+                    alamat: $(this).data('alamat'),
+                    kota: $(this).data('kota'),
+                    santri: $(this).data('santri'),
+                    wali: $(this).data('wali'),
+                    kelas: $(this).data('kelas'),
+                    tipe: tipeRec
+                };
+                if (!isRecipientSelected(itemData)) {
+                    selectedRecipients.push(itemData);
+                }
+                $(this).closest('.recipient-box').addClass('recipient-item-selected');
+            }
+        });
+        $('#countSelectedRecipients').text(selectedRecipients.length);
+        renderSelectedBadges();
     });
 
     $('#btnUnselectAllRecipients').on('click', function() {
-        $('.chk-recipient').prop('checked', false);
-        rebuildSelectedRecipients();
+        $('.chk-recipient').each(function() {
+            let itemNamaNorm = ($(this).data('nama') || '').trim().toLowerCase();
+            let itemIdStr = String($(this).val() || '');
+            selectedRecipients = selectedRecipients.filter(function(r) {
+                if (r.id_ref && String(r.id_ref) !== '2147483647' && String(r.id_ref) === itemIdStr) {
+                    return false;
+                }
+                let rNamaNorm = (r.nama || '').trim().toLowerCase();
+                if (rNamaNorm && itemNamaNorm && rNamaNorm === itemNamaNorm) {
+                    return false;
+                }
+                return true;
+            });
+            $(this).prop('checked', false);
+            $(this).closest('.recipient-box').removeClass('recipient-item-selected');
+        });
+        $('#countSelectedRecipients').text(selectedRecipients.length);
+        renderSelectedBadges();
     });
 
     // Auto Number Generation
