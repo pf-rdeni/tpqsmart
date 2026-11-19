@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title><?= esc($surat['NomorSurat'] ?? 'Surat') ?> - <?= esc($penerima['NamaPenerima'] ?? $surat['TujuanNama'] ?? 'Dokumen') ?></title>
+    <title><?= esc($surat['NomorSurat'] ?? 'Surat') ?> - <?= esc(function_exists('formatNamaGelar') ? formatNamaGelar($penerima['NamaPenerima'] ?? $surat['TujuanNama'] ?? 'Dokumen') : ($penerima['NamaPenerima'] ?? $surat['TujuanNama'] ?? 'Dokumen')) ?></title>
     <?php
         $rawKertas = strtoupper(trim($template['UkuranKertas'] ?? 'A4'));
         $rawOrient = strtolower(trim($template['Orientasi'] ?? 'portrait'));
@@ -266,7 +266,7 @@
     <?php if (!empty($template['ShowTujuan'])): ?>
         <div class="tujuan-section">
             <div>Kepada Yth.</div>
-            <div><strong><?= esc($penerima['NamaPenerima'] ?? $surat['TujuanNama'] ?? '-') ?></strong></div>
+            <div><strong><?= esc(function_exists('formatNamaGelar') ? formatNamaGelar($penerima['NamaPenerima'] ?? $surat['TujuanNama'] ?? '-') : ($penerima['NamaPenerima'] ?? $surat['TujuanNama'] ?? '-')) ?></strong></div>
             <?php if (!empty($penerima['JabatanPenerima'] ?? $surat['TujuanJabatan'])): ?>
                 <div><?= esc($penerima['JabatanPenerima'] ?? $surat['TujuanJabatan']) ?></div>
             <?php endif; ?>
@@ -334,7 +334,13 @@
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td style="text-align: center; padding-top: 10pt; font-weight: bold; text-decoration: underline;">( <?= esc($ttd1['nama'] ?? '____________________') ?> )</td>
+                                    <?php 
+                                        $namaTtd1Display = $ttd1['nama'] ?? '____________________';
+                                        if ($namaTtd1Display !== '____________________' && function_exists('formatNamaGelar')) {
+                                            $namaTtd1Display = formatNamaGelar($namaTtd1Display);
+                                        }
+                                    ?>
+                                    <td style="text-align: center; padding-top: 10pt; font-weight: bold; text-decoration: underline;">( <?= esc($namaTtd1Display) ?> )</td>
                                 </tr>
                                 <?php if (!empty($ttd1['nip'])): ?>
                                     <tr>
@@ -366,7 +372,13 @@
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td style="text-align: center; padding-top: 10pt; font-weight: bold; text-decoration: underline;">( <?= esc($ttd2['nama'] ?? '____________________') ?> )</td>
+                                    <?php 
+                                        $namaTtd2Display = $ttd2['nama'] ?? '____________________';
+                                        if ($namaTtd2Display !== '____________________' && function_exists('formatNamaGelar')) {
+                                            $namaTtd2Display = formatNamaGelar($namaTtd2Display);
+                                        }
+                                    ?>
+                                    <td style="text-align: center; padding-top: 10pt; font-weight: bold; text-decoration: underline;">( <?= esc($namaTtd2Display) ?> )</td>
                                 </tr>
                                 <?php if (!empty($ttd2['nip'])): ?>
                                     <tr>

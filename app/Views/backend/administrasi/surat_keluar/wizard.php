@@ -52,6 +52,9 @@
         .wizard-step.active .step-title {
             color: #007bff;
         }
+        .wizard-step.completed .step-title {
+            color: #28a745;
+        }
         .step-panel {
             display: none;
         }
@@ -61,6 +64,25 @@
         .recipient-item-selected {
             background: #e8f4fd;
             border-color: #b8daff !important;
+        }
+        .bg-light-primary {
+            background-color: #f0f7ff !important;
+        }
+        .template-card {
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+        }
+        .template-card:hover {
+            border-color: #007bff !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0, 123, 255, 0.12) !important;
+        }
+        .template-card.active-selected {
+            border-color: #007bff !important;
+            background-color: #f0f7ff !important;
+            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25) !important;
         }
     </style>
 
@@ -136,19 +158,86 @@
                 <div class="card-body">
                     <p class="text-muted">Pilih salah satu template surat sebagai dasar format dan layout. Pengaturan kop, margin, dan nomor surat akan otomatis dimuat.</p>
 
-                    <div class="form-group">
-                        <label>Pilih Master Template Surat <span class="text-danger">*</span></label>
-                        <select name="IdTemplate" id="selectTemplate" class="form-control form-control-lg font-weight-bold" required>
-                            <option value="">-- Pilih Template Surat --</option>
-                            <?php foreach ($templates as $t): ?>
-                                <option value="<?= $t['Id'] ?>" data-kategori="<?= $t['IdKategori'] ?>" <?= (isset($surat['IdTemplate']) && $surat['IdTemplate'] == $t['Id']) ? 'selected' : '' ?>>
-                                    <?= esc($t['NamaTemplate']) ?> (<?= esc($t['NamaKategori']) ?>) - Kertas <?= esc($t['UkuranKertas']) ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
+                    <!-- Filter Kategori & Search Template -->
+                    <div class="row mb-3 bg-light rounded p-2 border mx-0">
+                        <div class="col-md-5 form-group mb-md-0">
+                            <label class="font-weight-bold small text-muted"><i class="fas fa-filter mr-1 text-primary"></i> Filter Kategori Surat:</label>
+                            <select id="filterKategoriTemplate" class="form-control form-control-sm">
+                                <option value="">-- Semua Kategori Surat --</option>
+                                <?php if (!empty($kategori)): ?>
+                                    <?php foreach ($kategori as $kat): ?>
+                                        <option value="<?= $kat['Id'] ?>"><?= esc($kat['NamaKategori']) ?> (<?= esc($kat['Kode']) ?>)</option>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </select>
+                        </div>
+                        <div class="col-md-7 form-group mb-0">
+                            <label class="font-weight-bold small text-muted"><i class="fas fa-search mr-1 text-primary"></i> Cari Template (Nama / Kertas / Deskripsi):</label>
+                            <div class="input-group input-group-sm">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
+                                </div>
+                                <input type="text" id="inputSearchTemplate" class="form-control" placeholder="Ketik kata kunci pencarian template...">
+                                <div class="input-group-append" id="btnClearSearchTemplate" style="display: none;">
+                                    <button class="btn btn-outline-secondary" type="button" title="Bersihkan Pencarian">&times;</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="alert alert-info py-3" id="templateInfoBox" style="display: none;">
+                    <!-- Hidden Input IdTemplate untuk Form Submission -->
+                    <input type="hidden" name="IdTemplate" id="selectTemplate" value="<?= esc($surat['IdTemplate'] ?? '') ?>" required>
+
+                    <!-- Pilihan Visual Kartu Template -->
+                    <div class="mt-2">
+                        <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap">
+                            <label class="font-weight-bold text-dark mb-0"><i class="fas fa-th-large mr-1 text-primary"></i> Pilih Template Surat: <span class="text-danger">*</span></label>
+                            <span id="templateFilterCount" class="small text-muted"></span>
+                        </div>
+                        <div class="row" id="templateCardGrid" style="max-height: 420px; overflow-y: auto;">
+                            <?php foreach ($templates as $t): 
+                                $isSelected = (isset($surat['IdTemplate']) && $surat['IdTemplate'] == $t['Id']);
+                                $descStr = $t['Deskripsi'] ?? '';
+                                if (strlen($descStr) > 75) {
+                                    $descStr = substr($descStr, 0, 75) . '...';
+                                }
+                            ?>
+                                <div class="col-md-6 col-lg-4 mb-3 template-card-col" 
+                                     data-id="<?= $t['Id'] ?>" 
+                                     data-kategori="<?= $t['IdKategori'] ?>" 
+                                     data-nama="<?= esc(strtolower($t['NamaTemplate'])) ?>"
+                                     data-katnama="<?= esc(strtolower($t['NamaKategori'])) ?>"
+                                     data-kertas="<?= esc(strtolower($t['UkuranKertas'])) ?>"
+                                     data-deskripsi="<?= esc(strtolower($t['Deskripsi'] ?? '')) ?>">
+                                    <div class="card h-100 template-card <?= $isSelected ? 'active-selected' : '' ?>">
+                                        <div class="card-body p-3 d-flex flex-column justify-content-between">
+                                            <div>
+                                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                                    <span class="badge badge-info px-2 py-1"><?= esc($t['NamaKategori']) ?></span>
+                                                    <span class="badge badge-secondary"><?= esc($t['UkuranKertas']) ?></span>
+                                                </div>
+                                                <h6 class="font-weight-bold text-dark mb-1 template-card-title"><?= esc($t['NamaTemplate']) ?></h6>
+                                                <p class="small text-muted mb-2" style="font-size: 85%;">
+                                                    <?= !empty($descStr) ? esc($descStr) : 'Template dokumen surat resmi.' ?>
+                                                </p>
+                                            </div>
+                                            <div class="pt-2 border-top d-flex justify-content-between align-items-center">
+                                                <small class="text-muted"><i class="fas fa-file-alt mr-1"></i> <?= esc($t['Orientasi']) ?></small>
+                                                <span class="btn btn-xs <?= $isSelected ? 'btn-primary font-weight-bold' : 'btn-outline-primary' ?> btn-select-card">
+                                                    <i class="fas <?= $isSelected ? 'fa-check' : 'fa-check-circle' ?> mr-1"></i> <?= $isSelected ? 'Terpilih' : 'Pilih' ?>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                        <div id="templateNoMatchAlert" class="alert alert-warning text-center py-3 mt-2" style="display: none;">
+                            <i class="fas fa-search-minus mr-1"></i> Tidak ada template yang cocok dengan filter atau kata kunci pencarian.
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info py-3 mt-3" id="templateInfoBox" style="display: none;">
                         <div class="font-weight-bold mb-1"><i class="fas fa-info-circle mr-1"></i> Detail Template Terpilih:</div>
                         <div id="templateDesc" class="text-muted small"></div>
                     </div>
@@ -321,14 +410,16 @@
                                             <select id="selectQuickTujuanMaster" class="form-control form-control-sm">
                                                 <option value="">-- Pilih Tujuan dari Database untuk Mengisi Otomatis --</option>
                                                 <?php if (!empty($tujuanMaster)): ?>
-                                                    <?php foreach ($tujuanMaster as $tm): ?>
+                                                    <?php foreach ($tujuanMaster as $tm): 
+                                                        $namaFmt = function_exists('formatNamaGelar') ? formatNamaGelar($tm['NamaTujuan']) : $tm['NamaTujuan'];
+                                                    ?>
                                                         <option value="<?= $tm['Id'] ?>"
-                                                                data-nama="<?= esc($tm['NamaTujuan']) ?>"
+                                                                data-nama="<?= esc($namaFmt) ?>"
                                                                 data-jabatan="<?= esc($tm['Jabatan'] ?? '') ?>"
                                                                 data-instansi="<?= esc($tm['Instansi'] ?? '') ?>"
                                                                 data-alamat="<?= esc($tm['Alamat'] ?? '') ?>"
                                                                 data-kota="<?= esc($tm['Kota'] ?? '') ?>">
-                                                            <?= esc($tm['NamaTujuan']) ?><?= !empty($tm['Jabatan']) ? ' - ' . esc($tm['Jabatan']) : '' ?><?= !empty($tm['Instansi']) ? ' (' . esc($tm['Instansi']) . ')' : '' ?>
+                                                            <?= esc($namaFmt) ?><?= !empty($tm['Jabatan']) ? ' - ' . esc($tm['Jabatan']) : '' ?><?= !empty($tm['Instansi']) ? ' (' . esc($tm['Instansi']) . ')' : '' ?>
                                                         </option>
                                                     <?php endforeach; ?>
                                                 <?php endif; ?>
@@ -367,18 +458,18 @@
                     <!-- Mode B & C & D: Multi Select List -->
                     <div id="wrapperMultiRecipient" style="display: none;">
                         <div class="row mb-2">
-                            <div class="col-md-6 form-group" id="filterKelasWrapper" style="display: none;">
-                                <label>Filter Per Kelas Santri:</label>
-                                <select id="filterKelasSelect" class="form-control">
+                            <div class="col-md-4 form-group" id="filterKelasWrapper" style="display: none;">
+                                <label class="font-weight-bold small text-muted">Filter Kelas Santri:</label>
+                                <select id="filterKelasSelect" class="form-control form-control-sm">
                                     <option value="">-- Semua Kelas --</option>
                                     <?php foreach ($kelasList as $k): ?>
                                         <option value="<?= $k['IdKelas'] ?>"><?= esc($k['NamaKelas']) ?></option>
                                     <?php endforeach; ?>
                                 </select>
                             </div>
-                            <div class="col-md-6 form-group" id="filterKategoriMasterWrapper" style="display: none;">
-                                <label>Filter Kategori Tujuan:</label>
-                                <select id="filterKategoriMasterSelect" class="form-control">
+                            <div class="col-md-4 form-group" id="filterKategoriMasterWrapper" style="display: none;">
+                                <label class="font-weight-bold small text-muted">Filter Kategori Tujuan:</label>
+                                <select id="filterKategoriMasterSelect" class="form-control form-control-sm">
                                     <option value="">-- Semua Kategori Tujuan --</option>
                                     <option value="Pemerintah">Pemerintah</option>
                                     <option value="Lembaga">Lembaga</option>
@@ -386,13 +477,30 @@
                                     <option value="Donatur">Donatur</option>
                                 </select>
                             </div>
-                            <div class="col-md-6 ml-auto text-right align-self-end mb-3">
-                                <button type="button" class="btn btn-outline-primary btn-sm" id="btnSelectAllRecipients">
-                                    <i class="fas fa-check-double mr-1"></i> Pilih Semua
-                                </button>
-                                <button type="button" class="btn btn-outline-secondary btn-sm" id="btnUnselectAllRecipients">
-                                    Batal Pilih
-                                </button>
+                            <div class="col-md-5 form-group" id="searchRecipientWrapper">
+                                <label class="font-weight-bold small text-muted">Cari Penerima (Nama / Jabatan / Instansi):</label>
+                                <div class="input-group input-group-sm">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
+                                    </div>
+                                    <input type="text" id="inputSearchRecipient" class="form-control" placeholder="Ketik kata kunci pencarian...">
+                                    <div class="input-group-append" id="btnClearSearchRecipient" style="display: none;">
+                                        <button class="btn btn-outline-secondary" type="button" title="Bersihkan Pencarian">&times;</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12 d-flex justify-content-between align-items-center mb-2 flex-wrap">
+                                <div id="searchRecipientInfo" class="small text-muted py-1">
+                                    <!-- Status / Info Hasil Pencarian -->
+                                </div>
+                                <div>
+                                    <button type="button" class="btn btn-outline-primary btn-sm" id="btnSelectAllRecipients">
+                                        <i class="fas fa-check-double mr-1"></i> Pilih Semua (Tampil)
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm ml-1" id="btnUnselectAllRecipients">
+                                        Batal Pilih (Tampil)
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
@@ -908,12 +1016,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Switch step navigation
     function showStep(stepNum) {
+        stepNum = parseInt(stepNum);
         $('.step-panel').removeClass('active');
         $('#step' + stepNum).addClass('active');
 
-        $('.wizard-step').removeClass('active');
+        // Reset semua status active dan completed agar step sesudahnya kembali abu-abu
+        $('.wizard-step').removeClass('active completed');
         $('.wizard-step[data-step="' + stepNum + '"]').addClass('active');
 
+        // Tandai hanya step yang berada sebelum step saat ini sebagai completed
         for (let i = 1; i < stepNum; i++) {
             $('.wizard-step[data-step="' + i + '"]').addClass('completed');
         }
@@ -930,6 +1041,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     $('.btn-next').on('click', function() {
         let next = $(this).data('next');
+        if (currentStep === 1 && next === 2) {
+            if (!$('#selectTemplate').val()) {
+                Swal.fire('Pilih Template', 'Silakan pilih salah satu template surat terlebih dahulu.', 'warning');
+                return;
+            }
+        }
         showStep(next);
     });
 
@@ -943,9 +1060,105 @@ document.addEventListener('DOMContentLoaded', function() {
         showStep(step);
     });
 
+    // Filter & Search Master Template (Step 1)
+    function filterTemplates() {
+        let selKat = $('#filterKategoriTemplate').val();
+        let q = ($('#inputSearchTemplate').val() || '').trim().toLowerCase();
+        let cardItems = $('#templateCardGrid .template-card-col');
+        let totalCount = cardItems.length;
+
+        if (q !== '') {
+            $('#btnClearSearchTemplate').show();
+        } else {
+            $('#btnClearSearchTemplate').hide();
+        }
+
+        let matched = 0;
+
+        // Filter Grid Kartu Template
+        cardItems.each(function() {
+            let katId = $(this).data('kategori');
+            let nama = ($(this).data('nama') || '').toString();
+            let katNama = ($(this).data('katnama') || '').toString();
+            let kertas = ($(this).data('kertas') || '').toString();
+            let deskripsi = ($(this).data('deskripsi') || '').toString();
+
+            let matchKat = !selKat || String(katId) === String(selKat);
+            let matchText = !q || (nama.includes(q) || katNama.includes(q) || kertas.includes(q) || deskripsi.includes(q));
+
+            if (matchKat && matchText) {
+                $(this).show();
+                matched++;
+            } else {
+                $(this).hide();
+            }
+        });
+
+        if (matched === 0) {
+            $('#templateNoMatchAlert').show();
+            $('#templateFilterCount').html('<span class="text-danger font-weight-bold">0</span> dari ' + totalCount + ' template');
+        } else {
+            $('#templateNoMatchAlert').hide();
+            if (selKat || q) {
+                $('#templateFilterCount').html('Ditemukan <span class="text-primary font-weight-bold">' + matched + '</span> dari ' + totalCount + ' template');
+            } else {
+                $('#templateFilterCount').html('<span class="text-muted">Total: <strong>' + totalCount + '</strong> template</span>');
+            }
+        }
+    }
+
+    $('#filterKategoriTemplate').on('change', filterTemplates);
+    $('#inputSearchTemplate').on('input keyup', filterTemplates);
+    $('#btnClearSearchTemplate button').on('click', function() {
+        $('#inputSearchTemplate').val('');
+        filterTemplates();
+        $('#inputSearchTemplate').focus();
+    });
+
+    // Sinkronisasi status visual kartu template
+    function syncTemplateCardVisual(selectedId) {
+        $('.template-card-col').each(function() {
+            let cardId = $(this).data('id');
+            let card = $(this).find('.template-card');
+            let btn = $(this).find('.btn-select-card');
+
+            if (selectedId && String(cardId) === String(selectedId)) {
+                card.addClass('active-selected');
+                btn.removeClass('btn-outline-primary').addClass('btn-primary font-weight-bold')
+                   .html('<i class="fas fa-check mr-1"></i> Terpilih');
+            } else {
+                card.removeClass('active-selected');
+                btn.removeClass('btn-primary font-weight-bold').addClass('btn-outline-primary')
+                   .html('<i class="fas fa-check-circle mr-1"></i> Pilih');
+            }
+        });
+    }
+
+    // Klik langsung pada kartu template
+    $(document).on('click', '.template-card-col', function() {
+        let tplId = $(this).data('id');
+        let katId = $(this).data('kategori');
+        if (tplId) {
+            $('#selectTemplate').val(tplId).data('kategori', katId).attr('data-kategori', katId).trigger('change');
+        }
+    });
+
+    // Inisialisasi awal filter & kartu template
+    filterTemplates();
+    let initTplId = $('#selectTemplate').val();
+    if (initTplId) {
+        let initKat = $('.template-card-col[data-id="' + initTplId + '"]').data('kategori');
+        if (initKat) {
+            $('#selectTemplate').data('kategori', initKat).attr('data-kategori', initKat);
+        }
+    }
+    syncTemplateCardVisual(initTplId);
+
     // Template selection change
     $('#selectTemplate').on('change', function() {
         let id = $(this).val();
+        syncTemplateCardVisual(id);
+
         if (!id) {
             $('#templateInfoBox').hide();
             return;
@@ -1005,11 +1218,125 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // Standardisasi Format Nama & Gelar (JavaScript)
+    function formatNamaGelarJs(raw) {
+        if (!raw || typeof raw !== 'string') return '';
+        raw = raw.trim();
+        if (!raw) return '';
+
+        const gelarMap = {
+            'dr': 'Dr.', 'dr.': 'Dr.', 'dokter': 'dr.', 'drg': 'drg.', 'drg.': 'drg.',
+            'drs': 'Drs.', 'drs.': 'Drs.', 'dra': 'Dra.', 'dra.': 'Dra.',
+            'prof': 'Prof.', 'prof.': 'Prof.', 'ir': 'Ir.', 'ir.': 'Ir.',
+            'h': 'H.', 'h.': 'H.', 'hj': 'Hj.', 'hj.': 'Hj.',
+            'kh': 'K.H.', 'kh.': 'K.H.', 'k.h.': 'K.H.',
+            'ust': 'Ust.', 'ust.': 'Ust.', 'ustadz': 'Ustadz', 'kyai': 'Kyai', 'tgk': 'Tgk.', 'tgk.': 'Tgk.',
+            's.pd': 'S.Pd', 'spd': 'S.Pd', 's.pd.i': 'S.Pd.I', 'spdi': 'S.Pd.I',
+            's.kom': 'S.Kom', 'skom': 'S.Kom', 's.e': 'S.E', 'se': 'S.E',
+            's.ag': 'S.Ag', 'sag': 'S.Ag', 's.h': 'S.H', 'sh': 'S.H',
+            's.t': 'S.T', 'st': 'S.T', 's.sos': 'S.Sos', 'ssos': 'S.Sos',
+            's.si': 'S.Si', 'ssi': 'S.Si', 's.ked': 'S.Ked', 'sked': 'S.Ked',
+            's.kep': 'S.Kep', 'skep': 'S.Kep', 's.farm': 'S.Farm', 'sfarm': 'S.Farm',
+            's.psi': 'S.Psi', 'spsi': 'S.Psi', 's.sn': 'S.Sn', 's.pt': 'S.Pt', 's.p': 'S.P',
+            's.ip': 'S.I.P', 's.i.p': 'S.I.P', 'sip': 'S.I.P', 's.sos.i': 'S.Sos.I', 's.hum': 'S.Hum',
+            's.pd.sd': 'S.Pd.SD', 's.th.i': 'S.Th.I', 's.sy': 'S.Sy', 's.e.i': 'S.E.I',
+            's.ak': 'S.Ak', 's.ab': 'S.A.B', 's.ap': 'S.A.P', 's.tr.kom': 'S.Tr.Kom', 's.tr.t': 'S.Tr.T',
+            'm.pd': 'M.Pd', 'mpd': 'M.Pd', 'm.pd.i': 'M.Pd.I', 'mpdi': 'M.Pd.I',
+            'm.kom': 'M.Kom', 'mkom': 'M.Kom', 'm.m': 'M.M', 'mm': 'M.M',
+            'm.ag': 'M.Ag', 'mag': 'M.Ag', 'm.si': 'M.Si', 'msi': 'M.Si',
+            'm.h': 'M.H', 'mh': 'M.H', 'm.t': 'M.T', 'mt': 'M.T',
+            'm.sc': 'M.Sc', 'msc': 'M.Sc', 'm.a': 'M.A', 'ma': 'M.A',
+            'm.b.a': 'M.B.A', 'mba': 'M.B.A', 'b.a': 'B.A', 'lc': 'Lc.', 'lc.': 'Lc.',
+            'ph.d': 'Ph.D', 'phd': 'Ph.D', 'll.m': 'LL.M', 'ak': 'Ak.', 'ak.': 'Ak.',
+            'cpa': 'CPA', 'ca': 'CA'
+        };
+
+        const titleCase = (s) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+
+        let extraBracket = '';
+        let mBracket = raw.match(/\s*(\([^)]+\))\s*$/);
+        if (mBracket) {
+            raw = raw.substring(0, raw.length - mBracket[0].length).trim();
+            let inner = mBracket[1].replace(/^[(\s]+|[)\s]+$/g, '');
+            let innerFormatted = inner.split(/\s+/).map(w => titleCase(w)).join(' ');
+            extraBracket = ' (' + innerFormatted + ')';
+        }
+
+        let parts = raw.split(',').map(p => p.trim());
+        let namaUtama = parts.shift() || '';
+
+        let words = namaUtama.split(/\s+/);
+        let formattedWords = [];
+        let gelarBelakangAuto = [];
+
+        words.forEach((w, idx) => {
+            let wClean = w.toLowerCase().trim();
+            let wNoDot = wClean.replace(/\.+$/, '');
+
+            if (idx > 0 && (gelarMap[wClean] || gelarMap[wNoDot])) {
+                let canonical = gelarMap[wClean] || gelarMap[wNoDot];
+                if (!['h', 'hj', 'dr', 'drs', 'dra', 'prof', 'ir', 'kh', 'ust', 'ustadz', 'kyai', 'tgk'].includes(wNoDot)) {
+                    gelarBelakangAuto.push(canonical);
+                    return;
+                }
+            }
+
+            if (gelarMap[wClean]) {
+                formattedWords.push(gelarMap[wClean]);
+            } else if (gelarMap[wNoDot] && ['h', 'hj', 'dr', 'drs', 'dra', 'prof', 'ir', 'kh', 'ust', 'ustadz', 'kyai', 'tgk'].includes(wNoDot)) {
+                formattedWords.push(gelarMap[wNoDot]);
+            } else {
+                if (['bin', 'binti', 'ibn', 'van', 'de'].includes(wClean) && idx > 0) {
+                    formattedWords.push(wClean);
+                } else {
+                    formattedWords.push(titleCase(w));
+                }
+            }
+        });
+
+        let formattedNama = formattedWords.join(' ');
+        let allGelar = gelarBelakangAuto.concat(parts);
+        let formattedGelar = [];
+
+        allGelar.forEach(g => {
+            let gTrim = g.trim();
+            if (!gTrim) return;
+            let gLower = gTrim.toLowerCase();
+            let gNoDot = gLower.replace(/\.+$/, '');
+
+            if (gelarMap[gLower]) {
+                formattedGelar.push(gelarMap[gLower]);
+            } else if (gelarMap[gNoDot]) {
+                formattedGelar.push(gelarMap[gNoDot]);
+            } else {
+                if (gTrim.length <= 4 && !gTrim.includes('.')) {
+                    formattedGelar.push(gTrim.toUpperCase());
+                } else {
+                    formattedGelar.push(titleCase(gTrim));
+                }
+            }
+        });
+
+        if (formattedGelar.length > 0) {
+            formattedNama += ', ' + formattedGelar.join(', ');
+        }
+
+        return formattedNama + extraBracket;
+    }
+
+    // Auto-standardize nama saat blur dari input Nama Penerima Tunggal
+    $('#inputTujuanNama').on('blur', function() {
+        let val = $(this).val();
+        if (val) {
+            $(this).val(formatNamaGelarJs(val));
+        }
+    });
+
     // Quick autofill Penerima Tunggal dari Database Tujuan
     $('#selectQuickTujuanMaster').on('change', function() {
         let opt = $(this).find('option:selected');
         if (opt.val()) {
-            $('#inputTujuanNama').val(opt.data('nama') || '');
+            $('#inputTujuanNama').val(formatNamaGelarJs(opt.data('nama') || ''));
             $('#inputTujuanJabatan').val(opt.data('jabatan') || '');
             $('#inputTujuanInstansi').val(opt.data('instansi') || '');
             $('#inputTujuanKota').val(opt.data('kota') || 'Bintan');
@@ -1022,6 +1349,11 @@ document.addEventListener('DOMContentLoaded', function() {
         $('.tipe-penerima-tab').removeClass('active');
         $(this).addClass('active');
         let type = $(this).data('type');
+
+        // Reset pencarian saat beralih tab
+        $('#inputSearchRecipient').val('');
+        $('#btnClearSearchRecipient').hide();
+        $('#searchRecipientInfo').html('');
 
         if (type === 'single') {
             $('#wrapperSingleRecipient').show();
@@ -1070,7 +1402,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     let selectedClass = checked ? 'recipient-item-selected' : '';
 
                     html += `
-                        <div class="col-md-6 mb-2">
+                        <div class="col-md-6 mb-2 recipient-card-col">
                             <div class="border rounded p-2 recipient-box ${selectedClass}" style="cursor: pointer;">
                                 <div class="custom-control custom-checkbox">
                                     <input type="checkbox" class="custom-control-input chk-recipient" id="rec_${item.id}" 
@@ -1097,11 +1429,74 @@ document.addEventListener('DOMContentLoaded', function() {
                 html += '</div>';
                 $('#recipientCheckboxList').html(html);
                 bindRecipientCheckboxEvents();
+                filterRecipientsByKeyword();
             } else {
                 $('#recipientCheckboxList').html('<div class="text-center py-4 text-muted">Tidak ada data penerima yang ditemukan.</div>');
+                $('#searchRecipientInfo').html('');
+                $('#btnClearSearchRecipient').hide();
             }
         });
     }
+
+    // Filter instan penerima berdasarkan kata kunci
+    function filterRecipientsByKeyword() {
+        let q = ($('#inputSearchRecipient').val() || '').trim().toLowerCase();
+        let items = $('#recipientCheckboxList .recipient-card-col');
+        let total = items.length;
+
+        if (!total) {
+            $('#searchRecipientInfo').html('');
+            $('#btnClearSearchRecipient').hide();
+            return;
+        }
+
+        if (q === '') {
+            items.show();
+            $('#btnClearSearchRecipient').hide();
+            $('#searchRecipientInfo').html('<span class="text-muted"><i class="fas fa-users mr-1"></i> Total: <strong>' + total + '</strong> penerima</span>');
+            $('#recipientNoMatchMessage').remove();
+            return;
+        }
+
+        $('#btnClearSearchRecipient').show();
+        let matched = 0;
+
+        items.each(function() {
+            let chk = $(this).find('.chk-recipient');
+            let dataNama = (chk.data('nama') || '').toString().toLowerCase();
+            let dataJabatan = (chk.data('jabatan') || '').toString().toLowerCase();
+            let dataInstansi = (chk.data('instansi') || '').toString().toLowerCase();
+            let dataSantri = (chk.data('santri') || '').toString().toLowerCase();
+            let dataWali = (chk.data('wali') || '').toString().toLowerCase();
+            let dataKelas = (chk.data('kelas') || '').toString().toLowerCase();
+            let boxText = ($(this).text() || '').toLowerCase();
+
+            if (dataNama.includes(q) || dataJabatan.includes(q) || dataInstansi.includes(q) || dataSantri.includes(q) || dataWali.includes(q) || dataKelas.includes(q) || boxText.includes(q)) {
+                $(this).show();
+                matched++;
+            } else {
+                $(this).hide();
+            }
+        });
+
+        $('#recipientNoMatchMessage').remove();
+        if (matched === 0) {
+            $('#recipientCheckboxList .row').append('<div class="col-12 text-center py-4 text-muted" id="recipientNoMatchMessage"><i class="fas fa-search-minus mr-1"></i> Tidak ada penerima yang cocok dengan kata kunci "<strong>' + escapeHtml(q) + '</strong>"</div>');
+            $('#searchRecipientInfo').html('<span class="text-danger font-weight-bold">0</span> dari ' + total + ' cocok');
+        } else {
+            $('#searchRecipientInfo').html('Ditemukan <span class="text-primary font-weight-bold">' + matched + '</span> dari ' + total + ' penerima');
+        }
+    }
+
+    $('#inputSearchRecipient').on('input keyup', function() {
+        filterRecipientsByKeyword();
+    });
+
+    $('#btnClearSearchRecipient button').on('click', function() {
+        $('#inputSearchRecipient').val('');
+        filterRecipientsByKeyword();
+        $('#inputSearchRecipient').focus();
+    });
 
     function bindRecipientCheckboxEvents() {
         $('.chk-recipient').off('change').on('change', function() {
@@ -1200,7 +1595,8 @@ document.addEventListener('DOMContentLoaded', function() {
             tipeRec = 'Wali Santri';
         }
 
-        $('.chk-recipient').each(function() {
+        // Pilih hanya item yang sedang tampil (sesuai pencarian / filter)
+        $('#recipientCheckboxList .recipient-card-col:visible .chk-recipient').each(function() {
             if (!$(this).is(':checked')) {
                 $(this).prop('checked', true);
                 let itemData = {
@@ -1226,7 +1622,8 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     $('#btnUnselectAllRecipients').on('click', function() {
-        $('.chk-recipient').each(function() {
+        // Batalkan hanya item yang sedang tampil (sesuai pencarian / filter)
+        $('#recipientCheckboxList .recipient-card-col:visible .chk-recipient').each(function() {
             let itemNamaNorm = ($(this).data('nama') || '').trim().toLowerCase();
             let itemIdStr = String($(this).val() || '');
             selectedRecipients = selectedRecipients.filter(function(r) {
@@ -1249,7 +1646,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Auto Number Generation
     function triggerAutoNumber() {
         let tplId = $('#selectTemplate').val();
-        let katId = $('#selectTemplate option:selected').data('kategori');
+        let katId = $('#selectTemplate').data('kategori') || $('#selectTemplate').attr('data-kategori');
         let format = $('#inputFormatNomor').val();
 
         if (!tplId) return;

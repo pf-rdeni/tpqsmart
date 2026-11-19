@@ -31,7 +31,8 @@ class SuratTujuanMasterModel extends Model
     public function getByTpq($idTpq = null): array
     {
         $builder = $this->select('tbl_surat_tujuan_master.*, t.NamaTpq')
-                        ->join('tbl_tpq t', 't.IdTpq = tbl_surat_tujuan_master.IdTpq', 'left');
+                        ->join('tbl_tpq t', 't.IdTpq = tbl_surat_tujuan_master.IdTpq', 'left')
+                        ->where('tbl_surat_tujuan_master.IsActive', 1);
 
         if (!empty($idTpq)) {
             $builder->groupStart()

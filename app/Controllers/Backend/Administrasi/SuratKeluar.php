@@ -281,49 +281,66 @@ class SuratKeluar extends BaseController
         $results = [];
 
         if ($type === 'guru') {
-            $builder = $db->table('tbl_guru')->select('IdGuru as id, Nama as nama, TempatTugas as info, NoHp as kontak');
+            $builder = $db->table('tbl_guru')
+                          ->select('IdGuru as id, Nama as nama, TempatTugas as info, NoHp as kontak')
+                          ->where('Status', 1);
             if (!empty($idTpq)) {
                 $builder->where('IdTpq', $idTpq);
             }
-            $results = $builder->orderBy('Nama', 'ASC')->get()->getResultArray();
+            $raw = $builder->orderBy('Nama', 'ASC')->get()->getResultArray();
+            foreach ($raw as $r) {
+                $results[] = [
+                    'id'     => $r['id'],
+                    'nama'   => formatNamaGelar($r['nama']),
+                    'info'   => $r['info'],
+                    'kontak' => $r['kontak']
+                ];
+            }
         } 
         elseif ($type === 'wali_santri' || $type === 'santri') {
             $builder = $db->table('tbl_santri_baru s')
-                          ->select('s.IdSantri as id, s.NamaSantri, s.NamaAyah, s.NamaIbu, s.NamaWali, s.NoHpSantri, s.NoHpAyah, k.NamaKelas')
+                          ->select('s.IdSantri as id, s.NamaSantri, s.NamaAyah, s.NamaIbu, s.NamaWali, s.NoHpSantri, s.NoHpAyah, COALESCE(k_ks.NamaKelas, k.NamaKelas) as NamaKelas')
                           ->join('tbl_kelas k', 'k.IdKelas = s.IdKelas', 'left')
+                          ->join('tbl_kelas_santri ks', 'ks.IdSantri = s.IdSantri AND ks.Status = 1', 'left')
+                          ->join('tbl_kelas k_ks', 'k_ks.IdKelas = ks.IdKelas', 'left')
                           ->where('s.Active', 1);
 
             if (!empty($idTpq)) {
                 $builder->where('s.IdTpq', $idTpq);
             }
             if (!empty($idKelas)) {
-                $builder->where('s.IdKelas', $idKelas);
+                $builder->groupStart()
+                        ->where('s.IdKelas', $idKelas)
+                        ->orWhere('ks.IdKelas', $idKelas)
+                        ->groupEnd();
             }
 
-            $raw = $builder->orderBy('s.NamaSantri', 'ASC')->get()->getResultArray();
+            $raw = $builder->groupBy('s.IdSantri')->orderBy('s.NamaSantri', 'ASC')->get()->getResultArray();
 
             foreach ($raw as $r) {
                 $waliName = !empty($r['NamaAyah']) ? $r['NamaAyah'] : (!empty($r['NamaIbu']) ? $r['NamaIbu'] : (!empty($r['NamaWali']) ? $r['NamaWali'] : 'Orang Tua / Wali'));
                 $kontak   = !empty($r['NoHpAyah']) ? $r['NoHpAyah'] : $r['NoHpSantri'];
+                $waliFormatted   = formatNamaGelar($waliName);
+                $santriFormatted = formatNamaGelar($r['NamaSantri']);
 
                 if ($type === 'wali_santri') {
                     $results[] = [
                         'id'     => $r['id'],
-                        'nama'   => $waliName . ' (Wali ' . $r['NamaSantri'] . ')',
+                        'nama'   => $waliFormatted . ' (Wali ' . $santriFormatted . ')',
                         'info'   => 'Kelas: ' . ($r['NamaKelas'] ?: '-'),
                         'kontak' => $kontak,
-                        'santri' => $r['NamaSantri'],
-                        'wali'   => $waliName,
+                        'santri' => $santriFormatted,
+                        'wali'   => $waliFormatted,
                         'kelas'  => $r['NamaKelas']
                     ];
                 } else {
                     $results[] = [
                         'id'     => $r['id'],
-                        'nama'   => $r['NamaSantri'],
+                        'nama'   => $santriFormatted,
                         'info'   => 'Kelas: ' . ($r['NamaKelas'] ?: '-'),
                         'kontak' => $kontak,
-                        'santri' => $r['NamaSantri'],
-                        'wali'   => $waliName,
+                        'santri' => $santriFormatted,
+                        'wali'   => $waliFormatted,
                         'kelas'  => $r['NamaKelas']
                     ];
                 }
@@ -351,7 +368,7 @@ class SuratKeluar extends BaseController
                 $info = trim(($r['Jabatan'] ? $r['Jabatan'] . ' - ' : '') . ($r['Instansi'] ?: ''));
                 $results[] = [
                     'id'       => $r['id'],
-                    'nama'     => $r['nama'],
+                    'nama'     => formatNamaGelar($r['nama']),
                     'info'     => $info ?: ($r['Kota'] ?: '-'),
                     'jabatan'  => $r['Jabatan'] ?? '',
                     'instansi' => $r['Instansi'] ?? '',
@@ -462,10 +479,10 @@ class SuratKeluar extends BaseController
             $penerimaList = json_decode($penerimaList, true);
         }
 
-        $tujuanNama    = $this->request->getPost('TujuanNama');
+        $tujuanNama    = formatNamaGelar($this->request->getPost('TujuanNama'));
         $tujuanJabatan = $this->request->getPost('TujuanJabatan');
         if (empty($tujuanNama) && !empty($penerimaList) && is_array($penerimaList) && !empty($penerimaList[0]['nama'])) {
-            $tujuanNama    = $penerimaList[0]['nama'];
+            $tujuanNama    = formatNamaGelar($penerimaList[0]['nama']);
             $tujuanJabatan = $penerimaList[0]['jabatan'] ?? '';
         }
 
@@ -542,7 +559,7 @@ class SuratKeluar extends BaseController
                     'IdSurat'         => $idSurat,
                     'TipePenerima'    => $p['tipe'] ?? 'Manual',
                     'IdReferensi'     => $p['id_ref'] ?? null,
-                    'NamaPenerima'    => $p['nama'] ?? '',
+                    'NamaPenerima'    => formatNamaGelar($p['nama'] ?? ''),
                     'JabatanPenerima' => $p['jabatan'] ?? '',
                     'StatusKirim'     => 'Belum',
                 ]);
@@ -553,7 +570,7 @@ class SuratKeluar extends BaseController
                 $this->penerimaModel->insert([
                     'IdSurat'         => $idSurat,
                     'TipePenerima'    => 'Manual',
-                    'NamaPenerima'    => $suratData['TujuanNama'],
+                    'NamaPenerima'    => formatNamaGelar($suratData['TujuanNama']),
                     'JabatanPenerima' => $suratData['TujuanJabatan'],
                     'StatusKirim'     => 'Belum',
                 ]);
@@ -970,10 +987,12 @@ class SuratKeluar extends BaseController
      */
     private function getGuruListForSurat($idTpq, $isAdmin, $surat = null): array
     {
+        $builder = $this->guruModel->where('Status', 1);
+
         if ($isAdmin || empty($idTpq)) {
-            $guruList = $this->guruModel->orderBy('Nama', 'ASC')->findAll();
+            $guruList = $builder->orderBy('Nama', 'ASC')->findAll();
         } else {
-            $guruList = $this->guruModel->where('IdTpq', $idTpq)->orderBy('Nama', 'ASC')->findAll();
+            $guruList = $builder->where('IdTpq', $idTpq)->orderBy('Nama', 'ASC')->findAll();
         }
 
         if (!empty($surat['IdPenandaTangan1'])) {
