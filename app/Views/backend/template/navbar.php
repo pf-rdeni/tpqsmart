@@ -60,12 +60,22 @@
                 $roleCount++;
             }
 
+            if (in_groups('Sekretaris FKPQ')) {
+                $roleCount++;
+                $allRoles[] = 'sekretaris_fkpq';
+            }
+
             // Cek Operator - jika IdGuru memiliki peran sebagai Operator
             if (in_groups('Operator') && !empty($idGuru)) {
                 // Cek apakah IdGuru ini adalah Operator
                 // Jika user adalah Operator dan memiliki IdGuru, tambahkan role operator
                 $roleCount++;
                 $allRoles[] = 'operator';
+            }
+
+            if (in_groups('Sekretaris') || in_groups('Sekretaris Lembaga')) {
+                $roleCount++;
+                $allRoles[] = 'sekretaris_lembaga';
             }
 
             // Cek Kepala TPQ/MDTA - jika IdGuru memiliki peran sebagai Kepala TPQ atau Kepala MDTA
@@ -138,10 +148,12 @@
         }
 
         $roleLabels = [
-            'operator' => 'Operator',
-            'kepala_tpq' => $labelKepala,
-            'wali_kelas' => 'Wali Kelas',
-            'guru' => 'Guru Kelas'
+            'sekretaris_fkpq'    => '🏛️ Sekretaris FKPQ',
+            'operator'           => '💻 Operator',
+            'sekretaris_lembaga' => '🏫 Sekretaris Lembaga',
+            'kepala_tpq'         => '💼 ' . $labelKepala,
+            'wali_kelas'         => '👨‍🏫 Wali Kelas',
+            'guru'               => '👨‍🏫 Guru Pengajar'
         ];
         $activeRoleLabel = isset($roleLabels[$activeRole]) ? $roleLabels[$activeRole] : 'Peran';
 
@@ -160,7 +172,7 @@
             <li class="nav-item dropdown">
                 <a class="nav-link" href="#" data-toggle="dropdown" title="Ganti Peran">
                     <i class="fas fa-user-cog"></i>
-                    <span class="d-none d-md-inline ml-1"><?= esc($activeRoleLabel) ?></span>
+                    <span class="d-none d-md-inline ml-1 font-weight-bold"><?= esc($activeRoleLabel) ?></span>
                     <i class="fas fa-angle-down ml-1"></i>
                 </a>
                 <div class="dropdown-menu dropdown-menu-right">
@@ -168,18 +180,18 @@
                     <div class="dropdown-divider"></div>
                     <?php foreach ($allRoles as $role): ?>
                         <?php if (isset($roleLabels[$role])): ?>
-                            <a href="#" class="dropdown-item switch-role-btn <?= $role === $activeRole ? 'active' : '' ?>" data-role="<?= esc($role) ?>">
+                            <a href="#" class="dropdown-item switch-role-btn <?= $role === $activeRole ? 'active font-weight-bold text-primary' : '' ?>" data-role="<?= esc($role) ?>">
                                 <?php if ($role === $activeRole): ?>
                                     <i class="fas fa-check text-success"></i>
                                 <?php else: ?>
-                                    <i class="far fa-circle"></i>
+                                    <i class="far fa-circle text-muted"></i>
                                 <?php endif; ?>
                                 <span class="ml-2"><?= esc($roleLabels[$role]) ?></span>
                             </a>
                         <?php endif; ?>
                     <?php endforeach; ?>
                     <div class="dropdown-divider"></div>
-                    <a href="<?= base_url('backend/dashboard/select-role') ?>" class="dropdown-item">
+                    <a href="<?= base_url('backend/dashboard/select-role?manual=1') ?>" class="dropdown-item text-muted">
                         <i class="fas fa-cog"></i>
                         <span class="ml-2">Kelola Peran</span>
                     </a>

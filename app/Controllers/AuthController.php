@@ -179,6 +179,11 @@ class AuthController extends MythAuthController
             }
         }
 
+        $sessIdTpq = session()->get('IdTpq');
+        if (!session()->has('BaseIdTpq') || session()->get('BaseIdTpq') === null) {
+            session()->set('BaseIdTpq', $sessIdTpq !== null ? (string)$sessIdTpq : '0');
+        }
+
         // Cek apakah ada redirect_url yang disimpan sebelumnya
         if (session()->has('redirect_url')) {
             $redirectUrl = session()->get('redirect_url');
@@ -276,6 +281,7 @@ class AuthController extends MythAuthController
             }
 
             $currentIdTpq = session()->get('IdTpq');
+            session()->set('BaseIdTpq', $currentIdTpq);
             // Set MDA settings ke session
             $this->setMdaSessionSettings($currentIdTpq ?? $IdTpq ?? $idTpqFromGuru);
 

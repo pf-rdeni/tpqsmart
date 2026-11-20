@@ -52,6 +52,23 @@
 <?= $this->section('scripts'); ?>
 <script>
 $(document).ready(function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const forceManual = urlParams.get('manual') === '1';
+
+    // Auto-select preferred role from localStorage jika bukan pemilihan manual
+    if (!forceManual) {
+        try {
+            const preferredRole = localStorage.getItem('tpqsmart_preferred_role');
+            if (preferredRole) {
+                const $targetCard = $(`.select-role-btn[data-role="${preferredRole}"]`);
+                if ($targetCard.length) {
+                    $targetCard.trigger('click');
+                    return;
+                }
+            }
+        } catch(e) {}
+    }
+
     // Hover effect
     $('.role-card').hover(
         function() {
@@ -70,6 +87,11 @@ $(document).ready(function() {
         // Disable semua button
         $('.select-role-btn').prop('disabled', true);
         $btn.html('<i class="fas fa-spinner fa-spin"></i> Memproses...');
+
+        // Simpan ke localStorage pilihan user
+        try {
+            localStorage.setItem('tpqsmart_preferred_role', role);
+        } catch(e) {}
 
         // Kirim request untuk switch role
         $.ajax({

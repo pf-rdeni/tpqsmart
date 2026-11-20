@@ -336,9 +336,19 @@ class Dashboard extends BaseController
             return ['admin'];
         }
 
+        // Cek apakah user adalah Sekretaris FKPQ (dari auth groups)
+        if (in_groups('Sekretaris FKPQ')) {
+            $roles[] = 'sekretaris_fkpq';
+        }
+
         // Cek apakah user adalah Operator (dari auth groups)
         if (in_groups('Operator')) {
             $roles[] = 'operator';
+        }
+
+        // Cek apakah user adalah Sekretaris Lembaga (dari auth groups 'Sekretaris' atau 'Sekretaris Lembaga')
+        if (in_groups('Sekretaris') || in_groups('Sekretaris Lembaga')) {
+            $roles[] = 'sekretaris_lembaga';
         }
 
         // Cek apakah IdGuru ada (untuk peran Kepala TPQ, Wali Kelas, Guru)
@@ -412,7 +422,7 @@ class Dashboard extends BaseController
         }
 
         // Tentukan peran default berdasarkan prioritas
-        $priorityRoles = ['admin', 'operator', 'kepala_tpq', 'wali_kelas', 'guru', 'pengguna'];
+        $priorityRoles = ['admin', 'sekretaris_fkpq', 'operator', 'sekretaris_lembaga', 'kepala_tpq', 'wali_kelas', 'guru', 'pengguna'];
         foreach ($priorityRoles as $priorityRole) {
             if (in_array($priorityRole, $allRoles)) {
                 return $priorityRole;
@@ -464,26 +474,30 @@ class Dashboard extends BaseController
 
         // Tentukan peran login untuk display
         $peranLoginMap = [
-            'admin' => 'Admin',
-            'operator' => 'Operator',
-            'kepala_tpq' => 'Kepala TPQ',
-            'wali_kelas' => 'Wali Kelas',
-            'guru' => 'Guru Kelas',
-            'pengguna' => 'Pengguna'
+            'admin'              => 'Admin',
+            'sekretaris_fkpq'    => 'Sekretaris FKPQ',
+            'operator'           => 'Operator Lembaga',
+            'sekretaris_lembaga' => 'Sekretaris Lembaga',
+            'kepala_tpq'         => 'Kepala TPQ',
+            'wali_kelas'         => 'Wali Kelas',
+            'guru'               => 'Guru Kelas',
+            'pengguna'           => 'Pengguna'
         ];
         $peranLogin = $peranLoginMap[$activeRole] ?? 'Pengguna';
 
         return [
-            'NamaLogin' => $namaLogin,
-            'SapaanLogin' => $sapaanLogin,
-            'PeranLogin' => $peranLogin,
-            'ActiveRole' => $activeRole,
-            'AllRoles' => $allRoles,
-            'IsKepalaTpq' => in_array('kepala_tpq', $allRoles),
-            'IsOperator' => in_array('operator', $allRoles),
-            'IsWaliKelas' => in_array('wali_kelas', $allRoles),
-            'IsGuru' => in_array('guru', $allRoles),
-            'HasMultipleRoles' => count($allRoles) > 1
+            'NamaLogin'           => $namaLogin,
+            'SapaanLogin'         => $sapaanLogin,
+            'PeranLogin'          => $peranLogin,
+            'ActiveRole'          => $activeRole,
+            'AllRoles'            => $allRoles,
+            'IsSekretarisFkpq'    => in_array('sekretaris_fkpq', $allRoles),
+            'IsSekretarisLembaga' => in_array('sekretaris_lembaga', $allRoles),
+            'IsKepalaTpq'         => in_array('kepala_tpq', $allRoles),
+            'IsOperator'          => in_array('operator', $allRoles),
+            'IsWaliKelas'         => in_array('wali_kelas', $allRoles),
+            'IsGuru'              => in_array('guru', $allRoles),
+            'HasMultipleRoles'    => count($allRoles) > 1
         ];
     }
 
@@ -572,6 +586,16 @@ class Dashboard extends BaseController
         // Set active role ke session
         session()->set('active_role', $activeRole);
 
+        // Atur scope IdTpq berdasarkan peran aktif
+        if ($activeRole === 'sekretaris_fkpq') {
+            session()->set('IdTpq', '0');
+        } else {
+            $baseTpq = session()->get('BaseIdTpq');
+            if (!empty($baseTpq)) {
+                session()->set('IdTpq', $baseTpq);
+            }
+        }
+
         // Redirect berdasarkan peran aktif
         switch ($activeRole) {
             case 'admin':
@@ -580,6 +604,10 @@ class Dashboard extends BaseController
                 return redirect()->to(base_url('backend/dashboard/operator') . $queryString);
             case 'kepala_tpq':
                 return redirect()->to(base_url('backend/dashboard/kepala-tpq') . $queryString);
+            case 'sekretaris_fkpq':
+                return redirect()->to(base_url('backend/administrasi') . $queryString);
+            case 'sekretaris_lembaga':
+                return redirect()->to(base_url('backend/administrasi') . $queryString);
             case 'wali_kelas':
             case 'guru':
             default:
@@ -598,6 +626,9 @@ class Dashboard extends BaseController
                                 return redirect()->to(base_url('backend/dashboard/operator') . $queryString);
                             case 'kepala_tpq':
                                 return redirect()->to(base_url('backend/dashboard/kepala-tpq') . $queryString);
+                            case 'sekretaris_fkpq':
+                            case 'sekretaris_lembaga':
+                                return redirect()->to(base_url('backend/administrasi') . $queryString);
                             default:
                                 return redirect()->to(base_url('backend/dashboard/select-role') . $queryString);
                         }
@@ -634,11 +665,29 @@ class Dashboard extends BaseController
         }
 
         $roleMap = [
+            'admin' => [
+                'label' => 'Administrator',
+                'icon' => 'user-shield',
+                'description' => 'Akses penuh sistem administrasi dan pengaturan pusat',
+                'color' => 'danger'
+            ],
+            'sekretaris_fkpq' => [
+                'label' => 'Sekretaris FKPQ',
+                'icon' => 'building-columns',
+                'description' => 'Mengelola persuratan & administrasi tingkat Kabupaten (FKPQ)',
+                'color' => 'danger'
+            ],
             'operator' => [
                 'label' => 'Operator',
                 'icon' => 'user-cog',
                 'description' => 'Mengelola data administrasi dan operasional TPQ',
                 'color' => 'success'
+            ],
+            'sekretaris_lembaga' => [
+                'label' => 'Sekretaris Lembaga',
+                'icon' => 'envelope-open-text',
+                'description' => 'Mengelola persuratan & administrasi tingkat Lembaga TPQ',
+                'color' => 'warning'
             ],
             'kepala_tpq' => [
                 'label' => $labelKepala,
@@ -708,19 +757,27 @@ class Dashboard extends BaseController
             ]);
         }
 
-        // Simpan peran aktif ke session
-        session()->set('active_role', $newRole);
-
-        // Tentukan redirect URL berdasarkan peran
-        $redirectMap = [
-            'admin' => base_url('backend/dashboard/admin'),
-            'operator' => base_url('backend/dashboard/operator'),
-            'kepala_tpq' => base_url('backend/dashboard/kepala-tpq'),
-            'wali_kelas' => base_url('backend/dashboard/guru'),
-            'guru' => base_url('backend/dashboard/guru')
-        ];
-
-        $redirectUrl = $redirectMap[$newRole] ?? base_url('backend/dashboard');
+        // Simpan peran aktif ke session dan kelola scope IdTpq
+        if ($newRole === 'sekretaris_fkpq') {
+            session()->set('active_role', 'sekretaris_fkpq');
+            session()->set('IdTpq', '0');
+            $redirectUrl = base_url('backend/administrasi');
+        } else {
+            $baseTpq = session()->get('BaseIdTpq') ?: session()->get('IdTpq');
+            session()->set('active_role', $newRole);
+            if (!empty($baseTpq)) {
+                session()->set('IdTpq', $baseTpq);
+            }
+            $redirectMap = [
+                'admin'              => base_url('backend/dashboard/admin'),
+                'operator'           => base_url('backend/dashboard/operator'),
+                'kepala_tpq'         => base_url('backend/dashboard/kepala-tpq'),
+                'sekretaris_lembaga' => base_url('backend/administrasi'),
+                'wali_kelas'         => base_url('backend/dashboard/guru'),
+                'guru'               => base_url('backend/dashboard/guru')
+            ];
+            $redirectUrl = $redirectMap[$newRole] ?? base_url('backend/dashboard');
+        }
 
         return $this->response->setJSON([
             'success' => true,

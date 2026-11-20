@@ -99,28 +99,78 @@
                 </div>
             </div>
 
-            <div class="card">
-                <div class="card-header">
-                    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#modal-tambah">
-                        <i class="fas fa-plus"></i> Tambah User
-                    </button>
-                    <button type="button" class="btn btn-success ml-2" data-toggle="modal" data-target="#modal-generate-kelas">
-                        <i class="fas fa-users"></i> Generate User Per Kelas
-                    </button>
+            <!-- Modern Stat Cards User Overview -->
+            <div class="row mb-3">
+                <div class="col-lg-3 col-6">
+                    <div class="small-box bg-info shadow-sm mb-2">
+                        <div class="inner">
+                            <h3><?= number_format($stats['totalUsers'] ?? 0); ?></h3>
+                            <p>Total Akun Terdaftar</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-6">
+                    <div class="small-box bg-warning shadow-sm mb-2">
+                        <div class="inner text-dark">
+                            <h3><?= number_format($stats['totalMultiRoles'] ?? 0); ?></h3>
+                            <p>Pengguna Multi-Peran</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-layer-group"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-6">
+                    <div class="small-box bg-success shadow-sm mb-2">
+                        <div class="inner">
+                            <h3><?= number_format($stats['totalGuruStaf'] ?? 0); ?></h3>
+                            <p>Guru & Tenaga Kependidikan</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-chalkboard-teacher"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-6">
+                    <div class="small-box bg-primary shadow-sm mb-2">
+                        <div class="inner">
+                            <h3><?= number_format($stats['totalSantri'] ?? 0); ?></h3>
+                            <p>Akun Santri Aktif</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-user-graduate"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card card-outline card-primary shadow-sm">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#modal-tambah">
+                            <i class="fas fa-user-plus mr-1"></i> Tambah User
+                        </button>
+                        <button type="button" class="btn btn-success ml-2" data-toggle="modal" data-target="#modal-generate-kelas">
+                            <i class="fas fa-users-cog mr-1"></i> Generate User Per Kelas
+                        </button>
+                    </div>
                 </div>
                 <!-- /.card-header -->
                 <div class="card-body">
                     <!-- Nav tabs -->
                     <ul class="nav nav-tabs" id="userTabs" role="tablist">
                         <li class="nav-item">
-                            <a class="nav-link active" id="guru-tab" data-toggle="tab" href="#guru" role="tab" aria-controls="guru" aria-selected="true">
-                                <i class="fas fa-chalkboard-teacher"></i> Guru
+                            <a class="nav-link active font-weight-bold" id="guru-tab" data-toggle="tab" href="#guru" role="tab" aria-controls="guru" aria-selected="true">
+                                <i class="fas fa-user-tie text-primary mr-1"></i> Guru & Tenaga Kependidikan / Staf
                             </a>
                         </li>
                         <?php foreach ($dataKelas as $index => $kelas): ?>
                             <li class="nav-item">
                                 <a class="nav-link" id="kelas-<?= $kelas['IdKelas']; ?>-tab" data-toggle="tab" href="#kelas-<?= $kelas['IdKelas']; ?>" role="tab" aria-controls="kelas-<?= $kelas['IdKelas']; ?>" aria-selected="false">
-                                    <i class="fas fa-users"></i> <?= esc($kelas['NamaKelas']); ?>
+                                    <i class="fas fa-users mr-1"></i> <?= esc($kelas['NamaKelas']); ?>
                                 </a>
                             </li>
                         <?php endforeach; ?>
@@ -128,50 +178,178 @@
 
                     <!-- Tab panes -->
                     <div class="tab-content" id="userTabContent">
-                        <!-- Tab Guru -->
+                        <!-- Tab Guru & Staf -->
                         <div class="tab-pane fade show active" id="guru" role="tabpanel" aria-labelledby="guru-tab">
                             <div class="mt-3">
-                                <table id="tblUserGuru" class="table table-bordered table-striped">
-                                    <thead>
+                                <!-- Filter Toolbar -->
+                                <div class="row align-items-center mb-3 bg-light p-2 rounded border mx-0">
+                                    <div class="col-md-4 col-sm-6 mb-2 mb-md-0">
+                                        <label class="small text-muted mb-1 font-weight-bold"><i class="fas fa-filter text-primary mr-1"></i> Filter Berdasarkan Peran:</label>
+                                        <select id="filterRole" class="form-control form-control-sm">
+                                            <option value="">-- Semua Peran --</option>
+                                            <option value="Multi-Peran">⭐ Khusus Multi-Peran (> 1 Peran)</option>
+                                            <option value="Guru">👨‍🏫 Guru Pengajar</option>
+                                            <option value="Sekretaris Lembaga">🏫 Sekretaris Lembaga</option>
+                                            <option value="Sekretaris FKPQ">🏛️ Sekretaris FKPQ</option>
+                                            <option value="Operator">💻 Operator Lembaga</option>
+                                            <option value="Bendahara">💰 Bendahara</option>
+                                            <?php if ($isAdmin): ?>
+                                                <option value="Admin">🛡️ Administrator</option>
+                                            <?php endif; ?>
+                                        </select>
+                                    </div>
+                                    <?php if ($isAdmin && !empty($listTpq)): ?>
+                                    <div class="col-md-4 col-sm-6 mb-2 mb-md-0">
+                                        <label class="small text-muted mb-1 font-weight-bold"><i class="fas fa-mosque text-success mr-1"></i> Filter Lembaga TPQ:</label>
+                                        <select id="filterTpq" class="form-control form-control-sm select2">
+                                            <option value="">-- Semua Lembaga TPQ --</option>
+                                            <?php foreach ($listTpq as $tpq): ?>
+                                                <option value="<?= esc($tpq['NamaTpq']); ?>"><?= esc($tpq['NamaTpq']); ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                    <?php endif; ?>
+                                    <div class="col-md-<?= ($isAdmin && !empty($listTpq)) ? '4' : '8'; ?> text-md-right mt-2 mt-md-0">
+                                        <button type="button" class="btn btn-outline-secondary btn-sm" id="btnResetFilter">
+                                            <i class="fas fa-sync-alt mr-1"></i> Reset Filter
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <table id="tblUserGuru" class="table table-bordered table-striped table-hover">
+                                    <thead class="thead-light">
                                         <tr>
-                                            <th>Status</th>
-                                            <th>Nama</th>
-                                            <th>UserNama</th>
-                                            <th>Password</th>
-                                            <th>TPQ</th>
-                                            <th>KelurahanDesa</th>
-                                            <th>Kategori</th>
-                                            <th>Aksi</th>
+                                            <th style="width: 40px;" class="text-center">Status</th>
+                                            <th>Pengguna / Guru</th>
+                                            <th>Username</th>
+                                            <th>Lembaga TPQ</th>
+                                            <th>Hak Akses & Penugasan Peran</th>
+                                            <th style="width: 140px;">Password</th>
+                                            <th style="width: 160px;" class="text-center">Aksi</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <?php foreach ($userDataGuru as $user): ?>
                                             <tr>
-                                                <td>
+                                                <td class="text-center align-middle">
                                                     <input type="checkbox" id="status<?= $user['id']; ?>" <?= $user['active'] == 1 ? 'checked' : ''; ?>
                                                         onchange="updateStatus(<?= $user['id']; ?>, this.checked)">
                                                 </td>
-                                                <td><?= esc($user['nama']); ?></td>
-                                                <td><?= esc($user['username']); ?></td>
-                                                <td>
-                                                    <div class="input-group">
+                                                <td class="align-middle">
+                                                    <div class="d-flex align-items-center">
+                                                        <div class="mr-2">
+                                                            <span class="img-circle bg-secondary d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                                                                <i class="fas fa-user-circle fa-2x text-light"></i>
+                                                            </span>
+                                                        </div>
+                                                        <div>
+                                                            <span class="font-weight-bold text-dark"><?= esc($user['nama']); ?></span>
+                                                            <?php if (!empty($user['nik'])): ?>
+                                                                <br><small class="text-muted"><i class="fas fa-id-card mr-1"></i>NIK: <?= esc($user['nik']); ?></small>
+                                                            <?php endif; ?>
+                                                            <?php if (!empty($user['email'])): ?>
+                                                                <br><small class="text-muted"><i class="fas fa-envelope mr-1"></i><?= esc($user['email']); ?></small>
+                                                            <?php endif; ?>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td class="align-middle">
+                                                    <span class="badge badge-light border text-dark font-weight-normal px-2 py-1">
+                                                        <i class="fas fa-user mr-1 text-secondary"></i><?= esc($user['username']); ?>
+                                                    </span>
+                                                </td>
+                                                <td class="align-middle">
+                                                    <?php if (!empty($user['namaTpq'])): ?>
+                                                        <strong><?= esc($user['namaTpq']); ?></strong>
+                                                        <?php if (!empty($user['kelurahanDesa'])): ?>
+                                                            <br><small class="text-muted"><i class="fas fa-map-marker-alt mr-1"></i><?= esc($user['kelurahanDesa']); ?></small>
+                                                        <?php endif; ?>
+                                                    <?php else: ?>
+                                                        <span class="badge badge-light border text-muted"><i class="fas fa-shield-alt mr-1"></i>Tingkat Pusat / FKPQ</span>
+                                                    <?php endif; ?>
+                                                </td>
+                                                <td class="align-middle">
+                                                    <?php
+                                                    $rolesList = !empty($user['group_names']) ? explode(', ', $user['group_names']) : [];
+                                                    foreach ($rolesList as $rName):
+                                                        $badgeClass = 'badge-secondary';
+                                                        $icon = 'fas fa-user';
+                                                        $roleLabel = $rName;
+                                                        switch ($rName) {
+                                                            case 'Admin':
+                                                                $badgeClass = 'badge-danger';
+                                                                $icon = 'fas fa-shield-alt';
+                                                                $roleLabel = 'Admin';
+                                                                break;
+                                                            case 'Sekretaris FKPQ':
+                                                                $badgeClass = 'badge-danger';
+                                                                $icon = 'fas fa-landmark';
+                                                                $roleLabel = 'Sekretaris FKPQ';
+                                                                break;
+                                                            case 'Operator':
+                                                                $badgeClass = 'badge-success';
+                                                                $icon = 'fas fa-laptop-code';
+                                                                $roleLabel = 'Operator';
+                                                                break;
+                                                            case 'Sekretaris':
+                                                            case 'Sekretaris Lembaga':
+                                                                $badgeClass = 'badge-warning text-dark';
+                                                                $icon = 'fas fa-envelope-open-text';
+                                                                $roleLabel = 'Sekretaris Lembaga';
+                                                                break;
+                                                            case 'Guru':
+                                                                $badgeClass = 'badge-primary';
+                                                                $icon = 'fas fa-chalkboard-teacher';
+                                                                $roleLabel = 'Guru';
+                                                                break;
+                                                            case 'Bendahara':
+                                                                $badgeClass = 'badge-info';
+                                                                $icon = 'fas fa-money-bill-wave';
+                                                                $roleLabel = 'Bendahara';
+                                                                break;
+                                                            case 'Juri':
+                                                            case 'JuriSertifikasi':
+                                                            case 'JuriLomba':
+                                                                $badgeClass = 'badge-dark';
+                                                                $icon = 'fas fa-gavel';
+                                                                break;
+                                                            case 'Panitia':
+                                                            case 'PanitiaSertifikasi':
+                                                            case 'PanitiaLomba':
+                                                                $badgeClass = 'badge-secondary';
+                                                                $icon = 'fas fa-tasks';
+                                                                break;
+                                                        }
+                                                    ?>
+                                                        <span class="badge <?= $badgeClass; ?> px-2 py-1 mb-1 mr-1">
+                                                            <i class="<?= $icon; ?> mr-1"></i><?= esc($roleLabel); ?>
+                                                        </span>
+                                                    <?php endforeach; ?>
+                                                    <?php if (($user['total_groups'] ?? 0) > 1): ?>
+                                                        <span class="badge badge-pill badge-warning border border-dark text-dark font-weight-bold px-2 py-1 mb-1 mr-1" title="Pengguna memiliki <?= $user['total_groups']; ?> peran aktif">
+                                                            <i class="fas fa-layer-group mr-1"></i>Multi-Peran (<?= $user['total_groups']; ?>)
+                                                        </span>
+                                                    <?php endif; ?>
+                                                </td>
+                                                <td class="align-middle">
+                                                    <div class="input-group input-group-sm">
                                                         <input type="password" class="form-control" value="<?= esc($user['password_hash']); ?>" readonly id="password-<?= $user['id']; ?>">
                                                         <div class="input-group-append">
-                                                            <span class="input-group-text" onclick="togglePasswordList(<?= $user['id']; ?>)">
+                                                            <span class="input-group-text" onclick="togglePasswordList(<?= $user['id']; ?>)" style="cursor: pointer;">
                                                                 <i class="fas fa-eye" id="eye-password-<?= $user['id']; ?>"></i>
                                                             </span>
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td><?= esc($user['namaTpq']); ?></td>
-                                                <td><?= esc($user['kelurahanDesa']); ?></td>
-                                                <td><?= esc($user['kategori']); ?></td>
-                                                <td>
-                                                    <button class="btn btn-warning btn-sm" onclick="editUser(<?= $user['id']; ?>)">
-                                                        <i class="fas fa-edit"></i> Edit
+                                                <td class="text-center align-middle" style="white-space: nowrap;">
+                                                    <button class="btn btn-primary btn-xs mb-1" onclick="manageUserGroups(<?= $user['id']; ?>)" title="Atur Hak Akses & Penugasan Peran">
+                                                        <i class="fas fa-shield-alt mr-1"></i> Hak Akses
                                                     </button>
-                                                    <button class="btn btn-danger btn-sm" onclick="confirmDelete(<?= $user['id']; ?>)">
-                                                        <i class="fas fa-trash"></i> Hapus
+                                                    <button class="btn btn-warning btn-xs mb-1" onclick="editUser(<?= $user['id']; ?>)" title="Edit User, Peran & Password">
+                                                        <i class="fas fa-edit mr-1"></i> Edit User
+                                                    </button>
+                                                    <button class="btn btn-danger btn-xs mb-1" onclick="confirmDelete(<?= $user['id']; ?>)" title="Hapus Akun Pengguna">
+                                                        <i class="fas fa-trash"></i>
                                                     </button>
                                                 </td>
                                             </tr>
@@ -309,6 +487,87 @@
                                 </div>
                             </div>
                         <?php endif; ?>
+
+                        <!-- Multi-Role Selection untuk Guru & Staf -->
+                        <div class="form-group row" id="section-role-assignment">
+                            <label class="col-sm-3 col-form-label">
+                                Hak Akses & Peran
+                                <small class="d-block text-muted font-weight-normal">Bisa pilih lebih dari satu peran sekaligus</small>
+                            </label>
+                            <div class="col-sm-9">
+                                <div class="card card-outline card-primary shadow-none border bg-light mb-0">
+                                    <div class="card-body p-2">
+                                        <div class="text-xs font-weight-bold text-uppercase text-primary mb-1">
+                                            <i class="fas fa-school mr-1"></i> Peran Lembaga TPQ
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-6 mb-2">
+                                                <div class="custom-control custom-checkbox border rounded p-2 bg-white h-100">
+                                                    <input type="checkbox" class="custom-control-input create-role-cb" id="create_grp_3" name="groups[]" value="3" checked>
+                                                    <label class="custom-control-label font-weight-bold d-block cursor-pointer" for="create_grp_3">
+                                                        <span class="badge badge-primary mr-1"><i class="fas fa-chalkboard-teacher"></i></span> Guru Pengajar
+                                                        <small class="d-block text-muted font-weight-normal mt-1">Mengajar & input nilai raport</small>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6 mb-2">
+                                                <div class="custom-control custom-checkbox border rounded p-2 bg-white h-100">
+                                                    <input type="checkbox" class="custom-control-input create-role-cb" id="create_grp_12" name="groups[]" value="12">
+                                                    <label class="custom-control-label font-weight-bold d-block cursor-pointer" for="create_grp_12">
+                                                        <span class="badge badge-warning text-dark mr-1"><i class="fas fa-envelope-open-text"></i></span> Sekretaris Lembaga
+                                                        <small class="d-block text-muted font-weight-normal mt-1">Persuratan & administrasi lembaga</small>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6 mb-2">
+                                                <div class="custom-control custom-checkbox border rounded p-2 bg-white h-100">
+                                                    <input type="checkbox" class="custom-control-input create-role-cb" id="create_grp_13" name="groups[]" value="13">
+                                                    <label class="custom-control-label font-weight-bold d-block cursor-pointer" for="create_grp_13">
+                                                        <span class="badge badge-info mr-1"><i class="fas fa-money-bill-wave"></i></span> Bendahara Lembaga
+                                                        <small class="d-block text-muted font-weight-normal mt-1">Keuangan lembaga TPQ</small>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <?php if ($isAdmin): ?>
+                                        <div class="text-xs font-weight-bold text-uppercase text-danger mt-2 mb-1">
+                                            <i class="fas fa-landmark mr-1"></i> Peran FKPQ & Sistem (Admin Only)
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-6 mb-2">
+                                                <div class="custom-control custom-checkbox border rounded p-2 bg-white h-100">
+                                                    <input type="checkbox" class="custom-control-input create-role-cb" id="create_grp_14" name="groups[]" value="14">
+                                                    <label class="custom-control-label font-weight-bold d-block cursor-pointer" for="create_grp_14">
+                                                        <span class="badge badge-danger mr-1"><i class="fas fa-landmark"></i></span> Sekretaris FKPQ
+                                                        <small class="d-block text-muted font-weight-normal mt-1">Persuratan FKPQ kabupaten</small>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6 mb-2">
+                                                <div class="custom-control custom-checkbox border rounded p-2 bg-white h-100">
+                                                    <input type="checkbox" class="custom-control-input create-role-cb" id="create_grp_2" name="groups[]" value="2">
+                                                    <label class="custom-control-label font-weight-bold d-block cursor-pointer" for="create_grp_2">
+                                                        <span class="badge badge-success mr-1"><i class="fas fa-laptop-code"></i></span> Operator Lembaga
+                                                        <small class="d-block text-muted font-weight-normal mt-1">Kelola data lembaga</small>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6 mb-2">
+                                                <div class="custom-control custom-checkbox border rounded p-2 bg-white h-100">
+                                                    <input type="checkbox" class="custom-control-input create-role-cb" id="create_grp_1" name="groups[]" value="1">
+                                                    <label class="custom-control-label font-weight-bold d-block cursor-pointer" for="create_grp_1">
+                                                        <span class="badge badge-danger mr-1"><i class="fas fa-shield-alt"></i></span> Administrator
+                                                        <small class="d-block text-muted font-weight-normal mt-1">Akses penuh sistem</small>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Form untuk Santri -->
@@ -477,17 +736,33 @@
                             <input type="text" class="form-control" id="edit_username" name="username" readonly>
                         </div>
                     </div>
+                    <!-- Pengaturan Peran / Hak Akses di Edit User -->
+                    <div class="form-group row" id="edit_roles_section">
+                        <label class="col-sm-3 col-form-label">
+                            Hak Akses & Peran
+                            <small class="d-block text-muted font-weight-normal">Centang peran yang aktif</small>
+                        </label>
+                        <div class="col-sm-9">
+                            <div id="edit_groups_container" class="card card-outline card-secondary shadow-none border bg-light mb-0 p-2">
+                                <div class="text-center py-2 text-muted small">
+                                    <i class="fas fa-spinner fa-spin mr-1"></i> Memuat hak akses...
+                                </div>
+                            </div>
+                            <small class="form-text text-muted">Pengguna dapat memiliki lebih dari satu peran.</small>
+                        </div>
+                    </div>
                     <div class="form-group row">
                         <label for="edit_password" class="col-sm-3 col-form-label">Password Baru</label>
                         <div class="col-sm-9">
                             <div class="input-group">
-                                <input type="password" class="form-control" id="edit_password" name="password">
+                                <input type="password" class="form-control" id="edit_password" name="password" placeholder="Kosongkan jika tidak diubah">
                                 <div class="input-group-append">
                                     <span class="input-group-text" onclick="togglePassword('edit_password')">
                                         <i class="fas fa-eye" id="eye-edit_password"></i>
                                     </span>
                                 </div>
                             </div>
+                            <small class="form-text text-muted">Kosongkan jika tidak ingin mengganti password pengguna.</small>
                         </div>
                     </div>
                     <div class="form-group  row">
@@ -518,6 +793,66 @@
     </div>
 </div>
 
+<!-- Modal Hak Akses & Penugasan Peran -->
+<div class="modal fade" id="modal-hak-akses" data-backdrop="static" data-keyboard="false">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content shadow-lg border-0">
+            <div class="modal-header bg-navy text-white">
+                <h5 class="modal-title font-weight-bold">
+                    <i class="fas fa-shield-alt mr-2 text-warning"></i> Pengaturan Hak Akses & Penugasan Peran
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="formHakAkses" onsubmit="event.preventDefault(); saveUserGroups();">
+                <input type="hidden" id="hak_akses_user_id" name="user_id">
+                <div class="modal-body p-4">
+                    <!-- Ringkasan User Info -->
+                    <div class="card card-outline card-secondary mb-3 shadow-none bg-light border">
+                        <div class="card-body p-3">
+                            <div class="row align-items-center">
+                                <div class="col-md-6 mb-2 mb-md-0">
+                                    <div class="text-muted small">Nama Pengguna:</div>
+                                    <div class="h6 font-weight-bold text-dark mb-1" id="hak_akses_nama">-</div>
+                                    <div class="text-muted small">Username:</div>
+                                    <span class="badge badge-light border text-dark font-weight-normal px-2 py-1" id="hak_akses_username">-</span>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="text-muted small">Asal Lembaga TPQ:</div>
+                                    <div class="h6 font-weight-bold text-primary mb-1" id="hak_akses_tpq">-</div>
+                                    <div class="text-muted small">NIK:</div>
+                                    <span class="badge badge-light border text-dark font-weight-normal px-2 py-1" id="hak_akses_nik">-</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info py-2 px-3 small mb-3 border-0 shadow-none">
+                        <i class="fas fa-info-circle mr-1"></i> Anda dapat memberikan lebih dari satu peran kepada pengguna ini (contoh: <strong>Guru</strong> sekaligus <strong>Sekretaris Lembaga</strong>). Pengguna nantinya dapat berpindah peran secara instan melalui bilah navigasi atas.
+                    </div>
+
+                    <!-- Container Pilihan Grup / Peran -->
+                    <div id="hak_akses_groups_container">
+                        <div class="text-center py-4">
+                            <i class="fas fa-spinner fa-spin fa-2x text-muted"></i>
+                            <div class="text-muted mt-2">Memuat data hak akses...</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer justify-content-between bg-light">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">
+                        <i class="fas fa-times mr-1"></i> Batal
+                    </button>
+                    <button type="submit" class="btn btn-primary px-4 shadow-sm" id="btnSaveHakAkses">
+                        <i class="fas fa-save mr-1"></i> Simpan Hak Akses
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <?= $this->endSection(); ?>
 <?= $this->section('scripts'); ?>
 <script>
@@ -528,6 +863,33 @@
     // Initialize DataTable for Guru tab
     if ($('#tblUserGuru tbody tr').length > 0) {
         tableGuru = initializeDataTableUmum("#tblUserGuru", true);
+
+        // Filter event listeners untuk Tab Guru
+        $('#filterRole').on('change', function() {
+            const val = $(this).val();
+            if (tableGuru) {
+                // Kolom 4 adalah Hak Akses & Penugasan Peran
+                tableGuru.column(4).search(val).draw();
+            }
+        });
+
+        $('#filterTpq').on('change', function() {
+            const val = $(this).val();
+            if (tableGuru) {
+                // Kolom 3 adalah Lembaga TPQ
+                tableGuru.column(3).search(val).draw();
+            }
+        });
+
+        $('#btnResetFilter').on('click', function() {
+            $('#filterRole').val('');
+            if ($('#filterTpq').length) {
+                $('#filterTpq').val('').trigger('change');
+            }
+            if (tableGuru) {
+                tableGuru.search('').columns().search('').draw();
+            }
+        });
     }
 
     // Initialize DataTable for each kelas tab
@@ -558,6 +920,20 @@
             $('#IdNikGuru').select2({
                 theme: 'bootstrap4',
                 placeholder: 'Pilih Nama Guru',
+                allowClear: true,
+                width: '100%',
+                dropdownParent: $('#modal-tambah')
+            });
+        }
+
+        // Initialize Select2 for Kelas Santri
+        function initSelect2KelasSantri() {
+            if ($('#IdKelasSantri').hasClass('select2-hidden-accessible')) {
+                $('#IdKelasSantri').select2('destroy');
+            }
+            $('#IdKelasSantri').select2({
+                theme: 'bootstrap4',
+                placeholder: 'Pilih Kelas',
                 allowClear: true,
                 width: '100%',
                 dropdownParent: $('#modal-tambah')
@@ -878,6 +1254,21 @@
             $('#checkbox-default-password-guru').show();
             $('#checkbox-default-password-santri').hide();
 
+            // Auto-centang peran sesuai pilihan dropdown awal
+            if (groupName === 'Guru') {
+                $('#create_grp_3').prop('checked', true);
+            } else if (groupName === 'Sekretaris' || groupName === 'Sekretaris Lembaga') {
+                $('#create_grp_12').prop('checked', true);
+            } else if (groupName === 'Bendahara') {
+                $('#create_grp_13').prop('checked', true);
+            } else if (groupName === 'Sekretaris FKPQ') {
+                $('#create_grp_14').prop('checked', true);
+            } else if (groupName === 'Operator') {
+                $('#create_grp_2').prop('checked', true);
+            } else if (groupName === 'Admin') {
+                $('#create_grp_1').prop('checked', true);
+            }
+
             // Reset form santri
             $('#IdKelasSantri').val('').trigger('change');
             $('#IdNikSantri').val('').trigger('change');
@@ -1131,6 +1522,18 @@
                 });
                 return;
             }
+
+            // Validasi peran minimal 1 untuk Guru / Staf
+            const checkedRoles = $('.create-role-cb:checked');
+            if (checkedRoles.length === 0) {
+                Swal.fire({
+                    title: 'Peringatan!',
+                    text: 'Pilih minimal satu peran untuk akun Guru / Staf ini!',
+                    icon: 'warning',
+                    confirmButtonText: 'OK'
+                });
+                return;
+            }
         }
 
         // validasi konfirmasi password
@@ -1299,6 +1702,11 @@
     function editUser(id) {
         // Reset form
         $('#formEditUser')[0].reset();
+        $('#edit_password').val('');
+        $('#edit_confirm-password').val('');
+        $('#edit_use-default-password').prop('checked', false);
+        $('#edit-error-confirm-password').text('');
+        $('#edit_groups_container').html('<div class="text-center py-2 text-muted small"><i class="fas fa-spinner fa-spin mr-1"></i> Memuat hak akses...</div>');
 
         // Tampilkan loading
         Swal.fire({
@@ -1315,14 +1723,116 @@
             .then(data => {
                 if (data.success) {
                     $('#edit_id').val(data.user.id);
-                    $('#edit_fullname').val(data.user.fullname);
-                    $('#edit_IdNikGuru').val(data.user.id_nik_guru);
+                    $('#edit_fullname').val(data.user.fullname || data.user.username);
                     $('#edit_username').val(data.user.username);
-                    $('#edit_active').prop('checked', data.user.active == 1);
 
-                    $('#modal-edit').modal('show');
-                    Swal.close();
+                    // Ambil peran / hak akses user
+                    $.ajax({
+                        url: '<?= base_url('backend/user/getUserGroups'); ?>/' + id,
+                        type: 'GET',
+                        dataType: 'json',
+                        success: function(res) {
+                            Swal.close();
+                            if (res.success) {
+                                const assigned = res.assigned_group_ids.map(Number);
+                                const groups = res.available_groups;
+                                const isAdmin = res.isAdmin;
+
+                                // Cek apakah user santri murni
+                                if (assigned.includes(4) && assigned.length === 1) {
+                                    $('#edit_roles_section').hide();
+                                } else {
+                                    const tpqGroupIds = [3, 12, 13];
+                                    const tpqGroups = groups.filter(g => tpqGroupIds.includes(parseInt(g.id)));
+                                    const systemGroups = groups.filter(g => !tpqGroupIds.includes(parseInt(g.id)) && parseInt(g.id) !== 4);
+
+                                    let html = `
+                                        <div class="text-xs font-weight-bold text-uppercase text-primary mb-1">
+                                            <i class="fas fa-school mr-1"></i> Peran Lembaga TPQ
+                                        </div>
+                                        <div class="row">
+                                    `;
+
+                                    tpqGroups.forEach(g => {
+                                        const isChecked = assigned.includes(parseInt(g.id)) ? 'checked' : '';
+                                        let badgeClass = 'badge-primary';
+                                        let icon = 'fas fa-chalkboard-teacher';
+                                        if (g.name === 'Sekretaris' || g.name === 'Sekretaris Lembaga') {
+                                            badgeClass = 'badge-warning text-dark';
+                                            icon = 'fas fa-envelope-open-text';
+                                        } else if (g.name === 'Bendahara') {
+                                            badgeClass = 'badge-info';
+                                            icon = 'fas fa-money-bill-wave';
+                                        }
+
+                                        html += `
+                                            <div class="col-md-6 mb-2">
+                                                <div class="custom-control custom-checkbox border rounded p-2 bg-white h-100">
+                                                    <input type="checkbox" class="custom-control-input edit-role-cb" id="edit_grp_${g.id}" name="groups[]" value="${g.id}" ${isChecked}>
+                                                    <label class="custom-control-label font-weight-bold d-block" for="edit_grp_${g.id}" style="cursor: pointer;">
+                                                        <span class="badge ${badgeClass} mr-1"><i class="${icon}"></i></span> ${g.name}
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        `;
+                                    });
+
+                                    html += `</div>`;
+
+                                    if (isAdmin && systemGroups.length > 0) {
+                                        html += `
+                                            <div class="text-xs font-weight-bold text-uppercase text-danger mt-2 mb-1">
+                                                <i class="fas fa-landmark mr-1"></i> Peran FKPQ & Sistem (Admin Only)
+                                            </div>
+                                            <div class="row">
+                                        `;
+
+                                        systemGroups.forEach(g => {
+                                            const isChecked = assigned.includes(parseInt(g.id)) ? 'checked' : '';
+                                            let badgeClass = 'badge-secondary';
+                                            let icon = 'fas fa-user-cog';
+                                            if (g.name === 'Admin') {
+                                                badgeClass = 'badge-danger';
+                                                icon = 'fas fa-shield-alt';
+                                            } else if (g.name === 'Sekretaris FKPQ') {
+                                                badgeClass = 'badge-danger';
+                                                icon = 'fas fa-landmark';
+                                            } else if (g.name === 'Operator') {
+                                                badgeClass = 'badge-success';
+                                                icon = 'fas fa-laptop-code';
+                                            }
+
+                                            html += `
+                                                <div class="col-md-6 mb-2">
+                                                    <div class="custom-control custom-checkbox border rounded p-2 bg-white h-100">
+                                                        <input type="checkbox" class="custom-control-input edit-role-cb" id="edit_grp_${g.id}" name="groups[]" value="${g.id}" ${isChecked}>
+                                                        <label class="custom-control-label font-weight-bold d-block" for="edit_grp_${g.id}" style="cursor: pointer;">
+                                                            <span class="badge ${badgeClass} mr-1"><i class="${icon}"></i></span> ${g.name}
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            `;
+                                        });
+
+                                        html += `</div>`;
+                                    }
+
+                                    $('#edit_groups_container').html(html);
+                                    $('#edit_roles_section').show();
+                                }
+                            } else {
+                                $('#edit_roles_section').hide();
+                            }
+                            $('#modal-edit').modal('show');
+                        },
+                        error: function() {
+                            Swal.close();
+                            $('#edit_roles_section').hide();
+                            $('#modal-edit').modal('show');
+                        }
+                    });
                 } else {
+                    Swal.close();
                     throw new Error(data.message);
                 }
             })
@@ -1339,6 +1849,28 @@
     function updateUser() {
         const form = document.getElementById('formEditUser');
         const formData = new FormData(form);
+        const password = formData.get('password');
+        const confirmPassword = formData.get('confirm-password');
+
+        if (password && password !== confirmPassword) {
+            $('#edit-error-confirm-password').text('Password dan konfirmasi password tidak cocok!');
+            return;
+        } else {
+            $('#edit-error-confirm-password').text('');
+        }
+
+        if ($('#edit_roles_section').is(':visible')) {
+            const checkedRoles = $('.edit-role-cb:checked');
+            if (checkedRoles.length === 0) {
+                Swal.fire({
+                    title: 'Peringatan!',
+                    text: 'Pilih minimal satu peran untuk pengguna ini!',
+                    icon: 'warning',
+                    confirmButtonText: 'OK'
+                });
+                return;
+            }
+        }
 
         Swal.fire({
             title: 'Menyimpan...',
@@ -1360,7 +1892,7 @@
                         text: data.message,
                         icon: 'success',
                         showConfirmButton: false,
-                        timer: 2000
+                        timer: 1500
                     }).then(() => {
                         window.location.reload();
                     });
@@ -1603,6 +2135,222 @@
                     });
                 }
             });
+    }
+
+    // Fungsi Modal Pengaturan Hak Akses & Penugasan Peran
+    function manageUserGroups(userId) {
+        $('#hak_akses_user_id').val(userId);
+        $('#hak_akses_groups_container').html(`
+            <div class="text-center py-4">
+                <i class="fas fa-spinner fa-spin fa-2x text-muted"></i>
+                <div class="text-muted mt-2">Memuat data hak akses...</div>
+            </div>
+        `);
+        $('#modal-hak-akses').modal('show');
+
+        $.ajax({
+            url: '<?= base_url('backend/user/getUserGroups'); ?>/' + userId,
+            type: 'GET',
+            dataType: 'json',
+            success: function(res) {
+                if (res.success) {
+                    const u = res.user;
+                    $('#hak_akses_nama').text(u.nama || u.username);
+                    $('#hak_akses_username').text(u.username);
+                    $('#hak_akses_tpq').text(u.NamaTpq || 'Tingkat Pusat / FKPQ');
+                    $('#hak_akses_nik').text(u.nik || '-');
+
+                    const assigned = res.assigned_group_ids.map(Number);
+                    const groups = res.available_groups;
+                    const isAdmin = res.isAdmin;
+
+                    let html = '';
+
+                    // Pisahkan grup TPQ vs FKPQ/Pusat
+                    const tpqGroupIds = [3, 12, 13]; // Guru, Sekretaris, Bendahara
+                    const tpqGroups = groups.filter(g => tpqGroupIds.includes(parseInt(g.id)));
+                    const systemGroups = groups.filter(g => !tpqGroupIds.includes(parseInt(g.id)));
+
+                    // Box Peran Lembaga TPQ
+                    html += `
+                        <div class="card card-outline card-primary mb-3 shadow-none border">
+                            <div class="card-header py-2 bg-light">
+                                <h6 class="card-title font-weight-bold text-primary mb-0">
+                                    <i class="fas fa-school mr-1"></i> Peran Tingkat Lembaga TPQ
+                                </h6>
+                            </div>
+                            <div class="card-body p-3">
+                                <div class="row">
+                    `;
+
+                    tpqGroups.forEach(g => {
+                        const isChecked = assigned.includes(parseInt(g.id)) ? 'checked' : '';
+                        let badgeClass = 'badge-primary';
+                        let icon = 'fas fa-chalkboard-teacher';
+                        let desc = g.description || '';
+                        if (g.name === 'Sekretaris' || g.name === 'Sekretaris Lembaga') {
+                            badgeClass = 'badge-warning text-dark';
+                            icon = 'fas fa-envelope-open-text';
+                            desc = 'Hak akses persuratan & administrasi lembaga TPQ';
+                        } else if (g.name === 'Bendahara') {
+                            badgeClass = 'badge-info';
+                            icon = 'fas fa-money-bill-wave';
+                            desc = 'Hak akses modul keuangan lembaga TPQ';
+                        } else if (g.name === 'Guru') {
+                            desc = 'Mengajar kelas santri & input nilai raport';
+                        }
+
+                        html += `
+                            <div class="col-md-6 mb-2">
+                                <div class="custom-control custom-checkbox border rounded p-2 h-100 bg-white">
+                                    <input type="checkbox" class="custom-control-input hak-akses-cb" id="grp_${g.id}" name="groups[]" value="${g.id}" ${isChecked}>
+                                    <label class="custom-control-label font-weight-bold d-block" for="grp_${g.id}" style="cursor: pointer;">
+                                        <span class="badge ${badgeClass} mr-1"><i class="${icon}"></i></span> ${g.name}
+                                        <small class="d-block text-muted font-weight-normal mt-1">${desc}</small>
+                                    </label>
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                    html += `
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+                    // Jika user login adalah Admin dan ada system/pusat groups
+                    if (isAdmin && systemGroups.length > 0) {
+                        html += `
+                            <div class="card card-outline card-danger mb-3 shadow-none border">
+                                <div class="card-header py-2 bg-light">
+                                    <h6 class="card-title font-weight-bold text-danger mb-0">
+                                        <i class="fas fa-landmark mr-1"></i> Peran Khusus FKPQ Kabupaten & Pusat Sistem
+                                    </h6>
+                                </div>
+                                <div class="card-body p-3">
+                                    <div class="row">
+                        `;
+
+                        systemGroups.forEach(g => {
+                            const isChecked = assigned.includes(parseInt(g.id)) ? 'checked' : '';
+                            let badgeClass = 'badge-secondary';
+                            let icon = 'fas fa-user-cog';
+                            let desc = g.description || '';
+
+                            if (g.name === 'Admin') {
+                                badgeClass = 'badge-danger';
+                                icon = 'fas fa-shield-alt';
+                                desc = 'Akses penuh seluruh konfigurasi sistem';
+                            } else if (g.name === 'Sekretaris FKPQ') {
+                                badgeClass = 'badge-danger';
+                                icon = 'fas fa-landmark';
+                                desc = 'Hak akses persuratan FKPQ tingkat kabupaten';
+                            } else if (g.name === 'Operator') {
+                                badgeClass = 'badge-success';
+                                icon = 'fas fa-laptop-code';
+                                desc = 'Operator pengelola akun & data lembaga TPQ';
+                            }
+
+                            html += `
+                                <div class="col-md-6 mb-2">
+                                    <div class="custom-control custom-checkbox border rounded p-2 h-100 bg-white">
+                                        <input type="checkbox" class="custom-control-input hak-akses-cb" id="grp_${g.id}" name="groups[]" value="${g.id}" ${isChecked}>
+                                        <label class="custom-control-label font-weight-bold d-block" for="grp_${g.id}" style="cursor: pointer;">
+                                            <span class="badge ${badgeClass} mr-1"><i class="${icon}"></i></span> ${g.name}
+                                            <small class="d-block text-muted font-weight-normal mt-1">${desc}</small>
+                                        </label>
+                                    </div>
+                                </div>
+                            `;
+                        });
+
+                        html += `
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    $('#hak_akses_groups_container').html(html);
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Gagal',
+                        text: res.message || 'Tidak dapat memuat hak akses'
+                    });
+                    $('#modal-hak-akses').modal('hide');
+                }
+            },
+            error: function(xhr) {
+                const err = xhr.responseJSON ? xhr.responseJSON.message : 'Terjadi kesalahan sistem';
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: err
+                });
+                $('#modal-hak-akses').modal('hide');
+            }
+        });
+    }
+
+    function saveUserGroups() {
+        const userId = $('#hak_akses_user_id').val();
+        const checkedGroups = [];
+        $('.hak-akses-cb:checked').each(function() {
+            checkedGroups.push($(this).val());
+        });
+
+        if (checkedGroups.length === 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Perhatian',
+                text: 'User harus memiliki minimal satu peran yang dipilih!'
+            });
+            return;
+        }
+
+        $('#btnSaveHakAkses').prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-1"></i> Menyimpan...');
+
+        $.ajax({
+            url: '<?= base_url('backend/user/updateUserGroups'); ?>',
+            type: 'POST',
+            data: {
+                user_id: userId,
+                groups: checkedGroups
+            },
+            dataType: 'json',
+            success: function(res) {
+                $('#btnSaveHakAkses').prop('disabled', false).html('<i class="fas fa-save mr-1"></i> Simpan Hak Akses');
+                if (res.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Berhasil',
+                        text: res.message,
+                        timer: 1500,
+                        showConfirmButton: false
+                    }).then(() => {
+                        $('#modal-hak-akses').modal('hide');
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Gagal',
+                        text: res.message || 'Gagal memperbarui hak akses'
+                    });
+                }
+            },
+            error: function(xhr) {
+                $('#btnSaveHakAkses').prop('disabled', false).html('<i class="fas fa-save mr-1"></i> Simpan Hak Akses');
+                const err = xhr.responseJSON ? xhr.responseJSON.message : 'Gagal memproses permintaan';
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: err
+                });
+            }
+        });
     }
 </script>
 

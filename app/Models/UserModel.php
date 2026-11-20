@@ -119,28 +119,47 @@ class UserModel extends Model
     }
 
     /**
-     * Mendapatkan data user Guru
+     * Mendapatkan data user Guru dan Staf (beserta hak akses / auth groups)
      */
     public function getUserDataGuru($IdTpq = null)
     {
-        $builder = $this->select('
+        $builder = $this->db->table('users');
+        $builder->select('
                 users.id,
                 users.active,
                 users.username,
                 users.password_hash,
-                tbl_guru.Nama as nama,
+                users.email,
+                users.nik,
+                COALESCE(tbl_guru.Nama, users.fullname, users.username) as nama,
+                tbl_tpq.IdTpq as idTpq,
                 tbl_tpq.NamaTpq as namaTpq,
                 tbl_tpq.KelurahanDesa as kelurahanDesa,
-                "Guru" as kategori
+                GROUP_CONCAT(DISTINCT ag.id ORDER BY ag.id ASC SEPARATOR \',\') as group_ids,
+                GROUP_CONCAT(DISTINCT ag.name ORDER BY ag.id ASC SEPARATOR \', \') as group_names,
+                COUNT(DISTINCT ag.id) as total_groups
             ')
-            ->join('tbl_guru', 'users.nik = tbl_guru.IdGuru', 'inner')
-            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_guru.IdTpq', 'inner');
+            ->join('auth_groups_users agu', 'agu.user_id = users.id', 'left')
+            ->join('auth_groups ag', 'ag.id = agu.group_id', 'left');
 
         if ($IdTpq) {
-            $builder->where('tbl_tpq.IdTpq', $IdTpq);
+            $builder->join('tbl_guru', 'users.nik = tbl_guru.IdGuru', 'inner')
+                    ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_guru.IdTpq', 'inner')
+                    ->where('tbl_guru.IdTpq', $IdTpq);
+        } else {
+            $builder->join('tbl_guru', 'users.nik = tbl_guru.IdGuru', 'left')
+                    ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_guru.IdTpq', 'left')
+                    ->where("users.id NOT IN (
+                        SELECT user_id FROM auth_groups_users WHERE group_id = 4
+                        AND user_id NOT IN (SELECT user_id FROM auth_groups_users WHERE group_id != 4)
+                    )", null, false);
         }
 
-        return $builder->findAll();
+        $builder->groupBy('users.id');
+        $builder->orderBy('tbl_tpq.NamaTpq', 'ASC');
+        $builder->orderBy('nama', 'ASC');
+
+        return $builder->get()->getResultArray();
     }
 
     /**

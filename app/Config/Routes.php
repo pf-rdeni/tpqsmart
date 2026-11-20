@@ -49,6 +49,8 @@ $routes->get('backend/dashboard/getMateriPerSantri', 'Dashboard::getMateriPerSan
 $routes->get('backend/dashboard/getStatistikGuruAjax', 'Dashboard::getStatistikGuruAjax');
 $routes->get('backend/dashboard/getStatistikSantriAjax', 'Dashboard::getStatistikSantriAjax');
 $routes->post('dashboard/updateTahunAjaranDanKelas', 'Dashboard::updateTahunAjaranDanKelas');
+$routes->get('backend/user/getUserGroups/(:num)', 'Backend\User::getUserGroups/$1');
+$routes->post('backend/user/updateUserGroups', 'Backend\User::updateUserGroups');
 //$routes->get('/', 'Backend\Pages::index');
 //$routes->get('/', 'Frontend\Home::index');
 $routes->get('program', 'Frontend\Program::index');

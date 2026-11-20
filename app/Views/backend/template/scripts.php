@@ -533,6 +533,9 @@
                 }),
                 success: function(response) {
                     if (response.success) {
+                        try {
+                            localStorage.setItem('tpqsmart_preferred_role', role);
+                        } catch(e) {}
                         // Redirect ke dashboard sesuai peran
                         window.location.href = response.redirect;
                     } else {

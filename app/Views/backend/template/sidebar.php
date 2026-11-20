@@ -147,11 +147,13 @@
             $activeRole === 'guru' ||
             $activeRole === 'wali_kelas' ||
             $activeRole === 'kepala_tpq' ||
-            (empty($activeRole) && $hasGuruRole)
+            (empty($activeRole) && $hasGuruRole && !in_groups('Operator') && !in_groups('Sekretaris') && !in_groups('Sekretaris FKPQ'))
         );
 
-        $isActiveKepalaTpq = ($activeRole === 'kepala_tpq');
-        $isSekretaris      = in_groups('Sekretaris');
+        $isActiveKepalaTpq   = ($activeRole === 'kepala_tpq');
+        $isSekretarisLembaga = ($activeRole === 'sekretaris_lembaga' || (empty($activeRole) && in_groups('Sekretaris') && !in_groups('Admin') && !in_groups('Operator')));
+        $isSekretarisFkpq    = ($activeRole === 'sekretaris_fkpq' || (empty($activeRole) && in_groups('Sekretaris FKPQ') && !in_groups('Admin')));
+        $isSekretaris        = ($isSekretarisLembaga || $isSekretarisFkpq);
         ?>
         <?php if ($isActiveGuru || $isActiveOperator || $isSekretaris): ?>
             <?php
@@ -733,7 +735,7 @@
 
 
                 <!-- Start Menu Kelembagaan, Data Guru, Data Santri, Raport, Extra -->
-                <?php if ((in_groups('Admin') && !$isMyAuthPage && !$isSertifikasiPage && !$isMunaqosahPage && !$isPerlombaanPage && !$isLuckydrawPage) || $isActiveOperator || $isActiveKepalaTpq || $isSekretaris): ?>
+                <?php if ((in_groups('Admin') && !$isMyAuthPage && !$isSertifikasiPage && !$isMunaqosahPage && !$isPerlombaanPage && !$isLuckydrawPage) || $isActiveOperator || $isActiveKepalaTpq || $isSekretarisLembaga): ?>
                     <?php if (!$isSekretaris): ?>
                     <!--  Kelembagaan -->
                     <li class="nav-item">

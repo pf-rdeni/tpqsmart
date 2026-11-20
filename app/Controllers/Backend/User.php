@@ -84,11 +84,11 @@ class User extends BaseController
 
         $dataAutGroups = $this->helpFunction->getDataAuthGoups();
 
-        // jika IdTpq ada $dataAutGroup filter hanya diambil 'name' => 'Guru' atau 'Santri'
-        if ($IdTpq) {
-            $dataAutGroups = array_filter($dataAutGroups, function ($group) {
-                return in_array($group['name'], ['Guru', 'Santri']);
-            });
+        // jika bukan Admin, batasi grup yang dapat dipilih operator lembaga ke level TPQ
+        if ($IdTpq && !in_groups('Admin')) {
+            $dataAutGroups = array_values(array_filter($dataAutGroups, function ($group) {
+                return in_array($group['name'], ['Guru', 'Sekretaris', 'Bendahara', 'Santri']);
+            }));
         }
 
         // Ambil data santri untuk dropdown (tanpa filter kelas, untuk create user)
@@ -99,6 +99,34 @@ class User extends BaseController
 
         // Cek apakah user yang login adalah Admin
         $isAdmin = in_groups('Admin');
+
+        // Hitung statistik user
+        $totalSantriUsers = 0;
+        foreach ($userDataSantriPerKelas as $kData) {
+            if (isset($kData['users']) && is_array($kData['users'])) {
+                $totalSantriUsers += count($kData['users']);
+            }
+        }
+        $totalGuruStaf = count($userDataGuru);
+        $totalMultiRoles = count(array_filter($userDataGuru, fn($u) => ($u['total_groups'] ?? 0) > 1));
+        $totalUsers = $totalGuruStaf + $totalSantriUsers;
+
+        $stats = [
+            'totalUsers'      => $totalUsers,
+            'totalGuruStaf'   => $totalGuruStaf,
+            'totalSantri'     => $totalSantriUsers,
+            'totalMultiRoles' => $totalMultiRoles
+        ];
+
+        // List TPQ untuk filter Admin
+        $listTpq = [];
+        if ($isAdmin) {
+            $listTpq = $this->db->table('tbl_tpq')
+                ->select('IdTpq, NamaTpq')
+                ->orderBy('NamaTpq', 'ASC')
+                ->get()
+                ->getResultArray();
+        }
 
         // Group data santri berdasarkan kelas untuk JavaScript
         $dataSantriGrouped = [];
@@ -115,18 +143,20 @@ class User extends BaseController
         }
 
         $data = [
-            'page_title' => 'Data User',
-            'userDataGuru' => $userDataGuru,
+            'page_title'             => 'Data Pengguna & Hak Akses',
+            'userDataGuru'           => $userDataGuru,
             'userDataSantriPerKelas' => $userDataSantriPerKelas,
-            'dataKelas' => $dataKelas,
-            'dataGuru' => $dataGuru,
-            'dataSantri' => $dataSantri,
-            'dataSantriGrouped' => $dataSantriGrouped,
-            'dataKelasForDropdown' => $dataKelasForDropdown,
-            'dataAuthGroups' => $dataAutGroups,
-            'isAdmin' => $isAdmin,
-            'IdTahunAjaran' => $IdTahunAjaran,
-            'IdTpq' => $IdTpq
+            'dataKelas'              => $dataKelas,
+            'dataGuru'               => $dataGuru,
+            'dataSantri'             => $dataSantri,
+            'dataSantriGrouped'      => $dataSantriGrouped,
+            'dataKelasForDropdown'   => $dataKelasForDropdown,
+            'dataAuthGroups'         => $dataAutGroups,
+            'isAdmin'                => $isAdmin,
+            'IdTahunAjaran'          => $IdTahunAjaran,
+            'IdTpq'                  => $IdTpq,
+            'stats'                  => $stats,
+            'listTpq'                => $listTpq
         ];
         return view('backend/user/index', $data);
     }
@@ -154,6 +184,7 @@ class User extends BaseController
         $groupsId = $this->request->getPost('IdAuthGroup');
         $idNikGuru = $this->request->getPost('IdNikGuru');
         $idNikSantri = $this->request->getPost('IdNikSantri');
+        $selectedGroups = $this->request->getPost('groups'); // array of group IDs from multi-role checkboxes
 
         // Cek apakah user yang login adalah Admin
         $isAdmin = in_groups('Admin');
@@ -178,6 +209,7 @@ class User extends BaseController
         $groupName = $selectedGroup[0]['name'] ?? '';
         $fullName = '';
         $idNik = null;
+        $finalGroupIds = [];
 
         // Handle berdasarkan jenis group
         if ($groupName === 'Santri') {
@@ -205,6 +237,7 @@ class User extends BaseController
 
             $fullName = $santriData['NamaSantri'];
             $idNik = $idNikSantri;
+            $finalGroupIds = [4]; // Santri ID
         } else {
             // Untuk Guru atau group lainnya
             if ($isAdmin) {
@@ -237,9 +270,22 @@ class User extends BaseController
                 $idNik = $idNikGuru;
             }
 
-            // Pastikan group Panitia menggunakan group_id = 6
-            if ($groupName === 'Panitia') {
-                $groupsId = 6;
+            // Ambil multi-role checkboxes jika ada
+            if (is_array($selectedGroups) && !empty($selectedGroups)) {
+                $finalGroupIds = array_map('intval', array_filter($selectedGroups));
+            } elseif (!empty($groupsId)) {
+                $finalGroupIds = [(int)$groupsId];
+            } else {
+                $finalGroupIds = [3]; // Default Guru
+            }
+
+            // Batasi hak akses jika bukan Admin
+            if (!$isAdmin) {
+                $allowedTpqGroupIds = [3, 12, 13]; // Guru, Sekretaris Lembaga, Bendahara
+                $finalGroupIds = array_values(array_intersect($finalGroupIds, $allowedTpqGroupIds));
+                if (empty($finalGroupIds)) {
+                    $finalGroupIds = [3];
+                }
             }
         }
 
@@ -253,18 +299,27 @@ class User extends BaseController
         ];
 
         try {
+            $this->db->transStart();
+
             $returnUserId = $this->userModel->store($data);
 
-            $groupData = [
-                'group_id' => (int)$groupsId, // Pastikan integer
-                'user_id' => $returnUserId
-            ];
+            foreach ($finalGroupIds as $gid) {
+                $groupData = [
+                    'group_id' => (int)$gid,
+                    'user_id' => $returnUserId
+                ];
+                $this->helpFunction->insertAuthGroupsUsers($groupData);
+            }
 
-            $this->helpFunction->insertAuthGroupsUsers($groupData);
+            $this->db->transComplete();
+
+            if ($this->db->transStatus() === false) {
+                throw new \Exception('Gagal menyimpan data relasi grup');
+            }
 
             return $this->response->setJSON([
                 'success' => true,
-                'message' => 'Data pengguna berhasil ditambahkan',
+                'message' => 'Data pengguna berhasil ditambahkan dengan ' . count($finalGroupIds) . ' peran',
                 'user_id' => $returnUserId
             ]);
         } catch (\Exception $e) {
@@ -311,33 +366,96 @@ class User extends BaseController
         ]);
     }
 
-    // buat fungsi update user
+    // buat fungsi update user (password dan/atau hak akses)
     public function update()
     {
         // Mengambil data dari POST
         $id = $this->request->getPost('id');
         $username = $this->request->getPost('username');
         $password = $this->request->getPost('password');
+        $selectedGroups = $this->request->getPost('groups'); // array of group IDs
 
-
-        // Validasi data
-        if (!$id || !$username || !$password) {
+        if (!$id) {
             return $this->response->setStatusCode(400)->setJSON([
                 'success' => false,
-                'message' => 'Data tidak lengkap'
+                'message' => 'User ID wajib diisi'
             ]);
         }
 
-        $data = [
-            'username' => $username,
-            'password_hash' => Password::hash($password),
-        ];
+        $isAdmin = in_groups('Admin');
+        $currentIdTpq = session()->get('IdTpq');
+
+        $user = $this->db->table('users u')
+            ->select('u.id, u.username, g.IdTpq')
+            ->join('tbl_guru g', 'g.IdGuru = u.nik', 'left')
+            ->where('u.id', $id)
+            ->get()
+            ->getRowArray();
+
+        if (!$user) {
+            return $this->response->setStatusCode(404)->setJSON([
+                'success' => false,
+                'message' => 'User tidak ditemukan'
+            ]);
+        }
+
+        if (!$isAdmin && !empty($user['IdTpq']) && $user['IdTpq'] != $currentIdTpq) {
+            return $this->response->setStatusCode(403)->setJSON([
+                'success' => false,
+                'message' => 'Anda tidak memiliki hak untuk mengelola user lembaga lain'
+            ]);
+        }
 
         try {
-            $this->userModel->updateUser($data, $id);
+            $this->db->transStart();
+
+            // 1. Update password jika diisi
+            if (!empty($password)) {
+                $this->userModel->updateUser([
+                    'password_hash' => Password::hash($password)
+                ], $id);
+            }
+
+            // 2. Update peran / hak akses jika dikirimkan
+            if (is_array($selectedGroups) && !empty($selectedGroups)) {
+                $groupIds = array_map('intval', array_filter($selectedGroups));
+                $allowedTpqGroupIds = [3, 12, 13];
+
+                if (!$isAdmin) {
+                    $groupIds = array_values(array_intersect($groupIds, $allowedTpqGroupIds));
+                    if (!empty($groupIds)) {
+                        $this->db->table('auth_groups_users')
+                            ->where('user_id', $id)
+                            ->whereIn('group_id', $allowedTpqGroupIds)
+                            ->delete();
+
+                        foreach ($groupIds as $gid) {
+                            $this->db->table('auth_groups_users')->insert([
+                                'group_id' => $gid,
+                                'user_id'  => $id
+                            ]);
+                        }
+                    }
+                } else {
+                    $this->db->table('auth_groups_users')->where('user_id', $id)->delete();
+                    foreach ($groupIds as $gid) {
+                        $this->db->table('auth_groups_users')->insert([
+                            'group_id' => $gid,
+                            'user_id'  => $id
+                        ]);
+                    }
+                }
+            }
+
+            $this->db->transComplete();
+
+            if ($this->db->transStatus() === false) {
+                throw new \Exception('Gagal menyimpan perubahan ke basis data');
+            }
+
             return $this->response->setJSON([
                 'success' => true,
-                'message' => 'Data pengguna berhasil diubah'
+                'message' => 'Data pengguna & hak akses berhasil diperbarui'
             ]);
         } catch (\Exception $e) {
             return $this->response->setStatusCode(500)->setJSON([
@@ -690,4 +808,177 @@ class User extends BaseController
         }
     }
 
+    /**
+     * Mengambil detail hak akses / grup yang dimiliki suatu user
+     */
+    public function getUserGroups($userId)
+    {
+        $isAdmin = in_groups('Admin');
+        $currentIdTpq = session()->get('IdTpq');
+
+        // Cari data user
+        $user = $this->db->table('users u')
+            ->select('u.id, u.username, u.email, u.nik, COALESCE(g.Nama, u.fullname, u.username) as nama, t.IdTpq, t.NamaTpq')
+            ->join('tbl_guru g', 'g.IdGuru = u.nik', 'left')
+            ->join('tbl_tpq t', 't.IdTpq = g.IdTpq', 'left')
+            ->where('u.id', $userId)
+            ->get()
+            ->getRowArray();
+
+        if (!$user) {
+            return $this->response->setStatusCode(404)->setJSON([
+                'success' => false,
+                'message' => 'User tidak ditemukan'
+            ]);
+        }
+
+        // Validasi hak akses Operator
+        if (!$isAdmin) {
+            if (empty($user['IdTpq']) || $user['IdTpq'] != $currentIdTpq) {
+                return $this->response->setStatusCode(403)->setJSON([
+                    'success' => false,
+                    'message' => 'Anda tidak memiliki hak untuk mengelola user dari lembaga lain'
+                ]);
+            }
+        }
+
+        // Ambil grup yang saat ini aktif untuk user ini
+        $userGroups = $this->db->table('auth_groups_users agu')
+            ->select('agu.group_id, ag.name, ag.description')
+            ->join('auth_groups ag', 'ag.id = agu.group_id')
+            ->where('agu.user_id', $userId)
+            ->get()
+            ->getResultArray();
+
+        $assignedGroupIds = array_map(fn($g) => (int)$g['group_id'], $userGroups);
+
+        // Ambil daftar grup yang diizinkan untuk di-assign
+        $allGroups = $this->helpFunction->getDataAuthGoups();
+        if (!$isAdmin) {
+            // Operator hanya boleh assign peran level Lembaga TPQ
+            $allowedGroupIds = [3, 12, 13]; // Guru, Sekretaris Lembaga, Bendahara
+            $availableGroups = array_values(array_filter($allGroups, fn($g) => in_array((int)$g['id'], $allowedGroupIds)));
+        } else {
+            $availableGroups = $allGroups;
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'user' => $user,
+            'assigned_group_ids' => $assignedGroupIds,
+            'available_groups' => $availableGroups,
+            'isAdmin' => $isAdmin
+        ]);
+    }
+
+    /**
+     * Memperbarui grup / hak akses yang dimiliki user
+     */
+    public function updateUserGroups()
+    {
+        $isAdmin = in_groups('Admin');
+        $currentIdTpq = session()->get('IdTpq');
+
+        $userId = $this->request->getPost('user_id');
+        $groupIds = $this->request->getPost('groups'); // array of group IDs
+
+        if (empty($userId)) {
+            return $this->response->setStatusCode(400)->setJSON([
+                'success' => false,
+                'message' => 'User ID wajib diisi'
+            ]);
+        }
+
+        if (!is_array($groupIds)) {
+            $groupIds = empty($groupIds) ? [] : [$groupIds];
+        }
+        $groupIds = array_map('intval', array_filter($groupIds));
+
+        // Cari data user
+        $user = $this->db->table('users u')
+            ->select('u.id, u.username, g.IdTpq')
+            ->join('tbl_guru g', 'g.IdGuru = u.nik', 'left')
+            ->where('u.id', $userId)
+            ->get()
+            ->getRowArray();
+
+        if (!$user) {
+            return $this->response->setStatusCode(404)->setJSON([
+                'success' => false,
+                'message' => 'User tidak ditemukan'
+            ]);
+        }
+
+        $allowedTpqGroupIds = [3, 12, 13]; // Guru, Sekretaris Lembaga, Bendahara
+
+        if (!$isAdmin) {
+            // Validasi kepemilikan TPQ
+            if (empty($user['IdTpq']) || $user['IdTpq'] != $currentIdTpq) {
+                return $this->response->setStatusCode(403)->setJSON([
+                    'success' => false,
+                    'message' => 'Anda tidak memiliki hak untuk mengelola user lembaga lain'
+                ]);
+            }
+
+            // Filter hanya grup yang diizinkan untuk Operator
+            $groupIds = array_values(array_intersect($groupIds, $allowedTpqGroupIds));
+
+            if (empty($groupIds)) {
+                return $this->response->setStatusCode(400)->setJSON([
+                    'success' => false,
+                    'message' => 'Pilih minimal satu peran untuk user (misal: Guru)'
+                ]);
+            }
+        } else {
+            if (empty($groupIds)) {
+                return $this->response->setStatusCode(400)->setJSON([
+                    'success' => false,
+                    'message' => 'Pilih minimal satu peran untuk user'
+                ]);
+            }
+        }
+
+        $this->db->transStart();
+
+        if (!$isAdmin) {
+            // Operator hanya mengubah grup level TPQ (tidak menghapus peran non-TPQ seperti Juri/Panitia)
+            $this->db->table('auth_groups_users')
+                ->where('user_id', $userId)
+                ->whereIn('group_id', $allowedTpqGroupIds)
+                ->delete();
+
+            foreach ($groupIds as $gid) {
+                $this->db->table('auth_groups_users')->insert([
+                    'group_id' => $gid,
+                    'user_id' => $userId
+                ]);
+            }
+        } else {
+            // Admin mengupdate seluruh grup
+            $this->db->table('auth_groups_users')
+                ->where('user_id', $userId)
+                ->delete();
+
+            foreach ($groupIds as $gid) {
+                $this->db->table('auth_groups_users')->insert([
+                    'group_id' => $gid,
+                    'user_id' => $userId
+                ]);
+            }
+        }
+
+        $this->db->transComplete();
+
+        if ($this->db->transStatus() === false) {
+            return $this->response->setStatusCode(500)->setJSON([
+                'success' => false,
+                'message' => 'Gagal memperbarui hak akses peran user'
+            ]);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Hak akses dan peran user berhasil diperbarui'
+        ]);
+    }
 }
