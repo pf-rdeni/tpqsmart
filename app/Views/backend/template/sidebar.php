@@ -151,8 +151,9 @@
         );
 
         $isActiveKepalaTpq = ($activeRole === 'kepala_tpq');
+        $isSekretaris      = in_groups('Sekretaris');
         ?>
-        <?php if ($isActiveGuru || $isActiveOperator): ?>
+        <?php if ($isActiveGuru || $isActiveOperator || $isSekretaris): ?>
             <?php
             // Cek dan set tahun ajaran jika belum ada di session
             $helpFunctionModel = new \App\Models\HelpFunctionModel();
@@ -221,7 +222,7 @@
                     </a>
                 </li>
                 <!-- Jadwal Sholat & Al-Qur'an -->
-                <?php if (in_groups('Admin') && !$isMyAuthPage && !$isSertifikasiPage && !$isMunaqosahPage && !$isPerlombaanPage && !$isLuckydrawPage): ?>
+                <?php if (!$isSekretaris && in_groups('Admin') && !$isMyAuthPage && !$isSertifikasiPage && !$isMunaqosahPage && !$isPerlombaanPage && !$isLuckydrawPage): ?>
                     <li class="nav-item no-hover">
                         <a href="#" class="nav-link">
                             <i class="nav-icon fas fa-mosque"></i>
@@ -261,7 +262,7 @@
                 <!-- End Menu Kepala TPQ -->
                 
                 <!-- Start Menu Sertifikasi -->
-                <?php if ((in_groups('JuriSertifikasi') || in_groups('Admin') || in_groups('PanitiaSertifikasi')) && $isSertifikasiPage): ?>
+                <?php if (!$isSekretaris && (in_groups('JuriSertifikasi') || in_groups('Admin') || in_groups('PanitiaSertifikasi')) && $isSertifikasiPage): ?>
                     <!-- Sertifikasi -->
                     <li class="nav-item no-hover">
                         <a href="#" class="nav-link">
@@ -338,7 +339,7 @@
                 <!-- End Menu Sertifikasi -->
                 
                 <!-- Start Mneu Munaqosah -->
-                <?php if ((in_groups('Admin') || in_groups('Juri') || in_groups('Panitia') || $hasOperatorRole) && ($isMunaqosahPage || $hasOperatorRole)): ?>
+                <?php if (!$isSekretaris && (in_groups('Admin') || in_groups('Juri') || in_groups('Panitia') || $hasOperatorRole) && ($isMunaqosahPage || $hasOperatorRole)): ?>
                     <!-- Munaqosah -->
                     <li class="nav-item no-hover">
                         <a href="#" class="nav-link">
@@ -632,7 +633,7 @@
                 // Cek apakah user adalah Juri Lomba
                 $isJuriLomba = in_groups('JuriLomba');
                 ?>
-                <?php if (($isPerlombaanPage && (in_groups('Admin') || in_groups('Operator'))) || $isJuriLomba): ?>
+                <?php if (!$isSekretaris && (($isPerlombaanPage && (in_groups('Admin') || in_groups('Operator'))) || $isJuriLomba)): ?>
                     <!-- Perlombaan -->
                     <li class="nav-item no-hover">
                         <a href="#" class="nav-link">
@@ -732,7 +733,8 @@
 
 
                 <!-- Start Menu Kelembagaan, Data Guru, Data Santri, Raport, Extra -->
-                <?php if ((in_groups('Admin') && !$isMyAuthPage && !$isSertifikasiPage && !$isMunaqosahPage && !$isPerlombaanPage && !$isLuckydrawPage) || $isActiveOperator || $isActiveKepalaTpq): ?>
+                <?php if ((in_groups('Admin') && !$isMyAuthPage && !$isSertifikasiPage && !$isMunaqosahPage && !$isPerlombaanPage && !$isLuckydrawPage) || $isActiveOperator || $isActiveKepalaTpq || $isSekretaris): ?>
+                    <?php if (!$isSekretaris): ?>
                     <!--  Kelembagaan -->
                     <li class="nav-item">
                         <a href="#" class="nav-link">
@@ -791,6 +793,7 @@
                             <?php endif; ?>
                         </ul>
                     </li>
+                    <?php endif; ?>
                     <!--  Data Guru -->
                     <li class="nav-item">
                         <a href="#" class="nav-link">
@@ -824,7 +827,7 @@
                                     <p>Absensi Guru</p>
                                 </a>
                             </li>
-                            <?php if (in_groups(['Admin', 'Kepala Sekolah']) || $isActiveOperator || $isActiveKepalaTpq): ?>
+                            <?php if (in_groups(['Admin', 'Kepala Sekolah']) || $isActiveOperator || $isActiveKepalaTpq || $isSekretaris): ?>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/guru/statistik-presensi') ?> class="nav-link">
                                         <i class="fas fa-map-marked-alt nav-icon text-warning"></i>
@@ -832,7 +835,7 @@
                                     </a>
                                 </li>
                             <?php endif; ?>
-                            <?php if (in_groups('Admin') || $isActiveOperator): ?>
+                            <?php if (in_groups('Admin') || $isActiveOperator || $isSekretaris): ?>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/guruKelas/show') ?> class="nav-link">
                                         <i class="fas fa-cogs nav-icon text-warning"></i>
@@ -858,7 +861,7 @@
                                     <p>Santri Baru</p>
                                 </a>
                             </li>
-                            <?php if (in_groups('Admin') || $isActiveOperator): ?>
+                            <?php if (in_groups('Admin') || $isActiveOperator || $isSekretaris): ?>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/kelas/showSantriKelasBaru') ?> class="nav-link">
                                         <i class="fas fa-clipboard-check nav-icon text-warning"></i>
@@ -866,7 +869,7 @@
                                     </a>
                             </li>
                             <?php endif; ?>
-                            <?php if (in_groups('Admin') || $isActiveOperator): ?>
+                            <?php if (in_groups('Admin') || $isActiveOperator || $isSekretaris): ?>
                             <li class="nav-item">
                                 <a href=<?php echo base_url('backend/santri/verifikasiDataSantri') ?> class="nav-link">
                                     <i class="fas fa-check-double nav-icon text-warning"></i>
@@ -904,7 +907,7 @@
                                     <p>Statistik Presensi</p>
                                 </a>
                             </li>
-                            <?php if (in_groups('Admin') || $isActiveOperator): ?>
+                            <?php if (in_groups('Admin') || $isActiveOperator || $isSekretaris): ?>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/absensi/ubahAbsensi') ?> class="nav-link">
                                         <i class="fas fa-calendar-times nav-icon text-warning"></i>
@@ -912,7 +915,7 @@
                                     </a>
                                 </li>
                             <?php endif; ?>
-                            <?php if (in_groups('Admin') || $isActiveOperator): ?>
+                            <?php if (in_groups('Admin') || $isActiveOperator || $isSekretaris): ?>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/kelas/showListSantriPerKelas') ?> class="nav-link">
                                         <i class="fas fa-level-up-alt nav-icon text-warning"></i>
@@ -920,7 +923,7 @@
                                     </a>
                                 </li>
                             <?php endif; ?>
-                            <?php if (in_groups('Admin') || $isActiveOperator): ?>
+                            <?php if (in_groups('Admin') || $isActiveOperator || $isSekretaris): ?>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/absensi/link') ?> class="nav-link">
                                         <i class="fas fa-link nav-icon text-warning"></i>
@@ -931,7 +934,7 @@
                         </ul>
                     </li>
                     <!-- Menu Ujian MDTA (UMBK) -->
-                    <?php if (!empty($canAccessUjianMdta) && (in_groups('Admin') || $hasOperatorRole || $isActiveGuru) && !$isMyAuthPage && !$isSertifikasiPage && !$isLuckydrawPage && !$isPerlombaanPage): ?>
+                    <?php if (!$isSekretaris && !empty($canAccessUjianMdta) && (in_groups('Admin') || $hasOperatorRole || $isActiveGuru) && !$isMyAuthPage && !$isSertifikasiPage && !$isLuckydrawPage && !$isPerlombaanPage): ?>
                         <li class="nav-item <?= ($menu_open ?? '') == 'ujian-mdta' ? 'menu-open' : '' ?>">
                             <a href="#" class="nav-link <?= ($menu_open ?? '') == 'ujian-mdta' ? 'active' : '' ?>">
                                 <i class="nav-icon fas fa-laptop-code"></i>
@@ -1049,12 +1052,12 @@
                             $isWaliKelas = false;
                             $showMappingMenu = false;
 
-                            // Cek apakah user adalah Admin atau Operator
+                            // Cek apakah user adalah Admin, Operator, atau Sekretaris
                             $isAdmin = in_groups('Admin');
                             $isOperator = in_groups('Operator');
 
-                            // Untuk Admin atau Operator, cek setting dan tampilkan menu jika aktif
-                            if (($isAdmin || $isOperator) && !empty($idTpq)) {
+                            // Untuk Admin, Operator, atau Sekretaris, cek setting dan tampilkan menu jika aktif
+                            if (($isAdmin || $isOperator || $isSekretaris) && !empty($idTpq)) {
                                 $mappingEnabled = $toolsModel->getSetting($idTpq, 'MappingWaliKelas');
                                 if ($mappingEnabled) {
                                     $showMappingMenu = true;
@@ -1103,6 +1106,7 @@
                         </ul>
 
                     </li>
+                    <?php if (!$isSekretaris): ?>
                     <!-- Extra -->
                     <li class="nav-item">
                         <a href="#" class="nav-link">
@@ -1303,12 +1307,13 @@
                             <?php endif; ?>
                         </ul>
                     </li>
+                    <?php endif; ?>
                 <?php endif; ?>
                 <!-- End Menu Kelembagaan, Data Guru, Data Santri, Raport, Extra -->
 
                 <!-- Start Menu Administrasi Surat -->
                 <?php 
-                $showAdministrasiMenu = (in_groups('Admin') || $isActiveOperator || $isActiveKepalaTpq)
+                $showAdministrasiMenu = (in_groups('Admin') || $isActiveOperator || $isActiveKepalaTpq || $isSekretaris)
                     && !$isMyAuthPage && !$isSertifikasiPage 
                     && !$isMunaqosahPage && !$isPerlombaanPage && !$isLuckydrawPage;
                 ?>
@@ -1391,8 +1396,8 @@
 
                 <!-- Start Menu Survey -->
                 <?php 
-                // Survey tersedia untuk Admin DAN Operator
-                $showSurveyMenu = (in_groups('Admin') || $isActiveOperator) 
+                // Survey tersedia untuk Admin DAN Operator (Bukan Sekretaris)
+                $showSurveyMenu = !$isSekretaris && (in_groups('Admin') || $isActiveOperator) 
                     && !$isMyAuthPage && !$isSertifikasiPage 
                     && !$isMunaqosahPage && !$isPerlombaanPage && !$isLuckydrawPage;
                 ?>
@@ -1424,7 +1429,7 @@
                 <!-- End Menu Survey -->
 
                 <!-- Start Menu MyAuth -->
-                <?php if (in_groups('Admin') && $isMyAuthPage): ?>
+                <?php if (!$isSekretaris && in_groups('Admin') && $isMyAuthPage): ?>
                     <!--  MyAuth Management -->
                     <li class="nav-item no-hover">
                         <a href="#" class="nav-link">
@@ -1483,7 +1488,7 @@
                 <!-- End Menu MyAuth -->
 
                 <!-- TV Digital Menu -->
-                <?php if ((in_groups('Admin') && !$isMyAuthPage && !$isSertifikasiPage && !$isMunaqosahPage && !$isPerlombaanPage && !$isLuckydrawPage) || $isActiveOperator): ?>
+                <?php if (!$isSekretaris && ((in_groups('Admin') && !$isMyAuthPage && !$isSertifikasiPage && !$isMunaqosahPage && !$isPerlombaanPage && !$isLuckydrawPage) || $isActiveOperator)): ?>
                     <li class="nav-item <?= ($menu_open ?? '') == 'tv-digital' ? 'menu-open' : '' ?>">
                         <a href="#" class="nav-link <?= ($menu_open ?? '') == 'tv-digital' ? 'active' : '' ?>">
                             <i class="nav-icon fas fa-tv"></i>
@@ -1516,7 +1521,7 @@
                 <?php endif; ?>
 
                 <!-- Start Menu Setting -->
-                <?php if ((in_groups('Admin') && !$isMyAuthPage && !$isSertifikasiPage && !$isMunaqosahPage && !$isPerlombaanPage && !$isLuckydrawPage) || $isActiveOperator): ?>
+                <?php if (!$isSekretaris && ((in_groups('Admin') && !$isMyAuthPage && !$isSertifikasiPage && !$isMunaqosahPage && !$isPerlombaanPage && !$isLuckydrawPage) || $isActiveOperator)): ?>
                     <!--  General Setting -->
                     <li class="nav-item">
                         <a href="#" class="nav-link">
@@ -1594,7 +1599,7 @@
                 <?php endif; ?>
 
                 <!-- Kesiswaan Untuk Login Guru-->
-                <?php if ($isActiveGuru && !$isMyAuthPage && !$isSertifikasiPage && !$isMunaqosahPage && !$isPerlombaanPage && !$isActiveKepalaTpq): ?>
+                <?php if (!$isSekretaris && $isActiveGuru && !$isMyAuthPage && !$isSertifikasiPage && !$isMunaqosahPage && !$isPerlombaanPage && !$isActiveKepalaTpq): ?>
                     <li class="nav-item">
                         <a href="#" class="nav-link">
                             <i class="nav-icon fas fa-users"></i>
@@ -1928,7 +1933,7 @@
                 <?php endif; ?>
 
                 <!-- Start Santri -->
-                <?php if (in_groups('Santri') && !$isSertifikasiPage && !$isMunaqosahPage && !$isPerlombaanPage): ?>
+                <?php if (!$isSekretaris && in_groups('Santri') && !$isSertifikasiPage && !$isMunaqosahPage && !$isPerlombaanPage): ?>
                     <!-- Kesantrian -->
                     <li class="nav-item no-hover">
                         <a href="#" class="nav-link">
@@ -1985,9 +1990,9 @@
                 // Tampilkan menu Lucky Draw:
                 // - Selalu untuk PanitiaUndianPemenang & PanitiaUndianVerifikasi
                 // - Untuk Admin hanya saat berada di halaman luckydraw
-                $showLuckydrawMenu = in_groups('PanitiaUndianPemenang')
+                $showLuckydrawMenu = !$isSekretaris && (in_groups('PanitiaUndianPemenang')
                                   || in_groups('PanitiaUndianVerifikasi')
-                                  || ($isLuckydrawPage && in_groups('Admin'));
+                                  || ($isLuckydrawPage && in_groups('Admin')));
                 ?>
                 <?php if ($showLuckydrawMenu): ?>
                     <li class="nav-item no-hover">

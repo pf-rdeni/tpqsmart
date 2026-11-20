@@ -784,7 +784,7 @@ class Santri extends BaseController
         $IdTahunAjaran = session()->get('IdTahunAjaran');
         $activeRole = session()->get('active_role');
         $hasAdminGroup = in_groups('Admin');
-        $hasOperatorGroup = in_groups('Operator');
+        $hasOperatorGroup = in_groups('Operator') || in_groups('Sekretaris');
         $hasGuruGroup = in_groups('Guru');
         $hasKepalaTpqGroup = in_groups('Kepala TPQ');
 
@@ -1063,7 +1063,7 @@ class Santri extends BaseController
         $sessionIdKelas = session()->get('IdKelas');
         $activeRole = session()->get('active_role');
         $hasAdminGroup = in_groups('Admin');
-        $hasOperatorGroup = in_groups('Operator');
+        $hasOperatorGroup = in_groups('Operator') || in_groups('Sekretaris');
         $hasGuruGroup = in_groups('Guru');
         $hasKepalaTpqGroup = in_groups('Kepala TPQ');
 
@@ -1253,7 +1253,7 @@ class Santri extends BaseController
         $IdTpq = null;
         $activeRole = session()->get('active_role');
         $hasAdminGroup = in_groups('Admin');
-        $hasOperatorGroup = in_groups('Operator');
+        $hasOperatorGroup = in_groups('Operator') || in_groups('Sekretaris');
         $hasGuruGroup = in_groups('Guru');
         $hasKepalaTpqGroup = in_groups('Kepala TPQ');
 
@@ -2063,7 +2063,7 @@ class Santri extends BaseController
         $sessionIdTahunAjaran = session()->get('IdTahunAjaran');
         $activeRole = session()->get('active_role');
         $hasAdminGroup = in_groups('Admin');
-        $hasOperatorGroup = in_groups('Operator');
+        $hasOperatorGroup = in_groups('Operator') || in_groups('Sekretaris');
         $hasGuruGroup = in_groups('Guru');
         $hasKepalaTpqGroup = in_groups('Kepala TPQ');
 
@@ -2689,7 +2689,7 @@ class Santri extends BaseController
             $sessionIdKelas = session()->get('IdKelas');
             $activeRole = session()->get('active_role');
             $hasAdminGroup = in_groups('Admin');
-            $hasOperatorGroup = in_groups('Operator');
+            $hasOperatorGroup = in_groups('Operator') || in_groups('Sekretaris');
             $hasGuruGroup = in_groups('Guru');
             $hasKepalaTpqGroup = in_groups('Kepala TPQ');
 
@@ -4692,7 +4692,7 @@ class Santri extends BaseController
 
         $activeRole = session()->get('active_role');
         $hasAdminGroup = in_groups('Admin');
-        $hasOperatorGroup = in_groups('Operator');
+        $hasOperatorGroup = in_groups('Operator') || in_groups('Sekretaris');
         $hasGuruGroup = in_groups('Guru');
         $hasKepalaTpqGroup = in_groups('Kepala TPQ');
 

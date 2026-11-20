@@ -176,12 +176,25 @@ class SuratMasuk extends BaseController
             throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound('Surat masuk tidak ditemukan');
         }
 
+        if (!$isAdmin && $surat['IdTpq'] != $idTpq) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound('Akses ditolak: Surat masuk bukan milik lembaga Anda');
+        }
+
         $disposisiList = $this->disposisiModel->getBySurat($id);
         $lampiranList  = $this->lampiranModel->getBySurat($id);
 
-        // Daftar staf / user untuk tujuan disposisi
+        // Daftar staf / user untuk tujuan disposisi (terisolasi sesuai lembaga jika bukan admin)
         $db = \Config\Database::connect();
-        $userList = $db->table('users')->select('id, username, email')->orderBy('username', 'ASC')->get()->getResultArray();
+        if ($isAdmin) {
+            $userList = $db->table('users')->select('id, username, email')->orderBy('username', 'ASC')->get()->getResultArray();
+        } else {
+            $userList = $db->table('users')
+                           ->select('users.id, users.username, users.email')
+                           ->join('tbl_guru', 'tbl_guru.IdGuru = users.nik', 'inner')
+                           ->where('tbl_guru.IdTpq', $idTpq)
+                           ->orderBy('users.username', 'ASC')
+                           ->get()->getResultArray();
+        }
 
         $data = [
             'page_title'    => 'Detail & Disposisi Surat Masuk',
@@ -256,6 +269,9 @@ class SuratMasuk extends BaseController
      */
     public function cetakDisposisi($idSurat = null)
     {
+        $idTpqSession = session()->get('IdTpq');
+        $isAdmin      = ($idTpqSession === '0' || $idTpqSession === 0 || empty($idTpqSession));
+
         $surat = $this->suratModel->select('tbl_surat.*, k.NamaKategori, t.NamaTpq, t.Alamat as AlamatTpq')
                                   ->join('tbl_surat_kategori k', 'k.Id = tbl_surat.IdKategori', 'left')
                                   ->join('tbl_tpq t', 't.IdTpq = tbl_surat.IdTpq', 'left')
@@ -264,6 +280,10 @@ class SuratMasuk extends BaseController
 
         if (!$surat) {
             throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound('Surat tidak ditemukan');
+        }
+
+        if (!$isAdmin && $surat['IdTpq'] != $idTpqSession) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound('Akses ditolak: Dokumen bukan milik lembaga Anda');
         }
 
         $disposisiList = $this->disposisiModel->getBySurat($idSurat);

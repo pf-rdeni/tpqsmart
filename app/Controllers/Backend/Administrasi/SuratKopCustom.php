@@ -91,8 +91,8 @@ class SuratKopCustom extends BaseController
             return redirect()->back()->with('error', 'Data tidak ditemukan');
         }
 
-        if (!$isAdmin && $existing['IdTpq'] != $idTpq && !empty($existing['IdTpq'])) {
-            return redirect()->back()->with('error', 'Akses ditolak');
+        if (!$isAdmin && ($existing['IdTpq'] != $idTpq || empty($existing['IdTpq']))) {
+            return redirect()->back()->with('error', 'Akses ditolak: Anda tidak berhak mengubah kop resmi Admin');
         }
 
         $rules = [
@@ -119,7 +119,7 @@ class SuratKopCustom extends BaseController
             $fileGambar->move(FCPATH . 'uploads/kop_custom/', $fileName);
         }
 
-        $targetTpq = $isAdmin ? ($this->request->getPost('IdTpq') ?: null) : $existing['IdTpq'];
+        $targetTpq = $isAdmin ? ($this->request->getPost('IdTpq') ?: null) : (int)$idTpq;
 
         $updateData = [
             'IdTpq'      => $targetTpq,

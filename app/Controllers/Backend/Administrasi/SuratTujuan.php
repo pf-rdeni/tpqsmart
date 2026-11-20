@@ -92,8 +92,8 @@ class SuratTujuan extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => 'Data tidak ditemukan']);
         }
 
-        if (!$isAdmin && $existing['IdTpq'] != $idTpq && !empty($existing['IdTpq'])) {
-            return $this->response->setJSON(['success' => false, 'message' => 'Anda tidak memiliki hak mengubah data ini']);
+        if (!$isAdmin && ($existing['IdTpq'] != $idTpq || empty($existing['IdTpq']))) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Anda tidak memiliki hak mengubah data master Admin']);
         }
 
         $rules = [
@@ -109,7 +109,7 @@ class SuratTujuan extends BaseController
             ]);
         }
 
-        $targetTpq = $isAdmin ? ($this->request->getPost('IdTpq') ?: null) : $existing['IdTpq'];
+        $targetTpq = $isAdmin ? ($this->request->getPost('IdTpq') ?: null) : (int)$idTpq;
 
         $updateData = [
             'IdTpq'          => $targetTpq,

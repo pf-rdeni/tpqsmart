@@ -85,6 +85,7 @@ class SuratTemplate extends BaseController
 
         $saveData = [
             'IdTpq'             => $targetTpq,
+            'ShareAllTpq'       => $isAdmin ? ($this->request->getPost('ShareAllTpq') ? 1 : 0) : 0,
             'IdKategori'        => $this->request->getPost('IdKategori'),
             'NamaTemplate'      => $this->request->getPost('NamaTemplate'),
             'Deskripsi'         => $this->request->getPost('Deskripsi'),
@@ -193,6 +194,7 @@ class SuratTemplate extends BaseController
 
         $updateData = [
             'IdTpq'             => $targetTpq,
+            'ShareAllTpq'       => $isAdmin ? ($this->request->getPost('ShareAllTpq') ? 1 : 0) : 0,
             'IdKategori'        => $this->request->getPost('IdKategori'),
             'NamaTemplate'      => $this->request->getPost('NamaTemplate'),
             'Deskripsi'         => $this->request->getPost('Deskripsi'),
@@ -234,6 +236,36 @@ class SuratTemplate extends BaseController
         }
 
         return redirect()->to(base_url('backend/administrasi/template'))->with('message', 'Template surat berhasil diperbarui');
+    }
+
+    public function duplicate($id = null)
+    {
+        $idTpq   = session()->get('IdTpq');
+        $isAdmin = ($idTpq === '0' || $idTpq === 0 || empty($idTpq));
+
+        $source = $this->templateModel->find($id);
+        if (!$source) {
+            return redirect()->back()->with('error', 'Template sumber tidak ditemukan');
+        }
+
+        // Target TPQ untuk hasil salinan
+        $targetTpq = $isAdmin ? 0 : (int)$idTpq;
+
+        $newTemplate = $source;
+        unset($newTemplate['Id'], $newTemplate['CreatedAt'], $newTemplate['UpdatedAt']);
+        $newTemplate['IdTpq']        = $targetTpq;
+        $newTemplate['ShareAllTpq']  = 0; // Salinan selalu privat untuk lembaga yang menyalin
+        $newTemplate['NamaTemplate'] = $source['NamaTemplate'] . ' (Salinan)';
+        $newTemplate['IsDefault']    = 0;
+        $newTemplate['IsActive']     = 1;
+        $newTemplate['CreatedBy']    = function_exists('user_id') ? user_id() : null;
+
+        $insertedId = $this->templateModel->insert($newTemplate);
+        if ($insertedId) {
+            return redirect()->to(base_url('backend/administrasi/template'))->with('message', 'Template berhasil disalin ke lembaga Anda');
+        }
+
+        return redirect()->back()->with('error', 'Gagal menduplikasi template');
     }
 
     public function delete($id = null)

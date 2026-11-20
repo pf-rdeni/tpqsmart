@@ -85,6 +85,19 @@
                                 Jadikan Template Default untuk kategori ini
                             </label>
                         </div>
+
+                        <?php if ($isAdmin): ?>
+                            <div class="custom-control custom-checkbox mt-3 pt-2 border-top" id="wrapperShareAllTpq">
+                                <input type="checkbox" name="ShareAllTpq" class="custom-control-input" id="checkShareAllTpq" value="1"
+                                       <?= (!empty($template['ShareAllTpq']) || old('ShareAllTpq')) ? 'checked' : '' ?>>
+                                <label class="custom-control-label font-weight-bold text-primary" for="checkShareAllTpq">
+                                    <i class="fas fa-globe mr-1"></i> Bagikan ke Semua Lembaga (Template Publik / Standar)
+                                </label>
+                                <small class="text-muted d-block ml-4">
+                                    Jika dicentang, Operator Lembaga &amp; Sekretaris di semua TPQ dapat melihat dan menggunakan template ini. Jika tidak dicentang, template hanya dapat diakses oleh Admin / FKPQ.
+                                </small>
+                            </div>
+                        <?php endif; ?>
                     </div>
                 </div>
 

@@ -47,34 +47,42 @@
                                 <tr>
                                     <td class="text-center"><?= $no++ ?></td>
                                     <td class="text-center">
+                                        <?php $canManage = ($isAdmin || $t['IdTpq'] == $idTpq); ?>
                                         <div class="dropdown">
                                             <button class="btn btn-primary btn-sm dropdown-toggle shadow-sm" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                                 <i class="fas fa-cog mr-1"></i> Aksi
                                             </button>
                                             <div class="dropdown-menu shadow">
-                                                <!-- Edit Template -->
-                                                <a class="dropdown-item text-warning" href="<?= base_url('backend/administrasi/template/edit/' . $t['Id']) ?>">
-                                                    <i class="fas fa-edit mr-2"></i> Edit Template
-                                                </a>
+                                                <?php if ($canManage): ?>
+                                                    <!-- Edit Template -->
+                                                    <a class="dropdown-item text-warning" href="<?= base_url('backend/administrasi/template/edit/' . $t['Id']) ?>">
+                                                        <i class="fas fa-edit mr-2"></i> Edit Template
+                                                    </a>
 
-                                                <!-- Set Default -->
-                                                <?php if (!$t['IsDefault']): ?>
-                                                    <a class="dropdown-item text-primary btn-set-default" href="javascript:void(0)" data-id="<?= $t['Id'] ?>">
-                                                        <i class="fas fa-star mr-2"></i> Jadikan Default
+                                                    <!-- Set Default -->
+                                                    <?php if (!$t['IsDefault']): ?>
+                                                        <a class="dropdown-item text-primary btn-set-default" href="javascript:void(0)" data-id="<?= $t['Id'] ?>">
+                                                            <i class="fas fa-star mr-2"></i> Jadikan Default
+                                                        </a>
+                                                    <?php endif; ?>
+
+                                                    <!-- Toggle Aktif/Nonaktif -->
+                                                    <a class="dropdown-item text-<?= $t['IsActive'] ? 'secondary' : 'success' ?> btn-toggle-tpl" href="javascript:void(0)" data-id="<?= $t['Id'] ?>">
+                                                        <i class="fas fa-power-off mr-2"></i> <?= $t['IsActive'] ? 'Nonaktifkan' : 'Aktifkan' ?>
+                                                    </a>
+
+                                                    <div class="dropdown-divider"></div>
+
+                                                    <!-- Hapus Template -->
+                                                    <a class="dropdown-item text-danger btn-delete-tpl" href="javascript:void(0)" data-id="<?= $t['Id'] ?>" data-nama="<?= esc($t['NamaTemplate']) ?>">
+                                                        <i class="fas fa-trash-alt mr-2"></i> Hapus Template
+                                                    </a>
+                                                <?php else: ?>
+                                                    <!-- Salin ke Lembaga Saya -->
+                                                    <a class="dropdown-item text-primary" href="<?= base_url('backend/administrasi/template/duplicate/' . $t['Id']) ?>" onclick="return confirm('Salin template ini ke lembaga Anda untuk disesuaikan?')">
+                                                        <i class="fas fa-copy mr-2"></i> Salin ke Lembaga Saya
                                                     </a>
                                                 <?php endif; ?>
-
-                                                <!-- Toggle Aktif/Nonaktif -->
-                                                <a class="dropdown-item text-<?= $t['IsActive'] ? 'secondary' : 'success' ?> btn-toggle-tpl" href="javascript:void(0)" data-id="<?= $t['Id'] ?>">
-                                                    <i class="fas fa-power-off mr-2"></i> <?= $t['IsActive'] ? 'Nonaktifkan' : 'Aktifkan' ?>
-                                                </a>
-
-                                                <div class="dropdown-divider"></div>
-
-                                                <!-- Hapus Template -->
-                                                <a class="dropdown-item text-danger btn-delete-tpl" href="javascript:void(0)" data-id="<?= $t['Id'] ?>" data-nama="<?= esc($t['NamaTemplate']) ?>">
-                                                    <i class="fas fa-trash-alt mr-2"></i> Hapus Template
-                                                </a>
                                             </div>
                                         </div>
                                     </td>
@@ -82,7 +90,11 @@
                                         <strong><?= esc($t['NamaTemplate']) ?></strong>
                                         <div class="mt-1">
                                             <?php if ($t['IdTpq'] == 0): ?>
-                                                <span class="badge badge-dark"><i class="fas fa-university mr-1"></i> FKPQ (Admin / Global)</span>
+                                                <?php if (!empty($t['ShareAllTpq'])): ?>
+                                                    <span class="badge badge-info"><i class="fas fa-globe mr-1"></i> Standar Admin (Publik)</span>
+                                                <?php else: ?>
+                                                    <span class="badge badge-dark"><i class="fas fa-lock mr-1"></i> Internal FKPQ (Privat)</span>
+                                                <?php endif; ?>
                                             <?php else: ?>
                                                 <span class="badge badge-secondary"><i class="fas fa-school mr-1"></i> <?= esc($t['NamaTpq'] ?? 'TPQ #' . $t['IdTpq']) ?></span>
                                             <?php endif; ?>

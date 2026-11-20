@@ -38,7 +38,7 @@ class Guru extends BaseController
         // ambil IdTpq dari session
         $IdTpq = session()->get('IdTpq');
         $isAdmin = in_groups('Admin');
-        $isOperator = in_groups('Operator');
+        $isOperator = in_groups('Operator') || in_groups('Sekretaris');
 
         // query data guru berdasarkan IdTpq jika idtpq tidak ada maka akan menampilkan semua data guru
         if ($IdTpq == null) {
@@ -2078,16 +2078,16 @@ class Guru extends BaseController
         $this->response->setHeader('Content-Type', 'application/json');
 
         try {
-            // Hanya Admin dan Operator yang bisa akses
-            if (!in_groups('Admin') && !in_groups('Operator')) {
+            // Hanya Admin, Operator, dan Sekretaris yang bisa akses
+            if (!in_groups('Admin') && !in_groups('Operator') && !in_groups('Sekretaris')) {
                 return $this->response->setStatusCode(403)->setJSON([
                     'success' => false,
                     'message' => 'Akses ditolak'
                 ]);
             }
 
-            // Untuk Operator, ambil TPQ dari session dan override filterTpq
-            $isOperator = in_groups('Operator');
+            // Untuk Operator / Sekretaris, ambil TPQ dari session dan override filterTpq
+            $isOperator = in_groups('Operator') || in_groups('Sekretaris');
             $operatorIdTpq = null;
             if ($isOperator) {
                 $operatorIdTpq = session()->get('IdTpq');
@@ -2209,17 +2209,17 @@ class Guru extends BaseController
     public function printBulkInsentif()
     {
         try {
-            // Hanya Admin dan Operator yang bisa akses
-            if (!in_groups('Admin') && !in_groups('Operator')) {
-                log_message('error', 'Guru: printBulkInsentif - Akses ditolak, bukan Admin atau Operator');
+            // Hanya Admin, Operator, dan Sekretaris yang bisa akses
+            if (!in_groups('Admin') && !in_groups('Operator') && !in_groups('Sekretaris')) {
+                log_message('error', 'Guru: printBulkInsentif - Akses ditolak, bukan Admin, Operator, atau Sekretaris');
                 return $this->response->setStatusCode(403)->setJSON([
                     'success' => false,
                     'message' => 'Akses ditolak'
                 ]);
             }
 
-            // Untuk Operator, ambil TPQ dari session dan override filterTpq
-            $isOperator = in_groups('Operator');
+            // Untuk Operator / Sekretaris, ambil TPQ dari session dan override filterTpq
+            $isOperator = in_groups('Operator') || in_groups('Sekretaris');
             $operatorIdTpq = null;
             if ($isOperator) {
                 $operatorIdTpq = session()->get('IdTpq');
@@ -3109,8 +3109,8 @@ class Guru extends BaseController
     // Halaman Statistik Presensi dengan Peta Lokasi
     public function statistikPresensi()
     {
-        // Access control - only Admin, Operator, Guru
-        if (!in_groups(['Admin', 'Operator', 'Guru'])) {
+        // Access control - only Admin, Operator, Guru, Sekretaris
+        if (!in_groups(['Admin', 'Operator', 'Guru', 'Sekretaris'])) {
             return redirect()->to(base_url('backend/dashboard'))->with('error', 'Anda tidak memiliki akses ke halaman ini');
         }
 

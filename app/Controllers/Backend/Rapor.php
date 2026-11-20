@@ -751,7 +751,7 @@ class Rapor extends BaseController
         $IdTahunAjaran = session()->get('IdTahunAjaran');
 
         // Cek apakah user adalah Operator
-        $isOperator = in_groups('Operator');
+        $isOperator = in_groups('Operator') || in_groups('Sekretaris');
 
         // Cek apakah user adalah Kepala Sekolah
         $jabatanData = $this->helpFunctionModel->getStrukturLembagaJabatan($IdGuru, $IdTpq);
@@ -963,7 +963,7 @@ class Rapor extends BaseController
 
             // Cek apakah user adalah Admin atau Operator
             $isAdmin = in_groups('Admin');
-            $isOperator = in_groups('Operator');
+            $isOperator = in_groups('Operator') || in_groups('Sekretaris');
 
             // Cek apakah user adalah Kepala Sekolah
             $jabatanData = $this->helpFunctionModel->getStrukturLembagaJabatan($IdGuru, $IdTpq);
@@ -1524,7 +1524,7 @@ class Rapor extends BaseController
 
         // Cek apakah user adalah Admin, Operator, atau Kepala Sekolah
         $isAdmin = in_groups('Admin');
-        $isOperator = in_groups('Operator');
+        $isOperator = in_groups('Operator') || in_groups('Sekretaris');
 
         // Cek apakah user adalah Kepala Sekolah (Kepala TPQ)
         $isKepalaSekolah = false;
@@ -2394,7 +2394,7 @@ class Rapor extends BaseController
 
         // Cek apakah user adalah Admin atau Operator
         $isAdmin = in_groups('Admin');
-        $isOperator = in_groups('Operator');
+        $isOperator = in_groups('Operator') || in_groups('Sekretaris');
 
         // Cek apakah user adalah Wali Kelas (hanya jika bukan Admin/Operator)
         if (!empty($IdKelas) && !$isAdmin && !$isOperator) {
@@ -2602,7 +2602,7 @@ class Rapor extends BaseController
 
         // Cek permission: hanya Wali Kelas, Admin, atau Operator yang bisa save
         $isAdmin = in_groups('Admin');
-        $isOperator = in_groups('Operator');
+        $isOperator = in_groups('Operator') || in_groups('Sekretaris');
 
         if (!$isAdmin && !$isOperator) {
             // Untuk Guru, cek apakah adalah Wali Kelas
@@ -3262,7 +3262,7 @@ class Rapor extends BaseController
 
         // Cek apakah user adalah Admin atau Operator
         $isAdmin = in_groups('Admin');
-        $isOperator = in_groups('Operator');
+        $isOperator = in_groups('Operator') || in_groups('Sekretaris');
 
         // Cek apakah user adalah Kepala Sekolah
         $jabatanData = $this->helpFunctionModel->getStrukturLembagaJabatan($IdGuru, $IdTpq);
@@ -3400,7 +3400,7 @@ class Rapor extends BaseController
 
             // Cek apakah user adalah Admin atau Operator
             $isAdmin = in_groups('Admin');
-            $isOperator = in_groups('Operator');
+            $isOperator = in_groups('Operator') || in_groups('Sekretaris');
 
             // Cek apakah user adalah Kepala Sekolah
             $jabatanData = $this->helpFunctionModel->getStrukturLembagaJabatan($IdGuru, $IdTpq);

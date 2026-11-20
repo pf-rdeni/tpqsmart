@@ -1055,6 +1055,7 @@ $routes->get('backend/administrasi/template/edit/(:num)', 'Backend\Administrasi\
 $routes->post('backend/administrasi/template/update/(:num)', 'Backend\Administrasi\SuratTemplate::update/$1');
 $routes->post('backend/administrasi/template/delete/(:num)', 'Backend\Administrasi\SuratTemplate::delete/$1');
 $routes->post('backend/administrasi/template/toggle/(:num)', 'Backend\Administrasi\SuratTemplate::toggleActive/$1');
+$routes->get('backend/administrasi/template/duplicate/(:num)', 'Backend\Administrasi\SuratTemplate::duplicate/$1');
 $routes->post('backend/administrasi/template/set-default/(:num)', 'Backend\Administrasi\SuratTemplate::setDefault/$1');
 
 // Surat Keluar (Fase 2 & Fase 4)

@@ -657,6 +657,12 @@ class SuratKeluar extends BaseController
             throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound('Surat tidak ditemukan');
         }
 
+        $idTpqSession = session()->get('IdTpq');
+        $isAdmin      = ($idTpqSession === '0' || $idTpqSession === 0 || empty($idTpqSession));
+        if (!$isAdmin && $surat['IdTpq'] != $idTpqSession) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound('Akses ditolak: Dokumen bukan milik lembaga Anda');
+        }
+
         $template = $this->templateModel->find($surat['IdTemplate']);
         $penerima = $this->penerimaModel->getBySurat($idSurat);
 
@@ -742,6 +748,12 @@ class SuratKeluar extends BaseController
         $surat = $this->suratModel->find($idSurat);
         if (!$surat) {
             throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound('Surat tidak ditemukan');
+        }
+
+        $idTpqSession = session()->get('IdTpq');
+        $isAdmin      = ($idTpqSession === '0' || $idTpqSession === 0 || empty($idTpqSession));
+        if (!$isAdmin && $surat['IdTpq'] != $idTpqSession) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound('Akses ditolak: Dokumen bukan milik lembaga Anda');
         }
 
         $template = $this->templateModel->find($surat['IdTemplate']);

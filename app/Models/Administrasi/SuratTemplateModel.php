@@ -13,6 +13,7 @@ class SuratTemplateModel extends Model
 
     protected $allowedFields = [
         'IdTpq',
+        'ShareAllTpq',
         'IdKategori',
         'NamaTemplate',
         'Deskripsi',
@@ -63,7 +64,10 @@ class SuratTemplateModel extends Model
         if ($idTpq !== null && $idTpq !== '' && (int)$idTpq !== 0) {
             $builder->groupStart()
                     ->where('tbl_surat_template.IdTpq', (int)$idTpq)
-                    ->orWhere('tbl_surat_template.IdTpq', 0)
+                    ->orGroupStart()
+                        ->where('tbl_surat_template.IdTpq', 0)
+                        ->where('tbl_surat_template.ShareAllTpq', 1)
+                    ->groupEnd()
                     ->groupEnd();
         }
 
@@ -80,7 +84,11 @@ class SuratTemplateModel extends Model
         if ($idTpq !== null && $idTpq !== '' && (int)$idTpq !== 0) {
             $builder->groupStart()
                     ->where('tbl_surat_template.IdTpq', (int)$idTpq)
-                    ->orWhere('tbl_surat_template.IdTpq', 0)
+                    ->orGroupStart()
+                        ->where('tbl_surat_template.IdTpq', 0)
+                        ->where('tbl_surat_template.ShareAllTpq', 1)
+                        ->where('tbl_surat_template.IsActive', 1)
+                    ->groupEnd()
                     ->groupEnd();
         }
 
