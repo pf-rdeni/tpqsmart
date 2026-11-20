@@ -190,11 +190,25 @@
             vertical-align: middle;
         }
 
+        .ttd-qr-link {
+            text-decoration: none;
+            display: inline-block;
+            cursor: pointer;
+        }
+
+        .ttd-qr-link:hover .ttd-qr-img {
+            opacity: 0.88;
+            outline: 2px dashed #007bff;
+            border-radius: 4px;
+        }
+
         .ttd-qr-img {
             width: 52pt;
             height: 52pt;
-            display: inline-block;
+            display: block;
             margin: 0 auto;
+            border: 0;
+            cursor: pointer;
         }
 
         .ttd-space-manual {
@@ -308,8 +322,178 @@
         <div class="salam-penutup"><?= esc($surat['SalamPenutup']) ?></div>
     <?php endif; ?>
 
-    <!-- 8. BAGIAN TANDA TANGAN -->
-    <?php if (!isset($template['ShowMengetahui']) || !empty($template['ShowMengetahui']) || !empty($ttd1) || !empty($ttd2)): ?>
+    <!-- 8. BAGIAN TANDA TANGAN (DINAMIS & MULTI-SIGNER) -->
+    <?php
+    if (!function_exists('renderSignerPdfCell')) {
+        function renderSignerPdfCell($s, $surat) {
+            $namaDisplay = $s['nama'] ?? '____________________';
+            if ($namaDisplay !== '____________________' && function_exists('formatNamaGelar')) {
+                $namaDisplay = formatNamaGelar($namaDisplay);
+            }
+
+            $html = '<table class="ttd-col-table" style="width: 100%; border-collapse: collapse; margin: 0 auto;">';
+            $html .= '<tr>';
+            $html .= '<td style="text-align: center; font-weight: bold; padding-bottom: 2pt;">' . esc($s['jabatan'] ?: 'Penanda Tangan') . '</td>';
+            $html .= '</tr>';
+
+            if (!empty($s['show_instansi']) && !empty($s['instansi'])) {
+                $html .= '<tr>';
+                $html .= '<td style="text-align: center; font-size: 8.5pt; color: #444; padding-bottom: 4pt;">' . esc($s['instansi']) . '</td>';
+                $html .= '</tr>';
+            } else {
+                $html .= '<tr><td style="height: 3pt;"></td></tr>';
+            }
+
+            $html .= '<tr>';
+            $html .= '<td class="ttd-qr-cell" style="text-align: center; height: 58pt; vertical-align: middle;">';
+            if (($s['mode'] ?? '') === 'QR' && !empty($s['qrSrc'])) {
+                $url = !empty($s['validation_url']) 
+                    ? $s['validation_url'] 
+                    : (!empty($s['token_10']) 
+                        ? base_url('signature/verify/' . $s['token_10']) 
+                        : (!empty($surat['Id']) 
+                            ? base_url('signature/validateSurat/' . $surat['Id']) 
+                            : base_url('signature/verify/preview')));
+
+                if (!empty($url) && strpos($url, '.') === false) {
+                    $url .= (strpos($url, '?') !== false ? '&' : '?') . 'v=1.0';
+                }
+
+                $titleTooltip = 'Verifikasi Keaslian Dokumen: ' . $url;
+                $html .= '<a href="' . esc($url) . '" target="_blank" title="' . esc($titleTooltip) . '" class="ttd-qr-link" style="text-decoration: none; display: inline-block; cursor: pointer;">';
+                $html .= '<img src="' . $s['qrSrc'] . '" class="ttd-qr-img" style="width: 50pt; height: 50pt; border: 0; cursor: pointer; display: block;" alt="QR Code">';
+                $html .= '</a>';
+            } else {
+                $html .= '<div class="ttd-space-manual" style="height: 48pt;"></div>';
+            }
+            $html .= '</td>';
+            $html .= '</tr>';
+
+            $html .= '<tr>';
+            $html .= '<td style="text-align: center; padding-top: 6pt; font-weight: bold; text-decoration: underline;">( ' . esc($namaDisplay) . ' )</td>';
+            $html .= '</tr>';
+
+            if (!empty($s['show_nip']) && !empty($s['nip'])) {
+                $html .= '<tr>';
+                $html .= '<td style="text-align: center; font-size: 8.5pt; padding-top: 2pt;">NIP/ID: ' . esc($s['nip']) . '</td>';
+                $html .= '</tr>';
+            }
+
+            $html .= '</table>';
+            return $html;
+        }
+    }
+    ?>
+
+    <?php if (!empty($renderedSigners)): ?>
+        <?php
+        // Pisahkan baris 1 (pelaksana / penanggung jawab) & baris 2 (mengetahui)
+        $baris1 = [];
+        $baris2 = [];
+        foreach ($renderedSigners as $s) {
+            if (strpos($s['posisi'], 'mengetahui') !== false) {
+                $baris2[] = $s;
+            } else {
+                $baris1[] = $s;
+            }
+        }
+
+        // Urutkan baris 1: kiri, tengah, kanan
+        $posOrder1 = ['kiri' => 1, 'tengah' => 2, 'kanan' => 3];
+        usort($baris1, function($a, $b) use ($posOrder1) {
+            return ($posOrder1[$a['posisi']] ?? 9) <=> ($posOrder1[$b['posisi']] ?? 9);
+        });
+
+        // Urutkan baris 2: mengetahui_kiri, mengetahui_tengah, mengetahui_kanan
+        $posOrder2 = ['mengetahui_kiri' => 1, 'mengetahui_tengah' => 2, 'mengetahui_kanan' => 3];
+        usort($baris2, function($a, $b) use ($posOrder2) {
+            return ($posOrder2[$a['posisi']] ?? 9) <=> ($posOrder2[$b['posisi']] ?? 9);
+        });
+        ?>
+
+        <div class="ttd-section">
+            <!-- BARIS 1 -->
+            <?php if (!empty($baris1)): ?>
+                <table class="ttd-table" style="width: 100%; border-collapse: collapse;">
+                    <tr>
+                        <?php
+                        $b1Count = count($baris1);
+                        if ($b1Count === 1) {
+                            $singlePos = $baris1[0]['posisi'] ?? 'kanan';
+                            if ($singlePos === 'kanan') {
+                                echo '<td style="width: 52%;"></td>';
+                                echo '<td style="width: 48%; vertical-align: top; text-align: center;">';
+                                echo renderSignerPdfCell($baris1[0], $surat);
+                                echo '</td>';
+                            } elseif ($singlePos === 'tengah') {
+                                echo '<td style="width: 25%;"></td>';
+                                echo '<td style="width: 50%; vertical-align: top; text-align: center;">';
+                                echo renderSignerPdfCell($baris1[0], $surat);
+                                echo '</td>';
+                                echo '<td style="width: 25%;"></td>';
+                            } else {
+                                echo '<td style="width: 48%; vertical-align: top; text-align: center;">';
+                                echo renderSignerPdfCell($baris1[0], $surat);
+                                echo '</td>';
+                                echo '<td style="width: 52%;"></td>';
+                            }
+                        } elseif ($b1Count === 2) {
+                            echo '<td style="width: 48%; vertical-align: top; text-align: center;">';
+                            echo renderSignerPdfCell($baris1[0], $surat);
+                            echo '</td>';
+                            echo '<td style="width: 4%;"></td>';
+                            echo '<td style="width: 48%; vertical-align: top; text-align: center;">';
+                            echo renderSignerPdfCell($baris1[1], $surat);
+                            echo '</td>';
+                        } elseif ($b1Count >= 3) {
+                            foreach ($baris1 as $idx => $s) {
+                                if ($idx > 0) {
+                                    echo '<td style="width: 2%;"></td>';
+                                }
+                                echo '<td style="width: 32%; vertical-align: top; text-align: center;">';
+                                echo renderSignerPdfCell($s, $surat);
+                                echo '</td>';
+                            }
+                        }
+                        ?>
+                    </tr>
+                </table>
+            <?php endif; ?>
+
+            <!-- BARIS 2 (MENGETAHUI) -->
+            <?php if (!empty($baris2)): ?>
+                <div style="text-align: center; font-size: 10pt; margin-top: 14pt; margin-bottom: 6pt;">
+                    <?= esc($baris2[0]['label_mengetahui'] ?? 'Mengetahui,') ?>
+                </div>
+
+                <?php
+                $b2Count = count($baris2);
+                if ($b2Count === 1) {
+                    echo '<table style="width: 50%; margin: 0 auto; border-collapse: collapse;">';
+                    echo '<tr>';
+                    echo '<td style="text-align: center; vertical-align: top;">';
+                    echo renderSignerPdfCell($baris2[0], $surat);
+                    echo '</td>';
+                    echo '</tr>';
+                    echo '</table>';
+                } else {
+                    echo '<table class="ttd-table" style="width: 100%; border-collapse: collapse;">';
+                    echo '<tr>';
+                    echo '<td style="width: 48%; vertical-align: top; text-align: center;">';
+                    echo renderSignerPdfCell($baris2[0], $surat);
+                    echo '</td>';
+                    echo '<td style="width: 4%;"></td>';
+                    echo '<td style="width: 48%; vertical-align: top; text-align: center;">';
+                    echo renderSignerPdfCell($baris2[1], $surat);
+                    echo '</td>';
+                    echo '</tr>';
+                    echo '</table>';
+                }
+                ?>
+            <?php endif; ?>
+        </div>
+    <?php elseif (!isset($template['ShowMengetahui']) || !empty($template['ShowMengetahui']) || !empty($ttd1) || !empty($ttd2)): ?>
+        <!-- Fallback Surat Lama (Backward Compatibility) -->
         <div class="ttd-section">
             <table class="ttd-table" style="width: 100%; border-collapse: collapse;">
                 <tr>
@@ -325,8 +509,18 @@
                                 <tr>
                                     <td class="ttd-qr-cell" style="text-align: center; height: 65pt; vertical-align: middle;">
                                         <?php if (($surat['ModeTtd1'] ?? 'Manual') === 'QR' && !empty($ttd1['qrSrc'])): ?>
-                                            <a href="<?= !empty($surat['Id']) ? base_url('signature/validateSurat/' . $surat['Id']) : '#' ?>" target="_blank" style="text-decoration: none; display: inline-block;">
-                                                <img src="<?= $ttd1['qrSrc'] ?>" class="ttd-qr-img" style="width: 52pt; height: 52pt;" alt="QR Code Tanda Tangan Digital">
+                                            <?php 
+                                                $urlTtd1 = !empty($ttd1['validation_url']) 
+                                                    ? $ttd1['validation_url'] 
+                                                    : (!empty($surat['Id']) 
+                                                        ? base_url('signature/validateSurat/' . $surat['Id']) 
+                                                        : base_url('signature/verify/preview'));
+                                                if (!empty($urlTtd1) && strpos($urlTtd1, '.') === false) {
+                                                    $urlTtd1 .= (strpos($urlTtd1, '?') !== false ? '&' : '?') . 'v=1.0';
+                                                }
+                                            ?>
+                                            <a href="<?= esc($urlTtd1) ?>" target="_blank" title="Verifikasi Keaslian Dokumen: <?= esc($urlTtd1) ?>" class="ttd-qr-link" style="text-decoration: none; display: inline-block; cursor: pointer;">
+                                                <img src="<?= $ttd1['qrSrc'] ?>" class="ttd-qr-img" style="width: 52pt; height: 52pt; border: 0; cursor: pointer; display: block;" alt="QR Code Tanda Tangan Digital">
                                             </a>
                                         <?php else: ?>
                                             <div class="ttd-space-manual" style="height: 52pt;"></div>
@@ -363,8 +557,18 @@
                                 <tr>
                                     <td class="ttd-qr-cell" style="text-align: center; height: 65pt; vertical-align: middle;">
                                         <?php if (($surat['ModeTtd2'] ?? 'Manual') === 'QR' && !empty($ttd2['qrSrc'])): ?>
-                                            <a href="<?= !empty($surat['Id']) ? base_url('signature/validateSurat/' . $surat['Id']) : '#' ?>" target="_blank" style="text-decoration: none; display: inline-block;">
-                                                <img src="<?= $ttd2['qrSrc'] ?>" class="ttd-qr-img" style="width: 52pt; height: 52pt;" alt="QR Code Tanda Tangan Digital">
+                                            <?php 
+                                                $urlTtd2 = !empty($ttd2['validation_url']) 
+                                                    ? $ttd2['validation_url'] 
+                                                    : (!empty($surat['Id']) 
+                                                        ? base_url('signature/validateSurat/' . $surat['Id']) 
+                                                        : base_url('signature/verify/preview'));
+                                                if (!empty($urlTtd2) && strpos($urlTtd2, '.') === false) {
+                                                    $urlTtd2 .= (strpos($urlTtd2, '?') !== false ? '&' : '?') . 'v=1.0';
+                                                }
+                                            ?>
+                                            <a href="<?= esc($urlTtd2) ?>" target="_blank" title="Verifikasi Keaslian Dokumen: <?= esc($urlTtd2) ?>" class="ttd-qr-link" style="text-decoration: none; display: inline-block; cursor: pointer;">
+                                                <img src="<?= $ttd2['qrSrc'] ?>" class="ttd-qr-img" style="width: 52pt; height: 52pt; border: 0; cursor: pointer; display: block;" alt="QR Code Tanda Tangan Digital">
                                             </a>
                                         <?php else: ?>
                                             <div class="ttd-space-manual" style="height: 52pt;"></div>

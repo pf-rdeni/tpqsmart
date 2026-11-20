@@ -82,6 +82,10 @@ class Filters extends BaseFilters
                     'signature/validateSignature/*',
                     'signature/validateSurat',
                     'signature/validateSurat/*',
+                    'signature/verify',
+                    'signature/verify/*',
+                    'signature/v',
+                    'signature/v/*',
                     'frontend/home',
                     'pendaftaran',           // Form pendaftaran publik
                     'pendaftaran/*',         // Semua route pendaftaran

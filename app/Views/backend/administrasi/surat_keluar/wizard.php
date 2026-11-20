@@ -84,6 +84,357 @@
             background-color: #f0f7ff !important;
             box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25) !important;
         }
+        /* ===== Step 6: Tanda Tangan Dinamis & Kaidah Naskah Dinas ===== */
+        .preset-card {
+            border-radius: 10px;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            background: #ffffff;
+            position: relative;
+            border: 1.5px solid #e2e8f0;
+            overflow: hidden;
+        }
+        .preset-card:hover {
+            border-color: #3b82f6 !important;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.15) !important;
+        }
+        .preset-card.selected {
+            border-color: #2563eb !important;
+            border-width: 2px !important;
+            background: linear-gradient(180deg, #f0f7ff 0%, #e6f0fa 100%) !important;
+            box-shadow: 0 6px 18px rgba(37, 99, 235, 0.18) !important;
+        }
+        .preset-card .selected-check {
+            display: none;
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            background: #2563eb;
+            color: #fff;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            font-size: 11px;
+            line-height: 20px;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.25);
+            z-index: 2;
+        }
+        .preset-card.selected .selected-check {
+            display: block;
+        }
+        .preset-badge {
+            display: inline-block;
+            font-size: 0.68rem;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 10px;
+            margin-bottom: 4px;
+        }
+        .preset-mini-diagram {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 42px;
+            margin: 6px 0 8px;
+            gap: 4px;
+            background: #f8fafc;
+            border: 1px dashed #cbd5e1;
+            border-radius: 6px;
+            padding: 4px;
+        }
+        .preset-card.selected .preset-mini-diagram {
+            background: rgba(255, 255, 255, 0.75);
+            border-color: #93c5fd;
+        }
+        .preset-mini-diagram .mini-row {
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+            width: 100%;
+        }
+        .preset-mini-diagram .mini-box {
+            display: inline-block;
+            height: 11px;
+            border-radius: 3px;
+            border: 1px solid #94a3b8;
+            background: #cbd5e1;
+            transition: all 0.2s;
+        }
+        .preset-mini-diagram .mini-box.box-ketua {
+            background: #2563eb;
+            border-color: #1d4ed8;
+        }
+        .preset-mini-diagram .mini-box.box-sekretaris {
+            background: #10b981;
+            border-color: #059669;
+        }
+        .preset-mini-diagram .mini-box.box-bendahara {
+            background: #f59e0b;
+            border-color: #d97706;
+        }
+        .preset-mini-diagram .mini-box.box-mengetahui {
+            background: #06b6d4;
+            border-color: #0891b2;
+        }
+        .preset-mini-diagram .mini-box.box-fkpq {
+            background: #7c3aed;
+            border-color: #6d28d9;
+        }
+        .signer-card {
+            border-radius: 10px;
+            transition: all 0.25s ease-in-out;
+            border: 1px solid #e2e8f0;
+            background: #ffffff;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            overflow: hidden;
+        }
+        .signer-card:hover {
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08) !important;
+            border-color: #cbd5e1;
+        }
+        .signer-card.border-accent-kanan { border-top: 3.5px solid #2563eb; }
+        .signer-card.border-accent-kiri  { border-top: 3.5px solid #10b981; }
+        .signer-card.border-accent-tengah { border-top: 3.5px solid #f59e0b; }
+        .signer-card.border-accent-mengetahui { border-top: 3.5px solid #06b6d4; }
+
+        .signer-card-header {
+            background: #f8fafc;
+            padding: 9px 14px;
+        }
+        .btn-xs { padding: 0.2rem 0.55rem; font-size: 0.75rem; line-height: 1.35; border-radius: 4px; }
+        .btn-sumber {
+            font-size: 0.74rem;
+            padding: 0.3rem 0.55rem;
+            font-weight: 600;
+            border-radius: 4px;
+            transition: all 0.15s ease-in-out;
+        }
+        .btn-sumber.active[data-sumber="guru"] { background: #2563eb !important; color: #fff !important; border-color: #2563eb !important; }
+        .btn-sumber.active[data-sumber="master_tujuan"] { background: #7c3aed !important; color: #fff !important; border-color: #7c3aed !important; }
+        .btn-sumber.active[data-sumber="fkpq"] { background: #0d9488 !important; color: #fff !important; border-color: #0d9488 !important; }
+        .btn-sumber.active[data-sumber="manual"] { background: #475569 !important; color: #fff !important; border-color: #475569 !important; }
+
+        /* Styling Select2 Pejabat di Step 6 */
+        .signer-select2-wrap .select2-container {
+            width: 100% !important;
+        }
+        .signer-select2-wrap .select2-container--bootstrap4 .select2-selection--single {
+            height: calc(2.1rem + 2px) !important;
+            padding: 0.35rem 0.65rem !important;
+            font-size: 0.85rem !important;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            background-color: #fff;
+            transition: all 0.2s ease-in-out;
+        }
+        .signer-select2-wrap .select2-container--bootstrap4 .select2-selection--single:hover {
+            border-color: #3b82f6 !important;
+        }
+        .signer-select2-wrap .select2-container--bootstrap4.select2-container--focus .select2-selection--single,
+        .signer-select2-wrap .select2-container--bootstrap4.select2-container--open .select2-selection--single {
+            border-color: #2563eb !important;
+            box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.2) !important;
+        }
+        .signer-select2-wrap .select2-container--bootstrap4 .select2-selection--single .select2-selection__rendered {
+            line-height: 1.4 !important;
+            font-weight: 600 !important;
+            color: #1e293b !important;
+            padding-left: 0 !important;
+        }
+        .signer-select2-wrap .select2-container--bootstrap4 .select2-selection--single .select2-selection__placeholder {
+            color: #64748b !important;
+            font-weight: 400 !important;
+        }
+        .signer-select2-wrap .select2-container--bootstrap4 .select2-selection--single .select2-selection__arrow {
+            height: calc(2.1rem + 2px) !important;
+            right: 0.5rem !important;
+        }
+        /* Sembunyikan tombol [x] clear agar dropdown bersih dan rapi */
+        .signer-select2-wrap .select2-selection__clear {
+            display: none !important;
+        }
+
+        /* Mode TTD Pill Cards */
+        .mode-ttd-card {
+            border: 1.5px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: #f8fafc;
+        }
+        .mode-ttd-card:hover {
+            border-color: #3b82f6;
+            background: #f0f7ff;
+        }
+        .mode-ttd-card.active {
+            border-color: #2563eb;
+            background: #eff6ff;
+            box-shadow: 0 0 0 1px #2563eb;
+        }
+
+        /* Wizard Footer Actions */
+        .wizard-footer {
+            background-color: #ffffff;
+            border-top: 1px solid #e2e8f0;
+            padding: 1rem 1.25rem;
+            border-bottom-left-radius: 8px;
+            border-bottom-right-radius: 8px;
+        }
+        .wizard-footer .btn {
+            font-size: 0.88rem;
+            letter-spacing: 0.01em;
+            transition: all 0.2s ease-in-out;
+        }
+        .wizard-footer .btn:hover {
+            transform: translateY(-1px);
+        }
+        .wizard-footer .btn-prev {
+            border-color: #cbd5e1;
+            color: #475569;
+            background-color: #ffffff;
+        }
+        .wizard-footer .btn-prev:hover {
+            background-color: #f8fafc;
+            color: #0f172a;
+            border-color: #94a3b8;
+        }
+
+        /* Sticky Real-Time Document Preview Box */
+        .preview-sticky-wrap {
+            position: sticky;
+            top: 15px;
+            z-index: 5;
+        }
+        #ttdPreviewBox {
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+            padding: 20px 16px;
+            min-height: 240px;
+            font-family: inherit;
+            font-size: 0.85rem;
+            line-height: 1.4;
+            color: #0f172a;
+            position: relative;
+            transition: background 0.3s;
+        }
+        #ttdPreviewBox.preview-flash {
+            animation: highlightSwap 0.75s ease-out;
+        }
+        @keyframes highlightSwap {
+            0% { background-color: #dbeafe; }
+            100% { background-color: #ffffff; }
+        }
+        .preview-header-ribbon {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-family: inherit;
+            font-size: 0.68rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            color: #64748b;
+            border-bottom: 1px dashed #cbd5e1;
+            padding-bottom: 7px;
+            margin-bottom: 12px;
+        }
+        .preview-row {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+            gap: 8px;
+        }
+        .preview-col {
+            text-align: center;
+            padding: 4px 6px;
+            flex: 1;
+            min-width: 0;
+            font-family: inherit;
+        }
+        .preview-col .preview-space-manual {
+            height: 42px;
+            border-bottom: 1px dashed #64748b;
+            margin: 6px auto;
+            width: 78%;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            font-size: 0.65rem;
+            color: #94a3b8;
+            font-style: normal;
+            font-family: inherit;
+            padding-bottom: 2px;
+        }
+        .preview-col .preview-space-qr {
+            height: 44px;
+            width: 44px;
+            margin: 6px auto;
+            border: 1.5px solid #2563eb;
+            background: #eff6ff;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #2563eb;
+            box-shadow: 0 2px 4px rgba(37, 99, 235, 0.15);
+        }
+        .preview-col .preview-space-qr i {
+            font-size: 26px;
+        }
+        .preview-col .preview-nama {
+            font-weight: bold;
+            font-size: 0.85rem;
+            margin-top: 5px;
+            text-decoration: underline;
+            color: #0f172a;
+            font-family: inherit;
+            text-transform: none;
+        }
+        .preview-col .preview-jabatan {
+            font-weight: bold;
+            font-size: 0.82rem;
+            color: #0f172a;
+            line-height: 1.3;
+            text-transform: none;
+            font-family: inherit;
+        }
+        .preview-col .preview-instansi {
+            font-size: 0.78rem;
+            color: #475569;
+            margin-bottom: 2px;
+            font-style: normal;
+            font-family: inherit;
+            text-transform: none;
+        }
+        .preview-col .preview-nip {
+            font-size: 0.76rem;
+            color: #475569;
+            margin-top: 2px;
+            font-family: inherit;
+            text-transform: none;
+        }
+        .preview-mengetahui-label {
+            text-align: center;
+            font-size: 0.85rem;
+            font-weight: bold;
+            margin-top: 14pt;
+            margin-bottom: 2pt;
+            color: #1e293b;
+            font-family: inherit;
+            text-transform: none;
+        }
+        .preview-tanggal {
+            text-align: right;
+            font-size: 0.82rem;
+            margin-bottom: 8px;
+            color: #0f172a;
+            font-family: inherit;
+            text-transform: none;
+        }
     </style>
 
     <!-- Wizard Step Indicator -->
@@ -242,15 +593,22 @@
                         <div id="templateDesc" class="text-muted small"></div>
                     </div>
                 </div>
-                <div class="card-footer bg-white d-flex justify-content-end align-items-center flex-wrap">
-                    <button type="button" class="btn btn-primary px-4 btn-next <?= !empty($isEdit) ? 'mr-2' : '' ?> mb-1" data-next="2">
-                        Lanjut ke Kop & Layout <i class="fas fa-arrow-right ml-1"></i>
-                    </button>
-                    <?php if (!empty($isEdit)): ?>
-                        <button type="button" class="btn btn-success px-4 btn-submit-wizard font-weight-bold mb-1" title="Simpan Perubahan Surat">
-                            <i class="fas fa-save mr-1"></i> Simpan
+                <div class="card-footer wizard-footer d-flex justify-content-between align-items-center flex-wrap shadow-sm">
+                    <div class="d-none d-md-flex align-items-center mb-1">
+                        <span class="badge badge-light border px-3 py-2 text-secondary font-weight-normal shadow-sm" style="font-size: 0.8rem; border-radius: 6px;">
+                            <i class="fas fa-file-alt text-primary mr-1"></i> Langkah 1 dari 8 &bull; Pilih Template Surat
+                        </span>
+                    </div>
+                    <div class="d-flex align-items-center flex-wrap mb-1 ml-auto" style="gap: 10px;">
+                        <?php if (!empty($isEdit)): ?>
+                            <button type="button" class="btn btn-outline-success px-4 py-2 btn-submit-wizard font-weight-bold shadow-sm" title="Simpan Perubahan Surat" style="border-radius: 6px;">
+                                <i class="fas fa-save mr-1"></i> Simpan
+                            </button>
+                        <?php endif; ?>
+                        <button type="button" class="btn btn-primary px-4 py-2 btn-next font-weight-bold shadow-sm" data-next="2" style="border-radius: 6px; min-width: 180px;">
+                            Lanjut ke Kop & Layout <i class="fas fa-arrow-right ml-2"></i>
                         </button>
-                    <?php endif; ?>
+                    </div>
                 </div>
             </div>
         </div>
@@ -352,13 +710,24 @@
                         </div>
                     </div>
                 </div>
-                <div class="card-footer bg-white d-flex justify-content-between align-items-center flex-wrap">
-                    <button type="button" class="btn btn-secondary btn-prev mb-1" data-prev="1"><i class="fas fa-arrow-left mr-1"></i> Kembali</button>
-                    <div class="d-flex align-items-center flex-wrap mb-1">
-                        <button type="button" class="btn btn-info px-4 btn-next <?= !empty($isEdit) ? 'mr-2' : '' ?>" data-next="3">Lanjut ke Penerima <i class="fas fa-arrow-right ml-1"></i></button>
+                <div class="card-footer wizard-footer d-flex justify-content-between align-items-center flex-wrap shadow-sm">
+                    <button type="button" class="btn btn-outline-secondary btn-prev px-4 py-2 font-weight-bold shadow-sm mb-1" data-prev="1" style="border-radius: 6px; min-width: 130px;">
+                        <i class="fas fa-arrow-left mr-2"></i> Kembali
+                    </button>
+                    <div class="d-none d-md-flex align-items-center mb-1">
+                        <span class="badge badge-light border px-3 py-2 text-secondary font-weight-normal shadow-sm" style="font-size: 0.8rem; border-radius: 6px;">
+                            <i class="fas fa-heading text-info mr-1"></i> Langkah 2 dari 8 &bull; Kop Surat & Layout Kertas
+                        </span>
+                    </div>
+                    <div class="d-flex align-items-center flex-wrap mb-1" style="gap: 10px;">
                         <?php if (!empty($isEdit)): ?>
-                            <button type="button" class="btn btn-success px-4 btn-submit-wizard font-weight-bold" title="Simpan Perubahan Surat"><i class="fas fa-save mr-1"></i> Simpan</button>
+                            <button type="button" class="btn btn-outline-success px-4 py-2 btn-submit-wizard font-weight-bold shadow-sm" title="Simpan Perubahan Surat" style="border-radius: 6px;">
+                                <i class="fas fa-save mr-1"></i> Simpan
+                            </button>
                         <?php endif; ?>
+                        <button type="button" class="btn btn-info px-4 py-2 btn-next font-weight-bold shadow-sm text-white" data-next="3" style="border-radius: 6px; min-width: 180px;">
+                            Lanjut ke Penerima <i class="fas fa-arrow-right ml-2"></i>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -521,13 +890,24 @@
                         </div>
                     </div>
                 </div>
-                <div class="card-footer bg-white d-flex justify-content-between align-items-center flex-wrap">
-                    <button type="button" class="btn btn-secondary btn-prev mb-1" data-prev="2"><i class="fas fa-arrow-left mr-1"></i> Kembali</button>
-                    <div class="d-flex align-items-center flex-wrap mb-1">
-                        <button type="button" class="btn btn-success px-4 btn-next <?= !empty($isEdit) ? 'mr-2' : '' ?>" data-next="4">Lanjut ke Perihal & Isi <i class="fas fa-arrow-right ml-1"></i></button>
+                <div class="card-footer wizard-footer d-flex justify-content-between align-items-center flex-wrap shadow-sm">
+                    <button type="button" class="btn btn-outline-secondary btn-prev px-4 py-2 font-weight-bold shadow-sm mb-1" data-prev="2" style="border-radius: 6px; min-width: 130px;">
+                        <i class="fas fa-arrow-left mr-2"></i> Kembali
+                    </button>
+                    <div class="d-none d-md-flex align-items-center mb-1">
+                        <span class="badge badge-light border px-3 py-2 text-secondary font-weight-normal shadow-sm" style="font-size: 0.8rem; border-radius: 6px;">
+                            <i class="fas fa-users text-success mr-1"></i> Langkah 3 dari 8 &bull; Data Penerima Surat
+                        </span>
+                    </div>
+                    <div class="d-flex align-items-center flex-wrap mb-1" style="gap: 10px;">
                         <?php if (!empty($isEdit)): ?>
-                            <button type="button" class="btn btn-success px-4 btn-submit-wizard font-weight-bold" title="Simpan Perubahan Surat"><i class="fas fa-save mr-1"></i> Simpan</button>
+                            <button type="button" class="btn btn-outline-success px-4 py-2 btn-submit-wizard font-weight-bold shadow-sm" title="Simpan Perubahan Surat" style="border-radius: 6px;">
+                                <i class="fas fa-save mr-1"></i> Simpan
+                            </button>
                         <?php endif; ?>
+                        <button type="button" class="btn btn-success px-4 py-2 btn-next font-weight-bold shadow-sm" data-next="4" style="border-radius: 6px; min-width: 180px;">
+                            Lanjut ke Perihal & Isi <i class="fas fa-arrow-right ml-2"></i>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -585,13 +965,24 @@
                         <input type="text" name="SalamPenutup" id="inputSalamPenutup" class="form-control" value="<?= esc($surat['SalamPenutup'] ?? "Wassalamu'alaikum Warahmatullahi Wabarakatuh") ?>">
                     </div>
                 </div>
-                <div class="card-footer bg-white d-flex justify-content-between align-items-center flex-wrap">
-                    <button type="button" class="btn btn-secondary btn-prev mb-1" data-prev="3"><i class="fas fa-arrow-left mr-1"></i> Kembali</button>
-                    <div class="d-flex align-items-center flex-wrap mb-1">
-                        <button type="button" class="btn btn-warning px-4 btn-next <?= !empty($isEdit) ? 'mr-2' : '' ?>" data-next="5">Lanjut ke Nomor Surat <i class="fas fa-arrow-right ml-1"></i></button>
+                <div class="card-footer wizard-footer d-flex justify-content-between align-items-center flex-wrap shadow-sm">
+                    <button type="button" class="btn btn-outline-secondary btn-prev px-4 py-2 font-weight-bold shadow-sm mb-1" data-prev="3" style="border-radius: 6px; min-width: 130px;">
+                        <i class="fas fa-arrow-left mr-2"></i> Kembali
+                    </button>
+                    <div class="d-none d-md-flex align-items-center mb-1">
+                        <span class="badge badge-light border px-3 py-2 text-secondary font-weight-normal shadow-sm" style="font-size: 0.8rem; border-radius: 6px;">
+                            <i class="fas fa-align-left text-warning mr-1"></i> Langkah 4 dari 8 &bull; Perihal & Redaksi Isi
+                        </span>
+                    </div>
+                    <div class="d-flex align-items-center flex-wrap mb-1" style="gap: 10px;">
                         <?php if (!empty($isEdit)): ?>
-                            <button type="button" class="btn btn-success px-4 btn-submit-wizard font-weight-bold" title="Simpan Perubahan Surat"><i class="fas fa-save mr-1"></i> Simpan</button>
+                            <button type="button" class="btn btn-outline-success px-4 py-2 btn-submit-wizard font-weight-bold shadow-sm" title="Simpan Perubahan Surat" style="border-radius: 6px;">
+                                <i class="fas fa-save mr-1"></i> Simpan
+                            </button>
                         <?php endif; ?>
+                        <button type="button" class="btn btn-warning px-4 py-2 btn-next font-weight-bold shadow-sm" data-next="5" style="border-radius: 6px; min-width: 180px;">
+                            Lanjut ke Nomor Surat <i class="fas fa-arrow-right ml-2"></i>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -629,123 +1020,500 @@
                         <i class="fas fa-shield-alt text-success mr-1"></i> Sistem otomatis mencegah nomor ganda dengan mengunci counter saat Anda menekan tombol Simpan/Finalisasi.
                     </div>
                 </div>
-                <div class="card-footer bg-white d-flex justify-content-between align-items-center flex-wrap">
-                    <button type="button" class="btn btn-secondary btn-prev mb-1" data-prev="4"><i class="fas fa-arrow-left mr-1"></i> Kembali</button>
-                    <div class="d-flex align-items-center flex-wrap mb-1">
-                        <button type="button" class="btn btn-secondary px-4 btn-next <?= !empty($isEdit) ? 'mr-2' : '' ?>" data-next="6">Lanjut ke Tanda Tangan <i class="fas fa-arrow-right ml-1"></i></button>
+                <div class="card-footer wizard-footer d-flex justify-content-between align-items-center flex-wrap shadow-sm">
+                    <button type="button" class="btn btn-outline-secondary btn-prev px-4 py-2 font-weight-bold shadow-sm mb-1" data-prev="4" style="border-radius: 6px; min-width: 130px;">
+                        <i class="fas fa-arrow-left mr-2"></i> Kembali
+                    </button>
+                    <div class="d-none d-md-flex align-items-center mb-1">
+                        <span class="badge badge-light border px-3 py-2 text-secondary font-weight-normal shadow-sm" style="font-size: 0.8rem; border-radius: 6px;">
+                            <i class="fas fa-barcode text-primary mr-1"></i> Langkah 5 dari 8 &bull; Penomoran Surat
+                        </span>
+                    </div>
+                    <div class="d-flex align-items-center flex-wrap mb-1" style="gap: 10px;">
                         <?php if (!empty($isEdit)): ?>
-                            <button type="button" class="btn btn-success px-4 btn-submit-wizard font-weight-bold" title="Simpan Perubahan Surat"><i class="fas fa-save mr-1"></i> Simpan</button>
+                            <button type="button" class="btn btn-outline-success px-4 py-2 btn-submit-wizard font-weight-bold shadow-sm" title="Simpan Perubahan Surat" style="border-radius: 6px;">
+                                <i class="fas fa-save mr-1"></i> Simpan
+                            </button>
                         <?php endif; ?>
+                        <button type="button" class="btn btn-primary px-4 py-2 btn-next font-weight-bold shadow-sm" data-next="6" style="border-radius: 6px; min-width: 180px;">
+                            Lanjut ke Tanda Tangan <i class="fas fa-arrow-right ml-2"></i>
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- ============================================================== -->
-        <!-- STEP 6: PENANDA TANGAN (TTD & QR CODE) -->
+        <!-- STEP 6: PENANDA TANGAN DINAMIS (TTD & QR CODE) -->
         <!-- ============================================================== -->
+        <?php
+        // Parse konfigurasi penanda tangan yang sudah ada (untuk mode edit)
+        $ttdConfig      = [];
+        $ttdLayoutPreset = 'preset_2';
+        if (!empty($surat['PenandaTanganConfig'])) {
+            $decoded = json_decode($surat['PenandaTanganConfig'], true);
+            if (json_last_error() === JSON_ERROR_NONE && !empty($decoded)) {
+                $ttdConfig       = $decoded;
+                $ttdLayoutPreset = $decoded['layout_preset'] ?? 'preset_2';
+            }
+        }
+        // Fallback ke data lama jika config kosong (backward compat)
+        if (empty($ttdConfig['signers'])) {
+            $ttdConfig = [
+                'layout_preset'   => $ttdLayoutPreset,
+                'label_mengetahui'=> 'Mengetahui,',
+                'signers'         => [
+                    [
+                        'signer_id'     => 'signer_1',
+                        'posisi'        => 'kanan',
+                        'sumber'        => 'guru',
+                        'ref_id'        => $surat['IdPenandaTangan1'] ?? '',
+                        'nama'          => '',
+                        'jabatan'       => $surat['Jabatan1'] ?? 'Kepala TPQ',
+                        'instansi'      => '',
+                        'nip'           => '',
+                        'show_nip'      => false,
+                        'show_instansi' => false,
+                        'mode_ttd'      => $surat['ModeTtd1'] ?? 'Manual',
+                        'token_10'      => null,
+                    ],
+                    [
+                        'signer_id'     => 'signer_2',
+                        'posisi'        => 'kiri',
+                        'sumber'        => 'guru',
+                        'ref_id'        => $surat['IdPenandaTangan2'] ?? '',
+                        'nama'          => '',
+                        'jabatan'       => $surat['Jabatan2'] ?? 'Sekretaris',
+                        'instansi'      => '',
+                        'nip'           => '',
+                        'show_nip'      => false,
+                        'show_instansi' => false,
+                        'mode_ttd'      => $surat['ModeTtd2'] ?? 'Manual',
+                        'token_10'      => null,
+                    ],
+                ],
+            ];
+        }
+        // Data FKPQ untuk dropdown sumber FKPQ
+        $db_step6 = \Config\Database::connect();
+        $fkpqData = $db_step6->table('tbl_fkpq')->get()->getRowArray();
+        ?>
         <div class="step-panel" id="step6">
             <div class="card card-primary card-outline shadow-sm">
                 <div class="card-header">
-                    <h3 class="card-title font-weight-bold"><i class="fas fa-file-signature mr-2"></i>Langkah 6: Pengaturan Tanda Tangan & QR Code</h3>
+                    <h3 class="card-title font-weight-bold">
+                        <i class="fas fa-file-signature mr-2"></i>Langkah 6: Penanda Tangan & Tata Letak Naskah Dinas
+                    </h3>
                 </div>
                 <div class="card-body">
-                    <div class="row mb-3">
-                        <div class="col-md-6 form-group">
-                            <label>Tempat Tanda Tangan</label>
-                            <input type="text" name="TempatTtd" id="inputTempatTtd" class="form-control" value="<?= esc($surat['TempatTtd'] ?? 'Bintan') ?>">
+
+                    <!-- Hidden: simpan JSON config lengkap -->
+                    <input type="hidden" name="PenandaTanganConfig" id="inputPenandaTanganConfig" value="<?= esc(json_encode($ttdConfig)) ?>">
+                    <!-- Backward compat: field lama tetap diisi lewat JS -->
+                    <input type="hidden" name="IdPenandaTangan1" id="hiddenIdPenandaTangan1" value="<?= esc($surat['IdPenandaTangan1'] ?? '') ?>">
+                    <input type="hidden" name="Jabatan1"         id="hiddenJabatan1"         value="<?= esc($surat['Jabatan1'] ?? '') ?>">
+                    <input type="hidden" name="ModeTtd1"         id="hiddenModeTtd1"         value="<?= esc($surat['ModeTtd1'] ?? 'Manual') ?>">
+                    <input type="hidden" name="IdPenandaTangan2" id="hiddenIdPenandaTangan2" value="<?= esc($surat['IdPenandaTangan2'] ?? '') ?>">
+                    <input type="hidden" name="Jabatan2"         id="hiddenJabatan2"         value="<?= esc($surat['Jabatan2'] ?? '') ?>">
+                    <input type="hidden" name="ModeTtd2"         id="hiddenModeTtd2"         value="<?= esc($surat['ModeTtd2'] ?? 'Manual') ?>">
+
+                    <!-- ======== BAGIAN 1: Parameter Waktu & Tempat ======== -->
+                    <div class="row mb-3 bg-light p-3 rounded border">
+                        <div class="col-12 mb-2 d-flex justify-content-between align-items-center flex-wrap">
+                            <span class="small font-weight-bold text-dark">
+                                <i class="fas fa-calendar-check text-primary mr-1"></i> Tempat & Tanggal Pengesahan Naskah Dinas
+                            </span>
+                            <span class="badge badge-light border text-muted small">Dicetak otomatis di atas kolom penanggung jawab</span>
                         </div>
-                        <div class="col-md-6 form-group">
-                            <label>Tanggal Tanda Tangan</label>
-                            <input type="date" name="TanggalTtd" id="inputTanggalTtd" class="form-control" value="<?= esc($surat['TanggalTtd'] ?? date('Y-m-d')) ?>">
+                        <div class="col-md-6 form-group mb-0">
+                            <label class="small font-weight-bold text-secondary mb-1">Tempat Tanda Tangan:</label>
+                            <div class="input-group input-group-sm">
+                                <div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-map-marker-alt text-danger"></i></span></div>
+                                <input type="text" name="TempatTtd" id="inputTempatTtd" class="form-control font-weight-bold" value="<?= esc($surat['TempatTtd'] ?? 'Bintan') ?>" placeholder="Contoh: Bintan / Tanjung Uban">
+                            </div>
+                        </div>
+                        <div class="col-md-6 form-group mb-0 mt-2 mt-md-0">
+                            <label class="small font-weight-bold text-secondary mb-1">Tanggal Tanda Tangan:</label>
+                            <div class="input-group input-group-sm">
+                                <div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-calendar-alt text-primary"></i></span></div>
+                                <input type="date" name="TanggalTtd" id="inputTanggalTtd" class="form-control font-weight-bold" value="<?= esc($surat['TanggalTtd'] ?? date('Y-m-d')) ?>">
+                            </div>
                         </div>
                     </div>
 
+                    <!-- ======== BAGIAN 2: Pilih Preset Tata Letak ======== -->
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <label class="font-weight-bold mb-0 text-dark">
+                                <i class="fas fa-th-large text-primary mr-1"></i> Pola Tata Letak Tanda Tangan (Kaidah Naskah Dinas):
+                            </label>
+                            <span class="badge badge-info px-2 py-1"><i class="fas fa-magic mr-1"></i> 5 Preset Baku</span>
+                        </div>
+                        <div class="row" id="layoutPresetRow">
+                            <!-- Preset 1: Tunggal -->
+                            <div class="col-12 col-sm-6 col-md-4 col-lg mb-2">
+                                <div class="preset-card card h-100 text-center p-2 <?= $ttdLayoutPreset === 'preset_1' ? 'selected' : '' ?>"
+                                     data-preset="preset_1" style="cursor:pointer;" title="Pola 1 Penanda Tangan Tunggal">
+                                    <span class="selected-check"><i class="fas fa-check"></i></span>
+                                    <span class="preset-badge badge-primary text-white">1 TTD</span>
+                                    <div class="preset-mini-diagram">
+                                        <div class="mini-row" style="justify-content: flex-end; padding-right: 12px;">
+                                            <span class="mini-box box-ketua" style="width: 32px;" title="Ketua / Kepala"></span>
+                                        </div>
+                                    </div>
+                                    <div class="font-weight-bold text-dark" style="font-size: 0.84rem;">Tunggal (1 TTD)</div>
+                                    <div class="text-muted" style="font-size: 0.7rem; line-height: 1.2;">Kepala TPQ / Mandat</div>
+                                </div>
+                            </div>
+
+                            <!-- Preset 2: Bipartit Sejajar -->
+                            <div class="col-12 col-sm-6 col-md-4 col-lg mb-2">
+                                <div class="preset-card card h-100 text-center p-2 <?= $ttdLayoutPreset === 'preset_2' ? 'selected' : '' ?>"
+                                     data-preset="preset_2" style="cursor:pointer;" title="Pola 2 Penanda Tangan Sejajar">
+                                    <span class="selected-check"><i class="fas fa-check"></i></span>
+                                    <span class="preset-badge badge-success text-white">2 TTD</span>
+                                    <div class="preset-mini-diagram">
+                                        <div class="mini-row" style="justify-content: space-between; padding: 0 4px;">
+                                            <span class="mini-box box-sekretaris" style="width: 24px;" title="Sekretaris (Kiri)"></span>
+                                            <span class="mini-box box-ketua" style="width: 24px;" title="Ketua (Kanan)"></span>
+                                        </div>
+                                    </div>
+                                    <div class="font-weight-bold text-dark" style="font-size: 0.84rem;">Bipartit Sejajar</div>
+                                    <div class="text-muted" style="font-size: 0.7rem; line-height: 1.2;">Sekretaris & Ketua</div>
+                                </div>
+                            </div>
+
+                            <!-- Preset 3: Piramida Tripartit -->
+                            <div class="col-12 col-sm-6 col-md-4 col-lg mb-2">
+                                <div class="preset-card card h-100 text-center p-2 <?= $ttdLayoutPreset === 'preset_3' ? 'selected' : '' ?>"
+                                     data-preset="preset_3" style="cursor:pointer;" title="Pola 3 Penanda Tangan Piramida">
+                                    <span class="selected-check"><i class="fas fa-check"></i></span>
+                                    <span class="preset-badge badge-info text-white">3 TTD ▲</span>
+                                    <div class="preset-mini-diagram">
+                                        <div class="mini-row" style="justify-content: space-between; padding: 0 4px;">
+                                            <span class="mini-box box-sekretaris" style="width: 22px;" title="Sekretaris"></span>
+                                            <span class="mini-box box-ketua" style="width: 22px;" title="Ketua Panitia"></span>
+                                        </div>
+                                        <div class="mini-row">
+                                            <span class="mini-box box-mengetahui" style="width: 28px;" title="Mengetahui"></span>
+                                        </div>
+                                    </div>
+                                    <div class="font-weight-bold text-dark" style="font-size: 0.84rem;">Piramida ▲</div>
+                                    <div class="text-muted" style="font-size: 0.7rem; line-height: 1.2;">2 Pelaksana + 1 Mengetahui</div>
+                                </div>
+                            </div>
+
+                            <!-- Preset 4: Tiga Sejajar -->
+                            <div class="col-12 col-sm-6 col-md-4 col-lg mb-2">
+                                <div class="preset-card card h-100 text-center p-2 <?= $ttdLayoutPreset === 'preset_4' ? 'selected' : '' ?>"
+                                     data-preset="preset_4" style="cursor:pointer;" title="Pola 3 Penanda Tangan Sejajar Horisontal">
+                                    <span class="selected-check"><i class="fas fa-check"></i></span>
+                                    <span class="preset-badge badge-warning text-dark">3 TTD ═</span>
+                                    <div class="preset-mini-diagram">
+                                        <div class="mini-row" style="justify-content: space-between;">
+                                            <span class="mini-box box-sekretaris" style="width: 18px;" title="Sekretaris"></span>
+                                            <span class="mini-box box-bendahara" style="width: 18px;" title="Bendahara"></span>
+                                            <span class="mini-box box-ketua" style="width: 18px;" title="Ketua"></span>
+                                        </div>
+                                    </div>
+                                    <div class="font-weight-bold text-dark" style="font-size: 0.84rem;">Tiga Sejajar ═</div>
+                                    <div class="text-muted" style="font-size: 0.7rem; line-height: 1.2;">Sekretaris, Bendahara, Ketua</div>
+                                </div>
+                            </div>
+
+                            <!-- Preset 5: Kuartet Berjenjang -->
+                            <div class="col-12 col-sm-6 col-md-4 col-lg mb-2">
+                                <div class="preset-card card h-100 text-center p-2 <?= $ttdLayoutPreset === 'preset_5' ? 'selected' : '' ?>"
+                                     data-preset="preset_5" style="cursor:pointer;" title="Pola 4 Penanda Tangan Kuartet Berjenjang">
+                                    <span class="selected-check"><i class="fas fa-check"></i></span>
+                                    <span class="preset-badge badge-danger text-white">4 TTD ⊞</span>
+                                    <div class="preset-mini-diagram">
+                                        <div class="mini-row" style="justify-content: space-between; padding: 0 4px;">
+                                            <span class="mini-box box-sekretaris" style="width: 22px;" title="Sekretaris Panitia"></span>
+                                            <span class="mini-box box-ketua" style="width: 22px;" title="Ketua Panitia"></span>
+                                        </div>
+                                        <div class="mini-row" style="justify-content: space-between; padding: 0 4px;">
+                                            <span class="mini-box box-fkpq" style="width: 22px;" title="FKPQ / Pembina"></span>
+                                            <span class="mini-box box-mengetahui" style="width: 22px;" title="Camat / Kades"></span>
+                                        </div>
+                                    </div>
+                                    <div class="font-weight-bold text-dark" style="font-size: 0.84rem;">Kuartet Berjenjang</div>
+                                    <div class="text-muted" style="font-size: 0.7rem; line-height: 1.2;">2 Pelaksana + 2 Mengetahui</div>
+                                </div>
+                            </div>
+                        </div>
+                        <input type="hidden" id="selectedLayoutPreset" value="<?= esc($ttdLayoutPreset) ?>">
+                    </div>
+
+                    <!-- ======== BAGIAN 3: Daftar Kartu Penanda Tangan + Preview Sticky ======== -->
                     <div class="row">
-                        <!-- TTD 1: Mengetahui (Kepala Lembaga) -->
-                        <div class="col-md-6">
-                            <div class="card border bg-light">
-                                <div class="card-header bg-white font-weight-bold py-2">
-                                    <i class="fas fa-user-check text-primary mr-1"></i> Penanda Tangan 1 (Mengetahui)
+                        <!-- Kolom Kiri: Kartu Penanda Tangan Dinamis -->
+                        <div class="col-lg-7 col-xl-8">
+                            <div class="d-flex justify-content-between align-items-center mb-3 bg-white p-2 px-3 rounded border shadow-sm flex-wrap">
+                                <div class="d-flex align-items-center mb-2 mb-sm-0">
+                                    <span class="font-weight-bold text-dark mr-2">
+                                        <i class="fas fa-users text-primary mr-1"></i> Pejabat Penanda Tangan
+                                    </span>
+                                    <span class="badge badge-primary px-2 py-1 font-weight-bold" id="signerCountBadge">2 Pejabat</span>
                                 </div>
-                                <div class="card-body py-3">
-                                    <div class="form-group mb-2">
-                                        <label class="small font-weight-bold">Pilih Guru / Kepala:</label>
-                                        <select name="IdPenandaTangan1" id="selectTtd1" class="form-control form-control-sm">
-                                            <option value="">-- Pilih Guru / Kepala --</option>
-                                            <?php foreach ($guruList as $g): ?>
-                                                <option value="<?= $g['IdGuru'] ?>" data-jabatan="<?= esc($g['Jabatan'] ?? '') ?>" <?= (isset($surat['IdPenandaTangan1']) && (string)$surat['IdPenandaTangan1'] === (string)$g['IdGuru']) ? 'selected' : '' ?>>
-                                                    <?= esc($g['Nama']) ?>
-                                                </option>
-                                            <?php endforeach; ?>
-                                        </select>
-                                    </div>
-                                    <div class="form-group mb-2">
-                                        <label class="small font-weight-bold">Jabatan:</label>
-                                        <input type="text" name="Jabatan1" id="inputJabatan1" class="form-control form-control-sm" value="<?= esc($surat['Jabatan1'] ?? 'Kepala TPQ') ?>">
-                                    </div>
-                                    <div class="form-group mb-0">
-                                        <label class="small font-weight-bold d-block">Mode Tanda Tangan:</label>
-                                        <?php $m1 = $surat['ModeTtd1'] ?? 'Manual'; ?>
-                                        <div class="custom-control custom-radio custom-control-inline">
-                                            <input type="radio" id="modeTtd1_qr" name="ModeTtd1" value="QR" class="custom-control-input" <?= ($m1 === 'QR') ? 'checked' : '' ?>>
-                                            <label class="custom-control-label small" for="modeTtd1_qr"><i class="fas fa-qrcode"></i> QR Code Digital</label>
-                                        </div>
-                                        <div class="custom-control custom-radio custom-control-inline">
-                                            <input type="radio" id="modeTtd1_manual" name="ModeTtd1" value="Manual" class="custom-control-input" <?= ($m1 !== 'QR') ? 'checked' : '' ?>>
-                                            <label class="custom-control-label small" for="modeTtd1_manual"><i class="fas fa-pen"></i> Blank Manual (Fisik)</label>
-                                        </div>
-                                    </div>
+                                <div class="d-flex align-items-center flex-wrap">
+                                    <button type="button" id="btnSwapBaris1" class="btn btn-sm btn-outline-primary mr-1 mb-1 mb-sm-0 shadow-sm" title="Tukar Posisi Kiri ⇄ Kanan pada Baris Pertama">
+                                        <i class="fas fa-exchange-alt mr-1"></i> Tukar Baris 1
+                                    </button>
+                                    <button type="button" id="btnSwapBaris2" class="btn btn-sm btn-outline-info mr-1 mb-1 mb-sm-0 shadow-sm d-none" title="Tukar Posisi Kiri ⇄ Kanan pada Baris Mengetahui">
+                                        <i class="fas fa-exchange-alt mr-1"></i> Tukar Baris 2
+                                    </button>
+                                    <button type="button" id="btnTambahSigner" class="btn btn-sm btn-success mb-1 mb-sm-0 shadow-sm">
+                                        <i class="fas fa-user-plus mr-1"></i> Tambah Pejabat
+                                    </button>
                                 </div>
                             </div>
+
+                            <!-- Kontainer Kartu Penanda Tangan (Dirender Dinamis via JS) -->
+                            <div id="signerCardsContainer"></div>
                         </div>
 
-                        <!-- TTD 2: Yang Membuat / Sekretaris -->
-                        <div class="col-md-6">
-                            <div class="card border bg-light">
-                                <div class="card-header bg-white font-weight-bold py-2">
-                                    <i class="fas fa-user-edit text-success mr-1"></i> Penanda Tangan 2 (Pembuat / Sekretaris)
+                        <!-- Kolom Kanan: Preview Real-time Mengambang (Sticky) -->
+                        <div class="col-lg-5 col-xl-4 mt-3 mt-lg-0">
+                            <div class="preview-sticky-wrap">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <label class="font-weight-bold mb-0 text-dark">
+                                        <i class="fas fa-eye text-info mr-1"></i> Pratinjau Lembar Surat
+                                    </label>
+                                    <span class="badge badge-success px-2 py-1" style="font-size: 0.68rem;"><i class="fas fa-sync-alt mr-1"></i> Live Real-Time</span>
                                 </div>
-                                <div class="card-body py-3">
-                                    <div class="form-group mb-2">
-                                        <label class="small font-weight-bold">Pilih Guru / Pembuat:</label>
-                                        <select name="IdPenandaTangan2" id="selectTtd2" class="form-control form-control-sm">
-                                            <option value="">-- Pilih Guru / Sekretaris (Opsional) --</option>
-                                            <?php foreach ($guruList as $g): ?>
-                                                <option value="<?= $g['IdGuru'] ?>" data-jabatan="<?= esc($g['Jabatan'] ?? '') ?>" <?= (isset($surat['IdPenandaTangan2']) && (string)$surat['IdPenandaTangan2'] === (string)$g['IdGuru']) ? 'selected' : '' ?>>
-                                                    <?= esc($g['Nama']) ?>
-                                                </option>
-                                            <?php endforeach; ?>
-                                        </select>
+                                <div id="ttdPreviewBox">
+                                    <div class="preview-header-ribbon">
+                                        <span><i class="fas fa-file-alt mr-1"></i> SIMULASI CETAK TANDA TANGAN</span>
+                                        <span>KERTAS RESMI</span>
                                     </div>
-                                    <div class="form-group mb-2">
-                                        <label class="small font-weight-bold">Jabatan:</label>
-                                        <input type="text" name="Jabatan2" id="inputJabatan2" class="form-control form-control-sm" value="<?= esc($surat['Jabatan2'] ?? 'Sekretaris') ?>">
+                                    <div class="text-center text-muted small py-4">
+                                        <i class="fas fa-sync fa-spin mr-1"></i> Memuat simulasi tanda tangan...
                                     </div>
-                                    <div class="form-group mb-0">
-                                        <label class="small font-weight-bold d-block">Mode Tanda Tangan:</label>
-                                        <?php $m2 = $surat['ModeTtd2'] ?? 'Manual'; ?>
-                                        <div class="custom-control custom-radio custom-control-inline">
-                                            <input type="radio" id="modeTtd2_qr" name="ModeTtd2" value="QR" class="custom-control-input" <?= ($m2 === 'QR') ? 'checked' : '' ?>>
-                                            <label class="custom-control-label small" for="modeTtd2_qr"><i class="fas fa-qrcode"></i> QR Code Digital</label>
-                                        </div>
-                                        <div class="custom-control custom-radio custom-control-inline">
-                                            <input type="radio" id="modeTtd2_manual" name="ModeTtd2" value="Manual" class="custom-control-input" <?= ($m2 !== 'QR') ? 'checked' : '' ?>>
-                                            <label class="custom-control-label small" for="modeTtd2_manual"><i class="fas fa-pen"></i> Blank Manual (Fisik)</label>
-                                        </div>
-                                    </div>
+                                </div>
+                                <div class="alert alert-light border mt-2 py-2 px-3 small text-muted shadow-sm" style="font-size: 0.72rem; line-height: 1.4;">
+                                    <i class="fas fa-info-circle text-primary mr-1"></i>
+                                    <strong>Petunjuk Kaidah Naskah:</strong> Penanggung jawab utama berada di sebelah kanan baris 1. Gunakan tombol <em>Tukar Baris 1</em> jika ingin menukar posisi Kiri ⇄ Kanan dengan satu klik tanpa perlu ketik ulang.
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
-                <div class="card-footer bg-white d-flex justify-content-between align-items-center flex-wrap">
-                    <button type="button" class="btn btn-secondary btn-prev mb-1" data-prev="5"><i class="fas fa-arrow-left mr-1"></i> Kembali</button>
-                    <div class="d-flex align-items-center flex-wrap mb-1">
-                        <button type="button" class="btn btn-primary px-4 btn-next <?= !empty($isEdit) ? 'mr-2' : '' ?>" data-next="7">Lanjut ke Preview <i class="fas fa-arrow-right ml-1"></i></button>
+
+                    <!-- Template Kartu Signer (Tersembunyi, Diklon oleh JS Engine) -->
+                    <template id="tmplSignerCard">
+                        <div class="signer-card card shadow-sm mb-3" data-signer-index="">
+                            <div class="signer-card-header card-header py-2 d-flex justify-content-between align-items-center border-bottom bg-light">
+                                <div class="d-flex align-items-center">
+                                    <span class="badge badge-primary mr-2 px-2 py-1 signer-posisi-badge" style="font-size: 0.78rem;">
+                                        <i class="fas fa-user-check mr-1 signer-icon"></i> <span class="label-posisi-text">Penanda Tangan</span>
+                                    </span>
+                                    <span class="text-muted small font-italic signer-subtitle">Penanggung Jawab</span>
+                                </div>
+                                <div class="btn-group btn-group-sm">
+                                    <button type="button" class="btn btn-xs btn-outline-secondary btn-move-up" title="Geser Urutan ke Atas">
+                                        <i class="fas fa-arrow-up"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-xs btn-outline-secondary btn-move-down" title="Geser Urutan ke Bawah">
+                                        <i class="fas fa-arrow-down"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-xs btn-outline-danger btn-hapus-signer ml-1" title="Hapus Penanda Tangan Ini">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body p-3">
+                                <!-- Row 1: Posisi & Sumber Data -->
+                                <div class="row">
+                                    <div class="col-md-6 form-group mb-2">
+                                        <label class="small font-weight-bold text-dark"><i class="fas fa-arrows-alt text-muted mr-1"></i> Posisi Kolom Surat:</label>
+                                        <select class="form-control form-control-sm signer-posisi font-weight-bold">
+                                            <option value="kanan">Kanan (Penanggung Jawab / Ketua)</option>
+                                            <option value="kiri">Kiri (Sekretaris / Pelaksana)</option>
+                                            <option value="tengah">Tengah (Bendahara / Penyusun)</option>
+                                            <option value="mengetahui_tengah">Bawah Tengah (Mengetahui 1 Orang)</option>
+                                            <option value="mengetahui_kiri">Bawah Kiri (Mengetahui Kiri)</option>
+                                            <option value="mengetahui_kanan">Bawah Kanan (Mengetahui Kanan)</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 form-group mb-2">
+                                        <label class="small font-weight-bold text-dark"><i class="fas fa-database text-muted mr-1"></i> Sumber Data Pejabat:</label>
+                                        <div class="btn-group btn-group-sm w-100 signer-sumber-group" role="group">
+                                            <button type="button" class="btn btn-sumber btn-outline-secondary active" data-sumber="guru" title="Ambil dari daftar guru TPQ">
+                                                <i class="fas fa-chalkboard-teacher mr-1"></i> Guru TPQ
+                                            </button>
+                                            <button type="button" class="btn btn-sumber btn-outline-secondary" data-sumber="master_tujuan" title="Ambil dari Kontak Master (Camat, Lurah, dll)">
+                                                <i class="fas fa-landmark mr-1"></i> Kontak Master
+                                            </button>
+                                            <button type="button" class="btn btn-sumber btn-outline-secondary" data-sumber="fkpq" title="Ambil dari Pengurus FKPQ">
+                                                <i class="fas fa-mosque mr-1"></i> FKPQ
+                                            </button>
+                                            <button type="button" class="btn btn-sumber btn-outline-secondary" data-sumber="manual" title="Input nama bebas ad-hoc">
+                                                <i class="fas fa-keyboard mr-1"></i> Bebas
+                                            </button>
+                                        </div>
+                                        <input type="hidden" class="signer-sumber" value="guru">
+                                    </div>
+                                </div>
+
+                                <!-- Baris Teks Pengantar Mengetahui (Muncul jika posisi Mengetahui) -->
+                                <div class="form-group mb-2 wrap-label-mengetahui d-none bg-light p-2 rounded border border-info">
+                                    <label class="small font-weight-bold text-info mb-1"><i class="fas fa-tag mr-1"></i> Teks Pengantar Mengetahui / Pengesahan:</label>
+                                    <input type="text" class="form-control form-control-sm signer-label-mengetahui font-weight-bold" value="Mengetahui," placeholder="Contoh: Mengetahui, / Mengesahkan, / Menyetujui,">
+                                </div>
+
+                                <!-- Row 2: Dropdown Pilih Pejabat (Select2 Terintegrasi Pencarian) -->
+                                <div class="form-group mb-2 wrap-pilih-pejabat">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <label class="small font-weight-bold text-dark mb-0">
+                                            <i class="fas fa-user-check text-primary mr-1"></i> Pilih / Cari Nama Pejabat:
+                                        </label>
+                                        <span class="badge badge-light border text-muted signer-sumber-badge" style="font-size: 0.68rem;">
+                                            Sumber: Guru TPQ
+                                        </span>
+                                    </div>
+                                    <div class="signer-select2-wrap">
+                                        <select class="form-control form-control-sm signer-ref-select font-weight-bold" style="width: 100%;">
+                                            <option value="">-- Cari atau Pilih Pejabat --</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- Row 3: Nama Lengkap & Jabatan -->
+                                <div class="row">
+                                    <div class="col-md-6 form-group mb-2">
+                                        <label class="small font-weight-bold text-dark">Nama Lengkap & Gelar: <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control form-control-sm signer-nama font-weight-bold" placeholder="Nama lengkap dengan gelar akademik/keagamaan">
+                                    </div>
+                                    <div class="col-md-6 form-group mb-2">
+                                        <label class="small font-weight-bold text-dark">Jabatan pada Surat: <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control form-control-sm signer-jabatan font-weight-bold" placeholder="Contoh: Ketua Panitia / Kepala TPQ">
+                                    </div>
+                                </div>
+
+                                <!-- Row 4: Instansi & NIP beserta Switch Tampilkan -->
+                                <div class="row">
+                                    <div class="col-md-6 form-group mb-2">
+                                        <div class="d-flex align-items-center justify-content-between mb-1">
+                                            <label class="small font-weight-bold text-dark mb-0">Instansi / Lembaga:</label>
+                                            <div class="custom-control custom-switch" style="font-size:0.75rem">
+                                                <input type="checkbox" class="custom-control-input signer-show-instansi" id="toggleInstansi_IDX">
+                                                <label class="custom-control-label small font-weight-bold text-secondary" for="toggleInstansi_IDX">Tampilkan di Surat</label>
+                                            </div>
+                                        </div>
+                                        <input type="text" class="form-control form-control-sm signer-instansi" placeholder="Contoh: TPQ Al-Ikhlas / Kantor Camat">
+                                    </div>
+                                    <div class="col-md-6 form-group mb-2">
+                                        <div class="d-flex align-items-center justify-content-between mb-1">
+                                            <label class="small font-weight-bold text-dark mb-0">NIP / NIK / ID Guru:</label>
+                                            <div class="custom-control custom-switch" style="font-size:0.75rem">
+                                                <input type="checkbox" class="custom-control-input signer-show-nip" id="toggleNip_IDX">
+                                                <label class="custom-control-label small font-weight-bold text-secondary" for="toggleNip_IDX">Tampilkan di Surat</label>
+                                            </div>
+                                        </div>
+                                        <input type="text" class="form-control form-control-sm signer-nip font-monospace" placeholder="Nomor identitas resmi (opsional)">
+                                    </div>
+                                </div>
+
+                                <!-- Row 5: Metode Pengesahan & Checkbox Simpan Master -->
+                                <div class="row pt-2 align-items-center border-top mt-2">
+                                    <div class="col-md-7 form-group mb-1">
+                                        <label class="small font-weight-bold d-block mb-1 text-dark">Metode Pengesahan / TTD:</label>
+                                        <div class="d-flex" style="gap: 8px;">
+                                            <label class="mode-ttd-card mode-card-qr mb-0 flex-fill">
+                                                <div class="custom-control custom-radio">
+                                                    <input type="radio" class="custom-control-input signer-mode-qr" name="modeTtd_IDX" id="modeQr_IDX" value="QR">
+                                                    <span class="custom-control-label small font-weight-bold text-primary">
+                                                        <i class="fas fa-qrcode mr-1"></i> QR Code Digital
+                                                    </span>
+                                                </div>
+                                                <div class="text-muted" style="font-size: 0.68rem; margin-left: 24px;">Verifikasi online (10 karakter unik)</div>
+                                            </label>
+                                            <label class="mode-ttd-card mode-card-manual mb-0 flex-fill active">
+                                                <div class="custom-control custom-radio">
+                                                    <input type="radio" class="custom-control-input signer-mode-manual" name="modeTtd_IDX" id="modeManual_IDX" value="Manual" checked>
+                                                    <span class="custom-control-label small font-weight-bold text-secondary">
+                                                        <i class="fas fa-pen-nib mr-1"></i> TTD Basah Fisik
+                                                    </span>
+                                                </div>
+                                                <div class="text-muted" style="font-size: 0.68rem; margin-left: 24px;">Ruang kosong tanda tangan & stempel</div>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-5 form-group mb-1 wrap-save-master d-none">
+                                        <div class="alert alert-info py-2 px-3 mb-0 border border-info rounded">
+                                            <div class="custom-control custom-checkbox">
+                                                <input type="checkbox" class="custom-control-input signer-save-master" id="saveMaster_IDX">
+                                                <label class="custom-control-label small text-dark font-weight-bold" for="saveMaster_IDX">
+                                                    <i class="fas fa-save text-primary mr-1"></i> Simpan ke Kontak Master
+                                                </label>
+                                            </div>
+                                            <div class="text-muted" style="font-size: 0.68rem; margin-left: 24px;">Agar otomatis tersimpan dan dapat dipilih lagi di surat berikutnya</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- Data JSON untuk JS: Guru, Master, FKPQ -->
+                    <script>
+                    var STEP6_DATA = {
+                        guruList: <?= json_encode(array_map(function($g){
+                            return [
+                                'id'       => $g['IdGuru'],
+                                'nama'     => function_exists('formatNamaGelar') ? formatNamaGelar($g['Nama']) : $g['Nama'],
+                                'jabatan'  => $g['Jabatan'] ?? 'Guru TPQ',
+                                'instansi' => $g['TempatTugas'] ?? '',
+                                'nip'      => $g['IdGuru'] ?? '',
+                            ];
+                        }, $guruList)) ?>,
+                        masterList: <?= json_encode(array_map(function($m){
+                            return [
+                                'id'       => $m['Id'],
+                                'nama'     => function_exists('formatNamaGelar') ? formatNamaGelar($m['NamaTujuan']) : $m['NamaTujuan'],
+                                'jabatan'  => $m['Jabatan'] ?? '',
+                                'instansi' => $m['Instansi'] ?? '',
+                                'nip'      => $m['Nip'] ?? '',
+                            ];
+                        }, $tujuanMaster)) ?>,
+                        fkpqList: <?php
+                            $fkpqOptions = [];
+                            if (!empty($fkpqData)) {
+                                if (!empty($fkpqData['KetuaFkpq'])) {
+                                    $fkpqOptions[] = [
+                                        'id'       => 'fkpq_ketua',
+                                        'nama'     => function_exists('formatNamaGelar') ? formatNamaGelar($fkpqData['KetuaFkpq']) : $fkpqData['KetuaFkpq'],
+                                        'jabatan'  => 'Ketua FKPQ',
+                                        'instansi' => $fkpqData['NamaFkpq'] ?? 'FKPQ Kabupaten Bintan',
+                                        'nip'      => '',
+                                    ];
+                                }
+                            }
+                            echo json_encode($fkpqOptions);
+                        ?>,
+                        config: <?= json_encode($ttdConfig) ?>
+                    };
+                    </script>
+
+                </div><!-- /.card-body -->
+                <div class="card-footer wizard-footer d-flex justify-content-between align-items-center flex-wrap shadow-sm">
+                    <button type="button" class="btn btn-outline-secondary btn-prev px-4 py-2 font-weight-bold shadow-sm mb-1" data-prev="5" style="border-radius: 6px; min-width: 130px;">
+                        <i class="fas fa-arrow-left mr-2"></i> Kembali
+                    </button>
+                    <div class="d-none d-md-flex align-items-center mb-1">
+                        <span class="badge badge-light border px-3 py-2 text-secondary font-weight-normal shadow-sm" style="font-size: 0.8rem; border-radius: 6px;">
+                            <i class="fas fa-file-signature text-primary mr-1"></i> Langkah 6 dari 8 &bull; Penanda Tangan & Tata Letak
+                        </span>
+                    </div>
+                    <div class="d-flex align-items-center flex-wrap mb-1" style="gap: 10px;">
                         <?php if (!empty($isEdit)): ?>
-                            <button type="button" class="btn btn-success px-4 btn-submit-wizard font-weight-bold" title="Simpan Perubahan Surat"><i class="fas fa-save mr-1"></i> Simpan</button>
+                            <button type="button" class="btn btn-outline-success px-4 py-2 btn-submit-wizard font-weight-bold shadow-sm" title="Simpan Perubahan Surat" style="border-radius: 6px;">
+                                <i class="fas fa-save mr-1"></i> Simpan
+                            </button>
                         <?php endif; ?>
+                        <button type="button" class="btn btn-primary px-4 py-2 btn-next font-weight-bold shadow-sm" data-next="7" style="border-radius: 6px; min-width: 180px;">
+                            Lanjut ke Preview <i class="fas fa-arrow-right ml-2"></i>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -767,13 +1535,24 @@
                         <iframe id="previewIframe" style="width: 100%; height: 900px; border: none; display: block; background: #fff;" srcdoc=""></iframe>
                     </div>
                 </div>
-                <div class="card-footer bg-white d-flex justify-content-between align-items-center flex-wrap">
-                    <button type="button" class="btn btn-secondary btn-prev mb-1" data-prev="6"><i class="fas fa-arrow-left mr-1"></i> Kembali</button>
-                    <div class="d-flex align-items-center flex-wrap mb-1">
-                        <button type="button" class="btn btn-success px-4 btn-next <?= !empty($isEdit) ? 'mr-2' : '' ?>" data-next="8">Lanjut ke Finalisasi <i class="fas fa-arrow-right ml-1"></i></button>
+                <div class="card-footer wizard-footer d-flex justify-content-between align-items-center flex-wrap shadow-sm">
+                    <button type="button" class="btn btn-outline-secondary btn-prev px-4 py-2 font-weight-bold shadow-sm mb-1" data-prev="6" style="border-radius: 6px; min-width: 130px;">
+                        <i class="fas fa-arrow-left mr-2"></i> Kembali
+                    </button>
+                    <div class="d-none d-md-flex align-items-center mb-1">
+                        <span class="badge badge-light border px-3 py-2 text-secondary font-weight-normal shadow-sm" style="font-size: 0.8rem; border-radius: 6px;">
+                            <i class="fas fa-eye text-success mr-1"></i> Langkah 7 dari 8 &bull; Pratinjau Tampilan Surat
+                        </span>
+                    </div>
+                    <div class="d-flex align-items-center flex-wrap mb-1" style="gap: 10px;">
                         <?php if (!empty($isEdit)): ?>
-                            <button type="button" class="btn btn-success px-4 btn-submit-wizard font-weight-bold" title="Simpan Perubahan Surat"><i class="fas fa-save mr-1"></i> Simpan</button>
+                            <button type="button" class="btn btn-outline-success px-4 py-2 btn-submit-wizard font-weight-bold shadow-sm" title="Simpan Perubahan Surat" style="border-radius: 6px;">
+                                <i class="fas fa-save mr-1"></i> Simpan
+                            </button>
                         <?php endif; ?>
+                        <button type="button" class="btn btn-success px-4 py-2 btn-next font-weight-bold shadow-sm" data-next="8" style="border-radius: 6px; min-width: 180px;">
+                            Lanjut ke Finalisasi <i class="fas fa-arrow-right ml-2"></i>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -821,10 +1600,17 @@
                         <strong>Catatan Efisiensi:</strong> File PDF di-generate secara <em>on-demand (streaming)</em> dan tidak disimpan di server untuk menghemat kapasitas storage. Anda dapat mencetak ulang kapan saja dari menu <strong>Arsip Surat Keluar</strong>.
                     </div>
                 </div>
-                <div class="card-footer bg-white d-flex justify-content-between align-items-center flex-wrap">
-                    <button type="button" class="btn btn-secondary btn-prev mb-1" data-prev="7"><i class="fas fa-arrow-left mr-1"></i> Kembali</button>
-                    <button type="button" class="btn btn-success <?= !empty($isEdit) ? '' : 'btn-lg' ?> px-4 font-weight-bold btn-submit-wizard mb-1" id="btnSubmitFinal" title="Simpan Perubahan Surat">
-                        <?= !empty($isEdit) ? '<i class="fas fa-save mr-1"></i> Simpan' : '<i class="fas fa-save mr-2"></i> Finalisasi & Simpan Surat' ?>
+                <div class="card-footer wizard-footer d-flex justify-content-between align-items-center flex-wrap shadow-sm">
+                    <button type="button" class="btn btn-outline-secondary btn-prev px-4 py-2 font-weight-bold shadow-sm mb-1" data-prev="7" style="border-radius: 6px; min-width: 130px;">
+                        <i class="fas fa-arrow-left mr-2"></i> Kembali
+                    </button>
+                    <div class="d-none d-md-flex align-items-center mb-1">
+                        <span class="badge badge-light border px-3 py-2 text-secondary font-weight-normal shadow-sm" style="font-size: 0.8rem; border-radius: 6px;">
+                            <i class="fas fa-check-double text-primary mr-1"></i> Langkah 8 dari 8 &bull; Finalisasi & Penerbitan
+                        </span>
+                    </div>
+                    <button type="button" class="btn btn-success <?= !empty($isEdit) ? '' : 'btn-lg' ?> px-4 py-2 font-weight-bold btn-submit-wizard shadow-sm mb-1" id="btnSubmitFinal" title="Simpan Perubahan Surat" style="border-radius: 6px; min-width: 180px;">
+                        <?= !empty($isEdit) ? '<i class="fas fa-save mr-1"></i> Simpan Perubahan' : '<i class="fas fa-paper-plane mr-2"></i> Finalisasi & Simpan Surat' ?>
                     </button>
                 </div>
             </div>
@@ -1032,7 +1818,11 @@ document.addEventListener('DOMContentLoaded', function() {
         $('#mobileStepText').text('Langkah ' + stepNum + ' dari 8: ' + $('.wizard-step[data-step="' + stepNum + '"] .step-title').text());
         currentStep = stepNum;
 
-        if (stepNum === 7) {
+        if (stepNum === 6) {
+            if (window.Step6Engine && typeof window.Step6Engine.refresh === 'function') {
+                window.Step6Engine.refresh();
+            }
+        } else if (stepNum === 7) {
             loadPreviewHtml();
         } else if (stepNum === 8) {
             updateSummary();
@@ -1702,9 +2492,15 @@ document.addEventListener('DOMContentLoaded', function() {
             $('#summaryPenerima').text($('#inputTujuanNama').val() || '-');
         }
 
-        let ttd1 = $('#selectTtd1 option:selected').text();
-        let ttd2 = $('#selectTtd2 option:selected').text();
-        $('#summaryTtd').text(ttd1 !== '-- Pilih Guru / Kepala --' ? ttd1 : '-');
+        // Update summary TTD dari konfigurasi dinamis
+        var cfg = window.Step6Engine ? window.Step6Engine.getConfig() : null;
+        if (cfg && cfg.signers && cfg.signers.length > 0) {
+            var signerNames = cfg.signers.map(function(s){ return s.nama || s.jabatan || '?'; });
+            $('#summaryTtd').text(signerNames.join(' & ') || '-');
+        } else {
+            var ttd1 = $('#selectTtd1 option:selected').text();
+            $('#summaryTtd').text(ttd1 !== '-- Pilih Guru / Kepala --' ? ttd1 : '-');
+        }
     }
 
     // Submit Final & Simpan Perubahan di Semua Step
@@ -1768,6 +2564,672 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+});
+</script>
+
+<script>
+/* ============================================================
+   STEP 6 ENGINE — Tanda Tangan Dinamis & Kaidah Naskah Dinas
+   - Render kartu signer dari STEP6_DATA.config
+   - Preset picker + Live preview kertas surat resmi
+   - Swap Baris 1 (Kiri ⇄ Kanan) & Baris 2 (Mengetahui ⇄)
+   - Geser urutan (Up/Down) & Proteksi Hapus minimal 1 signer
+   - Multi-source (Guru, Master Kontak, FKPQ, Bebas)
+   - Auto-save master & sinkronisasi real-time
+============================================================ */
+document.addEventListener('DOMContentLoaded', function() {
+    (function($) {
+        if (!$) {
+            console.error('Step6Engine: jQuery tidak tersedia saat DOMContentLoaded.');
+            return;
+        }
+        if (typeof STEP6_DATA === 'undefined') {
+            console.error('Step6Engine: STEP6_DATA tidak terdefinisi.');
+            return;
+        }
+
+        var signers = JSON.parse(JSON.stringify(STEP6_DATA.config.signers || []));
+        var labelMengetahui = STEP6_DATA.config.label_mengetahui || 'Mengetahui,';
+
+        /* ---- Preset → default signers baku ---- */
+        var presetDefaults = {
+            preset_1: [
+                {signer_id:'signer_1',posisi:'kanan',sumber:'guru',ref_id:'',nama:'',jabatan:'Kepala TPQ',instansi:'',nip:'',show_nip:false,show_instansi:false,mode_ttd:'Manual',token_10:null,save_master:false}
+            ],
+            preset_2: [
+                {signer_id:'signer_1',posisi:'kanan',sumber:'guru',ref_id:'',nama:'',jabatan:'Ketua',instansi:'',nip:'',show_nip:false,show_instansi:false,mode_ttd:'Manual',token_10:null,save_master:false},
+                {signer_id:'signer_2',posisi:'kiri',sumber:'guru',ref_id:'',nama:'',jabatan:'Sekretaris',instansi:'',nip:'',show_nip:false,show_instansi:false,mode_ttd:'Manual',token_10:null,save_master:false}
+            ],
+            preset_3: [
+                {signer_id:'signer_1',posisi:'kanan',sumber:'guru',ref_id:'',nama:'',jabatan:'Ketua Panitia',instansi:'',nip:'',show_nip:false,show_instansi:false,mode_ttd:'Manual',token_10:null,save_master:false},
+                {signer_id:'signer_2',posisi:'kiri',sumber:'guru',ref_id:'',nama:'',jabatan:'Sekretaris Panitia',instansi:'',nip:'',show_nip:false,show_instansi:false,mode_ttd:'Manual',token_10:null,save_master:false},
+                {signer_id:'signer_3',posisi:'mengetahui_tengah',sumber:'master_tujuan',ref_id:'',nama:'',jabatan:'Camat / Kepala Desa / FKPQ',instansi:'',nip:'',show_nip:false,show_instansi:true,mode_ttd:'Manual',token_10:null,save_master:false}
+            ],
+            preset_4: [
+                {signer_id:'signer_1',posisi:'kanan',sumber:'guru',ref_id:'',nama:'',jabatan:'Ketua',instansi:'',nip:'',show_nip:false,show_instansi:false,mode_ttd:'Manual',token_10:null,save_master:false},
+                {signer_id:'signer_2',posisi:'tengah',sumber:'guru',ref_id:'',nama:'',jabatan:'Bendahara',instansi:'',nip:'',show_nip:false,show_instansi:false,mode_ttd:'Manual',token_10:null,save_master:false},
+                {signer_id:'signer_3',posisi:'kiri',sumber:'guru',ref_id:'',nama:'',jabatan:'Sekretaris',instansi:'',nip:'',show_nip:false,show_instansi:false,mode_ttd:'Manual',token_10:null,save_master:false}
+            ],
+            preset_5: [
+                {signer_id:'signer_1',posisi:'kanan',sumber:'guru',ref_id:'',nama:'',jabatan:'Ketua Panitia',instansi:'',nip:'',show_nip:false,show_instansi:false,mode_ttd:'Manual',token_10:null,save_master:false},
+                {signer_id:'signer_2',posisi:'kiri',sumber:'guru',ref_id:'',nama:'',jabatan:'Sekretaris Panitia',instansi:'',nip:'',show_nip:false,show_instansi:false,mode_ttd:'Manual',token_10:null,save_master:false},
+                {signer_id:'signer_3',posisi:'mengetahui_kanan',sumber:'master_tujuan',ref_id:'',nama:'',jabatan:'Camat / Kepala Desa',instansi:'',nip:'',show_nip:false,show_instansi:true,mode_ttd:'Manual',token_10:null,save_master:false},
+                {signer_id:'signer_4',posisi:'mengetahui_kiri',sumber:'fkpq',ref_id:'fkpq_ketua',nama:'',jabatan:'Ketua FKPQ',instansi:'',nip:'',show_nip:false,show_instansi:true,mode_ttd:'Manual',token_10:null,save_master:false}
+            ]
+        };
+
+        var posisiMeta = {
+            'kanan':            { label: 'Kanan (Penanggung Jawab / Ketua)', badge: 'badge-primary', icon: 'fa-user-check', sub: 'Penanggung Jawab / Ketua', accent: 'border-accent-kanan' },
+            'kiri':             { label: 'Kiri (Sekretaris / Pelaksana)',     badge: 'badge-success', icon: 'fa-user-edit',  sub: 'Pelaksana / Sekretaris', accent: 'border-accent-kiri' },
+            'tengah':           { label: 'Tengah (Bendahara / Penyusun)',    badge: 'badge-warning text-dark', icon: 'fa-coins', sub: 'Bendahara / Penyusun', accent: 'border-accent-tengah' },
+            'mengetahui_tengah':{ label: 'Bawah Tengah (Mengetahui 1 Orang)',badge: 'badge-info',    icon: 'fa-stamp',      sub: 'Mengetahui / Pembina', accent: 'border-accent-mengetahui' },
+            'mengetahui_kiri':  { label: 'Bawah Kiri (Mengetahui Kiri)',     badge: 'badge-info',    icon: 'fa-stamp',      sub: 'Mengetahui Kiri', accent: 'border-accent-mengetahui' },
+            'mengetahui_kanan': { label: 'Bawah Kanan (Mengetahui Kanan)',    badge: 'badge-info',    icon: 'fa-stamp',      sub: 'Mengetahui Kanan', accent: 'border-accent-mengetahui' }
+        };
+
+        var sumberLabelMap = {
+            'guru': 'Sumber: Guru TPQ',
+            'master_tujuan': 'Sumber: Kontak Master',
+            'fkpq': 'Sumber: Pengurus FKPQ',
+            'manual': 'Input Manual'
+        };
+
+        function escH(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+        /* ---- Build dropdown options untuk Select2 ---- */
+        function buildOptions(sumber, selectedId) {
+            var list = [];
+            if (sumber === 'guru') list = STEP6_DATA.guruList || [];
+            else if (sumber === 'master_tujuan') list = STEP6_DATA.masterList || [];
+            else if (sumber === 'fkpq') list = STEP6_DATA.fkpqList || [];
+
+            var html = '<option value="">-- Cari atau Pilih Pejabat --</option>';
+            $.each(list, function(_, item) {
+                var sel = (String(item.id) === String(selectedId)) ? ' selected' : '';
+                var subText = item.jabatan ? ' — ' + item.jabatan : '';
+                var instText = item.instansi ? ' [' + item.instansi + ']' : '';
+                var nipText = item.nip ? ' (NIP: ' + item.nip + ')' : '';
+                html += '<option value="'+escH(item.id)+'" data-nama="'+escH(item.nama)+'" data-jabatan="'+escH(item.jabatan)+'" data-instansi="'+escH(item.instansi||'')+'" data-nip="'+escH(item.nip||'')+'"'+sel+'>'+escH(item.nama) + subText + instText + nipText + '</option>';
+            });
+            return html;
+        }
+
+        /* ---- Custom Matcher Select2 (Cari Nama, Jabatan, Instansi, NIP) ---- */
+        function matchSelect2Pejabat(params, data) {
+            if ($.trim(params.term) === '') {
+                return data;
+            }
+            if (typeof data.text === 'undefined') {
+                return null;
+            }
+            var term = params.term.toLowerCase();
+            var text = data.text.toLowerCase();
+
+            if (text.indexOf(term) > -1) {
+                return data;
+            }
+
+            if (data.element) {
+                var $el = $(data.element);
+                var nama = ($el.data('nama') || '').toString().toLowerCase();
+                var jabatan = ($el.data('jabatan') || '').toString().toLowerCase();
+                var instansi = ($el.data('instansi') || '').toString().toLowerCase();
+                var nip = ($el.data('nip') || '').toString().toLowerCase();
+                if (nama.indexOf(term) > -1 || jabatan.indexOf(term) > -1 || instansi.indexOf(term) > -1 || nip.indexOf(term) > -1) {
+                    return data;
+                }
+            }
+
+            return null;
+        }
+
+        /* ---- Inisialisasi Select2 pada Kolom Pejabat Step 6 ---- */
+        function initSelect2Signers($scope) {
+            if (!$.fn || !$.fn.select2) return;
+            var $target = $scope ? $scope.find('.signer-ref-select') : $('#signerCardsContainer .signer-ref-select');
+            $target.each(function() {
+                var $sel = $(this);
+                if ($sel.hasClass('select2-hidden-accessible')) {
+                    $sel.select2('destroy');
+                }
+                $sel.select2({
+                    theme: 'bootstrap4',
+                    width: '100%',
+                    placeholder: '-- Cari atau Pilih Pejabat --',
+                    allowClear: false,
+                    matcher: matchSelect2Pejabat,
+                    language: {
+                        noResults: function() {
+                            return 'Pejabat tidak ditemukan. Coba ganti sumber (Guru/Kontak/FKPQ) atau ketik manual.';
+                        }
+                    }
+                });
+            });
+        }
+
+        /* ---- Render semua kartu signer ---- */
+        function renderCards() {
+            var tmplEl = document.getElementById('tmplSignerCard');
+            var tmplHtml = tmplEl ? tmplEl.innerHTML : $('#tmplSignerCard').html();
+            var $container = $('#signerCardsContainer');
+
+            // Hancurkan instance select2 lama sebelum kontainer dikosongkan
+            $container.find('.signer-ref-select').each(function() {
+                if ($(this).hasClass('select2-hidden-accessible')) {
+                    $(this).select2('destroy');
+                }
+            });
+            $container.empty();
+
+            if (!signers || signers.length === 0) {
+                var preset = $('#selectedLayoutPreset').val() || 'preset_2';
+                signers = JSON.parse(JSON.stringify(presetDefaults[preset] || presetDefaults.preset_2));
+            }
+
+            // Update badge counter di toolbar
+            $('#signerCountBadge').text(signers.length + ' Pejabat');
+
+            // Kontrol tombol swap
+            var baris1Signers = signers.filter(function(s){ return s.posisi === 'kiri' || s.posisi === 'kanan' || s.posisi === 'tengah'; });
+            var hasDuaBaris1 = baris1Signers.length >= 2;
+            $('#btnSwapBaris1').toggleClass('d-none', !hasDuaBaris1);
+
+            var baris2Signers = signers.filter(function(s){ return s.posisi && s.posisi.indexOf('mengetahui') >= 0; });
+            var hasDuaBaris2 = baris2Signers.length >= 2;
+            $('#btnSwapBaris2').toggleClass('d-none', !hasDuaBaris2);
+
+            $.each(signers, function(idx, signer) {
+                var uid = idx + 1;
+                var html = tmplHtml
+                    .replace(/IDX/g, uid)
+                    .replace(/name="modeTtd_IDX"/g, 'name="modeTtd_'+uid+'"');
+                var $card = $('<div>').append(html).children().first();
+                $card.attr('data-signer-index', idx);
+
+                var meta = posisiMeta[signer.posisi] || { label: signer.posisi, badge: 'badge-primary', icon: 'fa-user', sub: 'Pejabat', accent: 'border-accent-kanan' };
+
+                // Accent border sesuai posisi
+                $card.removeClass('border-accent-kanan border-accent-kiri border-accent-tengah border-accent-mengetahui').addClass(meta.accent);
+
+                // Badge Posisi & Icon
+                var $badge = $card.find('.signer-posisi-badge');
+                $badge.removeClass('badge-primary badge-success badge-warning badge-info text-dark').addClass(meta.badge);
+                $badge.find('.signer-icon').attr('class', 'fas ' + meta.icon + ' mr-1 signer-icon');
+                $badge.find('.label-posisi-text').text('Pejabat #' + (idx + 1) + ' — ' + (signer.posisi === 'kanan' ? 'Kanan' : (signer.posisi === 'kiri' ? 'Kiri' : (signer.posisi === 'tengah' ? 'Tengah' : 'Mengetahui'))));
+                $card.find('.signer-subtitle').text(meta.sub);
+
+                // Posisi Select
+                $card.find('.signer-posisi').val(signer.posisi);
+
+                // Label Mengetahui
+                if (signer.posisi && signer.posisi.indexOf('mengetahui') >= 0) {
+                    $card.find('.wrap-label-mengetahui').removeClass('d-none');
+                    $card.find('.signer-label-mengetahui').val(signer.label_mengetahui || labelMengetahui);
+                } else {
+                    $card.find('.wrap-label-mengetahui').addClass('d-none');
+                }
+
+                // Sumber Group Buttons
+                $card.find('.btn-sumber').removeClass('active');
+                $card.find('.btn-sumber[data-sumber="'+signer.sumber+'"]').addClass('active');
+                $card.find('.signer-sumber').val(signer.sumber);
+
+                // Dropdown Ref Pejabat
+                if (signer.sumber !== 'manual') {
+                    $card.find('.wrap-pilih-pejabat').removeClass('d-none');
+                    $card.find('.wrap-save-master').addClass('d-none');
+                    $card.find('.signer-sumber-badge').text(sumberLabelMap[signer.sumber] || 'Sumber: Database');
+                    $card.find('.signer-ref-select').html(buildOptions(signer.sumber, signer.ref_id));
+
+                    // Jika nama kosong tapi ada ref_id, resolve nama otomatis
+                    if (!signer.nama && signer.ref_id) {
+                        var found = null;
+                        if (signer.sumber === 'guru') found = STEP6_DATA.guruList.find(function(g){ return String(g.id) === String(signer.ref_id); });
+                        else if (signer.sumber === 'master_tujuan') found = STEP6_DATA.masterList.find(function(m){ return String(m.id) === String(signer.ref_id); });
+                        else if (signer.sumber === 'fkpq') found = STEP6_DATA.fkpqList.find(function(f){ return String(f.id) === String(signer.ref_id); });
+                        if (found) {
+                            signer.nama = found.nama;
+                            if (!signer.jabatan) signer.jabatan = found.jabatan;
+                            if (!signer.instansi) signer.instansi = found.instansi;
+                            if (!signer.nip) signer.nip = found.nip;
+                        }
+                    }
+                } else {
+                    $card.find('.wrap-pilih-pejabat').addClass('d-none');
+                    $card.find('.wrap-save-master').removeClass('d-none');
+                }
+
+                // Text fields
+                $card.find('.signer-nama').val(signer.nama || '');
+                $card.find('.signer-jabatan').val(signer.jabatan || '');
+                $card.find('.signer-instansi').val(signer.instansi || '');
+                $card.find('.signer-nip').val(signer.nip || '');
+
+                // Switches
+                $card.find('.signer-show-nip').prop('checked', !!signer.show_nip);
+                $card.find('.signer-show-instansi').prop('checked', !!signer.show_instansi);
+                $card.find('.signer-save-master').prop('checked', !!signer.save_master);
+
+                // Mode TTD (QR vs Manual) & visual pill card
+                if (signer.mode_ttd === 'QR') {
+                    $card.find('.signer-mode-qr').prop('checked', true);
+                    $card.find('.mode-card-qr').addClass('active');
+                    $card.find('.mode-card-manual').removeClass('active');
+                } else {
+                    $card.find('.signer-mode-manual').prop('checked', true);
+                    $card.find('.mode-card-manual').addClass('active');
+                    $card.find('.mode-card-qr').removeClass('active');
+                }
+
+                // Disable reorder buttons at boundaries
+                if (idx === 0) $card.find('.btn-move-up').prop('disabled', true).addClass('opacity-50');
+                if (idx === signers.length - 1) $card.find('.btn-move-down').prop('disabled', true).addClass('opacity-50');
+
+                // Proteksi hapus: disable jika tinggal 1 signer
+                if (signers.length <= 1) {
+                    $card.find('.btn-hapus-signer').prop('disabled', true).addClass('opacity-50').attr('title', 'Minimal satu penanda tangan wajib ada');
+                }
+
+                $container.append($card);
+            });
+
+            // Inisialisasi Select2 pada semua select pejabat yang baru dibuat
+            initSelect2Signers($container);
+
+            updatePreview();
+            syncBackwardCompat();
+        }
+
+        /* ---- Collect state dari DOM ke array signers ---- */
+        function collectSigners() {
+            var newSigners = [];
+            $('#signerCardsContainer .signer-card').each(function() {
+                var idx = parseInt($(this).attr('data-signer-index'));
+                var old = signers[idx] || {};
+                newSigners.push({
+                    signer_id       : old.signer_id || ('signer_' + (newSigners.length + 1)),
+                    posisi          : $(this).find('.signer-posisi').val(),
+                    sumber          : $(this).find('.signer-sumber').val(),
+                    ref_id          : $(this).find('.signer-ref-select').val() || '',
+                    nama            : $(this).find('.signer-nama').val(),
+                    jabatan         : $(this).find('.signer-jabatan').val(),
+                    instansi        : $(this).find('.signer-instansi').val(),
+                    nip             : $(this).find('.signer-nip').val(),
+                    show_nip        : $(this).find('.signer-show-nip').is(':checked'),
+                    show_instansi   : $(this).find('.signer-show-instansi').is(':checked'),
+                    mode_ttd        : $(this).find('[name^="modeTtd_"]:checked').val() || 'Manual',
+                    label_mengetahui: $(this).find('.signer-label-mengetahui').val() || labelMengetahui,
+                    save_master     : $(this).find('.signer-save-master').is(':checked'),
+                    token_10        : old.token_10 || null,
+                });
+            });
+            return newSigners;
+        }
+
+        /* ---- Serialize ke hidden JSON ---- */
+        function serializeConfig() {
+            signers = collectSigners();
+            var preset = $('#selectedLayoutPreset').val() || 'preset_2';
+            var config = {
+                layout_preset   : preset,
+                label_mengetahui: labelMengetahui,
+                signers         : signers
+            };
+            $('#inputPenandaTanganConfig').val(JSON.stringify(config));
+            syncBackwardCompat();
+            updatePreview();
+        }
+
+        /* ---- Backward compat: isi field lama tbl_surat ---- */
+        function syncBackwardCompat() {
+            var s1 = signers[0] || {};
+            var s2 = signers[1] || {};
+            var right = signers.find(function(s){ return s.posisi === 'kanan'; }) || s1;
+            var left  = signers.find(function(s){ return s.posisi === 'kiri'; })  || s2;
+            $('#hiddenIdPenandaTangan1').val(right.ref_id || '');
+            $('#hiddenJabatan1').val(right.jabatan || '');
+            $('#hiddenModeTtd1').val(right.mode_ttd || 'Manual');
+            $('#hiddenIdPenandaTangan2').val(left.ref_id || '');
+            $('#hiddenJabatan2').val(left.jabatan || '');
+            $('#hiddenModeTtd2').val(left.mode_ttd || 'Manual');
+        }
+
+        /* ---- Live Document Preview Box (Simulasi Cetak) ---- */
+        function updatePreview() {
+            var tempatTtd  = $('#inputTempatTtd').val() || 'Tempat';
+            var tanggalTtd = $('#inputTanggalTtd').val() || '';
+            if (tanggalTtd) {
+                var d = new Date(tanggalTtd);
+                var bulan = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+                tanggalTtd = tempatTtd + ', ' + d.getDate() + ' ' + (bulan[d.getMonth()]||'') + ' ' + d.getFullYear();
+            } else {
+                tanggalTtd = tempatTtd + ', [Tanggal Surat]';
+            }
+
+            var current = collectSigners();
+            var baris1 = current.filter(function(s){ return s.posisi === 'kiri' || s.posisi === 'kanan' || s.posisi === 'tengah'; });
+            var baris2 = current.filter(function(s){ return s.posisi && s.posisi.indexOf('mengetahui') >= 0; });
+
+            // Urutkan baris 1: kiri, tengah, kanan
+            var order1 = ['kiri','tengah','kanan'];
+            baris1.sort(function(a,b){ return order1.indexOf(a.posisi) - order1.indexOf(b.posisi); });
+
+            // Urutkan baris 2: mengetahui_kiri, mengetahui_tengah, mengetahui_kanan
+            var order2 = ['mengetahui_kiri','mengetahui_tengah','mengetahui_kanan'];
+            baris2.sort(function(a,b){ return order2.indexOf(a.posisi) - order2.indexOf(b.posisi); });
+
+            var html = '<div class="preview-header-ribbon">'
+                + '<span><i class="fas fa-file-alt mr-1"></i> SIMULASI CETAK TANDA TANGAN</span>'
+                + '<span>KERTAS RESMI</span>'
+                + '</div>';
+
+            html += '<div class="preview-tanggal"><strong>' + escH(tanggalTtd) + '</strong></div>';
+
+            function colHtml(s) {
+                var nm = s.nama ? '( ' + escH(s.nama) + ' )' : '( ____________________ )';
+                var spaceHtml = (s.mode_ttd === 'QR')
+                    ? '<div class="preview-space-qr" title="QR Code Digital 10-Karakter Verifikasi Online"><i class="fas fa-qrcode"></i></div>'
+                    : '<div class="preview-space-manual" title="Tanda Tangan & Cap Basah Fisik"><span>Tanda Tangan & Cap</span></div>';
+
+                return '<div class="preview-col">'
+                    + '<div class="preview-jabatan">' + escH(s.jabatan || 'Penanda Tangan') + '</div>'
+                    + (s.show_instansi && s.instansi ? '<div class="preview-instansi">' + escH(s.instansi) + '</div>' : '')
+                    + spaceHtml
+                    + '<div class="preview-nama">' + nm + '</div>'
+                    + (s.show_nip && s.nip ? '<div class="preview-nip">NIP/ID: ' + escH(s.nip) + '</div>' : '')
+                    + '</div>';
+            }
+
+            // Render Baris 1
+            if (baris1.length) {
+                html += '<div class="preview-row">';
+                if (baris1.length === 1 && baris1[0].posisi === 'kanan') {
+                    html += '<div class="preview-col" style="visibility:hidden;"></div>';
+                    html += colHtml(baris1[0]);
+                } else {
+                    baris1.forEach(function(s){ html += colHtml(s); });
+                }
+                html += '</div>';
+            }
+
+            // Render Baris 2 (Mengetahui)
+            if (baris2.length) {
+                var lbl = baris2[0].label_mengetahui || labelMengetahui;
+                html += '<div class="preview-mengetahui-label">' + escH(lbl) + '</div>';
+                var colStyle = baris2.length === 1 ? 'justify-content:center;' : 'justify-content:space-between;';
+                html += '<div class="preview-row" style="' + colStyle + '">';
+                baris2.forEach(function(s){ html += colHtml(s); });
+                html += '</div>';
+            }
+
+            if (!baris1.length && !baris2.length) {
+                html += '<div class="text-center text-muted small py-4"><i class="fas fa-plus-circle mr-1"></i> Belum ada penanda tangan</div>';
+            }
+
+            $('#ttdPreviewBox').html(html);
+        }
+
+        /* ---- Animasi Flash Preview saat Posisi Ditukar ---- */
+        function flashPreview() {
+            var $box = $('#ttdPreviewBox');
+            $box.removeClass('preview-flash');
+            setTimeout(function() { $box.addClass('preview-flash'); }, 10);
+        }
+
+        /* ---- Tombol Swap Baris 1 (Kiri ⇄ Kanan) ---- */
+        $('#btnSwapBaris1').on('click', function() {
+            signers = collectSigners();
+            var kiriIdx  = signers.findIndex(function(s){ return s.posisi === 'kiri'; });
+            var kananIdx = signers.findIndex(function(s){ return s.posisi === 'kanan'; });
+            if (kiriIdx >= 0 && kananIdx >= 0) {
+                signers[kiriIdx].posisi  = 'kanan';
+                signers[kananIdx].posisi = 'kiri';
+            } else if (kiriIdx >= 0) {
+                signers[kiriIdx].posisi  = 'kanan';
+            } else if (kananIdx >= 0) {
+                signers[kananIdx].posisi = 'kiri';
+            }
+            renderCards();
+            serializeConfig();
+            flashPreview();
+        });
+
+        /* ---- Tombol Swap Baris 2 (Mengetahui Kiri ⇄ Kanan) ---- */
+        $('#btnSwapBaris2').on('click', function() {
+            signers = collectSigners();
+            var mk = signers.findIndex(function(s){ return s.posisi === 'mengetahui_kiri'; });
+            var mn = signers.findIndex(function(s){ return s.posisi === 'mengetahui_kanan'; });
+            if (mk >= 0 && mn >= 0) {
+                signers[mk].posisi = 'mengetahui_kanan';
+                signers[mn].posisi = 'mengetahui_kiri';
+            }
+            renderCards();
+            serializeConfig();
+            flashPreview();
+        });
+
+        /* ---- Geser Urutan (Move Up / Down) ---- */
+        $(document).on('click', '.btn-move-up', function() {
+            var idx = parseInt($(this).closest('.signer-card').attr('data-signer-index'));
+            if (idx > 0) {
+                signers = collectSigners();
+                var temp = signers[idx - 1];
+                signers[idx - 1] = signers[idx];
+                signers[idx] = temp;
+                renderCards();
+                serializeConfig();
+            }
+        });
+
+        $(document).on('click', '.btn-move-down', function() {
+            var idx = parseInt($(this).closest('.signer-card').attr('data-signer-index'));
+            if (idx < signers.length - 1) {
+                signers = collectSigners();
+                var temp = signers[idx + 1];
+                signers[idx + 1] = signers[idx];
+                signers[idx] = temp;
+                renderCards();
+                serializeConfig();
+            }
+        });
+
+        /* ---- Klik Preset Card ---- */
+        $(document).on('click', '.preset-card', function() {
+            var preset = $(this).data('preset');
+            $('#selectedLayoutPreset').val(preset);
+            $('.preset-card').removeClass('selected');
+            $(this).addClass('selected');
+
+            var defaults = JSON.parse(JSON.stringify(presetDefaults[preset] || presetDefaults.preset_2));
+            var current = collectSigners();
+
+            if (current.length > 0) {
+                defaults.forEach(function(def, i) {
+                    if (current[i]) {
+                        def.nama          = current[i].nama          || def.nama;
+                        def.jabatan       = current[i].jabatan       || def.jabatan;
+                        def.instansi      = current[i].instansi      || def.instansi;
+                        def.nip           = current[i].nip           || def.nip;
+                        def.ref_id        = current[i].ref_id        || def.ref_id;
+                        def.sumber        = current[i].sumber        || def.sumber;
+                        def.mode_ttd      = current[i].mode_ttd      || def.mode_ttd;
+                        def.show_nip      = typeof current[i].show_nip !== 'undefined' ? current[i].show_nip : def.show_nip;
+                        def.show_instansi = typeof current[i].show_instansi !== 'undefined' ? current[i].show_instansi : def.show_instansi;
+                    }
+                });
+            }
+            signers = defaults;
+
+            renderCards();
+            serializeConfig();
+            flashPreview();
+        });
+
+        /* ---- Tombol Tambah Signer Baru ---- */
+        $('#btnTambahSigner').on('click', function() {
+            signers = collectSigners();
+            signers.push({
+                signer_id       : 'signer_' + (signers.length + 1),
+                posisi          : 'kiri',
+                sumber          : 'guru',
+                ref_id          : '',
+                nama            : '',
+                jabatan         : '',
+                instansi        : '',
+                nip             : '',
+                show_nip        : false,
+                show_instansi   : false,
+                mode_ttd        : 'Manual',
+                save_master     : false,
+                token_10        : null
+            });
+            renderCards();
+            serializeConfig();
+            flashPreview();
+        });
+
+        /* ---- Event: Ganti Sumber Data (Guru / Master / FKPQ / Manual) ---- */
+        $(document).on('click', '#signerCardsContainer .btn-sumber', function() {
+            var $card  = $(this).closest('.signer-card');
+            var sumber = $(this).data('sumber');
+            $card.find('.btn-sumber').removeClass('active');
+            $(this).addClass('active');
+            $card.find('.signer-sumber').val(sumber);
+
+            var idx = parseInt($card.attr('data-signer-index'));
+            $card.find('.signer-sumber-badge').text(sumberLabelMap[sumber] || 'Sumber: Database');
+
+            if (sumber === 'manual') {
+                $card.find('.wrap-pilih-pejabat').addClass('d-none');
+                $card.find('.wrap-save-master').removeClass('d-none');
+            } else {
+                $card.find('.wrap-pilih-pejabat').removeClass('d-none');
+                $card.find('.wrap-save-master').addClass('d-none');
+                var $select = $card.find('.signer-ref-select');
+                if ($select.hasClass('select2-hidden-accessible')) {
+                    $select.select2('destroy');
+                }
+                $select.html(buildOptions(sumber, signers[idx] ? signers[idx].ref_id : ''));
+                initSelect2Signers($card);
+            }
+            serializeConfig();
+        });
+
+        /* ---- Event: Pilih Pejabat dari Dropdown (Select2) ---- */
+        $(document).on('change', '#signerCardsContainer .signer-ref-select', function() {
+            var $opt  = $(this).find('option:selected');
+            var $card = $(this).closest('.signer-card');
+            if ($opt.val()) {
+                $card.find('.signer-nama').val($opt.data('nama') || '');
+                if ($opt.data('jabatan')) {
+                    $card.find('.signer-jabatan').val($opt.data('jabatan'));
+                }
+                if ($opt.data('instansi')) {
+                    $card.find('.signer-instansi').val($opt.data('instansi'));
+                    $card.find('.signer-show-instansi').prop('checked', true);
+                }
+                if ($opt.data('nip')) {
+                    $card.find('.signer-nip').val($opt.data('nip'));
+                    $card.find('.signer-show-nip').prop('checked', true);
+                }
+            } else {
+                $card.find('.signer-nama').val('');
+                $card.find('.signer-jabatan').val('');
+                $card.find('.signer-instansi').val('');
+                $card.find('.signer-nip').val('');
+            }
+            serializeConfig();
+        });
+
+        /* ---- Event: Ganti Posisi Pejabat ---- */
+        $(document).on('change', '#signerCardsContainer .signer-posisi', function() {
+            var $card  = $(this).closest('.signer-card');
+            var posisi = $(this).val();
+            var idx    = parseInt($card.attr('data-signer-index'));
+            var meta   = posisiMeta[posisi] || { label: posisi, badge: 'badge-primary', icon: 'fa-user', sub: 'Pejabat', accent: 'border-accent-kanan' };
+
+            $card.removeClass('border-accent-kanan border-accent-kiri border-accent-tengah border-accent-mengetahui').addClass(meta.accent);
+
+            var $badge = $card.find('.signer-posisi-badge');
+            $badge.removeClass('badge-primary badge-success badge-warning badge-info text-dark').addClass(meta.badge);
+            $badge.find('.signer-icon').attr('class', 'fas ' + meta.icon + ' mr-1 signer-icon');
+            $badge.find('.label-posisi-text').text('Pejabat #' + (idx + 1) + ' — ' + (posisi === 'kanan' ? 'Kanan' : (posisi === 'kiri' ? 'Kiri' : (posisi === 'tengah' ? 'Tengah' : 'Mengetahui'))));
+            $card.find('.signer-subtitle').text(meta.sub);
+
+            if (posisi.indexOf('mengetahui') >= 0) {
+                $card.find('.wrap-label-mengetahui').removeClass('d-none');
+            } else {
+                $card.find('.wrap-label-mengetahui').addClass('d-none');
+            }
+            serializeConfig();
+        });
+
+        /* ---- Event: Mode TTD Click (Pill Cards) ---- */
+        $(document).on('click', '#signerCardsContainer .mode-ttd-card', function() {
+            var $card = $(this).closest('.signer-card');
+            $card.find('.mode-ttd-card').removeClass('active');
+            $(this).addClass('active');
+            $(this).find('input[type="radio"]').prop('checked', true);
+            serializeConfig();
+        });
+
+        /* ---- Event: Hapus Signer ---- */
+        $(document).on('click', '#signerCardsContainer .btn-hapus-signer', function() {
+            var idx = parseInt($(this).closest('.signer-card').attr('data-signer-index'));
+            signers = collectSigners();
+            if (signers.length <= 1) {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Tidak Bisa Dihapus',
+                        text: 'Surat resmi wajib memiliki minimal satu orang penanda tangan.',
+                        confirmButtonColor: '#3085d6',
+                    });
+                } else {
+                    alert('Surat resmi wajib memiliki minimal satu orang penanda tangan.');
+                }
+                return;
+            }
+            signers.splice(idx, 1);
+            renderCards();
+            serializeConfig();
+            flashPreview();
+        });
+
+        /* ---- Event: Input Text & Switches ---- */
+        $(document).on('input change', '#signerCardsContainer .signer-nama, #signerCardsContainer .signer-jabatan, #signerCardsContainer .signer-instansi, #signerCardsContainer .signer-nip, #signerCardsContainer .signer-show-nip, #signerCardsContainer .signer-show-instansi, #signerCardsContainer .signer-save-master, #signerCardsContainer .signer-label-mengetahui', function() {
+            serializeConfig();
+        });
+
+        /* ---- Event: Tempat & Tanggal TTD Berubah ---- */
+        $('#inputTempatTtd, #inputTanggalTtd').on('input change', function() {
+            updatePreview();
+        });
+
+        /* ---- Submit Trigger Hook ---- */
+        $(document).on('click', '.btn-submit-wizard, #btnSubmitFinal, .btn-next', function() {
+            serializeConfig();
+        });
+
+        /* ---- Ekspor Public API ---- */
+        window.Step6Engine = {
+            getConfig: function() {
+                return {
+                    signers: collectSigners(),
+                    layout_preset: $('#selectedLayoutPreset').val()
+                };
+            },
+            refresh: function() {
+                renderCards();
+            }
+        };
+
+        /* ---- Init On Ready ---- */
+        var initialPreset = $('#selectedLayoutPreset').val() || 'preset_2';
+        $('.preset-card[data-preset="'+initialPreset+'"]').addClass('selected');
+        renderCards();
+
+    })(window.jQuery || window.$);
 });
 </script>
 

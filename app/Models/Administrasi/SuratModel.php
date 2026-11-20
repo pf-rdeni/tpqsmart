@@ -42,6 +42,7 @@ class SuratModel extends Model
         'IdPenandaTangan2',
         'Jabatan2',
         'ModeTtd2',
+        'PenandaTanganConfig',
         'AsalSurat',
         'TanggalTerima',
         'NoAgenda',

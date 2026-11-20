@@ -1087,7 +1087,9 @@ $routes->post('backend/administrasi/surat-masuk/disposisi/update-status/(:num)',
 $routes->get('backend/administrasi/surat-masuk/cetak-disposisi/(:num)', 'Backend\Administrasi\SuratMasuk::cetakDisposisi/$1');
 $routes->post('backend/administrasi/surat-masuk/delete/(:num)', 'Backend\Administrasi\SuratMasuk::delete/$1');
 
-// Validasi Keaslian Surat Publik (Fase 3)
+// Validasi Keaslian Surat Publik (Fase 3) & Token 10 Karakter Bersih
+$routes->get('signature/verify/(:segment)', 'Backend\Signature::verifyToken/$1');
+$routes->get('signature/v/(:segment)', 'Backend\Signature::verifyToken/$1');
 $routes->get('signature/validateSurat/(:num)', 'Backend\Signature::validateSurat/$1');
 
 $routes->get('logout', 'Dashboard::logout');

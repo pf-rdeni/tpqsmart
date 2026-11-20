@@ -509,14 +509,15 @@ class SuratKeluar extends BaseController
             'IsiSurat'         => $this->request->getPost('IsiSurat'),
             'Penutup'          => $this->request->getPost('Penutup'),
             'SalamPenutup'     => $this->request->getPost('SalamPenutup'),
-            'TempatTtd'        => $this->request->getPost('TempatTtd') ?: 'Bintan',
-            'TanggalTtd'       => $this->request->getPost('TanggalTtd') ?: date('Y-m-d'),
-            'IdPenandaTangan1' => $this->request->getPost('IdPenandaTangan1') ?: null,
-            'Jabatan1'         => $this->request->getPost('Jabatan1'),
-            'ModeTtd1'         => $this->request->getPost('ModeTtd1') ?: 'Manual',
-            'IdPenandaTangan2' => $this->request->getPost('IdPenandaTangan2') ?: null,
-            'Jabatan2'         => $this->request->getPost('Jabatan2'),
-            'ModeTtd2'         => $this->request->getPost('ModeTtd2') ?: 'Manual',
+            'TempatTtd'              => $this->request->getPost('TempatTtd') ?: 'Bintan',
+            'TanggalTtd'             => $this->request->getPost('TanggalTtd') ?: date('Y-m-d'),
+            'IdPenandaTangan1'       => $this->request->getPost('IdPenandaTangan1') ?: null,
+            'Jabatan1'               => $this->request->getPost('Jabatan1'),
+            'ModeTtd1'               => $this->request->getPost('ModeTtd1') ?: 'Manual',
+            'IdPenandaTangan2'       => $this->request->getPost('IdPenandaTangan2') ?: null,
+            'Jabatan2'               => $this->request->getPost('Jabatan2'),
+            'ModeTtd2'               => $this->request->getPost('ModeTtd2') ?: 'Manual',
+            'PenandaTanganConfig'    => $this->request->getPost('PenandaTanganConfig') ?: null,
             'Status'           => $status,
             'Catatan'          => $this->request->getPost('Catatan'),
         ];
@@ -574,6 +575,65 @@ class SuratKeluar extends BaseController
                     'JabatanPenerima' => $suratData['TujuanJabatan'],
                     'StatusKirim'     => 'Belum',
                 ]);
+            }
+        }
+
+        // ====================================================================
+        // Fase 3 & 6: Proses PenandaTanganConfig, Token QR 10 Karakter & Auto-Save
+        // ====================================================================
+        $tokenModel = new \App\Models\Administrasi\SuratSignerTokenModel();
+        $rawConfig  = $this->request->getPost('PenandaTanganConfig');
+
+        if (!empty($rawConfig)) {
+            $config = is_string($rawConfig) ? json_decode($rawConfig, true) : $rawConfig;
+            if (is_array($config) && !empty($config['signers'])) {
+                if ($status === 'Final') {
+                    // Revoke token lama jika ada pembaruan dokumen (surat diedit ulang)
+                    $tokenModel->revokeBySurat($idSurat, 'Pembaruan Dokumen Final');
+
+                    foreach ($config['signers'] as $idx => &$signer) {
+                        // Auto-save pejabat baru ke master tujuan jika dipilih
+                        if (($signer['sumber'] ?? '') === 'manual' && !empty($signer['save_master']) && !empty($signer['nama'])) {
+                            $this->tujuanMasterModel->insert([
+                                'IdTpq'          => $targetTpq,
+                                'KategoriTujuan' => 'Pejabat Pemerintah',
+                                'NamaTujuan'     => function_exists('formatNamaGelar') ? formatNamaGelar($signer['nama']) : $signer['nama'],
+                                'Jabatan'        => $signer['jabatan'] ?? '',
+                                'Instansi'       => $signer['instansi'] ?? '',
+                                'Nip'            => $signer['nip'] ?? '',
+                                'IsActive'       => 1,
+                            ]);
+                        }
+
+                        // Generate token 10 karakter jika mode QR
+                        if (($signer['mode_ttd'] ?? 'Manual') === 'QR') {
+                            $token10 = $tokenModel->generateUniqueToken();
+                            $signer['token_10'] = $token10;
+
+                            $tokenModel->insert([
+                                'IdSurat'       => $idSurat,
+                                'SignerIndex'   => $idx + 1,
+                                'Token'         => $token10,
+                                'Nama'          => function_exists('formatNamaGelar') ? formatNamaGelar($signer['nama'] ?? '') : ($signer['nama'] ?? ''),
+                                'Jabatan'       => $signer['jabatan'] ?? '',
+                                'Instansi'      => $signer['instansi'] ?? '',
+                                'IsRevoked'     => 0,
+                                'CreatedAt'     => date('Y-m-d H:i:s'),
+                            ]);
+                        } else {
+                            $signer['token_10'] = null;
+                        }
+                    }
+                    unset($signer);
+
+                    // Update kembali config yang sudah terisi token_10 ke tbl_surat
+                    $this->suratModel->update($idSurat, [
+                        'PenandaTanganConfig' => json_encode($config)
+                    ]);
+                } elseif ($status === 'Draft' || $status === 'Dibatalkan') {
+                    // Jika Draft atau Dibatalkan, revoke semua token
+                    $tokenModel->revokeBySurat($idSurat, 'Status surat diubah menjadi ' . $status);
+                }
             }
         }
 
@@ -762,8 +822,10 @@ class SuratKeluar extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => 'Akses ditolak']);
         }
 
-        // Hapus penerima
+        // Hapus penerima & revoke token tanda tangan
         $this->penerimaModel->where('IdSurat', $id)->delete();
+        $tokenModel = new \App\Models\Administrasi\SuratSignerTokenModel();
+        $tokenModel->revokeBySurat($id, 'Surat telah dihapus dari sistem');
         $this->suratModel->delete($id);
 
         return $this->response->setJSON(['success' => true, 'message' => 'Surat berhasil dihapus']);
@@ -849,11 +911,115 @@ class SuratKeluar extends BaseController
         $kopImageSrc = $kopData['imageSrc'];
         $kopText     = $kopData['text'];
 
-        // 2. Resolve Tanda Tangan & QR Code
-        $ttd1 = null;
-        $ttd2 = null;
+        // 2. Resolve Tanda Tangan Dinamis & Multi-Signer QR Code
+        $ttd1            = null;
+        $ttd2            = null;
+        $ttdConfig       = null;
+        $renderedSigners = [];
+        $rawConfig       = $surat['PenandaTanganConfig'] ?? null;
 
-        if (!isset($template['ShowMengetahui']) || !empty($template['ShowMengetahui']) || !empty($surat['IdPenandaTangan1']) || !empty($surat['Jabatan1'])) {
+        if (!empty($rawConfig)) {
+            $decodedConfig = is_string($rawConfig) ? json_decode($rawConfig, true) : $rawConfig;
+            if (is_array($decodedConfig) && !empty($decodedConfig['signers'])) {
+                $ttdConfig = $decodedConfig;
+                foreach ($decodedConfig['signers'] as $idx => $s) {
+                    $namaSigner = $s['nama'] ?? '';
+                    if (empty($namaSigner)) {
+                        if (($s['sumber'] ?? '') === 'guru' && !empty($s['ref_id'])) {
+                            $g = $this->guruModel->find($s['ref_id']);
+                            if ($g) $namaSigner = $g['Nama'];
+                        } elseif (($s['sumber'] ?? '') === 'master_tujuan' && !empty($s['ref_id'])) {
+                            $m = $this->tujuanMasterModel->find($s['ref_id']);
+                            if ($m) $namaSigner = $m['NamaTujuan'];
+                        } elseif (($s['sumber'] ?? '') === 'fkpq') {
+                            $db = \Config\Database::connect();
+                            $fkpq = $db->table('tbl_fkpq')->get()->getRowArray();
+                            if (!empty($fkpq['KetuaFkpq'])) $namaSigner = $fkpq['KetuaFkpq'];
+                        }
+                    }
+                    if (empty($namaSigner)) {
+                        $namaSigner = '____________________';
+                    } else {
+                        $namaSigner = function_exists('formatNamaGelar') ? formatNamaGelar($namaSigner) : $namaSigner;
+                    }
+
+                    $qrSrc         = null;
+                    $validationUrl = null;
+                    if (($s['mode_ttd'] ?? 'Manual') === 'QR') {
+                        // URL QR Code verifikasi bersih 10 karakter
+                        if (!empty($s['token_10'])) {
+                            $cleanUrl = base_url('signature/verify/' . $s['token_10']);
+                        } elseif (!empty($surat['Id'])) {
+                            // Cek apakah sudah ada token terdaftar di tbl_surat_signer_tokens
+                            $tokenModel = new \App\Models\Administrasi\SuratSignerTokenModel();
+                            $existingToken = $tokenModel->where('IdSurat', $surat['Id'])
+                                                        ->where('SignerIndex', $idx + 1)
+                                                        ->where('IsRevoked', 0)
+                                                        ->first();
+                            if ($existingToken) {
+                                $cleanUrl = base_url('signature/verify/' . $existingToken['Token']);
+                            } else {
+                                $cleanUrl = base_url('signature/validateSurat/' . $surat['Id'] . '?signer=' . ($idx + 1));
+                            }
+                        } else {
+                            $cleanUrl = base_url('signature/verify/preview?s=' . ($idx + 1));
+                        }
+
+                        // Render gambar QR matriks murni dari cleanUrl (agar saat discan kamera HP URL-nya 100% bersih tanpa ?v=1.0)
+                        try {
+                            $options = new \chillerlan\QRCode\QROptions([
+                                'outputType'   => \chillerlan\QRCode\Output\QROutputInterface::MARKUP_SVG,
+                                'eccLevel'     => \chillerlan\QRCode\Common\EccLevel::M,
+                                'imageBase64'  => true,
+                                'addQuietzone' => true,
+                                'quietzoneSize'=> 1,
+                            ]);
+                            $qrcode = new \chillerlan\QRCode\QRCode($options);
+                            $qrSrc  = $qrcode->render($cleanUrl);
+                        } catch (\Exception $e) {
+                            log_message('error', 'QR Code generation failed: ' . $e->getMessage());
+                            $qrSrc = null;
+                        }
+
+                        // Normalisasi URL tautan mPDF (hanya jika host tanpa titik seperti localhost, sertakan query bertitik agar mPDF menjadikannya /URI external link bukan internal bookmark /Dest)
+                        $validationUrl = $cleanUrl;
+                        if (!empty($validationUrl) && strpos($validationUrl, '.') === false) {
+                            $validationUrl .= (strpos($validationUrl, '?') !== false ? '&' : '?') . 'v=1.0';
+                        }
+                    }
+
+                    $renderedSigners[] = [
+                        'signer_id'        => $s['signer_id'] ?? ('signer_' . ($idx + 1)),
+                        'posisi'           => $s['posisi'] ?? 'kanan',
+                        'sumber'           => $s['sumber'] ?? 'guru',
+                        'nama'             => $namaSigner,
+                        'jabatan'          => $s['jabatan'] ?? '',
+                        'instansi'         => $s['instansi'] ?? '',
+                        'nip'              => $s['nip'] ?? null,
+                        'show_nip'         => !empty($s['show_nip']),
+                        'show_instansi'    => !empty($s['show_instansi']),
+                        'mode'             => $s['mode_ttd'] ?? 'Manual',
+                        'token_10'         => $s['token_10'] ?? ($existingToken['Token'] ?? null),
+                        'validation_url'   => $validationUrl,
+                        'qrSrc'            => $qrSrc,
+                        'label_mengetahui' => $s['label_mengetahui'] ?? ($decodedConfig['label_mengetahui'] ?? 'Mengetahui,'),
+                    ];
+                }
+
+                // Backward compatibility mapping for ttd1 & ttd2
+                $kananSigner = null;
+                $kiriSigner  = null;
+                foreach ($renderedSigners as $rs) {
+                    if ($rs['posisi'] === 'kanan' && !$kananSigner) $kananSigner = $rs;
+                    if ($rs['posisi'] === 'kiri'  && !$kiriSigner)  $kiriSigner  = $rs;
+                }
+                $ttd1 = $kananSigner ?: ($renderedSigners[0] ?? null);
+                $ttd2 = $kiriSigner  ?: ($renderedSigners[1] ?? null);
+            }
+        }
+
+        // Fallback jika belum ada konfigurasi dinamis (surat lama)
+        if (empty($renderedSigners) && (!isset($template['ShowMengetahui']) || !empty($template['ShowMengetahui']) || !empty($surat['IdPenandaTangan1']) || !empty($surat['Jabatan1']))) {
             $nama1  = '____________________';
             $nip1   = null;
             $qrSrc1 = null;
@@ -875,10 +1041,15 @@ class SuratKeluar extends BaseController
             }
 
             // Generate QR Code Digital Verifikasi Resmi jika Mode QR
+            $validationUrl1 = null;
             if (($surat['ModeTtd1'] ?? 'Manual') === 'QR') {
-                $validationUrl = !empty($surat['Id']) 
+                $validationUrl1 = !empty($surat['Id']) 
                     ? base_url('signature/validateSurat/' . $surat['Id']) 
                     : base_url('signature/validateSurat?preview=1&no=' . urlencode($surat['NomorSurat'] ?? ''));
+
+                if (!empty($validationUrl1) && strpos($validationUrl1, '.') === false) {
+                    $validationUrl1 .= (strpos($validationUrl1, '?') !== false ? '&' : '?') . 'v=1.0';
+                }
 
                 try {
                     $options = new \chillerlan\QRCode\QROptions([
@@ -889,7 +1060,7 @@ class SuratKeluar extends BaseController
                         'quietzoneSize'=> 1,
                     ]);
                     $qrcode = new \chillerlan\QRCode\QRCode($options);
-                    $qrSrc1 = $qrcode->render($validationUrl);
+                    $qrSrc1 = $qrcode->render($validationUrl1);
                 } catch (\Exception $e) {
                     log_message('error', 'QR Code generation failed (TTD1): ' . $e->getMessage());
                     $qrSrc1 = null;
@@ -897,17 +1068,19 @@ class SuratKeluar extends BaseController
             }
 
             $ttd1 = [
-                'nama'    => $nama1,
-                'jabatan' => $surat['Jabatan1'] ?? ($sumberKop === 'FKPQ' ? 'Ketua FKPQ' : 'Kepala TPQ'),
-                'qrSrc'   => $qrSrc1,
-                'nip'     => $nip1,
-                'mode'    => $surat['ModeTtd1'] ?? 'Manual'
+                'nama'           => $nama1,
+                'jabatan'        => $surat['Jabatan1'] ?? ($sumberKop === 'FKPQ' ? 'Ketua FKPQ' : 'Kepala TPQ'),
+                'qrSrc'          => $qrSrc1,
+                'validation_url' => $validationUrl1,
+                'nip'            => $nip1,
+                'mode'           => $surat['ModeTtd1'] ?? 'Manual'
             ];
 
             if (!empty($surat['IdPenandaTangan2']) || !empty($surat['Jabatan2'])) {
-                $nama2  = '____________________';
-                $nip2   = null;
-                $qrSrc2 = null;
+                $nama2          = '____________________';
+                $nip2           = null;
+                $qrSrc2         = null;
+                $validationUrl2 = null;
 
                 if (!empty($surat['IdPenandaTangan2'])) {
                     $guru2 = $this->guruModel->find($surat['IdPenandaTangan2']);
@@ -918,9 +1091,13 @@ class SuratKeluar extends BaseController
                 }
 
                 if (($surat['ModeTtd2'] ?? 'Manual') === 'QR') {
-                    $validationUrl = !empty($surat['Id']) 
+                    $validationUrl2 = !empty($surat['Id']) 
                         ? base_url('signature/validateSurat/' . $surat['Id']) 
                         : base_url('signature/validateSurat?preview=1&no=' . urlencode($surat['NomorSurat'] ?? ''));
+
+                    if (!empty($validationUrl2) && strpos($validationUrl2, '.') === false) {
+                        $validationUrl2 .= (strpos($validationUrl2, '?') !== false ? '&' : '?') . 'v=1.0';
+                    }
 
                     try {
                         $options = new \chillerlan\QRCode\QROptions([
@@ -931,7 +1108,7 @@ class SuratKeluar extends BaseController
                             'quietzoneSize'=> 1,
                         ]);
                         $qrcode = new \chillerlan\QRCode\QRCode($options);
-                        $qrSrc2 = $qrcode->render($validationUrl);
+                        $qrSrc2 = $qrcode->render($validationUrl2);
                     } catch (\Exception $e) {
                         log_message('error', 'QR Code generation failed (TTD2): ' . $e->getMessage());
                         $qrSrc2 = null;
@@ -939,11 +1116,12 @@ class SuratKeluar extends BaseController
                 }
 
                 $ttd2 = [
-                    'nama'    => $nama2,
-                    'jabatan' => $surat['Jabatan2'] ?? 'Sekretaris',
-                    'qrSrc'   => $qrSrc2,
-                    'nip'     => $nip2,
-                    'mode'    => $surat['ModeTtd2'] ?? 'Manual'
+                    'nama'           => $nama2,
+                    'jabatan'        => $surat['Jabatan2'] ?? 'Sekretaris',
+                    'qrSrc'          => $qrSrc2,
+                    'validation_url' => $validationUrl2,
+                    'nip'            => $nip2,
+                    'mode'           => $surat['ModeTtd2'] ?? 'Manual'
                 ];
             }
         }
@@ -978,6 +1156,8 @@ class SuratKeluar extends BaseController
             'kopText'          => $kopText,
             'ttd1'             => $ttd1,
             'ttd2'             => $ttd2,
+            'ttdConfig'        => $ttdConfig,
+            'renderedSigners'  => $renderedSigners,
             'renderedIsiSurat' => $renderedIsiSurat,
         ];
     }
