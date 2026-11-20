@@ -441,42 +441,30 @@
     <div class="wizard-steps d-none d-md-flex">
         <div class="wizard-step active" data-step="1">
             <span class="step-dot">1</span>
-            <span class="step-title">1. Template</span>
+            <span class="step-title">1. Dasar & Nomor</span>
         </div>
         <div class="wizard-step" data-step="2">
             <span class="step-dot">2</span>
-            <span class="step-title">2. Kop & Layout</span>
+            <span class="step-title">2. Perihal & Isi</span>
         </div>
         <div class="wizard-step" data-step="3">
             <span class="step-dot">3</span>
-            <span class="step-title">3. Penerima</span>
+            <span class="step-title">3. Tanda Tangan</span>
         </div>
         <div class="wizard-step" data-step="4">
             <span class="step-dot">4</span>
-            <span class="step-title">4. Perihal & Isi</span>
+            <span class="step-title">4. Penerima</span>
         </div>
         <div class="wizard-step" data-step="5">
             <span class="step-dot">5</span>
-            <span class="step-title">5. Nomor Surat</span>
-        </div>
-        <div class="wizard-step" data-step="6">
-            <span class="step-dot">6</span>
-            <span class="step-title">6. Tanda Tangan</span>
-        </div>
-        <div class="wizard-step" data-step="7">
-            <span class="step-dot">7</span>
-            <span class="step-title">7. Preview</span>
-        </div>
-        <div class="wizard-step" data-step="8">
-            <span class="step-dot">8</span>
-            <span class="step-title">8. Finalisasi</span>
+            <span class="step-title">5. Pratinjau & Final</span>
         </div>
     </div>
 
     <!-- Mobile Step Indicator Header -->
     <div class="card d-block d-md-none mb-3 bg-primary text-white">
         <div class="card-body py-2 text-center">
-            <strong id="mobileStepText">Langkah 1 dari 8: Pilih Template</strong>
+            <strong id="mobileStepText">Langkah 1 dari 5: Dasar Format & Penomoran Surat</strong>
         </div>
     </div>
 
@@ -499,15 +487,16 @@
         <input type="hidden" name="Status" id="wizardStatus" value="Final">
 
         <!-- ============================================================== -->
-        <!-- STEP 1: PILIH TEMPLATE -->
+        <!-- ============================================================== -->
+        <!-- STEP 1: DASAR FORMAT & PENOMORAN SURAT -->
         <!-- ============================================================== -->
         <div class="step-panel active" id="step1">
             <div class="card card-primary card-outline shadow-sm">
                 <div class="card-header">
-                    <h3 class="card-title font-weight-bold"><i class="fas fa-file-invoice mr-2"></i>Langkah 1: Pilih Template Surat</h3>
+                    <h3 class="card-title font-weight-bold"><i class="fas fa-file-invoice mr-2"></i>Langkah 1: Dasar Format & Penomoran Surat</h3>
                 </div>
                 <div class="card-body">
-                    <p class="text-muted">Pilih salah satu template surat sebagai dasar format dan layout. Pengaturan kop, margin, dan nomor surat akan otomatis dimuat.</p>
+                    <p class="text-muted">Pilih template surat sebagai dasar format dokumen. Nomor surat akan otomatis terhitung dan pengaturan tata letak disesuaikan secara otomatis.</p>
 
                     <!-- Filter Kategori & Search Template -->
                     <div class="row mb-3 bg-light rounded p-2 border mx-0">
@@ -545,7 +534,7 @@
                             <label class="font-weight-bold text-dark mb-0"><i class="fas fa-th-large mr-1 text-primary"></i> Pilih Template Surat: <span class="text-danger">*</span></label>
                             <span id="templateFilterCount" class="small text-muted"></span>
                         </div>
-                        <div class="row" id="templateCardGrid" style="max-height: 420px; overflow-y: auto;">
+                        <div class="row" id="templateCardGrid" style="max-height: 380px; overflow-y: auto;">
                             <?php foreach ($templates as $t): 
                                 $isSelected = (isset($surat['IdTemplate']) && $surat['IdTemplate'] == $t['Id']);
                                 $descStr = $t['Deskripsi'] ?? '';
@@ -588,15 +577,144 @@
                         </div>
                     </div>
 
-                    <div class="alert alert-info py-3 mt-3" id="templateInfoBox" style="display: none;">
-                        <div class="font-weight-bold mb-1"><i class="fas fa-info-circle mr-1"></i> Detail Template Terpilih:</div>
+                    <div class="alert alert-info py-2 mt-2" id="templateInfoBox" style="display: none;">
+                        <div class="font-weight-bold small"><i class="fas fa-info-circle mr-1"></i> Detail Template Terpilih:</div>
                         <div id="templateDesc" class="text-muted small"></div>
+                    </div>
+
+                    <!-- Panel Penomoran Surat Otomatis -->
+                    <div class="card card-outline card-primary bg-light mt-3 mb-3 shadow-sm border">
+                        <div class="card-header py-2">
+                            <h6 class="card-title font-weight-bold text-primary mb-0"><i class="fas fa-barcode mr-1"></i> Penomoran Surat Otomatis</h6>
+                        </div>
+                        <div class="card-body p-3">
+                            <div class="row">
+                                <div class="col-md-5 form-group mb-md-0">
+                                    <label class="small font-weight-bold">Format Penomoran</label>
+                                    <div class="input-group input-group-sm">
+                                        <input type="text" name="FormatNomor" id="inputFormatNomor" class="form-control" value="<?= esc($templateSurat['FormatNomor'] ?? '[NO:3]/[KODE-TPQ]/[KODE-KAT]/[BLN-ROMAWI]/[TAHUN]') ?>">
+                                        <div class="input-group-append">
+                                            <button type="button" class="btn btn-primary" id="btnHitungNomor" title="Hitung Nomor Berdasarkan Format & Tanggal">
+                                                <i class="fas fa-sync-alt mr-1"></i> Hitung
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-7 form-group mb-0">
+                                    <label class="small font-weight-bold">Nomor Surat Final <span class="text-danger">*</span></label>
+                                    <input type="text" name="NomorSurat" id="inputNomorSurat" class="form-control form-control-sm font-weight-bold text-primary" value="<?= esc($surat['NomorSurat'] ?? '') ?>" placeholder="Nomor otomatis terisi saat template dipilih" required>
+                                    <input type="hidden" name="UrutanNomor" id="inputUrutanNomor" value="<?= esc($surat['UrutanNomor'] ?? '1') ?>">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Panel Accordion / Collapsible: Penyesuaian Kop Surat & Layout Kertas -->
+                    <div class="card card-outline card-secondary collapsed-card mt-2 mb-0 shadow-sm border" id="cardKopLayoutAccordion">
+                        <div class="card-header py-2" data-card-widget="collapse" style="cursor: pointer;">
+                            <h6 class="card-title font-weight-bold text-secondary mb-0">
+                                <i class="fas fa-sliders-h mr-1"></i> Penyesuaian Kop Surat & Tata Letak Kertas (Opsional)
+                            </h6>
+                            <div class="card-tools">
+                                <span class="badge badge-light border text-muted mr-2" id="badgeKopLayoutSummary">Default Template</span>
+                                <button type="button" class="btn btn-tool" data-card-widget="collapse"><i class="fas fa-plus"></i></button>
+                            </div>
+                        </div>
+                        <div class="card-body p-3" style="display: none;">
+                            <div class="row">
+                                <!-- Sumber Kop -->
+                                <div class="col-md-6 form-group">
+                                    <label class="small font-weight-bold">Sumber Kop Surat</label>
+                                    <?php $currentSumberKop = $templateSurat['SumberKop'] ?? ($surat['SumberKop'] ?? 'TPQ'); ?>
+                                    <select name="SumberKop" id="optSumberKop" class="form-control form-control-sm">
+                                        <option value="TPQ" <?= ($currentSumberKop === 'TPQ') ? 'selected' : '' ?>>Kop Profil TPQ</option>
+                                        <option value="MDA" <?= ($currentSumberKop === 'MDA') ? 'selected' : '' ?>>Kop Profil MDA / MDTA</option>
+                                        <option value="FKPQ" <?= ($currentSumberKop === 'FKPQ') ? 'selected' : '' ?>>Kop FKPQ</option>
+                                        <option value="Kepanitiaan" <?= ($currentSumberKop === 'Kepanitiaan') ? 'selected' : '' ?>>Kop Kepanitiaan Khusus</option>
+                                        <option value="TanpaKop" <?= ($currentSumberKop === 'TanpaKop') ? 'selected' : '' ?>>Tanpa Kop (Kertas Kop Cetak / Polos)</option>
+                                    </select>
+                                </div>
+
+                                <!-- Pilihan Kop Custom jika Kepanitiaan -->
+                                <?php $currentIdKopCustom = $templateSurat['IdKopCustom'] ?? ($surat['IdKopCustom'] ?? ''); ?>
+                                <div class="col-md-6 form-group" id="wrapperKopCustomWizard" style="<?= ($currentSumberKop === 'Kepanitiaan') ? '' : 'display: none;' ?>">
+                                    <label class="small font-weight-bold">Pilih Gambar Kop Kepanitiaan</label>
+                                    <select name="IdKopCustom" id="optIdKopCustom" class="form-control form-control-sm">
+                                        <option value="">-- Pilih Kop Kepanitiaan --</option>
+                                        <?php foreach ($kopCustom as $kc): ?>
+                                            <option value="<?= $kc['Id'] ?>" <?= ($currentIdKopCustom == $kc['Id']) ? 'selected' : '' ?>><?= esc($kc['NamaKop']) ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-4 form-group">
+                                    <label class="small font-weight-bold">Ukuran Kertas</label>
+                                    <?php $currentKertas = $templateSurat['UkuranKertas'] ?? 'A4'; ?>
+                                    <select name="UkuranKertas" id="optUkuranKertas" class="form-control form-control-sm">
+                                        <option value="A4" <?= ($currentKertas === 'A4') ? 'selected' : '' ?>>A4 (210 x 297 mm)</option>
+                                        <option value="F4" <?= ($currentKertas === 'F4') ? 'selected' : '' ?>>F4 / Folio (215 x 330 mm)</option>
+                                        <option value="A5" <?= ($currentKertas === 'A5') ? 'selected' : '' ?>>A5 (148 x 210 mm)</option>
+                                        <option value="Legal" <?= ($currentKertas === 'Legal') ? 'selected' : '' ?>>Legal</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4 form-group">
+                                    <label class="small font-weight-bold">Orientasi</label>
+                                    <?php $currentOrientasi = $templateSurat['Orientasi'] ?? 'Portrait'; ?>
+                                    <select name="Orientasi" id="optOrientasi" class="form-control form-control-sm">
+                                        <option value="Portrait" <?= ($currentOrientasi === 'Portrait') ? 'selected' : '' ?>>Portrait (Tegak)</option>
+                                        <option value="Landscape" <?= ($currentOrientasi === 'Landscape') ? 'selected' : '' ?>>Landscape (Mendatar)</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4 form-group">
+                                    <label class="small font-weight-bold">Jenis & Ukuran Font</label>
+                                    <?php 
+                                        $currentFontFamily = $templateSurat['FontFamily'] ?? 'Times New Roman'; 
+                                        $currentFontSize   = $templateSurat['FontSize'] ?? '12';
+                                    ?>
+                                    <div class="input-group input-group-sm">
+                                        <select name="FontFamily" id="optFontFamily" class="form-control">
+                                            <option value="Times New Roman" <?= ($currentFontFamily === 'Times New Roman') ? 'selected' : '' ?>>Times New Roman</option>
+                                            <option value="Arial" <?= ($currentFontFamily === 'Arial') ? 'selected' : '' ?>>Arial</option>
+                                            <option value="Calibri" <?= ($currentFontFamily === 'Calibri') ? 'selected' : '' ?>>Calibri</option>
+                                        </select>
+                                        <select name="FontSize" id="optFontSize" class="form-control" style="max-width: 80px;">
+                                            <option value="10" <?= ($currentFontSize == '10') ? 'selected' : '' ?>>10 pt</option>
+                                            <option value="11" <?= ($currentFontSize == '11') ? 'selected' : '' ?>>11 pt</option>
+                                            <option value="12" <?= ($currentFontSize == '12') ? 'selected' : '' ?>>12 pt</option>
+                                            <option value="14" <?= ($currentFontSize == '14') ? 'selected' : '' ?>>14 pt</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <label class="d-block text-muted small text-uppercase font-weight-bold mb-2">Batas Tepi / Margin (mm):</label>
+                            <div class="row">
+                                <div class="col-3 form-group">
+                                    <label class="small">Atas</label>
+                                    <input type="number" name="MarginAtas" id="optMarginAtas" class="form-control form-control-sm" value="<?= esc($templateSurat['MarginAtas'] ?? 20) ?>">
+                                </div>
+                                <div class="col-3 form-group">
+                                    <label class="small">Bawah</label>
+                                    <input type="number" name="MarginBawah" id="optMarginBawah" class="form-control form-control-sm" value="<?= esc($templateSurat['MarginBawah'] ?? 20) ?>">
+                                </div>
+                                <div class="col-3 form-group">
+                                    <label class="small">Kiri</label>
+                                    <input type="number" name="MarginKiri" id="optMarginKiri" class="form-control form-control-sm" value="<?= esc($templateSurat['MarginKiri'] ?? 25) ?>">
+                                </div>
+                                <div class="col-3 form-group">
+                                    <label class="small">Kanan</label>
+                                    <input type="number" name="MarginKanan" id="optMarginKanan" class="form-control form-control-sm" value="<?= esc($templateSurat['MarginKanan'] ?? 15) ?>">
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="card-footer wizard-footer d-flex justify-content-between align-items-center flex-wrap shadow-sm">
                     <div class="d-none d-md-flex align-items-center mb-1">
                         <span class="badge badge-light border px-3 py-2 text-secondary font-weight-normal shadow-sm" style="font-size: 0.8rem; border-radius: 6px;">
-                            <i class="fas fa-file-alt text-primary mr-1"></i> Langkah 1 dari 8 &bull; Pilih Template Surat
+                            <i class="fas fa-file-alt text-primary mr-1"></i> Langkah 1 dari 5 &bull; Dasar Format & Penomoran
                         </span>
                     </div>
                     <div class="d-flex align-items-center flex-wrap mb-1 ml-auto" style="gap: 10px;">
@@ -606,306 +724,6 @@
                             </button>
                         <?php endif; ?>
                         <button type="button" class="btn btn-primary px-4 py-2 btn-next font-weight-bold shadow-sm" data-next="2" style="border-radius: 6px; min-width: 180px;">
-                            Lanjut ke Kop & Layout <i class="fas fa-arrow-right ml-2"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ============================================================== -->
-        <!-- STEP 2: KOP & LAYOUT -->
-        <!-- ============================================================== -->
-        <div class="step-panel" id="step2">
-            <div class="card card-info card-outline shadow-sm">
-                <div class="card-header">
-                    <h3 class="card-title font-weight-bold"><i class="fas fa-stamp mr-2"></i>Langkah 2: Konfigurasi Kop Surat & Layout Kertas</h3>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <!-- Sumber Kop -->
-                        <div class="col-md-6 form-group">
-                            <label>Sumber Kop Surat</label>
-                            <?php $currentSumberKop = $templateSurat['SumberKop'] ?? ($surat['SumberKop'] ?? 'TPQ'); ?>
-                            <select name="SumberKop" id="optSumberKop" class="form-control">
-                                <option value="TPQ" <?= ($currentSumberKop === 'TPQ') ? 'selected' : '' ?>>Kop Profil TPQ</option>
-                                <option value="MDA" <?= ($currentSumberKop === 'MDA') ? 'selected' : '' ?>>Kop Profil MDA / MDTA</option>
-                                <option value="FKPQ" <?= ($currentSumberKop === 'FKPQ') ? 'selected' : '' ?>>Kop FKPQ</option>
-                                <option value="Kepanitiaan" <?= ($currentSumberKop === 'Kepanitiaan') ? 'selected' : '' ?>>Kop Kepanitiaan Khusus</option>
-                                <option value="TanpaKop" <?= ($currentSumberKop === 'TanpaKop') ? 'selected' : '' ?>>Tanpa Kop (Kertas Kop Cetak / Polos)</option>
-                            </select>
-                        </div>
-
-                        <!-- Pilihan Kop Custom jika Kepanitiaan -->
-                        <?php $currentIdKopCustom = $templateSurat['IdKopCustom'] ?? ($surat['IdKopCustom'] ?? ''); ?>
-                        <div class="col-md-6 form-group" id="wrapperKopCustomWizard" style="<?= ($currentSumberKop === 'Kepanitiaan') ? '' : 'display: none;' ?>">
-                            <label>Pilih Gambar Kop Kepanitiaan</label>
-                            <select name="IdKopCustom" id="optIdKopCustom" class="form-control">
-                                <option value="">-- Pilih Kop Kepanitiaan --</option>
-                                <?php foreach ($kopCustom as $kc): ?>
-                                    <option value="<?= $kc['Id'] ?>" <?= ($currentIdKopCustom == $kc['Id']) ? 'selected' : '' ?>><?= esc($kc['NamaKop']) ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-4 form-group">
-                            <label>Ukuran Kertas</label>
-                            <?php $currentKertas = $templateSurat['UkuranKertas'] ?? 'A4'; ?>
-                            <select name="UkuranKertas" id="optUkuranKertas" class="form-control">
-                                <option value="A4" <?= ($currentKertas === 'A4') ? 'selected' : '' ?>>A4 (210 x 297 mm)</option>
-                                <option value="F4" <?= ($currentKertas === 'F4') ? 'selected' : '' ?>>F4 / Folio (215 x 330 mm)</option>
-                                <option value="A5" <?= ($currentKertas === 'A5') ? 'selected' : '' ?>>A5 (148 x 210 mm)</option>
-                                <option value="Legal" <?= ($currentKertas === 'Legal') ? 'selected' : '' ?>>Legal</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4 form-group">
-                            <label>Orientasi</label>
-                            <?php $currentOrientasi = $templateSurat['Orientasi'] ?? 'Portrait'; ?>
-                            <select name="Orientasi" id="optOrientasi" class="form-control">
-                                <option value="Portrait" <?= ($currentOrientasi === 'Portrait') ? 'selected' : '' ?>>Portrait (Tegak)</option>
-                                <option value="Landscape" <?= ($currentOrientasi === 'Landscape') ? 'selected' : '' ?>>Landscape (Mendatar)</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4 form-group">
-                            <label>Jenis & Ukuran Font</label>
-                            <?php 
-                                $currentFontFamily = $templateSurat['FontFamily'] ?? 'Times New Roman'; 
-                                $currentFontSize   = $templateSurat['FontSize'] ?? '12';
-                            ?>
-                            <div class="input-group">
-                                <select name="FontFamily" id="optFontFamily" class="form-control">
-                                    <option value="Times New Roman" <?= ($currentFontFamily === 'Times New Roman') ? 'selected' : '' ?>>Times New Roman</option>
-                                    <option value="Arial" <?= ($currentFontFamily === 'Arial') ? 'selected' : '' ?>>Arial</option>
-                                    <option value="Calibri" <?= ($currentFontFamily === 'Calibri') ? 'selected' : '' ?>>Calibri</option>
-                                </select>
-                                <select name="FontSize" id="optFontSize" class="form-control" style="max-width: 80px;">
-                                    <option value="10" <?= ($currentFontSize == '10') ? 'selected' : '' ?>>10 pt</option>
-                                    <option value="11" <?= ($currentFontSize == '11') ? 'selected' : '' ?>>11 pt</option>
-                                    <option value="12" <?= ($currentFontSize == '12') ? 'selected' : '' ?>>12 pt</option>
-                                    <option value="14" <?= ($currentFontSize == '14') ? 'selected' : '' ?>>14 pt</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    <label class="d-block text-muted small text-uppercase font-weight-bold mb-2">Batas Tepi / Margin (mm):</label>
-                    <div class="row">
-                        <div class="col-3 form-group">
-                            <label class="small">Atas</label>
-                            <input type="number" name="MarginAtas" id="optMarginAtas" class="form-control form-control-sm" value="<?= esc($templateSurat['MarginAtas'] ?? 20) ?>">
-                        </div>
-                        <div class="col-3 form-group">
-                            <label class="small">Bawah</label>
-                            <input type="number" name="MarginBawah" id="optMarginBawah" class="form-control form-control-sm" value="<?= esc($templateSurat['MarginBawah'] ?? 20) ?>">
-                        </div>
-                        <div class="col-3 form-group">
-                            <label class="small">Kiri</label>
-                            <input type="number" name="MarginKiri" id="optMarginKiri" class="form-control form-control-sm" value="<?= esc($templateSurat['MarginKiri'] ?? 25) ?>">
-                        </div>
-                        <div class="col-3 form-group">
-                            <label class="small">Kanan</label>
-                            <input type="number" name="MarginKanan" id="optMarginKanan" class="form-control form-control-sm" value="<?= esc($templateSurat['MarginKanan'] ?? 15) ?>">
-                        </div>
-                    </div>
-                </div>
-                <div class="card-footer wizard-footer d-flex justify-content-between align-items-center flex-wrap shadow-sm">
-                    <button type="button" class="btn btn-outline-secondary btn-prev px-4 py-2 font-weight-bold shadow-sm mb-1" data-prev="1" style="border-radius: 6px; min-width: 130px;">
-                        <i class="fas fa-arrow-left mr-2"></i> Kembali
-                    </button>
-                    <div class="d-none d-md-flex align-items-center mb-1">
-                        <span class="badge badge-light border px-3 py-2 text-secondary font-weight-normal shadow-sm" style="font-size: 0.8rem; border-radius: 6px;">
-                            <i class="fas fa-heading text-info mr-1"></i> Langkah 2 dari 8 &bull; Kop Surat & Layout Kertas
-                        </span>
-                    </div>
-                    <div class="d-flex align-items-center flex-wrap mb-1" style="gap: 10px;">
-                        <?php if (!empty($isEdit)): ?>
-                            <button type="button" class="btn btn-outline-success px-4 py-2 btn-submit-wizard font-weight-bold shadow-sm" title="Simpan Perubahan Surat" style="border-radius: 6px;">
-                                <i class="fas fa-save mr-1"></i> Simpan
-                            </button>
-                        <?php endif; ?>
-                        <button type="button" class="btn btn-info px-4 py-2 btn-next font-weight-bold shadow-sm text-white" data-next="3" style="border-radius: 6px; min-width: 180px;">
-                            Lanjut ke Penerima <i class="fas fa-arrow-right ml-2"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ============================================================== -->
-        <!-- STEP 3: PILIH TUJUAN PENERIMA -->
-        <!-- ============================================================== -->
-        <div class="step-panel" id="step3">
-            <div class="card card-success card-outline shadow-sm">
-                <div class="card-header">
-                    <h3 class="card-title font-weight-bold"><i class="fas fa-users mr-2"></i>Langkah 3: Pilih Tujuan / Penerima Surat</h3>
-                </div>
-                <div class="card-body">
-                    <!-- Tab Pilihan Tipe Penerima -->
-                    <ul class="nav nav-pills mb-3" id="penerimaTabs">
-                        <li class="nav-item">
-                            <a class="nav-link active tipe-penerima-tab" href="javascript:void(0)" data-type="single">
-                                <i class="fas fa-user mr-1"></i> Penerima Tunggal
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link tipe-penerima-tab" href="javascript:void(0)" data-type="master">
-                                <i class="fas fa-address-book mr-1"></i> Database Tujuan (Pejabat/Lembaga)
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link tipe-penerima-tab" href="javascript:void(0)" data-type="guru">
-                                <i class="fas fa-chalkboard-teacher mr-1"></i> Massal Guru / Wali Kelas
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link tipe-penerima-tab" href="javascript:void(0)" data-type="wali_santri">
-                                <i class="fas fa-user-graduate mr-1"></i> Massal Wali Santri
-                            </a>
-                        </li>
-                    </ul>
-
-                    <!-- Mode A: Single Manual -->
-                    <div id="wrapperSingleRecipient">
-                        <div class="row">
-                            <div class="col-md-12 form-group mb-3">
-                                <div class="card bg-light border p-2 mb-0">
-                                    <div class="d-flex align-items-center justify-content-between flex-wrap" style="gap: 10px;">
-                                        <span class="small font-weight-bold text-dark">
-                                            <i class="fas fa-database text-primary mr-1"></i> Ambil dari Database Tujuan:
-                                        </span>
-                                        <div style="flex: 1; min-width: 260px;">
-                                            <select id="selectQuickTujuanMaster" class="form-control form-control-sm">
-                                                <option value="">-- Pilih Tujuan dari Database untuk Mengisi Otomatis --</option>
-                                                <?php if (!empty($tujuanMaster)): ?>
-                                                    <?php foreach ($tujuanMaster as $tm): 
-                                                        $namaFmt = function_exists('formatNamaGelar') ? formatNamaGelar($tm['NamaTujuan']) : $tm['NamaTujuan'];
-                                                    ?>
-                                                        <option value="<?= $tm['Id'] ?>"
-                                                                data-nama="<?= esc($namaFmt) ?>"
-                                                                data-jabatan="<?= esc($tm['Jabatan'] ?? '') ?>"
-                                                                data-instansi="<?= esc($tm['Instansi'] ?? '') ?>"
-                                                                data-alamat="<?= esc($tm['Alamat'] ?? '') ?>"
-                                                                data-kota="<?= esc($tm['Kota'] ?? '') ?>">
-                                                            <?= esc($namaFmt) ?><?= !empty($tm['Jabatan']) ? ' - ' . esc($tm['Jabatan']) : '' ?><?= !empty($tm['Instansi']) ? ' (' . esc($tm['Instansi']) . ')' : '' ?>
-                                                        </option>
-                                                    <?php endforeach; ?>
-                                                <?php endif; ?>
-                                            </select>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 form-group">
-                                <label>Nama Penerima / Pejabat <span class="text-danger">*</span></label>
-                                <input type="text" name="TujuanNama" id="inputTujuanNama" class="form-control" value="<?= esc($surat['TujuanNama'] ?? '') ?>" placeholder="Contoh: Sudarno, S.Pd">
-                            </div>
-                            <div class="col-md-6 form-group">
-                                <label>Jabatan</label>
-                                <input type="text" name="TujuanJabatan" id="inputTujuanJabatan" class="form-control" value="<?= esc($surat['TujuanJabatan'] ?? '') ?>" placeholder="Contoh: Kepala Bagian KESRA">
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 form-group">
-                                <label>Instansi / Lembaga</label>
-                                <input type="text" name="TujuanInstansi" id="inputTujuanInstansi" class="form-control" value="<?= esc($surat['TujuanInstansi'] ?? '') ?>" placeholder="Contoh: Pemkab Bintan">
-                            </div>
-                            <div class="col-md-6 form-group">
-                                <label>Kota / Kabupaten</label>
-                                <input type="text" name="TujuanKota" id="inputTujuanKota" class="form-control" value="<?= esc($surat['TujuanKota'] ?? 'Tempat') ?>" placeholder="Tempat / Bintan">
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label>Alamat Lengkap (Opsional)</label>
-                            <input type="text" name="TujuanAlamat" id="inputTujuanAlamat" class="form-control" value="<?= esc($surat['TujuanAlamat'] ?? '') ?>" placeholder="Jalan, No...">
-                        </div>
-                    </div>
-
-                    <!-- Mode B & C & D: Multi Select List -->
-                    <div id="wrapperMultiRecipient" style="display: none;">
-                        <div class="row mb-2">
-                            <div class="col-md-4 form-group" id="filterKelasWrapper" style="display: none;">
-                                <label class="font-weight-bold small text-muted">Filter Kelas Santri:</label>
-                                <select id="filterKelasSelect" class="form-control form-control-sm">
-                                    <option value="">-- Semua Kelas --</option>
-                                    <?php foreach ($kelasList as $k): ?>
-                                        <option value="<?= $k['IdKelas'] ?>"><?= esc($k['NamaKelas']) ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                            <div class="col-md-4 form-group" id="filterKategoriMasterWrapper" style="display: none;">
-                                <label class="font-weight-bold small text-muted">Filter Kategori Tujuan:</label>
-                                <select id="filterKategoriMasterSelect" class="form-control form-control-sm">
-                                    <option value="">-- Semua Kategori Tujuan --</option>
-                                    <option value="Pemerintah">Pemerintah</option>
-                                    <option value="Lembaga">Lembaga</option>
-                                    <option value="Perorangan">Perorangan</option>
-                                    <option value="Donatur">Donatur</option>
-                                </select>
-                            </div>
-                            <div class="col-md-5 form-group" id="searchRecipientWrapper">
-                                <label class="font-weight-bold small text-muted">Cari Penerima (Nama / Jabatan / Instansi):</label>
-                                <div class="input-group input-group-sm">
-                                    <div class="input-group-prepend">
-                                        <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
-                                    </div>
-                                    <input type="text" id="inputSearchRecipient" class="form-control" placeholder="Ketik kata kunci pencarian...">
-                                    <div class="input-group-append" id="btnClearSearchRecipient" style="display: none;">
-                                        <button class="btn btn-outline-secondary" type="button" title="Bersihkan Pencarian">&times;</button>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-12 d-flex justify-content-between align-items-center mb-2 flex-wrap">
-                                <div id="searchRecipientInfo" class="small text-muted py-1">
-                                    <!-- Status / Info Hasil Pencarian -->
-                                </div>
-                                <div>
-                                    <button type="button" class="btn btn-outline-primary btn-sm" id="btnSelectAllRecipients">
-                                        <i class="fas fa-check-double mr-1"></i> Pilih Semua (Tampil)
-                                    </button>
-                                    <button type="button" class="btn btn-outline-secondary btn-sm ml-1" id="btnUnselectAllRecipients">
-                                        Batal Pilih (Tampil)
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="border rounded p-2" style="max-height: 280px; overflow-y: auto;" id="recipientCheckboxList">
-                            <div class="text-center py-4 text-muted">Memuat data penerima...</div>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center mt-2 flex-wrap">
-                            <small class="text-muted">
-                                Terpilih: <strong id="countSelectedRecipients">0</strong> penerima. File PDF dapat digenerate sekaligus atau per individual dalam file ZIP.
-                            </small>
-                        </div>
-                        <!-- Box Daftar Penerima Terpilih (Chips/Badges) -->
-                        <div class="mt-2 p-2 bg-light rounded border" id="boxSelectedRecipientsBadges" style="max-height: 115px; overflow-y: auto;">
-                            <div class="small font-weight-bold text-muted mb-1"><i class="fas fa-check-circle text-success mr-1"></i> Penerima Terpilih (Klik &times; untuk membatalkan):</div>
-                            <div id="selectedRecipientsBadges" class="d-flex flex-wrap" style="gap: 5px;">
-                                <span class="text-muted small">Belum ada penerima yang dipilih.</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="card-footer wizard-footer d-flex justify-content-between align-items-center flex-wrap shadow-sm">
-                    <button type="button" class="btn btn-outline-secondary btn-prev px-4 py-2 font-weight-bold shadow-sm mb-1" data-prev="2" style="border-radius: 6px; min-width: 130px;">
-                        <i class="fas fa-arrow-left mr-2"></i> Kembali
-                    </button>
-                    <div class="d-none d-md-flex align-items-center mb-1">
-                        <span class="badge badge-light border px-3 py-2 text-secondary font-weight-normal shadow-sm" style="font-size: 0.8rem; border-radius: 6px;">
-                            <i class="fas fa-users text-success mr-1"></i> Langkah 3 dari 8 &bull; Data Penerima Surat
-                        </span>
-                    </div>
-                    <div class="d-flex align-items-center flex-wrap mb-1" style="gap: 10px;">
-                        <?php if (!empty($isEdit)): ?>
-                            <button type="button" class="btn btn-outline-success px-4 py-2 btn-submit-wizard font-weight-bold shadow-sm" title="Simpan Perubahan Surat" style="border-radius: 6px;">
-                                <i class="fas fa-save mr-1"></i> Simpan
-                            </button>
-                        <?php endif; ?>
-                        <button type="button" class="btn btn-success px-4 py-2 btn-next font-weight-bold shadow-sm" data-next="4" style="border-radius: 6px; min-width: 180px;">
                             Lanjut ke Perihal & Isi <i class="fas fa-arrow-right ml-2"></i>
                         </button>
                     </div>
@@ -914,12 +732,12 @@
         </div>
 
         <!-- ============================================================== -->
-        <!-- STEP 4: PERIHAL & KONTEN ISI SURAT -->
+        <!-- STEP 2: PERIHAL & KONTEN ISI SURAT -->
         <!-- ============================================================== -->
-        <div class="step-panel" id="step4">
+        <div class="step-panel" id="step2">
             <div class="card card-warning card-outline shadow-sm">
                 <div class="card-header">
-                    <h3 class="card-title font-weight-bold"><i class="fas fa-edit mr-2"></i>Langkah 4: Perihal, Tanggal, & Konten Isi Surat</h3>
+                    <h3 class="card-title font-weight-bold"><i class="fas fa-edit mr-2"></i>Langkah 2: Perihal, Tanggal, & Konten Isi Surat</h3>
                 </div>
                 <div class="card-body">
                     <div class="row">
@@ -966,12 +784,12 @@
                     </div>
                 </div>
                 <div class="card-footer wizard-footer d-flex justify-content-between align-items-center flex-wrap shadow-sm">
-                    <button type="button" class="btn btn-outline-secondary btn-prev px-4 py-2 font-weight-bold shadow-sm mb-1" data-prev="3" style="border-radius: 6px; min-width: 130px;">
+                    <button type="button" class="btn btn-outline-secondary btn-prev px-4 py-2 font-weight-bold shadow-sm mb-1" data-prev="1" style="border-radius: 6px; min-width: 130px;">
                         <i class="fas fa-arrow-left mr-2"></i> Kembali
                     </button>
                     <div class="d-none d-md-flex align-items-center mb-1">
                         <span class="badge badge-light border px-3 py-2 text-secondary font-weight-normal shadow-sm" style="font-size: 0.8rem; border-radius: 6px;">
-                            <i class="fas fa-align-left text-warning mr-1"></i> Langkah 4 dari 8 &bull; Perihal & Redaksi Isi
+                            <i class="fas fa-align-left text-warning mr-1"></i> Langkah 2 dari 5 &bull; Perihal & Redaksi Isi
                         </span>
                     </div>
                     <div class="d-flex align-items-center flex-wrap mb-1" style="gap: 10px;">
@@ -980,62 +798,7 @@
                                 <i class="fas fa-save mr-1"></i> Simpan
                             </button>
                         <?php endif; ?>
-                        <button type="button" class="btn btn-warning px-4 py-2 btn-next font-weight-bold shadow-sm" data-next="5" style="border-radius: 6px; min-width: 180px;">
-                            Lanjut ke Nomor Surat <i class="fas fa-arrow-right ml-2"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ============================================================== -->
-        <!-- STEP 5: NOMOR SURAT -->
-        <!-- ============================================================== -->
-        <div class="step-panel" id="step5">
-            <div class="card card-secondary card-outline shadow-sm">
-                <div class="card-header">
-                    <h3 class="card-title font-weight-bold"><i class="fas fa-sort-numeric-down mr-2"></i>Langkah 5: Penomoran Surat Otomatis</h3>
-                </div>
-                <div class="card-body">
-                    <div class="form-group">
-                        <label>Format Penomoran yang Digunakan</label>
-                        <div class="input-group">
-                            <input type="text" name="FormatNomor" id="inputFormatNomor" class="form-control" value="<?= esc($templateSurat['FormatNomor'] ?? '[NO:3]/[KODE-TPQ]/[KODE-KAT]/[BLN-ROMAWI]/[TAHUN]') ?>">
-                            <div class="input-group-append">
-                                <button type="button" class="btn btn-primary" id="btnHitungNomor">
-                                    <i class="fas fa-sync-alt mr-1"></i> Hitung Nomor Otomatis
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Nomor Surat Final (Hasil Generate / Bisa Diedit Manual) <span class="text-danger">*</span></label>
-                        <input type="text" name="NomorSurat" id="inputNomorSurat" class="form-control form-control-lg font-weight-bold text-primary" value="<?= esc($surat['NomorSurat'] ?? '') ?>" required>
-                        <input type="hidden" name="UrutanNomor" id="inputUrutanNomor" value="<?= esc($surat['UrutanNomor'] ?? '1') ?>">
-                        <small class="text-muted">Nomor surat ini akan dicetak pada lembar surat dan disimpan dalam arsip penomoran.</small>
-                    </div>
-
-                    <div class="alert alert-light border mt-3">
-                        <i class="fas fa-shield-alt text-success mr-1"></i> Sistem otomatis mencegah nomor ganda dengan mengunci counter saat Anda menekan tombol Simpan/Finalisasi.
-                    </div>
-                </div>
-                <div class="card-footer wizard-footer d-flex justify-content-between align-items-center flex-wrap shadow-sm">
-                    <button type="button" class="btn btn-outline-secondary btn-prev px-4 py-2 font-weight-bold shadow-sm mb-1" data-prev="4" style="border-radius: 6px; min-width: 130px;">
-                        <i class="fas fa-arrow-left mr-2"></i> Kembali
-                    </button>
-                    <div class="d-none d-md-flex align-items-center mb-1">
-                        <span class="badge badge-light border px-3 py-2 text-secondary font-weight-normal shadow-sm" style="font-size: 0.8rem; border-radius: 6px;">
-                            <i class="fas fa-barcode text-primary mr-1"></i> Langkah 5 dari 8 &bull; Penomoran Surat
-                        </span>
-                    </div>
-                    <div class="d-flex align-items-center flex-wrap mb-1" style="gap: 10px;">
-                        <?php if (!empty($isEdit)): ?>
-                            <button type="button" class="btn btn-outline-success px-4 py-2 btn-submit-wizard font-weight-bold shadow-sm" title="Simpan Perubahan Surat" style="border-radius: 6px;">
-                                <i class="fas fa-save mr-1"></i> Simpan
-                            </button>
-                        <?php endif; ?>
-                        <button type="button" class="btn btn-primary px-4 py-2 btn-next font-weight-bold shadow-sm" data-next="6" style="border-radius: 6px; min-width: 180px;">
+                        <button type="button" class="btn btn-warning px-4 py-2 btn-next font-weight-bold shadow-sm" data-next="3" style="border-radius: 6px; min-width: 180px;">
                             Lanjut ke Tanda Tangan <i class="fas fa-arrow-right ml-2"></i>
                         </button>
                     </div>
@@ -1044,7 +807,7 @@
         </div>
 
         <!-- ============================================================== -->
-        <!-- STEP 6: PENANDA TANGAN DINAMIS (TTD & QR CODE) -->
+        <!-- STEP 3: PENANDA TANGAN DINAMIS (TTD & QR CODE) -->
         <!-- ============================================================== -->
         <?php
         // Parse konfigurasi penanda tangan yang sudah ada (untuk mode edit)
@@ -1098,11 +861,11 @@
         $db_step6 = \Config\Database::connect();
         $fkpqData = $db_step6->table('tbl_fkpq')->get()->getRowArray();
         ?>
-        <div class="step-panel" id="step6">
+        <div class="step-panel" id="step3">
             <div class="card card-primary card-outline shadow-sm">
                 <div class="card-header">
                     <h3 class="card-title font-weight-bold">
-                        <i class="fas fa-file-signature mr-2"></i>Langkah 6: Penanda Tangan & Tata Letak Naskah Dinas
+                        <i class="fas fa-file-signature mr-2"></i>Langkah 3: Penanda Tangan & Tata Letak Naskah Dinas
                     </h3>
                 </div>
                 <div class="card-body">
@@ -1497,12 +1260,12 @@
 
                 </div><!-- /.card-body -->
                 <div class="card-footer wizard-footer d-flex justify-content-between align-items-center flex-wrap shadow-sm">
-                    <button type="button" class="btn btn-outline-secondary btn-prev px-4 py-2 font-weight-bold shadow-sm mb-1" data-prev="5" style="border-radius: 6px; min-width: 130px;">
+                    <button type="button" class="btn btn-outline-secondary btn-prev px-4 py-2 font-weight-bold shadow-sm mb-1" data-prev="2" style="border-radius: 6px; min-width: 130px;">
                         <i class="fas fa-arrow-left mr-2"></i> Kembali
                     </button>
                     <div class="d-none d-md-flex align-items-center mb-1">
                         <span class="badge badge-light border px-3 py-2 text-secondary font-weight-normal shadow-sm" style="font-size: 0.8rem; border-radius: 6px;">
-                            <i class="fas fa-file-signature text-primary mr-1"></i> Langkah 6 dari 8 &bull; Penanda Tangan & Tata Letak
+                            <i class="fas fa-file-signature text-primary mr-1"></i> Langkah 3 dari 5 &bull; Penanda Tangan & Tata Letak
                         </span>
                     </div>
                     <div class="d-flex align-items-center flex-wrap mb-1" style="gap: 10px;">
@@ -1511,8 +1274,8 @@
                                 <i class="fas fa-save mr-1"></i> Simpan
                             </button>
                         <?php endif; ?>
-                        <button type="button" class="btn btn-primary px-4 py-2 btn-next font-weight-bold shadow-sm" data-next="7" style="border-radius: 6px; min-width: 180px;">
-                            Lanjut ke Preview <i class="fas fa-arrow-right ml-2"></i>
+                        <button type="button" class="btn btn-primary px-4 py-2 btn-next font-weight-bold shadow-sm" data-next="4" style="border-radius: 6px; min-width: 180px;">
+                            Lanjut ke Penerima Surat <i class="fas fa-arrow-right ml-2"></i>
                         </button>
                     </div>
                 </div>
@@ -1520,93 +1283,254 @@
         </div>
 
         <!-- ============================================================== -->
-        <!-- STEP 7: LIVE PREVIEW HALAMAN SURAT -->
+        <!-- STEP 4: PILIH TUJUAN PENERIMA -->
         <!-- ============================================================== -->
-        <div class="step-panel" id="step7">
+        <div class="step-panel" id="step4">
+            <div class="card card-success card-outline shadow-sm">
+                <div class="card-header">
+                    <h3 class="card-title font-weight-bold"><i class="fas fa-users mr-2"></i>Langkah 4: Pilih Tujuan / Penerima Surat</h3>
+                </div>
+                <div class="card-body">
+                    <!-- Tab Pilihan Tipe Penerima -->
+                    <ul class="nav nav-pills mb-3" id="penerimaTabs">
+                        <li class="nav-item">
+                            <a class="nav-link active tipe-penerima-tab" href="javascript:void(0)" data-type="single">
+                                <i class="fas fa-user mr-1"></i> Penerima Tunggal
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link tipe-penerima-tab" href="javascript:void(0)" data-type="master">
+                                <i class="fas fa-address-book mr-1"></i> Database Tujuan (Pejabat/Lembaga)
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link tipe-penerima-tab" href="javascript:void(0)" data-type="guru">
+                                <i class="fas fa-chalkboard-teacher mr-1"></i> Massal Guru / Wali Kelas
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link tipe-penerima-tab" href="javascript:void(0)" data-type="wali_santri">
+                                <i class="fas fa-user-graduate mr-1"></i> Massal Wali Santri
+                            </a>
+                        </li>
+                    </ul>
+
+                    <!-- Mode A: Single Manual -->
+                    <div id="wrapperSingleRecipient">
+                        <div class="row">
+                            <div class="col-md-12 form-group mb-3">
+                                <div class="card bg-light border p-2 mb-0">
+                                    <div class="d-flex align-items-center justify-content-between flex-wrap" style="gap: 10px;">
+                                        <span class="small font-weight-bold text-dark">
+                                            <i class="fas fa-database text-primary mr-1"></i> Ambil dari Database Tujuan:
+                                        </span>
+                                        <div style="flex: 1; min-width: 260px;">
+                                            <select id="selectQuickTujuanMaster" class="form-control form-control-sm">
+                                                <option value="">-- Pilih Tujuan dari Database untuk Mengisi Otomatis --</option>
+                                                <?php if (!empty($tujuanMaster)): ?>
+                                                    <?php foreach ($tujuanMaster as $tm): 
+                                                        $namaFmt = function_exists('formatNamaGelar') ? formatNamaGelar($tm['NamaTujuan']) : $tm['NamaTujuan'];
+                                                    ?>
+                                                        <option value="<?= $tm['Id'] ?>"
+                                                                data-nama="<?= esc($namaFmt) ?>"
+                                                                data-jabatan="<?= esc($tm['Jabatan'] ?? '') ?>"
+                                                                data-instansi="<?= esc($tm['Instansi'] ?? '') ?>"
+                                                                data-alamat="<?= esc($tm['Alamat'] ?? '') ?>"
+                                                                data-kota="<?= esc($tm['Kota'] ?? '') ?>">
+                                                            <?= esc($namaFmt) ?><?= !empty($tm['Jabatan']) ? ' - ' . esc($tm['Jabatan']) : '' ?><?= !empty($tm['Instansi']) ? ' (' . esc($tm['Instansi']) . ')' : '' ?>
+                                                        </option>
+                                                    <?php endforeach; ?>
+                                                <?php endif; ?>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 form-group">
+                                <label>Nama Penerima / Pejabat <span class="text-danger">*</span></label>
+                                <input type="text" name="TujuanNama" id="inputTujuanNama" class="form-control" value="<?= esc($surat['TujuanNama'] ?? '') ?>" placeholder="Contoh: Sudarno, S.Pd">
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label>Jabatan</label>
+                                <input type="text" name="TujuanJabatan" id="inputTujuanJabatan" class="form-control" value="<?= esc($surat['TujuanJabatan'] ?? '') ?>" placeholder="Contoh: Kepala Bagian KESRA">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 form-group">
+                                <label>Instansi / Lembaga</label>
+                                <input type="text" name="TujuanInstansi" id="inputTujuanInstansi" class="form-control" value="<?= esc($surat['TujuanInstansi'] ?? '') ?>" placeholder="Contoh: Pemkab Bintan">
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label>Kota / Kabupaten</label>
+                                <input type="text" name="TujuanKota" id="inputTujuanKota" class="form-control" value="<?= esc($surat['TujuanKota'] ?? 'Tempat') ?>" placeholder="Tempat / Bintan">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Alamat Lengkap (Opsional)</label>
+                            <input type="text" name="TujuanAlamat" id="inputTujuanAlamat" class="form-control" value="<?= esc($surat['TujuanAlamat'] ?? '') ?>" placeholder="Jalan, No...">
+                        </div>
+                    </div>
+
+                    <!-- Mode B & C & D: Multi Select List -->
+                    <div id="wrapperMultiRecipient" style="display: none;">
+                        <div class="row mb-2">
+                            <div class="col-md-4 form-group" id="filterKelasWrapper" style="display: none;">
+                                <label class="font-weight-bold small text-muted">Filter Kelas Santri:</label>
+                                <select id="filterKelasSelect" class="form-control form-control-sm">
+                                    <option value="">-- Semua Kelas --</option>
+                                    <?php foreach ($kelasList as $k): ?>
+                                        <option value="<?= $k['IdKelas'] ?>"><?= esc($k['NamaKelas']) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="col-md-4 form-group" id="filterKategoriMasterWrapper" style="display: none;">
+                                <label class="font-weight-bold small text-muted">Filter Kategori Tujuan:</label>
+                                <select id="filterKategoriMasterSelect" class="form-control form-control-sm">
+                                    <option value="">-- Semua Kategori Tujuan --</option>
+                                    <option value="Pemerintah">Pemerintah</option>
+                                    <option value="Lembaga">Lembaga</option>
+                                    <option value="Perorangan">Perorangan</option>
+                                    <option value="Donatur">Donatur</option>
+                                </select>
+                            </div>
+                            <div class="col-md-5 form-group" id="searchRecipientWrapper">
+                                <label class="font-weight-bold small text-muted">Cari Penerima (Nama / Jabatan / Instansi):</label>
+                                <div class="input-group input-group-sm">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
+                                    </div>
+                                    <input type="text" id="inputSearchRecipient" class="form-control" placeholder="Ketik kata kunci pencarian...">
+                                    <div class="input-group-append" id="btnClearSearchRecipient" style="display: none;">
+                                        <button class="btn btn-outline-secondary" type="button" title="Bersihkan Pencarian">&times;</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12 d-flex justify-content-between align-items-center mb-2 flex-wrap">
+                                <div id="searchRecipientInfo" class="small text-muted py-1">
+                                    <!-- Status / Info Hasil Pencarian -->
+                                </div>
+                                <div>
+                                    <button type="button" class="btn btn-outline-primary btn-sm" id="btnSelectAllRecipients">
+                                        <i class="fas fa-check-double mr-1"></i> Pilih Semua (Tampil)
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm ml-1" id="btnUnselectAllRecipients">
+                                        Batal Pilih (Tampil)
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="border rounded p-2" style="max-height: 280px; overflow-y: auto;" id="recipientCheckboxList">
+                            <div class="text-center py-4 text-muted">Memuat data penerima...</div>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mt-2 flex-wrap">
+                            <small class="text-muted">
+                                Terpilih: <strong id="countSelectedRecipients">0</strong> penerima. File PDF dapat digenerate sekaligus atau per individual dalam file ZIP.
+                            </small>
+                        </div>
+                        <!-- Box Daftar Penerima Terpilih (Chips/Badges) -->
+                        <div class="mt-2 p-2 bg-light rounded border" id="boxSelectedRecipientsBadges" style="max-height: 115px; overflow-y: auto;">
+                            <div class="small font-weight-bold text-muted mb-1"><i class="fas fa-check-circle text-success mr-1"></i> Penerima Terpilih (Klik &times; untuk membatalkan):</div>
+                            <div id="selectedRecipientsBadges" class="d-flex flex-wrap" style="gap: 5px;">
+                                <span class="text-muted small">Belum ada penerima yang dipilih.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer wizard-footer d-flex justify-content-between align-items-center flex-wrap shadow-sm">
+                    <button type="button" class="btn btn-outline-secondary btn-prev px-4 py-2 font-weight-bold shadow-sm mb-1" data-prev="3" style="border-radius: 6px; min-width: 130px;">
+                        <i class="fas fa-arrow-left mr-2"></i> Kembali
+                    </button>
+                    <div class="d-none d-md-flex align-items-center mb-1">
+                        <span class="badge badge-light border px-3 py-2 text-secondary font-weight-normal shadow-sm" style="font-size: 0.8rem; border-radius: 6px;">
+                            <i class="fas fa-users text-success mr-1"></i> Langkah 4 dari 5 &bull; Data Penerima Surat
+                        </span>
+                    </div>
+                    <div class="d-flex align-items-center flex-wrap mb-1" style="gap: 10px;">
+                        <?php if (!empty($isEdit)): ?>
+                            <button type="button" class="btn btn-outline-success px-4 py-2 btn-submit-wizard font-weight-bold shadow-sm" title="Simpan Perubahan Surat" style="border-radius: 6px;">
+                                <i class="fas fa-save mr-1"></i> Simpan
+                            </button>
+                        <?php endif; ?>
+                        <button type="button" class="btn btn-success px-4 py-2 btn-next font-weight-bold shadow-sm" data-next="5" style="border-radius: 6px; min-width: 180px;">
+                            Lanjut ke Pratinjau & Finalisasi <i class="fas fa-arrow-right ml-2"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================== -->
+        <!-- STEP 5: PRATINJAU & FINALISASI (STACKED VERTICAL) -->
+        <!-- ============================================================== -->
+        <div class="step-panel" id="step5">
             <div class="card card-dark card-outline shadow-sm">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h3 class="card-title font-weight-bold"><i class="fas fa-eye mr-2"></i>Langkah 7: Pratinjau Tampilan Surat Lengkap</h3>
+                    <h3 class="card-title font-weight-bold"><i class="fas fa-eye mr-2"></i>Langkah 5: Pratinjau Tampilan Surat & Finalisasi</h3>
                     <button type="button" class="btn btn-outline-light btn-sm" id="btnRefreshPreview">
                         <i class="fas fa-sync-alt mr-1"></i> Refresh Pratinjau
                     </button>
                 </div>
-                <div class="card-body p-3 bg-secondary" style="min-height: 500px; display: flex; justify-content: center;">
-                    <div id="previewWrapper" class="bg-white shadow rounded" style="max-width: 850px; width: 100%; min-height: 800px; overflow: hidden;">
-                        <iframe id="previewIframe" style="width: 100%; height: 900px; border: none; display: block; background: #fff;" srcdoc=""></iframe>
+                <div class="card-body p-3">
+                    <!-- 1. Bagian Atas: Live Preview Surat (Full Width Center) -->
+                    <div class="p-3 bg-secondary rounded mb-3" style="min-height: 500px; display: flex; justify-content: center;">
+                        <div id="previewWrapper" class="bg-white shadow rounded" style="max-width: 850px; width: 100%; min-height: 800px; overflow: hidden;">
+                            <iframe id="previewIframe" style="width: 100%; height: 850px; border: none; display: block; background: #fff;" srcdoc=""></iframe>
+                        </div>
+                    </div>
+
+                    <!-- 2. Bagian Bawah: Ringkasan Final Surat (Collapsible Accordion) -->
+                    <div class="card card-outline card-info collapsed-card mb-0 shadow-none border" id="cardSummaryAccordion">
+                        <div class="card-header py-2" style="cursor: pointer;" data-card-widget="collapse">
+                            <h3 class="card-title text-info font-weight-bold" style="font-size: 0.95rem;">
+                                <i class="fas fa-info-circle mr-1"></i> Informasi & Ringkasan Data Surat
+                            </h3>
+                            <div class="card-tools">
+                                <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body p-3" style="display: none;">
+                            <table class="table table-sm table-bordered mb-3">
+                                <tr>
+                                    <th style="width: 220px;" class="bg-light">Nomor Surat</th>
+                                    <td><strong id="summaryNomor" class="text-primary">-</strong></td>
+                                </tr>
+                                <tr>
+                                    <th class="bg-light">Perihal / Hal</th>
+                                    <td id="summaryHal">-</td>
+                                </tr>
+                                <tr>
+                                    <th class="bg-light">Penerima</th>
+                                    <td id="summaryPenerima">-</td>
+                                </tr>
+                                <tr>
+                                    <th class="bg-light">Tanggal Surat</th>
+                                    <td id="summaryTanggal">-</td>
+                                </tr>
+                                <tr>
+                                    <th class="bg-light">Penanda Tangan</th>
+                                    <td id="summaryTtd">-</td>
+                                </tr>
+                            </table>
+
+                            <div class="alert alert-light border mb-0 text-muted small">
+                                <i class="fas fa-info-circle text-info mr-1"></i>
+                                <strong>Catatan Efisiensi:</strong> File PDF di-generate secara <em>on-demand (streaming)</em> dan tidak disimpan di server untuk menghemat kapasitas storage. Anda dapat mencetak ulang kapan saja dari menu <strong>Arsip Surat Keluar</strong>.
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="card-footer wizard-footer d-flex justify-content-between align-items-center flex-wrap shadow-sm">
-                    <button type="button" class="btn btn-outline-secondary btn-prev px-4 py-2 font-weight-bold shadow-sm mb-1" data-prev="6" style="border-radius: 6px; min-width: 130px;">
+                    <button type="button" class="btn btn-outline-secondary btn-prev px-4 py-2 font-weight-bold shadow-sm mb-1" data-prev="4" style="border-radius: 6px; min-width: 130px;">
                         <i class="fas fa-arrow-left mr-2"></i> Kembali
                     </button>
                     <div class="d-none d-md-flex align-items-center mb-1">
                         <span class="badge badge-light border px-3 py-2 text-secondary font-weight-normal shadow-sm" style="font-size: 0.8rem; border-radius: 6px;">
-                            <i class="fas fa-eye text-success mr-1"></i> Langkah 7 dari 8 &bull; Pratinjau Tampilan Surat
-                        </span>
-                    </div>
-                    <div class="d-flex align-items-center flex-wrap mb-1" style="gap: 10px;">
-                        <?php if (!empty($isEdit)): ?>
-                            <button type="button" class="btn btn-outline-success px-4 py-2 btn-submit-wizard font-weight-bold shadow-sm" title="Simpan Perubahan Surat" style="border-radius: 6px;">
-                                <i class="fas fa-save mr-1"></i> Simpan
-                            </button>
-                        <?php endif; ?>
-                        <button type="button" class="btn btn-success px-4 py-2 btn-next font-weight-bold shadow-sm" data-next="8" style="border-radius: 6px; min-width: 180px;">
-                            Lanjut ke Finalisasi <i class="fas fa-arrow-right ml-2"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ============================================================== -->
-        <!-- STEP 8: FINALISASI & OUTPUT PDF -->
-        <!-- ============================================================== -->
-        <div class="step-panel" id="step8">
-            <div class="card card-success card-outline shadow-sm">
-                <div class="card-header">
-                    <h3 class="card-title font-weight-bold"><i class="fas fa-check-circle mr-2"></i>Langkah 8: Finalisasi Surat & Unduh PDF</h3>
-                </div>
-                <div class="card-body">
-                    <div class="alert alert-success py-3">
-                        <h5 class="font-weight-bold"><i class="fas fa-check-double mr-2"></i>Surat Siap Difinalisasi</h5>
-                        <p class="mb-0">Periksa kembali data di bawah ini. Setelah difinalisasi, Anda dapat langsung mencetak PDF atau mengunduh ZIP untuk penerima massal.</p>
-                    </div>
-
-                    <table class="table table-bordered mb-4">
-                        <tr>
-                            <th style="width: 200px;" class="bg-light">Nomor Surat</th>
-                            <td><strong id="summaryNomor" class="text-primary">-</strong></td>
-                        </tr>
-                        <tr>
-                            <th class="bg-light">Perihal / Hal</th>
-                            <td id="summaryHal">-</td>
-                        </tr>
-                        <tr>
-                            <th class="bg-light">Penerima</th>
-                            <td id="summaryPenerima">-</td>
-                        </tr>
-                        <tr>
-                            <th class="bg-light">Tanggal Surat</th>
-                            <td id="summaryTanggal">-</td>
-                        </tr>
-                        <tr>
-                            <th class="bg-light">Penanda Tangan</th>
-                            <td id="summaryTtd">-</td>
-                        </tr>
-                    </table>
-
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle mr-1"></i>
-                        <strong>Catatan Efisiensi:</strong> File PDF di-generate secara <em>on-demand (streaming)</em> dan tidak disimpan di server untuk menghemat kapasitas storage. Anda dapat mencetak ulang kapan saja dari menu <strong>Arsip Surat Keluar</strong>.
-                    </div>
-                </div>
-                <div class="card-footer wizard-footer d-flex justify-content-between align-items-center flex-wrap shadow-sm">
-                    <button type="button" class="btn btn-outline-secondary btn-prev px-4 py-2 font-weight-bold shadow-sm mb-1" data-prev="7" style="border-radius: 6px; min-width: 130px;">
-                        <i class="fas fa-arrow-left mr-2"></i> Kembali
-                    </button>
-                    <div class="d-none d-md-flex align-items-center mb-1">
-                        <span class="badge badge-light border px-3 py-2 text-secondary font-weight-normal shadow-sm" style="font-size: 0.8rem; border-radius: 6px;">
-                            <i class="fas fa-check-double text-primary mr-1"></i> Langkah 8 dari 8 &bull; Finalisasi & Penerbitan
+                            <i class="fas fa-check-double text-primary mr-1"></i> Langkah 5 dari 5 &bull; Pratinjau & Finalisasi
                         </span>
                     </div>
                     <button type="button" class="btn btn-success <?= !empty($isEdit) ? '' : 'btn-lg' ?> px-4 py-2 font-weight-bold btn-submit-wizard shadow-sm mb-1" id="btnSubmitFinal" title="Simpan Perubahan Surat" style="border-radius: 6px; min-width: 180px;">
@@ -1815,16 +1739,15 @@ document.addEventListener('DOMContentLoaded', function() {
             $('.wizard-step[data-step="' + i + '"]').addClass('completed');
         }
 
-        $('#mobileStepText').text('Langkah ' + stepNum + ' dari 8: ' + $('.wizard-step[data-step="' + stepNum + '"] .step-title').text());
+        $('#mobileStepText').text('Langkah ' + stepNum + ' dari 5: ' + $('.wizard-step[data-step="' + stepNum + '"] .step-title').text());
         currentStep = stepNum;
 
-        if (stepNum === 6) {
+        if (stepNum === 3) {
             if (window.Step6Engine && typeof window.Step6Engine.refresh === 'function') {
                 window.Step6Engine.refresh();
             }
-        } else if (stepNum === 7) {
+        } else if (stepNum === 5) {
             loadPreviewHtml();
-        } else if (stepNum === 8) {
             updateSummary();
         }
     }
@@ -1835,6 +1758,28 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!$('#selectTemplate').val()) {
                 Swal.fire('Pilih Template', 'Silakan pilih salah satu template surat terlebih dahulu.', 'warning');
                 return;
+            }
+            if (!$('#inputNomorSurat').val() || !$('#inputNomorSurat').val().trim()) {
+                Swal.fire('Nomor Surat Kosong', 'Silakan isi atau hitung nomor surat terlebih dahulu.', 'warning');
+                return;
+            }
+        } else if (currentStep === 2 && next === 3) {
+            if (!$('#inputHal').val() || !$('#inputHal').val().trim()) {
+                Swal.fire('Perihal Kosong', 'Silakan isi perihal surat terlebih dahulu.', 'warning');
+                return;
+            }
+        } else if (currentStep === 4 && next === 5) {
+            let curTab = $('.tipe-penerima-tab.active').data('type');
+            if (curTab === 'single') {
+                if (!$('#inputTujuanNama').val() || !$('#inputTujuanNama').val().trim()) {
+                    Swal.fire('Penerima Belum Diisi', 'Silakan isi nama penerima surat terlebih dahulu.', 'warning');
+                    return;
+                }
+            } else {
+                if (selectedRecipients.length === 0) {
+                    Swal.fire('Penerima Belum Dipilih', 'Silakan pilih minimal 1 penerima surat dari daftar.', 'warning');
+                    return;
+                }
             }
         }
         showStep(next);

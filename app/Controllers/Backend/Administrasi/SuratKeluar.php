@@ -97,7 +97,7 @@ class SuratKeluar extends BaseController
     }
 
     /**
-     * Wizard Pembuatan Surat Baru (8 Langkah)
+     * Wizard Pembuatan Surat Baru (5 Langkah)
      */
     public function buat()
     {
