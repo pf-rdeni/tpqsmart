@@ -351,11 +351,35 @@ class Dashboard extends BaseController
             $roles[] = 'sekretaris_lembaga';
         }
 
-        // Cek apakah IdGuru ada (untuk peran Kepala TPQ, Wali Kelas, Guru)
-        if (!empty($idGuru) && !empty($idTpq)) {
+        // Cek apakah user adalah Guru (dari auth groups 'Guru')
+        if (in_groups('Guru')) {
+            $roles[] = 'guru';
+        }
+
+        // Tentukan TPQ lembaga untuk pengecekan data lembaga (kepala TPQ dan riwayat guru kelas)
+        $institutionTpq = session()->get('BaseIdTpq');
+        if (empty($institutionTpq) || $institutionTpq === '0') {
+            if (!empty($idGuru)) {
+                try {
+                    $gRow = $this->db->table('tbl_guru')->select('IdTpq')->where('IdGuru', $idGuru)->get()->getRowArray();
+                    if (!empty($gRow['IdTpq'])) {
+                        $institutionTpq = $gRow['IdTpq'];
+                        session()->set('BaseIdTpq', $institutionTpq);
+                    }
+                } catch (\Throwable $e) {}
+            }
+        }
+        if (empty($institutionTpq) || $institutionTpq === '0') {
+            if (!empty($idTpq) && $idTpq !== '0') {
+                $institutionTpq = $idTpq;
+            }
+        }
+
+        // Cek apakah IdGuru ada (untuk peran Kepala TPQ atau fallback guru dari tbl_guru_kelas)
+        if (!empty($idGuru) && !empty($institutionTpq) && $institutionTpq !== '0') {
             // Cek apakah guru adalah Kepala TPQ dari struktur lembaga
             try {
-                $strukturLembaga = $this->helpFunctionModel->getStrukturLembagaJabatan($idGuru, $idTpq);
+                $strukturLembaga = $this->helpFunctionModel->getStrukturLembagaJabatan($idGuru, $institutionTpq);
                 foreach ($strukturLembaga as $jabatan) {
                     if (isset($jabatan['NamaJabatan']) && in_array($jabatan['NamaJabatan'], ['Kepala TPQ', 'Kepala MDTA', 'Kepala MDA'])) {
                         $roles[] = 'kepala_tpq';
@@ -366,22 +390,13 @@ class Dashboard extends BaseController
                 // Ignore error
             }
 
-            // Cek apakah guru adalah Guru Kelas/Wali Kelas
-            // Wali Kelas (IdJabatan = 3) dan Guru Kelas (IdJabatan = 2 atau lainnya) sama sebagai 'guru'
-            // Jadi tidak perlu menambahkan 'wali_kelas' sebagai role terpisah
-            // Cek 1: Apakah user memiliki group 'Guru'
-            if (in_groups('Guru')) {
-                $roles[] = 'guru';
-            } else {
-                // Cek 2: Apakah IdGuru memiliki data di tbl_guru_kelas (apapun IdJabatannya)
-                // Jika ada data di tbl_guru_kelas, berarti memiliki peran Guru
+            // Jika belum memiliki role guru dari group, cek dari riwayat tbl_guru_kelas
+            if (!in_array('guru', $roles)) {
                 try {
                     $guruKelasRows = $this->helpFunctionModel->getDataGuruKelas(
                         IdGuru: $idGuru,
-                        IdTpq: $idTpq
+                        IdTpq: $institutionTpq
                     );
-                    // Jika ada data di tbl_guru_kelas, berarti memiliki peran Guru
-                    // Tidak perlu mengecek IdJabatan spesifik, karena semua IdJabatan di tbl_guru_kelas adalah peran Guru
                     if (!empty($guruKelasRows) && count($guruKelasRows) > 0) {
                         $roles[] = 'guru';
                     }
@@ -396,7 +411,7 @@ class Dashboard extends BaseController
             $roles = ['pengguna'];
         }
 
-        return array_unique($roles);
+        return array_values(array_unique($roles));
     }
 
     /**
@@ -757,15 +772,35 @@ class Dashboard extends BaseController
             ]);
         }
 
+        // Pastikan BaseIdTpq tersimpan sebelum beralih scope
+        $currentTpq = session()->get('IdTpq');
+        $baseTpq = session()->get('BaseIdTpq');
+        if (empty($baseTpq) || $baseTpq === '0') {
+            if (!empty($currentTpq) && $currentTpq !== '0') {
+                $baseTpq = $currentTpq;
+                session()->set('BaseIdTpq', $baseTpq);
+            } else {
+                $idGuru = session()->get('IdGuru');
+                if (!empty($idGuru)) {
+                    try {
+                        $gRow = $this->db->table('tbl_guru')->select('IdTpq')->where('IdGuru', $idGuru)->get()->getRowArray();
+                        if (!empty($gRow['IdTpq'])) {
+                            $baseTpq = $gRow['IdTpq'];
+                            session()->set('BaseIdTpq', $baseTpq);
+                        }
+                    } catch (\Throwable $e) {}
+                }
+            }
+        }
+
         // Simpan peran aktif ke session dan kelola scope IdTpq
         if ($newRole === 'sekretaris_fkpq') {
             session()->set('active_role', 'sekretaris_fkpq');
             session()->set('IdTpq', '0');
             $redirectUrl = base_url('backend/administrasi');
         } else {
-            $baseTpq = session()->get('BaseIdTpq') ?: session()->get('IdTpq');
             session()->set('active_role', $newRole);
-            if (!empty($baseTpq)) {
+            if (!empty($baseTpq) && $baseTpq !== '0') {
                 session()->set('IdTpq', $baseTpq);
             }
             $redirectMap = [
@@ -778,6 +813,9 @@ class Dashboard extends BaseController
             ];
             $redirectUrl = $redirectMap[$newRole] ?? base_url('backend/dashboard');
         }
+
+        // Selalu perbarui available_roles di session agar konsisten di seluruh view
+        session()->set('available_roles', $userInfo['AllRoles']);
 
         return $this->response->setJSON([
             'success' => true,

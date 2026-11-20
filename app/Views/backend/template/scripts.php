@@ -519,9 +519,23 @@
                 return;
             }
 
-            // Disable semua button
+            // Disable button dan tampilkan loader halus
             $('.switch-role-btn').addClass('disabled');
-            $btn.html('<i class="fas fa-spinner fa-spin"></i> <span class="ml-2">Memproses...</span>');
+
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: 'Beralih Peran...',
+                    text: 'Sedang menyiapkan ruang kerja Anda, mohon tunggu...',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    showConfirmButton: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+            } else {
+                $btn.html('<i class="fas fa-spinner fa-spin"></i> <span class="ml-2">Memproses...</span>');
+            }
 
             // Kirim request untuk switch role
             $.ajax({
@@ -539,15 +553,35 @@
                         // Redirect ke dashboard sesuai peran
                         window.location.href = response.redirect;
                     } else {
-                        alert('Gagal mengubah peran: ' + (response.message || 'Terjadi kesalahan'));
-                        // Enable button kembali
-                        location.reload();
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Gagal Mengubah Peran',
+                                text: response.message || 'Peran tidak tersedia untuk akun ini.',
+                                confirmButtonText: 'Tutup'
+                            }).then(() => {
+                                $('.switch-role-btn').removeClass('disabled');
+                            });
+                        } else {
+                            alert('Gagal mengubah peran: ' + (response.message || 'Terjadi kesalahan'));
+                            location.reload();
+                        }
                     }
                 },
                 error: function(xhr, status, error) {
-                    alert('Terjadi kesalahan saat mengubah peran. Silakan coba lagi.');
-                    // Enable button kembali
-                    location.reload();
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Terjadi Kesalahan',
+                            text: 'Gagal menghubungi server saat mengubah peran. Silakan coba lagi.',
+                            confirmButtonText: 'Tutup'
+                        }).then(() => {
+                            $('.switch-role-btn').removeClass('disabled');
+                        });
+                    } else {
+                        alert('Terjadi kesalahan saat mengubah peran. Silakan coba lagi.');
+                        location.reload();
+                    }
                 }
             });
         });

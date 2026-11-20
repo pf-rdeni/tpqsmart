@@ -86,7 +86,21 @@ $(document).ready(function() {
         
         // Disable semua button
         $('.select-role-btn').prop('disabled', true);
-        $btn.html('<i class="fas fa-spinner fa-spin"></i> Memproses...');
+        
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Beralih Peran...',
+                text: 'Sedang menyiapkan ruang kerja Anda, mohon tunggu...',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+        } else {
+            $btn.html('<i class="fas fa-spinner fa-spin"></i> Memproses...');
+        }
 
         // Simpan ke localStorage pilihan user
         try {
@@ -103,26 +117,49 @@ $(document).ready(function() {
             }),
             success: function(response) {
                 if (response.success) {
-                    // Redirect ke dashboard sesuai peran
                     window.location.href = response.redirect;
                 } else {
-                    alert('Gagal mengubah peran: ' + (response.message || 'Terjadi kesalahan'));
-                    // Enable button kembali
-                    $('.select-role-btn').prop('disabled', false);
-                    $('.select-role-btn').each(function() {
-                        const roleKey = $(this).data('role');
-                        $(this).html('<i class="fas fa-check-circle"></i> Pilih Peran Ini');
-                    });
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Gagal Mengubah Peran',
+                            text: response.message || 'Peran tidak tersedia untuk akun ini.',
+                            confirmButtonText: 'Tutup'
+                        }).then(() => {
+                            $('.select-role-btn').prop('disabled', false);
+                            $('.select-role-btn').each(function() {
+                                $(this).html('<i class="fas fa-check-circle"></i> Pilih Peran Ini');
+                            });
+                        });
+                    } else {
+                        alert('Gagal mengubah peran: ' + (response.message || 'Terjadi kesalahan'));
+                        $('.select-role-btn').prop('disabled', false);
+                        $('.select-role-btn').each(function() {
+                            $(this).html('<i class="fas fa-check-circle"></i> Pilih Peran Ini');
+                        });
+                    }
                 }
             },
             error: function(xhr, status, error) {
-                alert('Terjadi kesalahan saat mengubah peran. Silakan coba lagi.');
-                // Enable button kembali
-                $('.select-role-btn').prop('disabled', false);
-                $('.select-role-btn').each(function() {
-                    const roleKey = $(this).data('role');
-                    $(this).html('<i class="fas fa-check-circle"></i> Pilih Peran Ini');
-                });
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Terjadi Kesalahan',
+                        text: 'Gagal menghubungi server saat mengubah peran. Silakan coba lagi.',
+                        confirmButtonText: 'Tutup'
+                    }).then(() => {
+                        $('.select-role-btn').prop('disabled', false);
+                        $('.select-role-btn').each(function() {
+                            $(this).html('<i class="fas fa-check-circle"></i> Pilih Peran Ini');
+                        });
+                    });
+                } else {
+                    alert('Terjadi kesalahan saat mengubah peran. Silakan coba lagi.');
+                    $('.select-role-btn').prop('disabled', false);
+                    $('.select-role-btn').each(function() {
+                        $(this).html('<i class="fas fa-check-circle"></i> Pilih Peran Ini');
+                    });
+                }
             }
         });
     });

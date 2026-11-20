@@ -47,44 +47,55 @@
         $activeRole = session()->get('active_role');
         $availableRoles = session()->get('available_roles', []);
 
+        // Dapatkan institution TPQ untuk pengecekan data lembaga
+        $institutionTpq = session()->get('BaseIdTpq');
+        if (empty($institutionTpq) || $institutionTpq === '0') {
+            if (!empty($idGuru)) {
+                try {
+                    $db = \Config\Database::connect();
+                    $gRow = $db->table('tbl_guru')->select('IdTpq')->where('IdGuru', $idGuru)->get()->getRowArray();
+                    if (!empty($gRow['IdTpq'])) {
+                        $institutionTpq = $gRow['IdTpq'];
+                        session()->set('BaseIdTpq', $institutionTpq);
+                    }
+                } catch (\Throwable $e) {}
+            }
+        }
+        if (empty($institutionTpq) || $institutionTpq === '0') {
+            if (!empty($idTpq) && $idTpq !== '0') {
+                $institutionTpq = $idTpq;
+            }
+        }
+
         // Jika available_roles ada di session, gunakan itu
         if (!empty($availableRoles)) {
             $allRoles = $availableRoles;
-            $hasMultipleRoles = count($allRoles) > 1;
         } else {
-            // Jika tidak ada di session, cek manual berdasarkan IdGuru
-            $roleCount = 0;
+            // Jika tidak ada di session, cek manual
             $helpFunctionModel = new \App\Models\HelpFunctionModel();
 
-            if (in_groups('Admin')) {
-                $roleCount++;
-            }
-
             if (in_groups('Sekretaris FKPQ')) {
-                $roleCount++;
                 $allRoles[] = 'sekretaris_fkpq';
             }
 
-            // Cek Operator - jika IdGuru memiliki peran sebagai Operator
-            if (in_groups('Operator') && !empty($idGuru)) {
-                // Cek apakah IdGuru ini adalah Operator
-                // Jika user adalah Operator dan memiliki IdGuru, tambahkan role operator
-                $roleCount++;
+            if (in_groups('Operator')) {
                 $allRoles[] = 'operator';
             }
 
             if (in_groups('Sekretaris') || in_groups('Sekretaris Lembaga')) {
-                $roleCount++;
                 $allRoles[] = 'sekretaris_lembaga';
             }
 
-            // Cek Kepala TPQ/MDTA - jika IdGuru memiliki peran sebagai Kepala TPQ atau Kepala MDTA
-            if (!empty($idGuru) && !empty($idTpq)) {
+            if (in_groups('Guru')) {
+                $allRoles[] = 'guru';
+            }
+
+            // Cek Kepala TPQ/MDTA dari struktur lembaga
+            if (!empty($idGuru) && !empty($institutionTpq) && $institutionTpq !== '0') {
                 try {
-                    $strukturLembaga = $helpFunctionModel->getStrukturLembagaJabatan($idGuru, $idTpq);
+                    $strukturLembaga = $helpFunctionModel->getStrukturLembagaJabatan($idGuru, $institutionTpq);
                     foreach ($strukturLembaga as $jabatan) {
                         if (isset($jabatan['NamaJabatan']) && in_array($jabatan['NamaJabatan'], ['Kepala TPQ', 'Kepala MDTA', 'Kepala MDA'])) {
-                            $roleCount++;
                             $allRoles[] = 'kepala_tpq';
                             break;
                         }
@@ -94,50 +105,35 @@
                 }
             }
 
-            // Cek Guru Kelas/Wali Kelas - jika IdGuru memiliki peran sebagai Guru Kelas atau Wali Kelas
-            // Jika IdGuru memiliki data di tbl_guru_kelas (apapun IdJabatannya), berarti memiliki peran Guru
-            if (!empty($idGuru) && !empty($idTpq)) {
-                $hasGuruKelas = false;
-
-                // Cek 1: Apakah user memiliki group 'Guru'
-                if (in_groups('Guru')) {
-                    $hasGuruKelas = true;
-                } else {
-                    // Cek 2: Apakah IdGuru memiliki data di tbl_guru_kelas (apapun IdJabatannya)
-                    // Jika ada data di tbl_guru_kelas, berarti memiliki peran Guru
-                    try {
-                        $guruKelasRows = $helpFunctionModel->getDataGuruKelas(
-                            IdGuru: $idGuru,
-                            IdTpq: $idTpq
-                        );
-                        // Jika ada data di tbl_guru_kelas, berarti memiliki peran Guru
-                        // Tidak perlu mengecek IdJabatan spesifik, karena semua IdJabatan di tbl_guru_kelas adalah peran Guru
-                        if (!empty($guruKelasRows) && count($guruKelasRows) > 0) {
-                            $hasGuruKelas = true;
-                        }
-                    } catch (\Throwable $e) {
-                        // Ignore error, tapi log untuk debugging
-                        // log_message('error', 'Error checking guru kelas: ' . $e->getMessage());
-                    }
-                }
-
-                if ($hasGuruKelas) {
-                    // Pastikan 'guru' belum ada di array
-                    if (!in_array('guru', $allRoles)) {
-                        $roleCount++;
+            // Cek Guru dari riwayat tbl_guru_kelas jika belum memiliki peran guru
+            if (!in_array('guru', $allRoles) && !empty($idGuru) && !empty($institutionTpq) && $institutionTpq !== '0') {
+                try {
+                    $guruKelasRows = $helpFunctionModel->getDataGuruKelas(
+                        IdGuru: $idGuru,
+                        IdTpq: $institutionTpq
+                    );
+                    if (!empty($guruKelasRows) && count($guruKelasRows) > 0) {
                         $allRoles[] = 'guru';
                     }
-                }
+                } catch (\Throwable $e) {}
             }
-
-            $hasMultipleRoles = $roleCount > 1;
         }
+
+        // Deduplikasi dan bersihkan redundansi (misal wali_kelas disatukan ke guru)
+        $allRoles = array_values(array_unique($allRoles));
+        if (in_array('guru', $allRoles)) {
+            $allRoles = array_values(array_diff($allRoles, ['wali_kelas']));
+        }
+        $hasMultipleRoles = count($allRoles) > 1;
 
         // Tentukan label untuk kepala_tpq berdasarkan jabatan yang ditemukan
         $labelKepala = 'Kepala TPQ';
-        if (!empty($idGuru) && !empty($idTpq)) {
+        if (!empty($idGuru) && !empty($institutionTpq) && $institutionTpq !== '0') {
             try {
-                $strukturLembaga = $helpFunctionModel->getStrukturLembagaJabatan($idGuru, $idTpq);
+                if (!isset($helpFunctionModel)) {
+                    $helpFunctionModel = new \App\Models\HelpFunctionModel();
+                }
+                $strukturLembaga = $helpFunctionModel->getStrukturLembagaJabatan($idGuru, $institutionTpq);
                 foreach ($strukturLembaga as $jabatan) {
                     if (isset($jabatan['NamaJabatan']) && in_array($jabatan['NamaJabatan'], ['Kepala MDTA', 'Kepala MDA'])) {
                         $labelKepala = $jabatan['NamaJabatan'];
@@ -190,11 +186,6 @@
                             </a>
                         <?php endif; ?>
                     <?php endforeach; ?>
-                    <div class="dropdown-divider"></div>
-                    <a href="<?= base_url('backend/dashboard/select-role?manual=1') ?>" class="dropdown-item text-muted">
-                        <i class="fas fa-cog"></i>
-                        <span class="ml-2">Kelola Peran</span>
-                    </a>
                 </div>
             </li>
         <?php endif; ?>
