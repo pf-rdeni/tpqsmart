@@ -534,10 +534,25 @@
     function toggleStatusSantriEmis(idSantri) {
         const map = getEmisStatusMap();
         const isSelesai = map[idSantri] === true;
-        map[idSantri] = !isSelesai;
+        const newStatus = !isSelesai;
+        map[idSantri] = newStatus;
         saveEmisStatusMap(map);
-        updateStatusBadgeUI(idSantri, map[idSantri]);
+        updateStatusBadgeUI(idSantri, newStatus);
         hitungUlangStatistik();
+
+        let namaSantri = '';
+        const santriObj = dataSantriMaster.find(s => String(s.IdSantri) === String(idSantri));
+        if (santriObj && santriObj.NamaSantri) {
+            namaSantri = santriObj.NamaSantri;
+        }
+
+        if (typeof toastr !== 'undefined') {
+            if (newStatus) {
+                toastr.success(namaSantri ? `Status ${namaSantri} ditandai Selesai.` : 'Status santri ditandai Selesai.', 'Status EMIS');
+            } else {
+                toastr.info(namaSantri ? `Status ${namaSantri} dikembalikan ke Belum.` : 'Status santri dikembalikan ke Belum.', 'Status EMIS');
+            }
+        }
     }
 
     function setStatusSantriEmis(idSantri, isSelesai) {
@@ -593,7 +608,30 @@
     }
 
     function resetSemuaStatusEmis() {
-        if (confirm('Apakah Anda yakin ingin mereset semua tanda status selesai?')) {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Reset Semua Status EMIS?',
+                text: 'Semua tanda status santri yang sudah selesai akan dikembalikan menjadi "Belum".',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: '<i class="fas fa-undo mr-1"></i> Ya, Reset Semua',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    localStorage.removeItem(STORAGE_KEY_EMIS);
+                    dataSantriMaster.forEach(s => updateStatusBadgeUI(s.IdSantri, false, false));
+                    if (dataTableSantri) {
+                        dataTableSantri.rows().invalidate().draw(false);
+                    }
+                    hitungUlangStatistik();
+                    if (typeof toastr !== 'undefined') {
+                        toastr.success('Semua status santri berhasil direset ke Belum.', 'Reset Selesai');
+                    }
+                }
+            });
+        } else if (confirm('Apakah Anda yakin ingin mereset semua tanda status selesai?')) {
             localStorage.removeItem(STORAGE_KEY_EMIS);
             dataSantriMaster.forEach(s => updateStatusBadgeUI(s.IdSantri, false, false));
             if (dataTableSantri) {
@@ -625,7 +663,22 @@
         }
 
         if (event.data.type === 'EMIS_EXTENSION_NEED_REFRESH') {
-            if (confirm('Ekstensi EMIS baru saja diperbarui di browser.\n\nKlik OK untuk me-refresh halaman TPQ Smart ini sekarang agar koneksi tersambung kembali.')) {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Ekstensi EMIS Diperbarui',
+                    text: 'Ekstensi EMIS baru saja dimuat ulang di Chrome. Refresh halaman ini sekarang agar tersambung kembali?',
+                    showCancelButton: true,
+                    confirmButtonColor: '#0d6efd',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: '<i class="fas fa-sync-alt mr-1"></i> Refresh Halaman',
+                    cancelButtonText: 'Nanti'
+                }).then((res) => {
+                    if (res.isConfirmed) {
+                        window.location.reload();
+                    }
+                });
+            } else if (confirm('Ekstensi EMIS baru saja diperbarui di browser.\n\nKlik OK untuk me-refresh halaman TPQ Smart ini sekarang agar koneksi tersambung kembali.')) {
                 window.location.reload();
             }
         }
@@ -634,7 +687,26 @@
             const santriId = event.data.id_santri;
             if (santriId) {
                 setStatusSantriEmis(santriId, true);
-                alert('Data santri berhasil diisikan ke tab EMIS! Silakan verifikasi dan klik tombol Simpan di EMIS.');
+
+                let namaSantri = '';
+                const santriObj = dataSantriMaster.find(s => String(s.IdSantri) === String(santriId));
+                if (santriObj && santriObj.NamaSantri) {
+                    namaSantri = santriObj.NamaSantri;
+                }
+
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Status EMIS Ditandai Selesai!',
+                        html: namaSantri 
+                            ? `Data santri <strong>${namaSantri}</strong> berhasil ditandai <strong>Selesai</strong> di TPQ Smart.<br><small class="text-muted">Pastikan Anda telah menekan tombol SIMPAN di formulir EMIS.</small>`
+                            : 'Data santri berhasil ditandai <strong>Selesai</strong> di TPQ Smart.<br><small class="text-muted">Pastikan Anda telah menekan tombol SIMPAN di formulir EMIS.</small>',
+                        confirmButtonColor: '#198754',
+                        confirmButtonText: '<i class="fas fa-check mr-1"></i> OK'
+                    });
+                } else if (typeof toastr !== 'undefined') {
+                    toastr.success('Data santri berhasil ditandai Selesai di EMIS!', 'Status EMIS');
+                }
             }
         }
     });
@@ -652,7 +724,17 @@
                     .addClass('badge-warning')
                     .text('Belum terdeteksi. Pastikan folder ekstensi sudah dimuat di chrome://extensions');
                 if (showAlert) {
-                    alert('Ekstensi belum terdeteksi. Silakan ikuti panduan pemasangan di jendela ini.');
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Ekstensi Belum Terdeteksi',
+                            text: 'Silakan ikuti panduan pemasangan ekstensi pada jendela panduan.',
+                            confirmButtonColor: '#0d6efd',
+                            confirmButtonText: 'Mengerti'
+                        });
+                    } else {
+                        alert('Ekstensi belum terdeteksi. Silakan ikuti panduan pemasangan di jendela ini.');
+                    }
                 }
             }
         }, 1200);
@@ -682,7 +764,16 @@
                 }
             },
             error: function() {
-                alert('Gagal mengambil data santri dari server.');
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Gagal Mengambil Data',
+                        text: 'Gagal mengambil data santri dari server TPQ Smart.',
+                        confirmButtonColor: '#d33'
+                    });
+                } else {
+                    alert('Gagal mengambil data santri dari server.');
+                }
             }
         });
     }

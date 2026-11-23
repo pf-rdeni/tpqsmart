@@ -25,18 +25,20 @@ console.log('[TPQ-EMIS Bridge] Content script aktif di EMIS Kemenag.');
 // Inisialisasi pengawas transisi otomatis dari Step 1 ke Step 2
 initStepTransitionWatcher();
 
-// Listener global: jika tombol SELANJUTNYA/LANJUT diklik di Step 1, langsung tutup popup
+// Listener global: jika tombol SELANJUTNYA/LANJUT diklik di Step 1, langsung tutup popup Step 1
 document.addEventListener('click', (e) => {
     const target = e.target;
     if (!target) return;
     const btn = target.closest('button, [role="button"], a, input[type="button"], input[type="submit"]') || target;
     const txt = (btn.innerText || btn.textContent || btn.value || '').trim().toUpperCase();
     if (txt.includes('SELANJUT') || txt.includes('LANJUT') || txt.includes('NEXT')) {
-        console.log('[TPQ-EMIS Bridge] Tombol SELANJUTNYA diklik, menutup popup Step 0 & Step 1...');
+        // PERHATIAN: JANGAN tutup popup Step 0 di sini!
+        // Di Step 0, user mencoba cari NIK dan mengklik tombol Lanjut/Cari di EMIS.
+        // Jika hasil cek NIK tidak ada data, popup Step 0 HARUS tetap terbuka
+        // agar user bisa langsung berpindah ke Opsi 2 (Step 1) tanpa perlu refresh halaman.
+        console.log('[TPQ-EMIS Bridge] Tombol navigasi formulir diklik di EMIS...');
         const step1Alert = document.getElementById('tpq-step1-alert');
         if (step1Alert) step1Alert.remove();
-        const step0Alert = document.getElementById('tpq-step0-alert');
-        if (step0Alert) step0Alert.remove();
     }
 }, true);
 
@@ -139,6 +141,8 @@ function initStepTransitionWatcher() {
                     if (oldStep0) oldStep0.remove();
                     const oldPending = document.getElementById('tpq-pending-banner');
                     if (oldPending) oldPending.remove();
+                    const oldPill = document.getElementById('tpq-reopen-step0-pill');
+                    if (oldPill) oldPill.remove();
 
                     fillEmisStep2(res.pendingSantriData);
                     chrome.storage.local.remove(['waitingForStep2']);
@@ -907,6 +911,9 @@ function showStep0StartPopup(data) {
     const oldPending = document.getElementById('tpq-pending-banner');
     if (oldPending) oldPending.remove();
 
+    const oldPill = document.getElementById('tpq-reopen-step0-pill');
+    if (oldPill) oldPill.remove();
+
     // Format tanggal lahir berlabel nama bulan (misal: 2024-Agustus-18)
     const tglLahirLabel = data.tanggal_lahir_label || formatTanggalNamaBulan(data.tanggal_lahir);
 
@@ -955,6 +962,14 @@ function showStep0StartPopup(data) {
                 background: #ffca2c;
                 transform: translateY(-1px);
             }
+            @keyframes tpq-pulse {
+                0% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7); }
+                70% { box-shadow: 0 0 0 10px rgba(255, 193, 7, 0); }
+                100% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0); }
+            }
+            .tpq-pulse-btn {
+                animation: tpq-pulse 1.8s infinite;
+            }
         </style>
 
         <div id="tpq-step0-header" style="cursor: move; user-select: none; font-weight: bold; font-size: 14px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;">
@@ -994,7 +1009,7 @@ function showStep0StartPopup(data) {
         </div>
 
         <!-- Opsi 2: Step 1 (Cari via Nama & TTL) -->
-        <div style="background: rgba(0,0,0,0.3); padding: 10px 12px; border-radius: 6px; margin-bottom: 12px; border-left: 3px solid #10b981;">
+        <div id="tpq-opsi2-box" style="background: rgba(0,0,0,0.3); padding: 10px 12px; border-radius: 6px; margin-bottom: 12px; border-left: 3px solid #10b981;">
             <div style="margin-bottom: 4px;">
                 <strong style="color: #6ee7b7; font-size: 12.5px;">📝 Opsi 2: Cari via Nama & TTL (Step 1)</strong>
             </div>
@@ -1070,6 +1085,8 @@ function showStep0StartPopup(data) {
     const btnStart1 = document.getElementById('tpq-btn-start-step1');
     if (btnStart1) {
         btnStart1.addEventListener('click', () => {
+            const pill = document.getElementById('tpq-reopen-step0-pill');
+            if (pill) pill.remove();
             div.remove();
             fillEmisStep1(data);
         });
@@ -1083,16 +1100,97 @@ function showStep0StartPopup(data) {
         });
     }
 
-    // Tutup popup (antrean tetap ada di storage)
+    // Tutup popup -> Munculkan mini pill mengambang agar mudah dibuka kembali tanpa refresh
     document.getElementById('tpq-close-step0-alert').addEventListener('click', () => {
         div.remove();
+        showStep0MiniPill(data);
     });
 
     // Batal (hapus antrean santri dari storage)
     document.getElementById('tpq-btn-cancel-antrean').addEventListener('click', () => {
         chrome.storage.local.remove(['pendingSantriData', 'waitingForStep2']);
+        const pill = document.getElementById('tpq-reopen-step0-pill');
+        if (pill) pill.remove();
         div.remove();
     });
+
+    // Observer untuk mendeteksi jika hasil cek NIK di EMIS menghasilkan "Data tidak ditemukan"
+    const notFoundObserver = new MutationObserver(() => {
+        const step0 = document.getElementById(popupId);
+        if (!step0) {
+            notFoundObserver.disconnect();
+            return;
+        }
+        if (document.getElementById('tpq-nik-not-found-hint')) return;
+
+        const bodyTxt = (document.body.innerText || document.body.textContent || '').toUpperCase();
+        if (bodyTxt.includes('TIDAK DITEMUKAN') || bodyTxt.includes('BELUM DITEMUKAN') || bodyTxt.includes('TIDAK TERDAFTAR') || bodyTxt.includes('DATA TIDAK ADA')) {
+            const opsi2Box = step0.querySelector('#tpq-opsi2-box');
+            if (opsi2Box && !document.getElementById('tpq-nik-not-found-hint')) {
+                const hint = document.createElement('div');
+                hint.id = 'tpq-nik-not-found-hint';
+                hint.style.cssText = `
+                    background: #dc3545; color: #fff; padding: 7px 10px; border-radius: 5px;
+                    font-size: 11.5px; margin-bottom: 10px; font-weight: 500; line-height: 1.4;
+                    border: 1px solid rgba(255,255,255,0.3); box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+                `;
+                hint.innerHTML = `⚠️ <strong>Data NIK tidak ditemukan di EMIS.</strong><br>Silakan pilih tab <em>"Nama, Tempat, dan tanggal lahir"</em> di EMIS, lalu klik tombol di bawah:`;
+                opsi2Box.parentElement.insertBefore(hint, opsi2Box);
+
+                // Tambahkan efek sorot pada tombol Mulai Isi Step 1
+                const btn1 = step0.querySelector('#tpq-btn-start-step1');
+                if (btn1) {
+                    btn1.classList.add('tpq-pulse-btn');
+                    btn1.style.outline = '2px solid #ffc107';
+                }
+            }
+        }
+    });
+
+    try {
+        notFoundObserver.observe(document.body, { childList: true, subtree: true, characterData: true });
+    } catch (_) {}
+}
+
+/**
+ * Tombol mini (pill) mengambang jika popup ditutup secara manual,
+ * agar pengguna dapat membukanya kembali kapan saja tanpa refresh halaman.
+ */
+function showStep0MiniPill(data) {
+    if (!data) return;
+    const oldPill = document.getElementById('tpq-reopen-step0-pill');
+    if (oldPill) oldPill.remove();
+
+    const pill = document.createElement('div');
+    pill.id = 'tpq-reopen-step0-pill';
+    pill.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999999;
+        background: #0d6efd;
+        color: white;
+        padding: 7px 14px;
+        border-radius: 20px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        font-family: system-ui, -apple-system, sans-serif;
+        font-size: 12px;
+        font-weight: bold;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        border: 1px solid rgba(255,255,255,0.4);
+        transition: transform 0.15s, background 0.2s;
+    `;
+    pill.innerHTML = `<span>⚡ Buka TPQ Smart (${data.nama_santri})</span>`;
+    pill.addEventListener('mouseenter', () => { pill.style.transform = 'scale(1.03)'; pill.style.background = '#0b5ed7'; });
+    pill.addEventListener('mouseleave', () => { pill.style.transform = 'scale(1)'; pill.style.background = '#0d6efd'; });
+    pill.addEventListener('click', () => {
+        pill.remove();
+        showStep0StartPopup(data);
+    });
+    document.body.appendChild(pill);
 }
 
 /**
