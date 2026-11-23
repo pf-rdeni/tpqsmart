@@ -86,6 +86,40 @@ window.addEventListener('message', (event) => {
             }, '*');
         }
     }
+
+    // Tangani pengiriman data santri untuk UPDATE ALAMAT di Kesiswaan EMIS
+    if (event.data.type === 'TPQ_SEND_UPDATE_ALAMAT_TO_EMIS') {
+        const santriData = event.data.data;
+        console.log('[TPQ-EMIS Bridge] Meneruskan data santri untuk UPDATE ALAMAT ke background:', santriData);
+
+        if (!isExtensionValid()) {
+            console.warn('[TPQ-EMIS Bridge] Extension context invalidated (ekstensi baru di-reload).');
+            window.postMessage({
+                type: 'EMIS_EXTENSION_NEED_REFRESH',
+                message: 'Ekstensi baru saja dimuat ulang di Chrome. Silakan Refresh (tekan F5) halaman TPQ Smart ini.'
+            }, '*');
+            return;
+        }
+
+        try {
+            chrome.runtime.sendMessage({
+                action: 'SEND_UPDATE_ALAMAT_TO_EMIS',
+                data: santriData
+            }, (response) => {
+                if (chrome.runtime.lastError) {
+                    console.warn('[TPQ-EMIS Bridge] Runtime warning:', chrome.runtime.lastError.message);
+                    return;
+                }
+                console.log('[TPQ-EMIS Bridge] Balasan background update alamat:', response);
+            });
+        } catch (err) {
+            console.error('[TPQ-EMIS Bridge] Gagal mengirim pesan update alamat:', err);
+            window.postMessage({
+                type: 'EMIS_EXTENSION_NEED_REFRESH',
+                message: 'Koneksi ekstensi terputus. Silakan Refresh (F5) halaman TPQ Smart.'
+            }, '*');
+        }
+    }
 });
 
 // Listener pesan dari background worker ekstensi
@@ -93,9 +127,16 @@ try {
     if (isExtensionValid() && chrome.runtime && chrome.runtime.onMessage) {
         chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             if (request && request.action === 'NOTIFY_TPQ_SUCCESS') {
-                console.log('[TPQ-EMIS Bridge] Mendapat konfirmasi form terisi:', request.id_santri);
+                console.log('[TPQ-EMIS Bridge] Mendapat konfirmasi form pendaftaran terisi:', request.id_santri);
                 window.postMessage({
                     type: 'EMIS_EXTENSION_FILLED_SUCCESS',
+                    id_santri: request.id_santri
+                }, '*');
+                sendResponse({ ok: true });
+            } else if (request && request.action === 'NOTIFY_TPQ_UPDATE_ALAMAT_SUCCESS') {
+                console.log('[TPQ-EMIS Bridge] Mendapat konfirmasi update alamat selesai:', request.id_santri);
+                window.postMessage({
+                    type: 'EMIS_EXTENSION_UPDATE_ALAMAT_SUCCESS',
                     id_santri: request.id_santri
                 }, '*');
                 sendResponse({ ok: true });

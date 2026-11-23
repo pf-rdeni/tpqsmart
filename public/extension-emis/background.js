@@ -75,6 +75,82 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         return true;
     }
 
+    if (request.action === 'SEND_UPDATE_ALAMAT_TO_EMIS') {
+        const santriData = request.data;
+        console.log('[TPQ-EMIS] Menerima data santri untuk UPDATE ALAMAT di EMIS:', santriData);
+
+        const EMIS_KESISWAAN_URL = "https://emis.kemenag.go.id/kesiswaan";
+
+        // Simpan data antrean ke storage
+        chrome.storage.local.set({ 
+            pendingUpdateAlamatData: santriData,
+            currentTask: 'UPDATE_ALAMAT'
+        }, () => {
+            chrome.tabs.query({ url: "*://emis.kemenag.go.id/*" }, (tabs) => {
+                if (tabs && tabs.length > 0) {
+                    const emisTab = tabs[0];
+                    const currentUrl = emisTab.url || '';
+                    const isAlreadyOnKesiswaan = currentUrl.includes('kesiswaan');
+
+                    if (isAlreadyOnKesiswaan) {
+                        chrome.tabs.update(emisTab.id, { active: true });
+                        chrome.tabs.sendMessage(emisTab.id, {
+                            action: 'EXECUTE_UPDATE_ALAMAT',
+                            data: santriData
+                        }, (response) => {
+                            if (chrome.runtime.lastError) {
+                                console.warn('[TPQ-EMIS] Tab perlu dimuat ulang:', chrome.runtime.lastError.message);
+                                chrome.tabs.update(emisTab.id, { url: EMIS_KESISWAAN_URL });
+                            } else {
+                                console.log('[TPQ-EMIS] Respon dari Kesiswaan EMIS:', response);
+                            }
+                        });
+                    } else {
+                        chrome.tabs.update(emisTab.id, {
+                            url: EMIS_KESISWAAN_URL,
+                            active: true
+                        });
+                    }
+
+                    sendResponse({ success: true, message: 'Tab EMIS Kesiswaan diaktifkan.' });
+                } else {
+                    chrome.tabs.create({
+                        url: EMIS_KESISWAAN_URL,
+                        active: true
+                    }, (newTab) => {
+                        console.log('[TPQ-EMIS] Membuka tab EMIS Kesiswaan baru:', newTab.id);
+                    });
+
+                    sendResponse({
+                        success: true,
+                        message: 'Membuka halaman Kesiswaan EMIS 4.0 untuk pembaruan alamat.'
+                    });
+                }
+            });
+        });
+
+        return true;
+    }
+
+    if (request.action === 'UPDATE_ALAMAT_SUCCESS_NOTIFY') {
+        console.log('[TPQ-EMIS] Update alamat EMIS berhasil untuk santri:', request.id_santri);
+
+        // Teruskan kabar sukses ke tab TPQ Smart agar UI terupdate
+        chrome.tabs.query({}, (tabs) => {
+            tabs.forEach(tab => {
+                if (tab.url && (tab.url.includes('tpqsmart') || tab.url.includes('localhost') || tab.url.includes('127.0.0.1'))) {
+                    chrome.tabs.sendMessage(tab.id, {
+                        action: 'NOTIFY_TPQ_UPDATE_ALAMAT_SUCCESS',
+                        id_santri: request.id_santri
+                    }).catch(() => {});
+                }
+            });
+        });
+
+        sendResponse({ received: true });
+        return true;
+    }
+
     if (request.action === 'FORM_FILLED_NOTIFY') {
         console.log('[TPQ-EMIS] Formulir EMIS berhasil diisi untuk santri:', request.id_santri);
         

@@ -1740,6 +1740,23 @@ class Santri extends BaseController
             'kabupaten_kota'      => trim($santri['KabupatenKotaSantri'] ?? ''),
             'provinsi'            => trim($santri['ProvinsiSantri'] ?? ''),
             'kode_pos'            => trim($santri['KodePosSantri'] ?? ''),
+            // Data Lengkap untuk Update Alamat EMIS (Kesiswaan -> Tab Data Alamat)
+            'ayah_status_kepemilikan_rumah' => !empty($santri['StatusKepemilikanRumahAyah']) ? trim($santri['StatusKepemilikanRumahAyah']) : 'Milik Sendiri',
+            'ayah_provinsi'       => !empty($santri['ProvinsiAyah']) ? trim($santri['ProvinsiAyah']) : trim($santri['ProvinsiSantri'] ?? ''),
+            'ayah_kabupaten_kota' => !empty($santri['KabupatenKotaAyah']) ? trim($santri['KabupatenKotaAyah']) : trim($santri['KabupatenKotaSantri'] ?? ''),
+            'ayah_kecamatan'      => !empty($santri['KecamatanAyah']) ? trim($santri['KecamatanAyah']) : trim($santri['KecamatanSantri'] ?? ''),
+            'ayah_kelurahan_desa' => !empty($santri['KelurahanDesaAyah']) ? trim($santri['KelurahanDesaAyah']) : trim($santri['KelurahanDesaSantri'] ?? ''),
+            'ayah_rt'             => !empty($santri['RtAyah']) ? trim($santri['RtAyah']) : trim($santri['RtSantri'] ?? ''),
+            'ayah_rw'             => !empty($santri['RwAyah']) ? trim($santri['RwAyah']) : trim($santri['RwSantri'] ?? ''),
+            'ayah_alamat'         => !empty($santri['AlamatAyah']) ? trim($santri['AlamatAyah']) : trim($santri['AlamatSantri'] ?? ''),
+            'ayah_kode_pos'       => !empty($santri['KodePosAyah']) ? trim($santri['KodePosAyah']) : trim($santri['KodePosSantri'] ?? ''),
+            // Bagian Santri & Mobilitas ke Lembaga
+            'santri_status_mukim'          => !empty($santri['StatusMukim']) ? trim($santri['StatusMukim']) : 'Tidak Mukim',
+            'santri_status_tempat_tinggal' => !empty($santri['StatusTempatTinggalSantri']) ? trim($santri['StatusTempatTinggalSantri']) : 'Tinggal dengan Ayah Kandung',
+            'santri_jarak_tempuh'          => !empty($santri['JarakTempuhSantri']) ? trim($santri['JarakTempuhSantri']) : 'Kurang dari 5 km',
+            'santri_transportasi'          => !empty($santri['TransportasiSantri']) ? trim($santri['TransportasiSantri']) : 'Jalan Kaki',
+            'santri_waktu_tempuh'          => !empty($santri['WaktuTempuhSantri']) ? trim($santri['WaktuTempuhSantri']) : '1-10 menit',
+            'santri_titik_koordinat'       => trim($santri['TitikKoordinatSantri'] ?? ''),
         ];
 
         return $this->response
@@ -1831,6 +1848,55 @@ class Santri extends BaseController
         return $this->response->setJSON([
             'success' => false,
             'message' => 'Gagal memperbarui status santri di database'
+        ])->setStatusCode(500);
+    }
+
+    /**
+     * AJAX endpoint untuk memperbarui status update alamat EMIS santri ke database
+     */
+    public function updateStatusAlamatEmisAjax()
+    {
+        $idSantri = $this->request->getPost('IdSantri');
+        $rawStatus = $this->request->getPost('Status');
+        $status = ($rawStatus === 'selesai' || $rawStatus === true || $rawStatus === '1') ? 'selesai' : 'belum';
+
+        if (empty($idSantri)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'ID Santri wajib disertakan'
+            ])->setStatusCode(400);
+        }
+
+        $user = session()->get('username') 
+            ?: session()->get('NamaUser') 
+            ?: session()->get('Nama') 
+            ?: session()->get('user_id') 
+            ?: 'Operator';
+
+        $idTpq = session()->get('IdTpq');
+
+        $result = $this->DataSantriBaru->updateStatusAlamatEmis($idSantri, $status, $user, $idTpq);
+
+        if ($result) {
+            $now = date('Y-m-d H:i:s');
+            $tglLabel = ($status === 'selesai') ? date('d M Y, H:i') : null;
+
+            return $this->response->setJSON([
+                'success'          => true,
+                'id_santri'        => $idSantri,
+                'status'           => $status,
+                'tgl_update'       => ($status === 'selesai') ? $now : null,
+                'tgl_update_label' => $tglLabel,
+                'updated_by'       => $user,
+                'message'          => ($status === 'selesai') 
+                    ? 'Status update alamat berhasil ditandai Selesai di database' 
+                    : 'Status update alamat berhasil diubah ke Belum di database'
+            ]);
+        }
+
+        return $this->response->setJSON([
+            'success' => false,
+            'message' => 'Gagal memperbarui status alamat ke database'
         ])->setStatusCode(500);
     }
 

@@ -92,29 +92,42 @@
                             <tr id="row-santri-<?= $santri['IdSantri']; ?>" data-id="<?= $santri['IdSantri']; ?>" data-kelas="<?= htmlspecialchars($santri['NamaKelas'] ?? ''); ?>">
                                 <td class="text-center align-middle font-weight-bold"><?= $no++; ?></td>
                                 <td class="align-middle text-center">
-                                    <button type="button" onclick="kirimKeEmisExtension('<?= $santri['IdSantri']; ?>')" class="btn btn-primary btn-sm btn-send-emis" title="Kirim otomatis ke form EMIS via ekstensi Chrome">
-                                        <i class="fas fa-bolt mr-1"></i> <strong>Isi ke EMIS</strong>
-                                    </button>
+                                    <div class="d-flex flex-column" style="gap: 5px;">
+                                        <button type="button" onclick="kirimKeEmisExtension('<?= $santri['IdSantri']; ?>')" class="btn btn-success btn-sm btn-send-emis" title="Isi formulir pendaftaran baru ke EMIS via ekstensi Chrome">
+                                            <i class="fas fa-bolt mr-1"></i> <strong>Isi ke EMIS</strong>
+                                        </button>
+                                        <button type="button" onclick="kirimUpdateAlamatKeEmis('<?= $santri['IdSantri']; ?>')" class="btn btn-primary btn-sm btn-update-alamat-emis" title="Update data domisili dan alamat santri & orang tua ke EMIS">
+                                            <i class="fas fa-map-marker-alt mr-1"></i> <strong>Update Alamat</strong>
+                                        </button>
+                                    </div>
                                 </td>
                                 <td class="align-middle text-center" id="col-status-<?= $santri['IdSantri']; ?>">
                                     <?php 
                                         $isSelesai = ($santri['StatusEmis'] ?? 'belum') === 'selesai';
                                         $tglUpdate = !empty($santri['TglUpdateEmis']) ? date('d M Y, H:i', strtotime($santri['TglUpdateEmis'])) : '';
+                                        $isAlamatSelesai = ($santri['StatusAlamatEmis'] ?? 'belum') === 'selesai';
+                                        $tglUpdateAlamat = !empty($santri['TglUpdateAlamatEmis']) ? date('d M Y, H:i', strtotime($santri['TglUpdateAlamatEmis'])) : '';
                                     ?>
-                                    <?php if ($isSelesai): ?>
-                                        <span class="badge badge-success p-2 status-badge cursor-pointer" onclick="toggleStatusSantriEmis('<?= $santri['IdSantri']; ?>')" title="Klik untuk ubah status">
-                                            <i class="fas fa-check-circle mr-1"></i> Selesai
+                                    <div class="mb-1" id="box-status-daftar-<?= $santri['IdSantri']; ?>">
+                                        <span class="badge <?= $isSelesai ? 'badge-success' : 'badge-warning'; ?> p-1 status-badge cursor-pointer" onclick="toggleStatusSantriEmis('<?= $santri['IdSantri']; ?>')" title="Klik untuk ubah status pendaftaran">
+                                            <i class="fas <?= $isSelesai ? 'fa-check-circle' : 'fa-hourglass-half'; ?> mr-1"></i> Daftar: <?= $isSelesai ? 'Selesai' : 'Belum'; ?>
                                         </span>
                                         <?php if (!empty($tglUpdate)): ?>
-                                            <small class="text-muted d-block mt-1 status-time" style="font-size: 11px;">
+                                            <small class="text-muted d-block status-time" style="font-size: 10px;">
                                                 <i class="far fa-clock mr-1"></i><?= $tglUpdate; ?>
                                             </small>
                                         <?php endif; ?>
-                                    <?php else: ?>
-                                        <span class="badge badge-warning p-2 status-badge cursor-pointer" onclick="toggleStatusSantriEmis('<?= $santri['IdSantri']; ?>')" title="Klik untuk ubah status">
-                                            <i class="fas fa-hourglass-half mr-1"></i> Belum
+                                    </div>
+                                    <div id="box-status-alamat-<?= $santri['IdSantri']; ?>">
+                                        <span class="badge <?= $isAlamatSelesai ? 'badge-info' : 'badge-secondary'; ?> p-1 status-badge cursor-pointer" onclick="toggleStatusAlamatSantriEmis('<?= $santri['IdSantri']; ?>')" title="Klik untuk ubah status alamat">
+                                            <i class="fas <?= $isAlamatSelesai ? 'fa-map-marked-alt' : 'fa-map-marker-alt'; ?> mr-1"></i> Alamat: <?= $isAlamatSelesai ? 'Selesai' : 'Belum'; ?>
                                         </span>
-                                    <?php endif; ?>
+                                        <?php if (!empty($tglUpdateAlamat)): ?>
+                                            <small class="text-muted d-block status-time-alamat" style="font-size: 10px;">
+                                                <i class="far fa-clock mr-1"></i><?= $tglUpdateAlamat; ?>
+                                            </small>
+                                        <?php endif; ?>
+                                    </div>
                                 </td>
                                 <td class="align-middle font-monospace"><?= htmlspecialchars($santri['NikSantri'] ?: '-'); ?></td>
                                 <td class="align-middle font-weight-bold text-dark">
@@ -603,8 +616,8 @@
     }
 
     function updateStatusBadgeUI(idSantri, isSelesai, tglUpdateLabel = '', refreshDataTable = true) {
-        const cell = document.getElementById('col-status-' + idSantri);
-        if (!cell) return;
+        const box = document.getElementById('box-status-daftar-' + idSantri);
+        if (!box) return;
 
         // Update dataSantriMaster agar konsisten
         const sObj = dataSantriMaster.find(s => String(s.IdSantri) === String(idSantri));
@@ -617,22 +630,104 @@
             }
         }
 
-        if (isSelesai) {
-            const timeHtml = tglUpdateLabel ? `<small class="text-muted d-block mt-1 status-time" style="font-size: 11px;"><i class="far fa-clock mr-1"></i>${tglUpdateLabel}</small>` : '';
-            cell.innerHTML = `
-                <span class="badge badge-success p-2 status-badge cursor-pointer" onclick="toggleStatusSantriEmis('${idSantri}')" title="Klik untuk ubah">
-                    <i class="fas fa-check-circle mr-1"></i> Selesai
-                </span>
-                ${timeHtml}
-            `;
-        } else {
-            cell.innerHTML = `
-                <span class="badge badge-warning p-2 status-badge cursor-pointer" onclick="toggleStatusSantriEmis('${idSantri}')" title="Klik untuk ubah">
-                    <i class="fas fa-hourglass-half mr-1"></i> Belum
-                </span>
-            `;
+        const timeHtml = (isSelesai && tglUpdateLabel) ? `<small class="text-muted d-block status-time" style="font-size: 10px;"><i class="far fa-clock mr-1"></i>${tglUpdateLabel}</small>` : '';
+        box.innerHTML = `
+            <span class="badge ${isSelesai ? 'badge-success' : 'badge-warning'} p-1 status-badge cursor-pointer" onclick="toggleStatusSantriEmis('${idSantri}')" title="Klik untuk ubah status pendaftaran">
+                <i class="fas ${isSelesai ? 'fa-check-circle' : 'fa-hourglass-half'} mr-1"></i> Daftar: ${isSelesai ? 'Selesai' : 'Belum'}
+            </span>
+            ${timeHtml}
+        `;
+
+        const cell = document.getElementById('col-status-' + idSantri);
+        if (dataTableSantri && cell && refreshDataTable) {
+            dataTableSantri.cell(cell).invalidate().draw(false);
         }
-        if (dataTableSantri && refreshDataTable) {
+    }
+
+    function toggleStatusAlamatSantriEmis(idSantri) {
+        const sObj = dataSantriMaster.find(s => String(s.IdSantri) === String(idSantri));
+        const currentIsSelesai = sObj ? (sObj.StatusAlamatEmis === 'selesai') : false;
+        const newStatus = currentIsSelesai ? 'belum' : 'selesai';
+
+        $.ajax({
+            url: '<?= base_url('backend/santri/updateStatusAlamatEmisAjax'); ?>',
+            method: 'POST',
+            data: {
+                IdSantri: idSantri,
+                Status: newStatus
+            },
+            dataType: 'json',
+            success: function(res) {
+                if (res.success) {
+                    updateStatusAlamatBadgeUI(idSantri, res.status === 'selesai', res.tgl_update_label || '');
+                    let namaSantri = sObj && sObj.NamaSantri ? sObj.NamaSantri : '';
+                    if (typeof toastr !== 'undefined') {
+                        if (res.status === 'selesai') {
+                            toastr.success(namaSantri ? `Status alamat ${namaSantri} ditandai Selesai di database.` : 'Status alamat ditandai Selesai di database.', 'Status Alamat');
+                        } else {
+                            toastr.info(namaSantri ? `Status alamat ${namaSantri} diubah ke Belum di database.` : 'Status alamat diubah ke Belum di database.', 'Status Alamat');
+                        }
+                    }
+                } else {
+                    if (typeof toastr !== 'undefined') {
+                        toastr.error(res.message || 'Gagal mengubah status alamat di database', 'Gagal');
+                    }
+                }
+            },
+            error: function() {
+                if (typeof toastr !== 'undefined') {
+                    toastr.error('Terjadi kesalahan koneksi saat memperbarui status alamat.', 'Gagal');
+                }
+            }
+        });
+    }
+
+    function setStatusAlamatSantriEmis(idSantri, isSelesai, callback = null) {
+        const newStatus = isSelesai ? 'selesai' : 'belum';
+        $.ajax({
+            url: '<?= base_url('backend/santri/updateStatusAlamatEmisAjax'); ?>',
+            method: 'POST',
+            data: {
+                IdSantri: idSantri,
+                Status: newStatus
+            },
+            dataType: 'json',
+            success: function(res) {
+                if (res.success) {
+                    updateStatusAlamatBadgeUI(idSantri, res.status === 'selesai', res.tgl_update_label || '');
+                    if (typeof callback === 'function') {
+                        callback(res);
+                    }
+                }
+            }
+        });
+    }
+
+    function updateStatusAlamatBadgeUI(idSantri, isSelesai, tglUpdateLabel = '', refreshDataTable = true) {
+        const box = document.getElementById('box-status-alamat-' + idSantri);
+        if (!box) return;
+
+        // Update dataSantriMaster agar konsisten
+        const sObj = dataSantriMaster.find(s => String(s.IdSantri) === String(idSantri));
+        if (sObj) {
+            sObj.StatusAlamatEmis = isSelesai ? 'selesai' : 'belum';
+            if (isSelesai && tglUpdateLabel) {
+                sObj.TglUpdateAlamatEmis = tglUpdateLabel;
+            } else if (!isSelesai) {
+                sObj.TglUpdateAlamatEmis = null;
+            }
+        }
+
+        const timeHtml = (isSelesai && tglUpdateLabel) ? `<small class="text-muted d-block status-time-alamat" style="font-size: 10px;"><i class="far fa-clock mr-1"></i>${tglUpdateLabel}</small>` : '';
+        box.innerHTML = `
+            <span class="badge ${isSelesai ? 'badge-info' : 'badge-secondary'} p-1 status-badge cursor-pointer" onclick="toggleStatusAlamatSantriEmis('${idSantri}')" title="Klik untuk ubah status alamat">
+                <i class="fas ${isSelesai ? 'fa-map-marked-alt' : 'fa-map-marker-alt'} mr-1"></i> Alamat: ${isSelesai ? 'Selesai' : 'Belum'}
+            </span>
+            ${timeHtml}
+        `;
+
+        const cell = document.getElementById('col-status-' + idSantri);
+        if (dataTableSantri && cell && refreshDataTable) {
             dataTableSantri.cell(cell).invalidate().draw(false);
         }
     }
@@ -751,15 +846,44 @@
                     if (typeof Swal !== 'undefined') {
                         Swal.fire({
                             icon: 'success',
-                            title: 'Status EMIS Tersimpan ke Database!',
+                            title: 'Status Pendaftaran EMIS Selesai!',
                             html: namaSantri 
-                                ? `Data santri <strong>${namaSantri}</strong> berhasil disimpan dengan status <strong>Selesai</strong> di database.<br><small class="text-muted"><i class="far fa-clock mr-1"></i>Tercatat pada: ${recordTime}</small>`
-                                : `Data santri berhasil disimpan dengan status <strong>Selesai</strong> di database.<br><small class="text-muted"><i class="far fa-clock mr-1"></i>Tercatat pada: ${recordTime}</small>`,
+                                ? `Data pendaftaran santri <strong>${namaSantri}</strong> berhasil disimpan dengan status <strong>Selesai</strong> di database.<br><small class="text-muted"><i class="far fa-clock mr-1"></i>Tercatat pada: ${recordTime}</small>`
+                                : `Data pendaftaran santri berhasil disimpan dengan status <strong>Selesai</strong> di database.<br><small class="text-muted"><i class="far fa-clock mr-1"></i>Tercatat pada: ${recordTime}</small>`,
                             confirmButtonColor: '#198754',
                             confirmButtonText: '<i class="fas fa-check mr-1"></i> OK'
                         });
                     } else if (typeof toastr !== 'undefined') {
-                        toastr.success('Data santri berhasil ditandai Selesai di database!', 'Status EMIS');
+                        toastr.success('Data pendaftaran santri berhasil ditandai Selesai di database!', 'Status EMIS');
+                    }
+                });
+            }
+        }
+
+        if (event.data.type === 'EMIS_EXTENSION_UPDATE_ALAMAT_SUCCESS') {
+            const santriId = event.data.id_santri;
+            if (santriId) {
+                setStatusAlamatSantriEmis(santriId, true, function(res) {
+                    let namaSantri = '';
+                    const santriObj = dataSantriMaster.find(s => String(s.IdSantri) === String(santriId));
+                    if (santriObj && santriObj.NamaSantri) {
+                        namaSantri = santriObj.NamaSantri;
+                    }
+
+                    const recordTime = res.tgl_update_label || 'Baru saja';
+
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Update Alamat EMIS Selesai!',
+                            html: namaSantri 
+                                ? `Pembaruan alamat santri <strong>${namaSantri}</strong> berhasil disimpan dengan status <strong>Selesai</strong> di database.<br><small class="text-muted"><i class="far fa-clock mr-1"></i>Tercatat pada: ${recordTime}</small>`
+                                : `Pembaruan alamat santri berhasil disimpan dengan status <strong>Selesai</strong> di database.<br><small class="text-muted"><i class="far fa-clock mr-1"></i>Tercatat pada: ${recordTime}</small>`,
+                            confirmButtonColor: '#0d6efd',
+                            confirmButtonText: '<i class="fas fa-check mr-1"></i> OK'
+                        });
+                    } else if (typeof toastr !== 'undefined') {
+                        toastr.success('Data alamat santri berhasil ditandai Selesai di database!', 'Status Alamat EMIS');
                     }
                 });
             }
@@ -814,6 +938,43 @@
                         }, '*');
                     } else {
                         // Jika extension belum terpasang, buka panduan pemasangan ekstensi
+                        $('#modalPanduanExtension').modal('show');
+                    }
+                }
+            },
+            error: function() {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Gagal Mengambil Data',
+                        text: 'Gagal mengambil data santri dari server TPQ Smart.',
+                        confirmButtonColor: '#d33'
+                    });
+                } else {
+                    alert('Gagal mengambil data santri dari server.');
+                }
+            }
+        });
+    }
+
+    function kirimUpdateAlamatKeEmis(idSantri) {
+        $.ajax({
+            url: '<?= base_url('backend/santri/getSantriEmisJson'); ?>/' + idSantri,
+            method: 'GET',
+            dataType: 'json',
+            success: function(res) {
+                if (res.success && res.data) {
+                    if (isExtensionConnected) {
+                        const namaSantri = res.data.nama_santri || 'santri';
+                        if (typeof toastr !== 'undefined') {
+                            toastr.info(`Membuka halaman Kesiswaan EMIS untuk update alamat ${namaSantri}...`, 'Update Alamat EMIS');
+                        }
+                        // Kirim data ke background / content script extension dengan action update alamat
+                        window.postMessage({
+                            type: 'TPQ_SEND_UPDATE_ALAMAT_TO_EMIS',
+                            data: res.data
+                        }, '*');
+                    } else {
                         $('#modalPanduanExtension').modal('show');
                     }
                 }

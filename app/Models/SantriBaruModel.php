@@ -834,6 +834,8 @@ class SantriBaruModel extends Model
                 tbl_tpq.KelurahanDesa,
                 COALESCE(se.StatusEmis, "belum") as StatusEmis,
                 se.TglUpdateEmis,
+                COALESCE(se.StatusAlamatEmis, "belum") as StatusAlamatEmis,
+                se.TglUpdateAlamatEmis,
                 se.UpdatedBy as EmisUpdatedBy
             ')
             ->join('tbl_kelas_santri ks', 'ks.IdSantri = tbl_santri_baru.IdSantri AND ks.IdTahunAjaran = "' . $IdTahunAjaran . '"', 'left')
@@ -857,6 +859,8 @@ class SantriBaruModel extends Model
                 tbl_tpq.KelurahanDesa,
                 COALESCE(se.StatusEmis, "belum") as StatusEmis,
                 se.TglUpdateEmis,
+                COALESCE(se.StatusAlamatEmis, "belum") as StatusAlamatEmis,
+                se.TglUpdateAlamatEmis,
                 se.UpdatedBy as EmisUpdatedBy
             ')
                 ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas', 'left')
@@ -953,6 +957,48 @@ class SantriBaruModel extends Model
             return $builder->where('IdSantri', $IdSantri)->update($data);
         } else {
             $data['created_at'] = $now;
+            return $builder->insert($data);
+        }
+    }
+
+    /**
+     * Memperbarui status update alamat santri di EMIS ke tbl_santri_emis
+     * @param string $IdSantri
+     * @param string $status 'selesai' atau 'belum'
+     * @param string|null $updatedBy
+     * @param string|null $IdTpq
+     * @return bool
+     */
+    public function updateStatusAlamatEmis($IdSantri, $status = 'selesai', $updatedBy = null, $IdTpq = null)
+    {
+        $db = $this->db;
+        $builder = $db->table('tbl_santri_emis');
+        $now = date('Y-m-d H:i:s');
+
+        if (empty($IdTpq)) {
+            $rowSantri = $db->table('tbl_santri_baru')->select('IdTpq')->where('IdSantri', $IdSantri)->get()->getRowArray();
+            if ($rowSantri && !empty($rowSantri['IdTpq'])) {
+                $IdTpq = $rowSantri['IdTpq'];
+            }
+        }
+
+        $data = [
+            'IdSantri'            => $IdSantri,
+            'StatusAlamatEmis'    => $status,
+            'TglUpdateAlamatEmis' => ($status === 'selesai') ? $now : null,
+            'UpdatedBy'           => $updatedBy,
+            'updated_at'          => $now
+        ];
+        if (!empty($IdTpq)) {
+            $data['IdTpq'] = $IdTpq;
+        }
+
+        $existing = $builder->where('IdSantri', $IdSantri)->get()->getRowArray();
+        if ($existing) {
+            return $builder->where('IdSantri', $IdSantri)->update($data);
+        } else {
+            $data['created_at'] = $now;
+            $data['StatusEmis'] = 'belum';
             return $builder->insert($data);
         }
     }

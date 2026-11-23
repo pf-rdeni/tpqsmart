@@ -191,6 +191,7 @@ $routes->get('backend/santri/showSantriEmis', 'Backend\Santri::showSantriEmis');
 $routes->get('backend/santri/getSantriEmisJson/(:segment)', 'Backend\Santri::getSantriEmisJson/$1');
 $routes->match(['get', 'post'], 'backend/santri/getListSantriEmisAjax', 'Backend\Santri::getListSantriEmisAjax');
 $routes->post('backend/santri/updateStatusEmisAjax', 'Backend\Santri::updateStatusEmisAjax');
+$routes->post('backend/santri/updateStatusAlamatEmisAjax', 'Backend\Santri::updateStatusAlamatEmisAjax');
 $routes->post('backend/santri/resetStatusEmisAjax', 'Backend\Santri::resetStatusEmisAjax');
 $routes->get('backend/santri/downloadExtensionEmis', 'Backend\Santri::downloadExtensionEmis');
 $routes->get('download-extension-emis', 'Backend\Santri::downloadExtensionEmis');
