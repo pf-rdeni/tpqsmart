@@ -1566,7 +1566,11 @@ function showStep2Assistant(data, filledAyah = false, filledIbu = false, filledN
     `;
 
     document.body.appendChild(div);
-    document.getElementById('tpq-close-step2-alert').addEventListener('click', () => div.remove());
+    document.getElementById('tpq-close-step2-alert').addEventListener('click', () => {
+        chrome.storage.local.remove(['pendingSantriData', 'waitingForStep2']);
+        div.remove();
+        showTemporaryFloatingToast('Antrean pendaftaran santri ditutup.', 'danger');
+    });
 
     // Jadikan popup Step 2 dapat digeser (draggable)
     const headerEl = document.getElementById('tpq-step2-header');
@@ -1733,6 +1737,60 @@ function executeStep1UpdateAlamat(santriData) {
 }
 
 /**
+ * Notifikasi popup mengambang sementara (toast)
+ */
+function showTemporaryFloatingToast(message, type = 'danger') {
+    const oldToast = document.getElementById('tpq-temp-toast');
+    if (oldToast) oldToast.remove();
+
+    const toast = document.createElement('div');
+    toast.id = 'tpq-temp-toast';
+    const bg = type === 'danger' ? '#dc3545' : (type === 'success' ? '#198754' : '#0d6efd');
+    toast.style.cssText = `
+        position: fixed;
+        top: 25px;
+        right: 25px;
+        z-index: 9999999;
+        background: ${bg};
+        color: #ffffff;
+        padding: 12px 18px;
+        border-radius: 8px;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        font-size: 13px;
+        font-weight: 500;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    `;
+    toast.innerHTML = `<span style="font-size: 16px;">⏹</span> <span>${escapeHtml(message)}</span>`;
+    document.body.appendChild(toast);
+
+    setTimeout(() => {
+        toast.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(-10px)';
+        setTimeout(() => toast.remove(), 400);
+    }, 2800);
+}
+
+/**
+ * Batalkan / Stop proses Update Alamat dan bersihkan antrean storage
+ */
+function cancelUpdateAlamatProcess(customMsg = null) {
+    chrome.storage.local.remove(['pendingUpdateAlamatData', 'currentTask', 'waitingForUpdateStep2'], () => {
+        console.log('[TPQ-EMIS Bridge] Antrean Update Alamat dibersihkan dari storage.');
+    });
+    const p1 = document.getElementById('tpq-update-alamat-step1-popup');
+    if (p1) p1.remove();
+    const p2 = document.getElementById('tpq-update-alamat-step2-popup');
+    if (p2) p2.remove();
+
+    const msg = customMsg || 'Proses update data alamat dibatalkan. Antrean telah dibersihkan.';
+    showTemporaryFloatingToast(msg, 'danger');
+}
+
+/**
  * Popup Bantuan Step 1 Update Alamat
  */
 function showUpdateAlamatStep1Popup(data) {
@@ -1761,7 +1819,7 @@ function showUpdateAlamatStep1Popup(data) {
     div.innerHTML = `
         <div id="tpq-update-step1-header" style="background: linear-gradient(135deg, #0d6efd, #0b5ed7); color: #fff; padding: 12px 16px; font-weight: bold; font-size: 14px; display: flex; justify-content: space-between; align-items: center; cursor: move;">
             <span><i class="fas fa-map-marker-alt"></i> ⚡ TPQ Smart: Cari Santri di EMIS</span>
-            <span id="tpq-close-update-step1" style="cursor: pointer; font-size: 18px; line-height: 1; padding: 2px 6px;">&times;</span>
+            <span id="tpq-close-update-step1" style="cursor: pointer; font-size: 18px; line-height: 1; padding: 2px 6px;" title="Tutup dan bersihkan antrean">&times;</span>
         </div>
         <div style="padding: 14px 16px; max-height: 75vh; overflow-y: auto;">
             <div style="background: #e7f1ff; border: 1px solid #b6d4fe; border-radius: 6px; padding: 10px 12px; margin-bottom: 12px;">
@@ -1782,6 +1840,9 @@ function showUpdateAlamatStep1Popup(data) {
             </div>
 
             <div style="display: flex; gap: 8px;">
+                <button id="tpq-btn-cancel-update-step1" style="background: #fff; color: #dc3545; border: 1px solid #dc3545; padding: 9px 12px; border-radius: 5px; font-weight: bold; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;" title="Batalkan proses antrean santri ini agar dapat memilih proses lain">
+                    ⏹ <span>Stop / Batal</span>
+                </button>
                 <button id="tpq-btn-force-step2" style="flex: 1; background: #198754; color: #fff; border: none; padding: 9px 12px; border-radius: 5px; font-weight: bold; font-size: 12px; cursor: pointer;">
                     ⚡ Masuk ke Step 2 (DATA ALAMAT)
                 </button>
@@ -1792,7 +1853,13 @@ function showUpdateAlamatStep1Popup(data) {
     document.body.appendChild(div);
     makeDraggable(div, document.getElementById('tpq-update-step1-header'));
 
-    document.getElementById('tpq-close-update-step1').addEventListener('click', () => div.remove());
+    document.getElementById('tpq-close-update-step1').addEventListener('click', () => {
+        cancelUpdateAlamatProcess('Proses update data ditutup dan antrean telah dibersihkan.');
+    });
+
+    document.getElementById('tpq-btn-cancel-update-step1').addEventListener('click', () => {
+        cancelUpdateAlamatProcess('Proses update data santri dibatalkan. Anda dapat memilih santri lain di TPQ Smart.');
+    });
 
     div.querySelectorAll('.tpq-copy-badge').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -2069,12 +2136,17 @@ function showUpdateAlamatStep2Popup(data) {
                 </tr>` : ''}
             </table>
 
-            <div style="display: flex; gap: 8px; margin-top: 14px;">
-                <button id="tpq-btn-refill-alamat" style="flex: 1; background: #f8f9fa; color: #0d6efd; border: 1px solid #0d6efd; padding: 8px 10px; border-radius: 5px; font-weight: bold; font-size: 12px; cursor: pointer;">
-                    ⚡ Isi Ulang Field Teks
-                </button>
-                <button id="tpq-btn-selesai-alamat" style="flex: 1.5; background: #198754; color: #fff; border: none; padding: 8px 10px; border-radius: 5px; font-weight: bold; font-size: 12px; cursor: pointer;">
-                    ✓ Tandai Selesai di TPQ Smart
+            <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 14px;">
+                <div style="display: flex; gap: 8px;">
+                    <button id="tpq-btn-refill-alamat" style="flex: 1; background: #f8f9fa; color: #0d6efd; border: 1px solid #0d6efd; padding: 8px 10px; border-radius: 5px; font-weight: bold; font-size: 12px; cursor: pointer;">
+                        ⚡ Isi Ulang Field Teks
+                    </button>
+                    <button id="tpq-btn-selesai-alamat" style="flex: 1.5; background: #198754; color: #fff; border: none; padding: 8px 10px; border-radius: 5px; font-weight: bold; font-size: 12px; cursor: pointer;">
+                        ✓ Tandai Selesai di TPQ Smart
+                    </button>
+                </div>
+                <button id="tpq-btn-cancel-update-step2" style="width: 100%; background: #fff5f5; color: #dc3545; border: 1px solid #f5c2c7; padding: 8px 10px; border-radius: 5px; font-weight: bold; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;" title="Batalkan proses update data santri ini agar dapat memilih proses lain">
+                    ⏹ <span>Stop / Batalkan Proses Santri Ini</span>
                 </button>
             </div>
         </div>
@@ -2083,7 +2155,13 @@ function showUpdateAlamatStep2Popup(data) {
     document.body.appendChild(div);
     makeDraggable(div, document.getElementById('tpq-update-step2-header'));
 
-    document.getElementById('tpq-close-update-step2').addEventListener('click', () => div.remove());
+    document.getElementById('tpq-close-update-step2').addEventListener('click', () => {
+        cancelUpdateAlamatProcess('Proses update data alamat ditutup dan antrean dibersihkan.');
+    });
+
+    document.getElementById('tpq-btn-cancel-update-step2').addEventListener('click', () => {
+        cancelUpdateAlamatProcess(`Proses update data untuk ${data.nama_santri || 'santri'} telah dibatalkan.`);
+    });
 
     div.querySelectorAll('.tpq-copy-badge').forEach(btn => {
         btn.addEventListener('click', () => {
