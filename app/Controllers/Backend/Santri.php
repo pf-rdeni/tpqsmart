@@ -1616,7 +1616,7 @@ class Santri extends BaseController
             }
         }
 
-        // 2. Tingkat Kelas Mapping
+        // 2. Tingkat Kelas Mapping (EMIS 4.0: Kelas 1 s.d. 12, Kelompok A, Kelompok B)
         $rawKelas = trim($santri['NamaKelas'] ?? '');
         $tingkatKelas = $rawKelas;
         if (stripos($rawKelas, 'TKQA') !== false || stripos($rawKelas, 'Kelompok A') !== false) {
@@ -1625,6 +1625,8 @@ class Santri extends BaseController
             $tingkatKelas = 'Kelompok B';
         } elseif (stripos($rawKelas, 'TKQ') !== false) {
             $tingkatKelas = 'Kelompok A';
+        } elseif (preg_match('/(?:TPQ|SD|SMP|SMA|KELAS)?\s*(\d+)/i', $rawKelas, $matches)) {
+            $tingkatKelas = 'Kelas ' . $matches[1];
         }
 
         // 3. Nama Santri & Sanitasi untuk Regex EMIS Step 1

@@ -913,8 +913,85 @@ function selectJenisKelaminEmis(targetJk) {
     return false;
 }
 
+/**
+ * Normalisasi nama kelas TPQ Smart ke teks pilihan dropdown Tingkat Kelas EMIS
+ * Contoh: TPQ1/SD1 -> Kelas 1, TKQA -> Kelompok A
+ */
+function normalizeTingkatKelasEmis(rawKelas) {
+    if (!rawKelas) return '';
+    const str = String(rawKelas).trim();
+    const upper = str.toUpperCase();
+
+    if (upper.includes('TKQB') || upper.includes('KELOMPOK B')) {
+        return 'Kelompok B';
+    }
+    if (upper.includes('TKQA') || upper.includes('TKQ') || upper.includes('KELOMPOK A')) {
+        return 'Kelompok A';
+    }
+
+    // Ambil angka dari TPQ1/SD1, Kelas 1, SD 2, dll
+    const numMatch = str.match(/\d+/);
+    if (numMatch) {
+        return 'Kelas ' + numMatch[0];
+    }
+
+    return str;
+}
+
+/**
+ * Mencari dan memilih dropdown Tingkat Kelas di Formulir EMIS Step 2
+ * Kompatibel dengan format opsi EMIS: Kelas 1 s.d. 12 (value 1-12), Kelompok A (value 20), Kelompok B (value 21)
+ */
+function selectTingkatKelasEmis(rawKelas) {
+    const target = normalizeTingkatKelasEmis(rawKelas);
+    if (!target) return false;
+
+    console.log('[TPQ-EMIS Bridge] Mencoba memilih Tingkat Kelas:', target, '(dari asal:', rawKelas, ')');
+
+    const selects = Array.from(document.querySelectorAll('select'));
+    for (const sel of selects) {
+        const options = Array.from(sel.options || sel.querySelectorAll('option'));
+        if (options.length === 0) continue;
+
+        const optionTexts = options.map(o => (o.label || o.text || o.innerText || '').toLowerCase().trim());
+        const optionValues = options.map(o => String(o.value ?? '').trim());
+
+        // Ciri unik dropdown Tingkat Kelas di EMIS:
+        // Memiliki opsi 'kelas 1' dan 'kelompok a', atau memiliki value '20' dan '1'
+        const hasKelas1 = optionTexts.some(t => t.includes('kelas 1')) || optionValues.includes('1');
+        const hasKelompokA = optionTexts.some(t => t.includes('kelompok a')) || optionValues.includes('20');
+
+        let contextText = (sel.name || '') + ' ' + (sel.id || '');
+        let p = sel.parentElement;
+        for (let i = 0; i < 4 && p; i++) {
+            contextText += ' ' + (p.innerText || p.textContent || '');
+            p = p.parentElement;
+        }
+        const contextUpper = contextText.toUpperCase();
+        const hasTingkatLabel = contextUpper.includes('TINGKAT') || contextUpper.includes('KELAS');
+
+        if ((hasKelas1 && hasKelompokA) || (hasKelas1 && hasTingkatLabel)) {
+            console.log('[TPQ-EMIS Bridge] Dropdown Tingkat Kelas ditemukan! Menyetel ke:', target);
+            const success = setNativeSelectValue(sel, target);
+            if (success) {
+                const container = sel.closest('.r-16y2uox') || sel.closest('.r-crgep1') || sel.parentElement;
+                if (container) {
+                    try {
+                        container.style.transition = 'background-color 0.3s ease, border-radius 0.3s ease';
+                        container.style.backgroundColor = '#d1e7dd';
+                        container.style.borderRadius = '6px';
+                    } catch (_) {}
+                }
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
 function fillEmisStep2(data) {
-    console.log('[TPQ-EMIS Bridge] Mengisi Step 2 (NIK, NISN, No HP, Nama Ayah & Ibu, Jenis Kelamin)...', data.nama_santri);
+    console.log('[TPQ-EMIS Bridge] Mengisi Step 2 (NIK, NISN, No HP, Tingkat Kelas, Nama Ayah & Ibu, Jenis Kelamin)...', data.nama_santri);
 
     // Pastikan popup Step 1 tertutup
     const step1Alert = document.getElementById('tpq-step1-alert');
@@ -926,6 +1003,7 @@ function fillEmisStep2(data) {
     let filledNisn = false;
     let filledHp = false;
     let filledJk = false;
+    let filledKelas = false;
     let attempts = 0;
     const maxAttempts = 15; // 3 detik
 
@@ -1002,10 +1080,15 @@ function fillEmisStep2(data) {
             filledJk = selectJenisKelaminEmis(data.jenis_kelamin);
         }
 
-        if ((filledAyah && filledIbu && filledNik && filledNisn && filledHp && filledJk) || attempts >= maxAttempts) {
+        // 6. Pilih Tingkat Kelas secara otomatis
+        if (!filledKelas && (data.tingkat_kelas || data.nama_kelas_asal)) {
+            filledKelas = selectTingkatKelasEmis(data.tingkat_kelas || data.nama_kelas_asal);
+        }
+
+        if ((filledAyah && filledIbu && filledNik && filledNisn && filledHp && filledJk && filledKelas) || attempts >= maxAttempts) {
             clearInterval(timer);
             // Tampilkan Floating Checklist Assistant untuk isian manual Step 2
-            showStep2Assistant(data, filledAyah, filledIbu, filledNik, filledHp, filledJk, filledNisn);
+            showStep2Assistant(data, filledAyah, filledIbu, filledNik, filledHp, filledJk, filledNisn, filledKelas);
         }
     }, 200);
 
@@ -1792,7 +1875,7 @@ function showStep1Assistant(data) {
  * - Bagian Atas: Data yang terisi otomatis / bisa disalin (NIK, HP, Ortu, JK)
  * - Bagian Bawah: 👉 Tugas Anda (Pilihan manual di EMIS: Tanggal Masuk, Tingkat Kelas, Status Ortu)
  */
-function showStep2Assistant(data, filledAyah = false, filledIbu = false, filledNik = false, filledHp = false, filledJk = false, filledNisn = false) {
+function showStep2Assistant(data, filledAyah = false, filledIbu = false, filledNik = false, filledHp = false, filledJk = false, filledNisn = false, filledKelas = false) {
     const alertId = 'tpq-step2-alert';
     const old = document.getElementById(alertId);
     if (old) old.remove();
@@ -1800,6 +1883,12 @@ function showStep2Assistant(data, filledAyah = false, filledIbu = false, filledN
     // Pastikan jenis kelamin terpilih otomatis saat popup tampil
     if (!filledJk && data.jenis_kelamin) {
         filledJk = selectJenisKelaminEmis(data.jenis_kelamin);
+    }
+
+    // Pastikan tingkat kelas terpilih otomatis saat popup tampil jika belum
+    const normalizedKelas = normalizeTingkatKelasEmis(data.tingkat_kelas || data.nama_kelas_asal);
+    if (!filledKelas && normalizedKelas) {
+        filledKelas = selectTingkatKelasEmis(normalizedKelas);
     }
 
     // Pastikan NISN dicentang / diisi saat popup tampil
@@ -1932,6 +2021,15 @@ function showStep2Assistant(data, filledAyah = false, filledIbu = false, filledN
                 <div>${hpDisplay}</div>
             </div>
 
+            <!-- Tingkat Kelas (Otomatis Dipilih) -->
+            <div class="tpq-data-row">
+                <span>• <strong>Tingkat Kelas:</strong></span>
+                <div>
+                    <span style="font-weight: 600; color: #fff;">${normalizedKelas || data.tingkat_kelas || '-'}</span>
+                    <span style="font-size: 10.5px; background: #198754; color: white; padding: 1px 6px; border-radius: 3px; margin-left: 6px;">Dipilih ✓</span>
+                </div>
+            </div>
+
             <!-- Ayah Kandung -->
             <div class="tpq-data-row">
                 <span>• <strong>Ayah:</strong></span>
@@ -1975,15 +2073,9 @@ function showStep2Assistant(data, filledAyah = false, filledIbu = false, filledN
                 </div>
             </div>
 
-            <!-- 2. Tingkat Kelas -->
-            <div class="tpq-manual-row">
-                <span>2. <strong>Tingkat Kelas:</strong></span>
-                <strong style="color: #ffc107; font-size: 13.5px;">${data.tingkat_kelas || '-'}</strong>
-            </div>
-
-            <!-- 3. Status Ortu & Wali -->
+            <!-- 2. Status Ortu & Wali -->
             <div class="tpq-manual-row" style="margin-bottom: 0; border-bottom: none; padding-bottom: 0;">
-                <span>3. <strong>Status Ortu:</strong></span>
+                <span>2. <strong>Status Ortu:</strong></span>
                 <span style="color: #fff; font-size: 12px;">Masih Hidup | Wali: Ayah</span>
             </div>
         </div>
