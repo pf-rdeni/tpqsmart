@@ -425,10 +425,7 @@
 
     // Inisialisasi Halaman
     $(document).ready(function() {
-        // 1. Sinkronkan status lokal dari localStorage ke DOM sebelum DataTable diinisialisasi
-        loadSemuaStatusDariStorage();
-
-        // 2. Init DataTable
+        // 1. Init DataTable
         dataTableSantri = $('#tblSantriEmis').DataTable({
             "responsive": true,
             "lengthChange": true,
