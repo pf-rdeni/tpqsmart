@@ -186,6 +186,11 @@ $routes->get('backend/santri/getRiwayatSantriAbsensiAjax/(:segment)', 'Backend\S
 $routes->post('backend/santri/checkNormalisasiNilai', 'Backend\Santri::checkNormalisasiNilai');
 $routes->post('backend/santri/normalisasiNilai', 'Backend\Santri::normalisasiNilai');
 
+// EMIS 4.0 Auto-Fill API & Transfer Routes
+$routes->get('backend/santri/showSantriEmis', 'Backend\Santri::showSantriEmis');
+$routes->get('backend/santri/getSantriEmisJson/(:segment)', 'Backend\Santri::getSantriEmisJson/$1');
+$routes->match(['get', 'post'], 'backend/santri/getListSantriEmisAjax', 'Backend\Santri::getListSantriEmisAjax');
+
 //Tabel Materi
 $routes->get('materipelajaran', 'MateriPelajaran::index');
 $routes->get('materipelajaran/create', 'MateriPelajaran::create');

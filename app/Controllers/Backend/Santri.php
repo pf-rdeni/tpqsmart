@@ -1569,9 +1569,176 @@ class Santri extends BaseController
         $data = [
             'page_title' => 'Data Santri Update Emis',
             'dataSantri' => $santri,
-            'dataTpq' => $tpq
+            'dataTpq' => $tpq,
+            'dataKelas' => $this->helpFunction->getDataKelas()
         ];
         return view('backend/santri/dataSantriEmis', $data);
+    }
+
+    /**
+     * Mendapatkan data santri yang diformat khusus untuk form EMIS 4.0
+     * Endpoint API JSON untuk extension browser dan panel clipboard
+     */
+    public function getSantriEmisJson($IdSantri = null)
+    {
+        if (empty($IdSantri)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'ID Santri tidak diberikan'
+            ])->setStatusCode(400);
+        }
+
+        $santri = $this->DataSantriBaru->getSantriForEmis($IdSantri);
+        if (!$santri) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Data santri tidak ditemukan'
+            ])->setStatusCode(404);
+        }
+
+        // 1. Tanggal Masuk (Default ke created_at atau hari ini jika kosong)
+        $tanggalMasuk = !empty($santri['created_at']) 
+            ? date('Y-m-d', strtotime($santri['created_at'])) 
+            : date('Y-m-d');
+
+        // 2. Tingkat Kelas Mapping
+        $rawKelas = trim($santri['NamaKelas'] ?? '');
+        $tingkatKelas = $rawKelas;
+        if (stripos($rawKelas, 'TKQA') !== false || stripos($rawKelas, 'Kelompok A') !== false) {
+            $tingkatKelas = 'Kelompok A';
+        } elseif (stripos($rawKelas, 'TKQB') !== false || stripos($rawKelas, 'Kelompok B') !== false) {
+            $tingkatKelas = 'Kelompok B';
+        } elseif (stripos($rawKelas, 'TKQ') !== false) {
+            $tingkatKelas = 'Kelompok A';
+        }
+
+        // 3. Nama Santri & Sanitasi untuk Regex EMIS Step 1
+        $namaSantri = ucwords(strtolower(trim($santri['NamaSantri'] ?? '')));
+        $namaSantriClean = trim(preg_replace('/[^a-zA-Z\s\-\'\,\.]/', '', $namaSantri));
+
+        // 4. NIK
+        $nikSantri = trim($santri['NikSantri'] ?? '');
+        $belumPunyaNik = empty($nikSantri) || strlen($nikSantri) < 16;
+
+        // 5. NISN
+        $nisn = trim($santri['NISN'] ?? '');
+        $belumPunyaNisn = empty($nisn);
+
+        // 6. Jenis Kelamin (Laki-laki / Perempuan)
+        $jkRaw = strtoupper(trim($santri['JenisKelamin'] ?? ''));
+        if ($jkRaw === 'PEREMPUAN' || $jkRaw === 'P') {
+            $jenisKelamin = 'Perempuan';
+        } else {
+            $jenisKelamin = 'Laki-laki';
+        }
+
+        // 7. Tempat & Tanggal Lahir
+        $tempatLahir = ucwords(strtolower(trim($santri['TempatLahirSantri'] ?? '')));
+        $tempatLahirClean = trim(preg_replace('/[^a-zA-Z0-9\s\-\'\,\.]/', '', $tempatLahir));
+        $tanggalLahir = !empty($santri['TanggalLahirSantri']) && $santri['TanggalLahirSantri'] !== '0000-00-00'
+            ? date('Y-m-d', strtotime($santri['TanggalLahirSantri']))
+            : '';
+
+        // 8. No HP
+        $noHp = trim($santri['NoHpSantri'] ?? '');
+        if (empty($noHp)) {
+            $noHp = trim($santri['NoHpAyah'] ?? $santri['NoHpIbu'] ?? '');
+        }
+        $tidakPunyaHp = empty($noHp);
+
+        // 9. Nama & Status Ayah
+        $namaAyah = ucwords(strtolower(trim($santri['NamaAyah'] ?? '')));
+        $statusAyah = !empty($santri['StatusAyah']) ? trim($santri['StatusAyah']) : 'Masih Hidup';
+
+        // 10. Nama & Status Ibu
+        $namaIbu = ucwords(strtolower(trim($santri['NamaIbu'] ?? '')));
+        $statusIbu = !empty($santri['StatusIbu']) ? trim($santri['StatusIbu']) : 'Masih Hidup';
+
+        // 11. Status Wali
+        $rawStatusWali = trim($santri['StatusWali'] ?? '');
+        $statusWali = 'Sama dengan ayah kandung'; // default EMIS
+        if (stripos($rawStatusWali, 'ibu') !== false) {
+            $statusWali = 'Sama dengan ibu kandung';
+        } elseif (stripos($rawStatusWali, 'wali') !== false || stripos($rawStatusWali, 'lain') !== false) {
+            $statusWali = 'Lainnya';
+        }
+
+        $formatted = [
+            'id_santri'           => $santri['IdSantri'],
+            'tanggal_masuk'       => $tanggalMasuk,
+            'tingkat_kelas'       => $tingkatKelas,
+            'nama_kelas_asal'     => $rawKelas,
+            'nama_santri'         => $namaSantri,
+            'nama_santri_clean'   => $namaSantriClean,
+            'kewarganegaraan'     => 'WNI',
+            'nik'                 => $nikSantri,
+            'belum_punya_nik'     => $belumPunyaNik,
+            'nisn'                => $nisn,
+            'belum_punya_nisn'    => $belumPunyaNisn,
+            'jenis_kelamin'       => $jenisKelamin,
+            'tempat_lahir'        => $tempatLahir,
+            'tempat_lahir_clean'  => $tempatLahirClean,
+            'tanggal_lahir'       => $tanggalLahir,
+            'agama'               => 'Islam',
+            'tidak_punya_hp'      => $tidakPunyaHp,
+            'no_hp'               => $noHp,
+            'nama_ayah'           => $namaAyah,
+            'status_ayah'         => $statusAyah,
+            'nama_ibu'            => $namaIbu,
+            'status_ibu'          => $statusIbu,
+            'status_wali'         => $statusWali,
+            // Alamat jika dibutuhkan
+            'alamat'              => trim($santri['AlamatSantri'] ?? ''),
+            'rt'                  => trim($santri['RtSantri'] ?? ''),
+            'rw'                  => trim($santri['RwSantri'] ?? ''),
+            'kelurahan_desa'      => trim($santri['KelurahanDesaSantri'] ?? ''),
+            'kecamatan'           => trim($santri['KecamatanSantri'] ?? ''),
+            'kabupaten_kota'      => trim($santri['KabupatenKotaSantri'] ?? ''),
+            'provinsi'            => trim($santri['ProvinsiSantri'] ?? ''),
+            'kode_pos'            => trim($santri['KodePosSantri'] ?? ''),
+        ];
+
+        return $this->response
+            ->setHeader('Access-Control-Allow-Origin', '*')
+            ->setHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, Accept')
+            ->setJSON([
+                'success' => true,
+                'data'    => $formatted,
+                'raw'     => $santri
+            ]);
+    }
+
+    /**
+     * AJAX endpoint untuk mendapatkan list santri terfilter untuk halaman EMIS
+     */
+    public function getListSantriEmisAjax()
+    {
+        $IdTpq = $this->request->getGetPost('IdTpq') ?: session()->get('IdTpq');
+        $IdKelas = $this->request->getGetPost('IdKelas');
+
+        $santri = $this->DataSantriBaru->getListSantriEmis($IdTpq, $IdKelas ?: null);
+
+        // Konversi nama kelas menjadi MDA jika sesuai dengan mapping
+        if (!empty($santri) && !empty($IdTpq)) {
+            foreach ($santri as $key => $santriItem) {
+                if (isset($santriItem['NamaKelas']) && !empty($santriItem['NamaKelas'])) {
+                    $namaKelasOriginal = $santriItem['NamaKelas'];
+                    $mdaCheckResult = $this->helpFunction->checkMdaKelasMapping($IdTpq, $namaKelasOriginal);
+                    $santri[$key]['NamaKelas'] = $this->helpFunction->convertKelasToMda(
+                        $namaKelasOriginal,
+                        $mdaCheckResult['mappedMdaKelas']
+                    );
+                }
+            }
+        }
+
+        return $this->response
+            ->setHeader('Access-Control-Allow-Origin', '*')
+            ->setJSON([
+                'success' => true,
+                'total'   => count($santri),
+                'data'    => $santri
+            ]);
     }
 
     public function viewDetailSantriBaru($IdSantri = null)

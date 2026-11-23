@@ -1,0 +1,51 @@
+{
+  "manifest_version": 3,
+  "name": "TPQ Smart - EMIS 4.0 Bridge",
+  "version": "1.0.0",
+  "description": "Ekstensi semi-otomatis pengisian formulir data santri baru dari TPQ Smart ke EMIS 4.0 Kemenag.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "permissions": [
+    "storage",
+    "tabs"
+  ],
+  "host_permissions": [
+    "*://emis.kemenag.go.id/*",
+    "http://localhost/*",
+    "http://127.0.0.1/*",
+    "https://tpqsmart.simpedis.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "http://localhost/*",
+        "http://127.0.0.1/*",
+        "https://tpqsmart.simpedis.com/*"
+      ],
+      "js": ["content-tpq.js"],
+      "run_at": "document_end"
+    },
+    {
+      "matches": [
+        "*://emis.kemenag.go.id/*"
+      ],
+      "js": ["content-emis.js"],
+      "run_at": "document_end",
+      "all_frames": true
+    }
+  ]
+}

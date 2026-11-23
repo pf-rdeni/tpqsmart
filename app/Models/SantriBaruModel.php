@@ -815,27 +815,91 @@ class SantriBaruModel extends Model
     }
 
     /**
-     * Mendapatkan list santri untuk EMIS dengan filter TPQ
+     * Mendapatkan list santri untuk EMIS dengan filter TPQ dan Kelas
      * @param mixed $IdTpq ID TPQ (null untuk semua TPQ)
+     * @param mixed $IdKelas ID Kelas (null untuk semua kelas)
      * @return array
      */
-    public function getListSantriEmis($IdTpq = null)
+    public function getListSantriEmis($IdTpq = null, $IdKelas = null)
     {
+        $IdTahunAjaran = session()->get('IdTahunAjaran');
         $builder = $this->db->table('tbl_santri_baru');
-        $builder->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq, tbl_tpq.KelurahanDesa')
-            ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas')
-            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq');
 
-        if ($IdTpq == null) {
-            $builder->orderBy('tbl_santri_baru.Status', 'DESC')
-                ->orderBy('tbl_santri_baru.updated_at', 'DESC');
+        if (!empty($IdTahunAjaran)) {
+            $builder->select('
+                tbl_santri_baru.*, 
+                COALESCE(ks.IdKelas, tbl_santri_baru.IdKelas) as IdKelas, 
+                COALESCE(tbl_kelas.NamaKelas, k_pendaftaran.NamaKelas) as NamaKelas, 
+                tbl_tpq.NamaTpq, 
+                tbl_tpq.KelurahanDesa
+            ')
+            ->join('tbl_kelas_santri ks', 'ks.IdSantri = tbl_santri_baru.IdSantri AND ks.IdTahunAjaran = "' . $IdTahunAjaran . '"', 'left')
+            ->join('tbl_kelas', 'tbl_kelas.IdKelas = ks.IdKelas', 'left')
+            ->join('tbl_kelas k_pendaftaran', 'k_pendaftaran.IdKelas = tbl_santri_baru.IdKelas', 'left')
+            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq', 'left');
+
+            if (!empty($IdKelas)) {
+                if (is_array($IdKelas)) {
+                    $builder->whereIn('COALESCE(ks.IdKelas, tbl_santri_baru.IdKelas)', $IdKelas);
+                } else {
+                    $builder->where('COALESCE(ks.IdKelas, tbl_santri_baru.IdKelas)', $IdKelas);
+                }
+            }
         } else {
-            $builder->where('tbl_santri_baru.IdTpq', $IdTpq)
-                ->orderBy('tbl_santri_baru.Status', 'DESC')
-                ->orderBy('tbl_santri_baru.updated_at', 'DESC');
+            $builder->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq, tbl_tpq.KelurahanDesa')
+                ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas', 'left')
+                ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq', 'left');
+
+            if (!empty($IdKelas)) {
+                if (is_array($IdKelas)) {
+                    $builder->whereIn('tbl_santri_baru.IdKelas', $IdKelas);
+                } else {
+                    $builder->where('tbl_santri_baru.IdKelas', $IdKelas);
+                }
+            }
         }
 
+        if ($IdTpq != null) {
+            $builder->where('tbl_santri_baru.IdTpq', $IdTpq);
+        }
+
+        $builder->orderBy('tbl_santri_baru.Status', 'DESC')
+            ->orderBy('tbl_santri_baru.updated_at', 'DESC');
+
         return $builder->get()->getResultArray();
+    }
+
+    /**
+     * Mendapatkan detail 1 santri untuk keperluan sinkronisasi / transfer EMIS 4.0
+     * @param string $IdSantri
+     * @return array|null
+     */
+    public function getSantriForEmis($IdSantri)
+    {
+        $IdTahunAjaran = session()->get('IdTahunAjaran');
+        $builder = $this->db->table('tbl_santri_baru');
+
+        if (!empty($IdTahunAjaran)) {
+            $builder->select('
+                tbl_santri_baru.*, 
+                COALESCE(ks.IdKelas, tbl_santri_baru.IdKelas) as IdKelas, 
+                COALESCE(tbl_kelas.NamaKelas, k_pendaftaran.NamaKelas) as NamaKelas, 
+                tbl_tpq.NamaTpq, 
+                tbl_tpq.KelurahanDesa
+            ')
+            ->join('tbl_kelas_santri ks', 'ks.IdSantri = tbl_santri_baru.IdSantri AND ks.IdTahunAjaran = "' . $IdTahunAjaran . '"', 'left')
+            ->join('tbl_kelas', 'tbl_kelas.IdKelas = ks.IdKelas', 'left')
+            ->join('tbl_kelas k_pendaftaran', 'k_pendaftaran.IdKelas = tbl_santri_baru.IdKelas', 'left')
+            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq', 'left')
+            ->where('tbl_santri_baru.IdSantri', $IdSantri);
+        } else {
+            $builder->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq, tbl_tpq.KelurahanDesa')
+                ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas', 'left')
+                ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq', 'left')
+                ->where('tbl_santri_baru.IdSantri', $IdSantri);
+        }
+
+        return $builder->get()->getRowArray() ?: null;
     }
 
     /**
