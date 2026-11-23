@@ -43,7 +43,7 @@ document.addEventListener('click', (e) => {
 }, true);
 
 // Cek antrean data santri saat halaman pertama kali dibuka / direload
-chrome.storage.local.get(['pendingSantriData', 'waitingForStep2', 'pendingUpdateAlamatData', 'currentTask', 'waitingForUpdateStep2'], (result) => {
+chrome.storage.local.get(['pendingSantriData', 'waitingForStep2', 'pendingUpdateAlamatData', 'currentTask', 'waitingForUpdateStep2', 'waitingForUpdateStep3'], (result) => {
     if (result && result.currentTask === 'UPDATE_ALAMAT' && result.pendingUpdateAlamatData) {
         console.log('[TPQ-EMIS Bridge] Antrean UPDATE ALAMAT terdeteksi:', result.pendingUpdateAlamatData.nama_santri);
         initUpdateAlamatProcess(result.pendingUpdateAlamatData);
@@ -141,15 +141,24 @@ function detectCurrentEmisStep() {
  */
 function initStepTransitionWatcher() {
     setInterval(() => {
-        chrome.storage.local.get(['pendingSantriData', 'waitingForStep2', 'pendingUpdateAlamatData', 'currentTask', 'waitingForUpdateStep2'], (res) => {
+        chrome.storage.local.get(['pendingSantriData', 'waitingForStep2', 'pendingUpdateAlamatData', 'currentTask', 'waitingForUpdateStep2', 'waitingForUpdateStep3'], (res) => {
             if (res && res.currentTask === 'UPDATE_ALAMAT' && res.pendingUpdateAlamatData) {
                 const stage = detectUpdateAlamatStage();
+                // Transisi dari Step 1 ke Step 2 (Tab DATA SANTRI)
                 if (stage === 2 && res.waitingForUpdateStep2) {
-                    console.log('[TPQ-EMIS Bridge] Transisi otomatis ke Update Alamat Step 2 terdeteksi!');
+                    console.log('[TPQ-EMIS Bridge] Transisi otomatis ke Update Data Step 2 (DATA SANTRI) terdeteksi!');
                     const oldP1 = document.getElementById('tpq-update-alamat-step1-popup');
                     if (oldP1) oldP1.remove();
-                    executeStep2UpdateAlamat(res.pendingUpdateAlamatData);
-                    chrome.storage.local.remove(['waitingForUpdateStep2']);
+                    executeStep2DataSantri(res.pendingUpdateAlamatData);
+                    chrome.storage.local.set({ waitingForUpdateStep2: false, waitingForUpdateStep3: true });
+                }
+                // Transisi dari Step 2 ke Step 3 (Tab DATA ALAMAT)
+                else if (stage === 3 && res.waitingForUpdateStep3) {
+                    console.log('[TPQ-EMIS Bridge] Transisi otomatis ke Update Data Step 3 (DATA ALAMAT) terdeteksi!');
+                    const oldP2 = document.getElementById('tpq-update-santri-step2-popup');
+                    if (oldP2) oldP2.remove();
+                    executeStep3DataAlamat(res.pendingUpdateAlamatData);
+                    chrome.storage.local.remove(['waitingForUpdateStep3']);
                 }
             } else if (res && res.pendingSantriData) {
                 const step = detectCurrentEmisStep();
@@ -768,6 +777,11 @@ function fillEmisStep2(data) {
 function setNativeValue(element, value) {
     if (!element) return false;
 
+    // Jika elemen adalah <select>, alihkan ke setNativeSelectValue
+    if (element.tagName === 'SELECT') {
+        return setNativeSelectValue(element, value);
+    }
+
     try {
         const val = String(value ?? '').trim();
         if (!val) return false;
@@ -817,6 +831,92 @@ function setNativeValue(element, value) {
     } catch (e) {
         console.error('[TPQ-EMIS Bridge] Gagal set value:', e);
         try { element.value = value; } catch (_) {}
+        return false;
+    }
+}
+
+/**
+ * Helper khusus memilih opsi pada elemen <select> (kompatibel React Native for Web / React Synthetic Events)
+ */
+function setNativeSelectValue(selectElement, targetValueOrText) {
+    if (!selectElement || targetValueOrText === undefined || targetValueOrText === null) return false;
+
+    try {
+        const target = String(targetValueOrText).trim().toLowerCase();
+        if (!target) return false;
+
+        const options = Array.from(selectElement.options || selectElement.querySelectorAll('option'));
+        if (options.length === 0) return false;
+
+        // 1. Cari opsi exact match berdasarkan value atau label/text
+        let matchedOption = options.find(opt => {
+            const val = String(opt.value ?? '').trim().toLowerCase();
+            const lbl = String(opt.label || opt.text || opt.innerText || '').trim().toLowerCase();
+            return (val && val === target) || (lbl && lbl === target);
+        });
+
+        // 2. Jika tidak ada exact match, coba partial / substring match
+        if (!matchedOption) {
+            matchedOption = options.find(opt => {
+                const lbl = String(opt.label || opt.text || opt.innerText || '').trim().toLowerCase();
+                return lbl && (lbl.includes(target) || target.includes(lbl));
+            });
+        }
+
+        if (!matchedOption) {
+            console.warn('[TPQ-EMIS Bridge] Opsi tidak ditemukan pada <select> untuk nilai:', targetValueOrText);
+            return false;
+        }
+
+        const valToSet = matchedOption.value;
+        const lastValue = selectElement.value;
+
+        // Tandai option yang dipilih
+        options.forEach(opt => {
+            opt.selected = (opt === matchedOption);
+        });
+
+        // Bypass React overridden setter dengan prototype HTMLSelectElement asli
+        const proto = window.HTMLSelectElement ? window.HTMLSelectElement.prototype : Object.getPrototypeOf(selectElement);
+        const nativeSetter = Object.getOwnPropertyDescriptor(proto, 'value')?.set;
+        if (nativeSetter) {
+            nativeSetter.call(selectElement, valToSet);
+        } else {
+            selectElement.value = valToSet;
+        }
+
+        // Kunci sinkronisasi state React: update _valueTracker jika ada
+        if (selectElement._valueTracker) {
+            selectElement._valueTracker.setValue(lastValue);
+        }
+
+        // Trigger input & change events dengan bubbles: true
+        selectElement.dispatchEvent(new Event('input', { bubbles: true }));
+        selectElement.dispatchEvent(new Event('change', { bubbles: true }));
+
+        // Highlight visual hijau
+        try {
+            selectElement.style.transition = 'background-color 0.3s ease, border-color 0.3s ease';
+            selectElement.style.backgroundColor = '#d1e7dd';
+            selectElement.style.borderColor = '#198754';
+            if (selectElement.parentElement) {
+                selectElement.parentElement.style.borderColor = '#198754';
+            }
+            setTimeout(() => {
+                try {
+                    selectElement.style.backgroundColor = '';
+                    selectElement.style.borderColor = '';
+                    if (selectElement.parentElement) {
+                        selectElement.parentElement.style.borderColor = '';
+                    }
+                } catch (_) {}
+            }, 3000);
+        } catch (_) {}
+
+        console.log(`[TPQ-EMIS Bridge] Berhasil set select: "${matchedOption.label || matchedOption.text}" (value: ${valToSet})`);
+        return true;
+    } catch (e) {
+        console.error('[TPQ-EMIS Bridge] Gagal set select value:', e);
         return false;
     }
 }
@@ -1686,17 +1786,24 @@ function escapeHtml(str) {
 }
 
 /**
- * Deteksi apakah halaman berada pada Step 1 (Pencarian Kesiswaan) atau Step 2 (Formulir Tab DATA ALAMAT)
+ * Deteksi apakah halaman berada pada Step 1 (Pencarian Kesiswaan), Step 2 (Tab DATA SANTRI), atau Step 3 (Tab DATA ALAMAT)
  */
 function detectUpdateAlamatStage() {
     const textContent = (document.body.innerText || document.body.textContent || '').toUpperCase();
     const currentUrl = window.location.href.toLowerCase();
 
-    // Ciri Step 2 (Formulir Detail Santri / Tab DATA ALAMAT):
-    const hasDataAlamatText = textContent.includes('DATA ALAMAT') || textContent.includes('TEMPAT TINGGAL DOMISILI') || textContent.includes('STATUS KEPEMILIKAN RUMAH');
-    const hasDetailUrl = currentUrl.includes('/detail') || currentUrl.includes('/edit') || currentUrl.includes('/kesiswaan/');
+    // Ciri Step 3: Tab DATA ALAMAT aktif (ada teks TEMPAT TINGGAL DOMISILI atau STATUS KEPEMILIKAN RUMAH)
+    const hasDataAlamatText = textContent.includes('TEMPAT TINGGAL DOMISILI') || textContent.includes('STATUS KEPEMILIKAN RUMAH');
+    if (hasDataAlamatText) {
+        return 3;
+    }
 
-    if (hasDataAlamatText || (hasDetailUrl && (textContent.includes('DATA SANTRI') || textContent.includes('DATA ORANG TUA')))) {
+    // Ciri Step 2: Halaman Detail Santri (Tab DATA SANTRI aktif / pertama kali masuk detail)
+    const hasTabs = textContent.includes('DATA SANTRI') && (textContent.includes('DATA ORANG TUA') || textContent.includes('DATA ALAMAT'));
+    const hasDetailUrl = currentUrl.includes('/detail') || currentUrl.includes('/edit') || currentUrl.includes('/kesiswaan/');
+    const hasDetailHeader = textContent.includes('DETAIL SANTRI') || textContent.includes('YANG MEMBIAYAI SEKOLAH');
+
+    if (hasTabs || hasDetailHeader || (hasDetailUrl && textContent.includes('DATA SANTRI'))) {
         return 2;
     }
 
@@ -1705,17 +1812,19 @@ function detectUpdateAlamatStage() {
 }
 
 /**
- * Inisialisasi alur kerja Update Alamat
+ * Inisialisasi alur kerja Update Data Santri (3 Step)
  */
 function initUpdateAlamatProcess(santriData) {
     if (!santriData) return;
     const stage = detectUpdateAlamatStage();
-    console.log('[TPQ-EMIS Bridge] Menjalankan Update Alamat: Tahap', stage, 'untuk:', santriData.nama_santri);
+    console.log('[TPQ-EMIS Bridge] Menjalankan Update Data Santri: Tahap', stage, 'untuk:', santriData.nama_santri);
 
     if (stage === 1) {
         executeStep1UpdateAlamat(santriData);
-    } else {
-        executeStep2UpdateAlamat(santriData);
+    } else if (stage === 2) {
+        executeStep2DataSantri(santriData);
+    } else if (stage === 3) {
+        executeStep3DataAlamat(santriData);
     }
 }
 
@@ -1819,18 +1928,24 @@ function showTemporaryFloatingToast(message, type = 'danger') {
 }
 
 /**
- * Batalkan / Stop proses Update Alamat dan bersihkan antrean storage
+ * Batalkan / Stop proses Update Data dan bersihkan antrean storage
  */
 function cancelUpdateAlamatProcess(customMsg = null) {
-    chrome.storage.local.remove(['pendingUpdateAlamatData', 'currentTask', 'waitingForUpdateStep2'], () => {
-        console.log('[TPQ-EMIS Bridge] Antrean Update Alamat dibersihkan dari storage.');
+    isStep2Executing = false;
+    isStep2Done = false;
+    isStep3Executing = false;
+    isStep3Done = false;
+    chrome.storage.local.remove(['pendingUpdateAlamatData', 'currentTask', 'waitingForUpdateStep2', 'waitingForUpdateStep3'], () => {
+        console.log('[TPQ-EMIS Bridge] Antrean Update Data dibersihkan dari storage.');
     });
     const p1 = document.getElementById('tpq-update-alamat-step1-popup');
     if (p1) p1.remove();
-    const p2 = document.getElementById('tpq-update-alamat-step2-popup');
+    const p2 = document.getElementById('tpq-update-santri-step2-popup');
     if (p2) p2.remove();
+    const p3 = document.getElementById('tpq-update-alamat-step3-popup') || document.getElementById('tpq-update-alamat-step2-popup');
+    if (p3) p3.remove();
 
-    const msg = customMsg || 'Proses update data alamat dibatalkan. Antrean telah dibersihkan.';
+    const msg = customMsg || 'Proses update data santri dibatalkan. Antrean telah dibersihkan.';
     showTemporaryFloatingToast(msg, 'danger');
 }
 
@@ -1862,7 +1977,7 @@ function showUpdateAlamatStep1Popup(data) {
 
     div.innerHTML = `
         <div id="tpq-update-step1-header" style="background: linear-gradient(135deg, #0d6efd, #0b5ed7); color: #fff; padding: 12px 16px; font-weight: bold; font-size: 14px; display: flex; justify-content: space-between; align-items: center; cursor: move;">
-            <span><i class="fas fa-map-marker-alt"></i> ⚡ TPQ Smart: Cari Santri di EMIS</span>
+            <span><i class="fas fa-map-marker-alt"></i> ⚡ TPQ Smart: Cari Santri di EMIS (Step 1/3)</span>
             <span id="tpq-close-update-step1" style="cursor: pointer; font-size: 18px; line-height: 1; padding: 2px 6px;" title="Tutup dan bersihkan antrean">&times;</span>
         </div>
         <div style="padding: 14px 16px; max-height: 75vh; overflow-y: auto;">
@@ -1880,7 +1995,7 @@ function showUpdateAlamatStep1Popup(data) {
                 <strong><i class="fas fa-info-circle"></i> Petunjuk Langkah 1:</strong><br>
                 1. Nama lengkap santri telah diisikan otomatis ke kolom <strong>Cari Nama / NISN</strong>.<br>
                 2. Tekan <strong>Enter</strong> pada kolom cari jika daftar belum memuat.<br>
-                3. Klik tombol hijau <strong>[Ubah Data]</strong> pada baris santri untuk masuk ke detail alamat.
+                3. Klik tombol hijau <strong>[Ubah Data]</strong> pada baris santri untuk masuk ke Tab DATA SANTRI.
             </div>
 
             <div style="display: flex; gap: 8px;">
@@ -1888,7 +2003,7 @@ function showUpdateAlamatStep1Popup(data) {
                     ⏹ <span>Stop / Batal</span>
                 </button>
                 <button id="tpq-btn-force-step2" style="flex: 1; background: #198754; color: #fff; border: none; padding: 9px 12px; border-radius: 5px; font-weight: bold; font-size: 12px; cursor: pointer;">
-                    ⚡ Masuk ke Step 2 (DATA ALAMAT)
+                    ⚡ Masuk ke Step 2 (DATA SANTRI)
                 </button>
             </div>
         </div>
@@ -1919,14 +2034,19 @@ function showUpdateAlamatStep1Popup(data) {
 
     document.getElementById('tpq-btn-force-step2').addEventListener('click', () => {
         div.remove();
-        executeStep2UpdateAlamat(data);
+        executeStep2DataSantri(data);
     });
 }
 
 /**
- * Memastikan tab DATA ALAMAT aktif
+ * Memastikan tab DATA ALAMAT aktif (hanya mengklik jika tab belum aktif)
  */
 function ensureDataAlamatTabActive() {
+    // Jika tab DATA ALAMAT sudah aktif (form alamat sudah tampil di layar), JANGAN klik lagi agar tidak me-reset form
+    if (detectUpdateAlamatStage() === 3) {
+        return true;
+    }
+
     const tabs = Array.from(document.querySelectorAll('a, button, [role="tab"], li, span, div'));
     for (const t of tabs) {
         const txt = (t.innerText || t.textContent || '').trim().toUpperCase();
@@ -1959,6 +2079,9 @@ function fillUpdateAlamatTextFields(santri) {
             p = p.parentElement;
         }
         labelText = labelText.toUpperCase();
+
+        // Jangan isi otomatis field Koordinat (diisi manual oleh user jika diperlukan)
+        if (labelText.includes('KOORDINAT')) return;
 
         if (!filledRt && labelText.includes('RT') && !labelText.includes('ALAMAT') && !labelText.includes('RUKUN') && !labelText.includes('KOTA')) {
             if (santri.ayah_rt) {
@@ -2001,42 +2124,255 @@ function fillUpdateAlamatTextFields(santri) {
             }
         }
     });
+
+    // Auto-select dropdown khusus di tab DATA ALAMAT (Hanya 3 dropdown yang diizinkan otomatis: Status Kepemilikan Rumah, Status Mukim, Status Tempat Tinggal)
+    const selects = Array.from(document.querySelectorAll('select'));
+    if (selects.length > 0) {
+        console.log(`[TPQ-EMIS Bridge] Menemukan ${selects.length} elemen <select> di tab DATA ALAMAT, menyetel pilihan otomatis (Status Rumah, Mukim, Tempat Tinggal)...`);
+
+        selects.forEach(sel => {
+            const options = Array.from(sel.options || sel.querySelectorAll('option'));
+            const optionTexts = options.map(o => (o.label || o.text || o.innerText || '').toLowerCase());
+            const optionValues = options.map(o => String(o.value || '').trim());
+
+            let contextText = (sel.name || '') + ' ' + (sel.id || '');
+            let p = sel.parentElement;
+            for (let i = 0; i < 5 && p; i++) {
+                contextText += ' ' + (p.innerText || p.textContent || '');
+                p = p.parentElement;
+            }
+            contextText = contextText.toUpperCase();
+
+            // 1. Status Kepemilikan Rumah (Ayah)
+            // Ciri: memiliki opsi value '9' atau 'Milik Sendiri', atau teks label KEPEMILIKAN RUMAH
+            if (optionValues.includes('9') || optionTexts.some(t => t.includes('milik sendiri')) || contextText.includes('KEPEMILIKAN RUMAH')) {
+                const target = santri.ayah_status_kepemilikan_rumah || 'Milik Sendiri';
+                console.log('[TPQ-EMIS Bridge] Menyetel Status Kepemilikan Rumah:', target);
+                setNativeSelectValue(sel, target);
+            }
+
+            // 2. Status Mukim (Santri)
+            // Ciri: memiliki opsi 'tidak mukim' dan 'mukim', atau teks label STATUS MUKIM
+            else if ((optionTexts.includes('tidak mukim') && optionTexts.includes('mukim')) || (contextText.includes('MUKIM') && !contextText.includes('TEMPAT TINGGAL'))) {
+                const target = santri.santri_status_mukim || 'Tidak Mukim';
+                console.log('[TPQ-EMIS Bridge] Menyetel Status Mukim:', target);
+                setNativeSelectValue(sel, target);
+            }
+
+            // 3. Status Tempat Tinggal (Santri)
+            // Ciri: memiliki opsi value '18' atau 'tinggal dengan ayah', atau teks label STATUS TEMPAT TINGGAL
+            else if (optionValues.includes('18') || optionTexts.some(t => t.includes('tinggal dengan ayah')) || (contextText.includes('STATUS TEMPAT TINGGAL') && !contextText.includes('WALI'))) {
+                const target = santri.santri_status_tempat_tinggal || 'Tinggal dengan Ayah Kandung';
+                console.log('[TPQ-EMIS Bridge] Menyetel Status Tempat Tinggal Santri:', target);
+                setNativeSelectValue(sel, target);
+            }
+
+            // Catatan: Jarak Tempuh, Transportasi, dan Waktu Tempuh sengaja TIDAK diotomatiskan (manual via panduan popup)
+        });
+    }
 }
 
 /**
- * Eksekusi Step 2: Tab DATA ALAMAT
+ * Mencari dan mengisi dropdown "Yang Membiayai Sekolah" di tab DATA SANTRI
  */
-function executeStep2UpdateAlamat(santriData) {
-    console.log('[TPQ-EMIS Bridge] Menjalankan Step 2 Update Alamat untuk:', santriData.nama_santri);
+function fillDataSantriYangMembiayaiSekolah(santriData) {
+    console.log('[TPQ-EMIS Bridge] Mencari dan menyetel dropdown "Yang Membiayai Sekolah" di tab DATA SANTRI...');
+    const selects = Array.from(document.querySelectorAll('select'));
+    const targetValue = santriData.yang_biaya_sekolah || 'Orang Tua';
 
-    // Pastikan popup Step 1 tertutup
+    for (const sel of selects) {
+        const options = Array.from(sel.options || sel.querySelectorAll('option'));
+        const optionTexts = options.map(o => (o.label || o.text || o.innerText || '').toLowerCase());
+
+        let contextText = (sel.name || '') + ' ' + (sel.id || '');
+        let p = sel.parentElement;
+        for (let i = 0; i < 5 && p; i++) {
+            contextText += ' ' + (p.innerText || p.textContent || '');
+            p = p.parentElement;
+        }
+        contextText = contextText.toUpperCase();
+
+        const isContextMatch = contextText.includes('MEMBIAYAI') || contextText.includes('BIAYA');
+        const hasOrangTuaOption = optionTexts.some(t => t.includes('orang tua'));
+
+        if (isContextMatch || (hasOrangTuaOption && options.length <= 6)) {
+            console.log('[TPQ-EMIS Bridge] Menemukan dropdown Yang Membiayai Sekolah, menyetel ke:', targetValue);
+            setNativeSelectValue(sel, targetValue);
+            return true;
+        }
+    }
+    console.warn('[TPQ-EMIS Bridge] Dropdown "Yang Membiayai Sekolah" belum terdeteksi pada layar.');
+    return false;
+}
+
+let isStep2Executing = false;
+let isStep2Done = false;
+
+/**
+ * Eksekusi Step 2: Tab DATA SANTRI (Dropdown Yang Membiayai Sekolah)
+ */
+function executeStep2DataSantri(santriData) {
+    if (!santriData) return;
+    if (isStep2Executing || isStep2Done) return;
+    isStep2Executing = true;
+
+    console.log('[TPQ-EMIS Bridge] Menjalankan Step 2 Update Data (DATA SANTRI) untuk:', santriData.nama_santri);
+
     const p1 = document.getElementById('tpq-update-alamat-step1-popup');
     if (p1) p1.remove();
 
     let attempts = 0;
-    const maxAttempts = 15;
+    const maxAttempts = 10;
 
     const timer = setInterval(() => {
         attempts++;
-        ensureDataAlamatTabActive();
-        fillUpdateAlamatTextFields(santriData);
+        const filled = fillDataSantriYangMembiayaiSekolah(santriData);
 
-        if (attempts >= 3) {
+        if (filled || attempts >= 4) {
             clearInterval(timer);
-            showUpdateAlamatStep2Popup(santriData);
+            isStep2Executing = false;
+            isStep2Done = true;
+            showUpdateSantriStep2Popup(santriData);
         }
+    }, 350);
+}
+
+/**
+ * Popup Panduan Tab DATA SANTRI (Step 2/3)
+ */
+function showUpdateSantriStep2Popup(data) {
+    const existing = document.getElementById('tpq-update-santri-step2-popup');
+    if (existing) existing.remove();
+
+    const div = document.createElement('div');
+    div.id = 'tpq-update-santri-step2-popup';
+    div.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 25px;
+        z-index: 999999;
+        width: 430px;
+        max-width: 95vw;
+        background: #ffffff;
+        border: 2px solid #0d6efd;
+        border-radius: 10px;
+        box-shadow: 0 10px 35px rgba(0,0,0,0.3);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        font-size: 13px;
+        color: #212529;
+        overflow: hidden;
+    `;
+
+    const targetBiaya = data.yang_biaya_sekolah || 'Orang Tua';
+
+    div.innerHTML = `
+        <div id="tpq-update-santri-step2-header" style="background: linear-gradient(135deg, #0d6efd, #0b5ed7); color: #fff; padding: 12px 16px; font-weight: bold; font-size: 14px; display: flex; justify-content: space-between; align-items: center; cursor: move;">
+            <span><i class="fas fa-user-edit"></i> ⚡ TPQ Smart: Tab DATA SANTRI (Step 2/3)</span>
+            <span id="tpq-close-update-santri-step2" style="cursor: pointer; font-size: 18px; line-height: 1; padding: 2px 6px;">&times;</span>
+        </div>
+        <div style="padding: 14px 16px;">
+            <div style="background: #e7f1ff; border: 1px solid #b6d4fe; border-radius: 6px; padding: 8px 12px; margin-bottom: 12px;">
+                <div style="font-size: 11px; text-transform: uppercase; color: #084298; font-weight: bold;">Santri:</div>
+                <div style="font-size: 15px; font-weight: bold; color: #0d6efd;">${escapeHtml(data.nama_santri)}</div>
+                <div style="font-size: 11px; color: #6c757d;">NIK: ${escapeHtml(data.nik || '-')}</div>
+            </div>
+
+            <div style="background: #d1e7dd; border: 1px solid #badbcc; border-radius: 6px; padding: 10px 12px; margin-bottom: 12px; font-size: 12px; color: #0f5132;">
+                <div style="font-weight: bold; margin-bottom: 3px;">✓ Dropdown "Yang Membiayai Sekolah":</div>
+                <div>Otomatis disetel ke: <strong>${escapeHtml(targetBiaya)}</strong></div>
+            </div>
+
+            <div style="font-size: 12px; line-height: 1.5; color: #495057; margin-bottom: 14px; background: #fff3cd; border: 1px solid #ffe69c; border-radius: 6px; padding: 10px 12px;">
+                <div style="font-weight: bold; color: #664d03; margin-bottom: 4px;">📌 Petunjuk Langkah:</div>
+                <ol style="margin: 0; padding-left: 18px;">
+                    <li>Periksa pilihan <em>Yang Membiayai Sekolah</em> pada form EMIS.</li>
+                    <li>Klik tombol <strong>Simpan</strong> di bagian bawah EMIS jika Anda ingin menyimpan perubahan data santri.</li>
+                    <li>Setelah itu, klik tombol <strong>Lanjut ke Tab DATA ALAMAT</strong> di bawah ini.</li>
+                </ol>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                <button id="tpq-btn-lanjut-step3" style="width: 100%; background: #0d6efd; color: #fff; border: none; padding: 10px 12px; border-radius: 6px; font-weight: bold; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                    <span>➡️ Lanjut ke Tab DATA ALAMAT (Step 3)</span>
+                </button>
+                <button id="tpq-btn-refill-biaya" style="width: 100%; background: #f8f9fa; color: #0d6efd; border: 1px solid #0d6efd; padding: 7px 10px; border-radius: 5px; font-weight: bold; font-size: 12px; cursor: pointer;">
+                    ⚡ Setel Ulang Dropdown "Yang Membiayai Sekolah"
+                </button>
+                <button id="tpq-btn-cancel-update-santri-step2" style="width: 100%; background: #fff5f5; color: #dc3545; border: 1px solid #f5c2c7; padding: 7px 10px; border-radius: 5px; font-weight: bold; font-size: 12px; cursor: pointer;">
+                    ⏹ Stop / Batalkan Proses Santri Ini
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(div);
+    makeDraggable(div, document.getElementById('tpq-update-santri-step2-header'));
+
+    document.getElementById('tpq-close-update-santri-step2').addEventListener('click', () => {
+        cancelUpdateAlamatProcess('Proses update data santri ditutup dan antrean dibersihkan.');
+    });
+
+    document.getElementById('tpq-btn-cancel-update-santri-step2').addEventListener('click', () => {
+        cancelUpdateAlamatProcess(`Proses update data untuk ${data.nama_santri || 'santri'} telah dibatalkan.`);
+    });
+
+    document.getElementById('tpq-btn-refill-biaya').addEventListener('click', () => {
+        fillDataSantriYangMembiayaiSekolah(data);
+    });
+
+    document.getElementById('tpq-btn-lanjut-step3').addEventListener('click', () => {
+        div.remove();
+        isStep3Done = false;
+        ensureDataAlamatTabActive();
+        setTimeout(() => {
+            executeStep3DataAlamat(data);
+        }, 400);
+    });
+}
+
+let isStep3Executing = false;
+let isStep3Done = false;
+
+/**
+ * Eksekusi Step 3: Tab DATA ALAMAT (Dijalankan SEKALI SAJA tanpa looping)
+ */
+function executeStep3DataAlamat(santriData) {
+    if (!santriData) return;
+    if (isStep3Executing || isStep3Done) {
+        console.log('[TPQ-EMIS Bridge] Step 3 sudah dijalankan sebelumnya, melewati panggilan ganda.');
+        return;
+    }
+    isStep3Executing = true;
+
+    console.log('[TPQ-EMIS Bridge] Menjalankan Step 3 Update Alamat untuk:', santriData.nama_santri);
+
+    // Pastikan popup Step 1 & Step 2 tertutup
+    const p1 = document.getElementById('tpq-update-alamat-step1-popup');
+    if (p1) p1.remove();
+    const p2 = document.getElementById('tpq-update-santri-step2-popup');
+    if (p2) p2.remove();
+
+    // 1. Pastikan tab DATA ALAMAT aktif hanya jika belum aktif
+    ensureDataAlamatTabActive();
+
+    // 2. Beri jeda 400ms agar React selesai render tab alamat, lalu isi SEKALI SAJA
+    setTimeout(() => {
+        fillUpdateAlamatTextFields(santriData);
+        isStep3Executing = false;
+        isStep3Done = true;
+        showUpdateAlamatStep3Popup(santriData);
     }, 400);
 }
 
 /**
- * Popup Panduan Interaktif Tab DATA ALAMAT (Step 2)
+ * Popup Panduan Interaktif Tab DATA ALAMAT (Step 3/3)
  */
-function showUpdateAlamatStep2Popup(data) {
-    const existing = document.getElementById('tpq-update-alamat-step2-popup');
+function showUpdateAlamatStep3Popup(data) {
+    const existing = document.getElementById('tpq-update-alamat-step3-popup') || document.getElementById('tpq-update-alamat-step2-popup');
     if (existing) existing.remove();
 
     const div = document.createElement('div');
-    div.id = 'tpq-update-alamat-step2-popup';
+    div.id = 'tpq-update-alamat-step3-popup';
     div.style.cssText = `
         position: fixed;
         top: 20px;
@@ -2055,9 +2391,9 @@ function showUpdateAlamatStep2Popup(data) {
     `;
 
     div.innerHTML = `
-        <div id="tpq-update-step2-header" style="background: linear-gradient(135deg, #0d6efd, #0b5ed7); color: #fff; padding: 12px 16px; font-weight: bold; font-size: 14px; display: flex; justify-content: space-between; align-items: center; cursor: move;">
-            <span><i class="fas fa-map-marked-alt"></i> ⚡ TPQ Smart: Panduan DATA ALAMAT</span>
-            <span id="tpq-close-update-step2" style="cursor: pointer; font-size: 18px; line-height: 1; padding: 2px 6px;">&times;</span>
+        <div id="tpq-update-step3-header" style="background: linear-gradient(135deg, #0d6efd, #0b5ed7); color: #fff; padding: 12px 16px; font-weight: bold; font-size: 14px; display: flex; justify-content: space-between; align-items: center; cursor: move;">
+            <span><i class="fas fa-map-marked-alt"></i> ⚡ TPQ Smart: Tab DATA ALAMAT (Step 3/3)</span>
+            <span id="tpq-close-update-step3" style="cursor: pointer; font-size: 18px; line-height: 1; padding: 2px 6px;">&times;</span>
         </div>
         <div style="padding: 14px 16px; max-height: 75vh; overflow-y: auto;">
             <div style="background: #e7f1ff; border: 1px solid #b6d4fe; border-radius: 6px; padding: 8px 12px; margin-bottom: 12px;">
@@ -2070,11 +2406,11 @@ function showUpdateAlamatStep2Popup(data) {
                 1. Domisili Ayah Kandung:
             </div>
             <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 12px;">
-                <tr>
-                    <td style="padding: 4px; color: #495057; width: 45%;">Status Kepemilikan:</td>
-                    <td style="padding: 4px; font-weight: bold;">
+                <tr style="background: #f8f9fa;">
+                    <td style="padding: 4px; color: #198754; font-weight: bold; width: 45%;">Status Kepemilikan (Auto):</td>
+                    <td style="padding: 4px; font-weight: bold; color: #198754;">
                         ${escapeHtml(data.ayah_status_kepemilikan_rumah || 'Milik Sendiri')}
-                        <button class="tpq-copy-badge" data-val="${escapeHtml(data.ayah_status_kepemilikan_rumah || 'Milik Sendiri')}" style="padding: 1px 6px; margin-left: 4px; border: 1px solid #0d6efd; background: #fff; color: #0d6efd; border-radius: 3px; font-size: 10px; cursor: pointer;">Salin</button>
+                        <button class="tpq-copy-badge" data-val="${escapeHtml(data.ayah_status_kepemilikan_rumah || 'Milik Sendiri')}" style="padding: 1px 6px; margin-left: 4px; border: 1px solid #198754; background: #fff; color: #198754; border-radius: 3px; font-size: 10px; cursor: pointer;">Salin</button>
                     </td>
                 </tr>
                 <tr>
@@ -2136,18 +2472,18 @@ function showUpdateAlamatStep2Popup(data) {
                 3. Bagian Santri & Mobilitas Lembaga:
             </div>
             <table style="width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 12px;">
-                <tr>
-                    <td style="padding: 4px; color: #495057; width: 45%;">Status Mukim:</td>
-                    <td style="padding: 4px; font-weight: bold;">
+                <tr style="background: #f8f9fa;">
+                    <td style="padding: 4px; color: #198754; font-weight: bold; width: 45%;">Status Mukim (Auto):</td>
+                    <td style="padding: 4px; font-weight: bold; color: #198754;">
                         ${escapeHtml(data.santri_status_mukim || 'Tidak Mukim')}
-                        <button class="tpq-copy-badge" data-val="${escapeHtml(data.santri_status_mukim || 'Tidak Mukim')}" style="padding: 1px 6px; margin-left: 4px; border: 1px solid #0d6efd; background: #fff; color: #0d6efd; border-radius: 3px; font-size: 10px; cursor: pointer;">Salin</button>
+                        <button class="tpq-copy-badge" data-val="${escapeHtml(data.santri_status_mukim || 'Tidak Mukim')}" style="padding: 1px 6px; margin-left: 4px; border: 1px solid #198754; background: #fff; color: #198754; border-radius: 3px; font-size: 10px; cursor: pointer;">Salin</button>
                     </td>
                 </tr>
-                <tr>
-                    <td style="padding: 4px; color: #495057;">Status Tempat Tinggal:</td>
-                    <td style="padding: 4px; font-weight: bold;">
+                <tr style="background: #f8f9fa;">
+                    <td style="padding: 4px; color: #198754; font-weight: bold;">Status Tempat Tinggal (Auto):</td>
+                    <td style="padding: 4px; font-weight: bold; color: #198754;">
                         ${escapeHtml(data.santri_status_tempat_tinggal || 'Tinggal dengan Ayah Kandung')}
-                        <button class="tpq-copy-badge" data-val="${escapeHtml(data.santri_status_tempat_tinggal || 'Tinggal dengan Ayah Kandung')}" style="padding: 1px 6px; margin-left: 4px; border: 1px solid #0d6efd; background: #fff; color: #0d6efd; border-radius: 3px; font-size: 10px; cursor: pointer;">Salin</button>
+                        <button class="tpq-copy-badge" data-val="${escapeHtml(data.santri_status_tempat_tinggal || 'Tinggal dengan Ayah Kandung')}" style="padding: 1px 6px; margin-left: 4px; border: 1px solid #198754; background: #fff; color: #198754; border-radius: 3px; font-size: 10px; cursor: pointer;">Salin</button>
                     </td>
                 </tr>
                 <tr>
@@ -2183,13 +2519,13 @@ function showUpdateAlamatStep2Popup(data) {
             <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 14px;">
                 <div style="display: flex; gap: 8px;">
                     <button id="tpq-btn-refill-alamat" style="flex: 1; background: #f8f9fa; color: #0d6efd; border: 1px solid #0d6efd; padding: 8px 10px; border-radius: 5px; font-weight: bold; font-size: 12px; cursor: pointer;">
-                        ⚡ Isi Ulang Field Teks
+                        ⚡ Isi Ulang Field & Dropdown
                     </button>
                     <button id="tpq-btn-selesai-alamat" style="flex: 1.5; background: #198754; color: #fff; border: none; padding: 8px 10px; border-radius: 5px; font-weight: bold; font-size: 12px; cursor: pointer;">
                         ✓ Tandai Selesai di TPQ Smart
                     </button>
                 </div>
-                <button id="tpq-btn-cancel-update-step2" style="width: 100%; background: #fff5f5; color: #dc3545; border: 1px solid #f5c2c7; padding: 8px 10px; border-radius: 5px; font-weight: bold; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;" title="Batalkan proses update data santri ini agar dapat memilih proses lain">
+                <button id="tpq-btn-cancel-update-step3" style="width: 100%; background: #fff5f5; color: #dc3545; border: 1px solid #f5c2c7; padding: 8px 10px; border-radius: 5px; font-weight: bold; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;" title="Batalkan proses update data santri ini agar dapat memilih proses lain">
                     ⏹ <span>Stop / Batalkan Proses Santri Ini</span>
                 </button>
             </div>
@@ -2197,13 +2533,13 @@ function showUpdateAlamatStep2Popup(data) {
     `;
 
     document.body.appendChild(div);
-    makeDraggable(div, document.getElementById('tpq-update-step2-header'));
+    makeDraggable(div, document.getElementById('tpq-update-step3-header'));
 
-    document.getElementById('tpq-close-update-step2').addEventListener('click', () => {
+    document.getElementById('tpq-close-update-step3').addEventListener('click', () => {
         cancelUpdateAlamatProcess('Proses update data alamat ditutup dan antrean dibersihkan.');
     });
 
-    document.getElementById('tpq-btn-cancel-update-step2').addEventListener('click', () => {
+    document.getElementById('tpq-btn-cancel-update-step3').addEventListener('click', () => {
         cancelUpdateAlamatProcess(`Proses update data untuk ${data.nama_santri || 'santri'} telah dibatalkan.`);
     });
 
@@ -2232,7 +2568,11 @@ function showUpdateAlamatStep2Popup(data) {
                     action: 'UPDATE_ALAMAT_SUCCESS_NOTIFY',
                     id_santri: data.id_santri
                 });
-                chrome.storage.local.remove(['pendingUpdateAlamatData', 'currentTask', 'waitingForUpdateStep2']);
+                isStep2Executing = false;
+                isStep2Done = false;
+                isStep3Executing = false;
+                isStep3Done = false;
+                chrome.storage.local.remove(['pendingUpdateAlamatData', 'currentTask', 'waitingForUpdateStep2', 'waitingForUpdateStep3']);
                 btnSelesai.innerText = '✅ Ditandai Selesai!';
                 btnSelesai.style.background = '#059669';
                 btnSelesai.disabled = true;

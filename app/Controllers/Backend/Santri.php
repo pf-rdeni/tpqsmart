@@ -1740,6 +1740,8 @@ class Santri extends BaseController
             'kabupaten_kota'      => trim($santri['KabupatenKotaSantri'] ?? ''),
             'provinsi'            => trim($santri['ProvinsiSantri'] ?? ''),
             'kode_pos'            => trim($santri['KodePosSantri'] ?? ''),
+            // Data Step 2 Update Data (Tab Data Santri: Yang Membiayai Sekolah)
+            'yang_biaya_sekolah'  => !empty($santri['YangBiayaSekolah']) ? trim($santri['YangBiayaSekolah']) : 'Orang Tua',
             // Data Lengkap untuk Update Alamat EMIS (Kesiswaan -> Tab Data Alamat)
             'ayah_status_kepemilikan_rumah' => !empty($santri['StatusKepemilikanRumahAyah']) ? trim($santri['StatusKepemilikanRumahAyah']) : 'Milik Sendiri',
             'ayah_provinsi'       => !empty($santri['ProvinsiAyah']) ? trim($santri['ProvinsiAyah']) : trim($santri['ProvinsiSantri'] ?? ''),
