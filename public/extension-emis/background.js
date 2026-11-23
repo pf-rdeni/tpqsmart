@@ -18,43 +18,58 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const santriData = request.data;
         console.log('[TPQ-EMIS] Menerima data santri untuk dikirim ke EMIS:', santriData);
 
-        // Cari apakah tab EMIS sudah terbuka
-        chrome.tabs.query({ url: "*://emis.kemenag.go.id/*" }, (tabs) => {
-            if (tabs && tabs.length > 0) {
-                // Gunakan tab EMIS yang sudah ada
-                const emisTab = tabs[0];
-                chrome.tabs.update(emisTab.id, { active: true });
-                
-                // Kirim data ke content script di tab EMIS
-                chrome.tabs.sendMessage(emisTab.id, {
-                    action: 'EXECUTE_FILL_FORM',
-                    data: santriData
-                }, (response) => {
-                    if (chrome.runtime.lastError) {
-                        console.warn('[TPQ-EMIS] Gagal kirim pesan langsung, simpan ke storage:', chrome.runtime.lastError.message);
-                        // Simpan ke storage dan refresh jika perlu
-                        chrome.storage.local.set({ pendingSantriData: santriData }, () => {
-                            chrome.tabs.reload(emisTab.id);
+        const EMIS_PPDB_URL = "https://emis.kemenag.go.id/search-data-ppdb/baru";
+
+        // Simpan data antrean ke storage terlebih dahulu
+        chrome.storage.local.set({ 
+            pendingSantriData: santriData,
+            waitingForStep2: false 
+        }, () => {
+            // Cari apakah tab EMIS sudah terbuka di browser
+            chrome.tabs.query({ url: "*://emis.kemenag.go.id/*" }, (tabs) => {
+                if (tabs && tabs.length > 0) {
+                    const emisTab = tabs[0];
+                    const currentUrl = emisTab.url || '';
+                    const isAlreadyOnPpdb = currentUrl.includes('search-data-ppdb');
+
+                    if (isAlreadyOnPpdb) {
+                        // Jika sudah berada di halaman PPDB, aktifkan tab dan kirim instruksi isi
+                        chrome.tabs.update(emisTab.id, { active: true });
+                        chrome.tabs.sendMessage(emisTab.id, {
+                            action: 'EXECUTE_FILL_FORM',
+                            data: santriData
+                        }, (response) => {
+                            if (chrome.runtime.lastError) {
+                                console.warn('[TPQ-EMIS] Tab perlu dimuat ulang:', chrome.runtime.lastError.message);
+                                chrome.tabs.update(emisTab.id, { url: EMIS_PPDB_URL });
+                            } else {
+                                console.log('[TPQ-EMIS] Respon dari form EMIS:', response);
+                            }
                         });
                     } else {
-                        console.log('[TPQ-EMIS] Respon dari form EMIS:', response);
+                        // Jika berada di halaman EMIS lain, langsung arahkan ke link PPDB baru
+                        chrome.tabs.update(emisTab.id, {
+                            url: EMIS_PPDB_URL,
+                            active: true
+                        });
                     }
-                });
 
-                sendResponse({ success: true, message: 'Data dikirim ke tab EMIS yang aktif.' });
-            } else {
-                // Simpan data ke storage lokal, lalu buka tab baru EMIS
-                chrome.storage.local.set({ pendingSantriData: santriData }, () => {
-                    chrome.tabs.create({ url: "https://emis.kemenag.go.id" }, (newTab) => {
-                        console.log('[TPQ-EMIS] Membuka tab EMIS baru:', newTab.id);
+                    sendResponse({ success: true, message: 'Tab EMIS PPDB diaktifkan.' });
+                } else {
+                    // Jika belum ada tab EMIS, langsung buka tab baru ke link PPDB baru
+                    chrome.tabs.create({
+                        url: EMIS_PPDB_URL,
+                        active: true
+                    }, (newTab) => {
+                        console.log('[TPQ-EMIS] Membuka tab EMIS PPDB baru:', newTab.id);
                     });
-                });
 
-                sendResponse({
-                    success: true,
-                    message: 'Tab EMIS sedang dibuka. Data akan otomatis diisi saat halaman formulir terbuka.'
-                });
-            }
+                    sendResponse({
+                        success: true,
+                        message: 'Membuka link PPDB EMIS 4.0 dan data santri akan otomatis diisikan.'
+                    });
+                }
+            });
         });
 
         return true;

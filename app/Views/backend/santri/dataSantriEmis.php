@@ -15,8 +15,8 @@
                     <button type="button" class="btn btn-outline-info btn-sm mr-2" data-toggle="modal" data-target="#modalPanduanExtension">
                         <i class="fas fa-puzzle-piece mr-1"></i> Info Ekstensi Chrome
                     </button>
-                    <a href="https://emis.kemenag.go.id" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm">
-                        <i class="fas fa-external-link-alt mr-1"></i> Buka Portal EMIS 4.0
+                    <a href="https://emis.kemenag.go.id/search-data-ppdb/baru" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm">
+                        <i class="fas fa-external-link-alt mr-1"></i> Form PPDB EMIS 4.0
                     </a>
                 </div>
             </div>
@@ -667,6 +667,9 @@
             success: function(res) {
                 if (res.success && res.data) {
                     if (isExtensionConnected) {
+                        if (typeof toastr !== 'undefined') {
+                            toastr.info('Membuka halaman PPDB EMIS 4.0 dan mentransfer data santri...', 'Transfer EMIS');
+                        }
                         // Kirim data ke background / content script extension
                         window.postMessage({
                             type: 'TPQ_SEND_TO_EMIS',

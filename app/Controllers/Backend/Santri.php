@@ -1601,6 +1601,21 @@ class Santri extends BaseController
             ? date('Y-m-d', strtotime($santri['created_at'])) 
             : date('Y-m-d');
 
+        $bulanIndo = [
+            1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+            5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+            9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+        ];
+        $tanggalMasukLabel = '';
+        if (!empty($tanggalMasuk)) {
+            $partsMasuk = explode('-', $tanggalMasuk);
+            if (count($partsMasuk) === 3) {
+                $bIndex = (int)$partsMasuk[1];
+                $namaBulan = $bulanIndo[$bIndex] ?? $partsMasuk[1];
+                $tanggalMasukLabel = $partsMasuk[0] . '-' . $namaBulan . '-' . $partsMasuk[2];
+            }
+        }
+
         // 2. Tingkat Kelas Mapping
         $rawKelas = trim($santri['NamaKelas'] ?? '');
         $tingkatKelas = $rawKelas;
@@ -1639,10 +1654,37 @@ class Santri extends BaseController
             ? date('Y-m-d', strtotime($santri['TanggalLahirSantri']))
             : '';
 
-        // 8. No HP
-        $noHp = trim($santri['NoHpSantri'] ?? '');
-        if (empty($noHp)) {
-            $noHp = trim($santri['NoHpAyah'] ?? $santri['NoHpIbu'] ?? '');
+        $bulanIndo = [
+            1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+            5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+            9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+        ];
+        $tanggalLahirLabel = '';
+        if (!empty($tanggalLahir)) {
+            $partsTgl = explode('-', $tanggalLahir);
+            if (count($partsTgl) === 3) {
+                $bIndex = (int)$partsTgl[1];
+                $namaBulan = $bulanIndo[$bIndex] ?? $partsTgl[1];
+                $tanggalLahirLabel = $partsTgl[0] . '-' . $namaBulan . '-' . $partsTgl[2];
+            }
+        }
+
+        // 8. No HP (+62 format untuk standar EMIS 4.0)
+        $rawNoHp = trim($santri['NoHpSantri'] ?? '');
+        if (empty($rawNoHp) || $rawNoHp === '-' || $rawNoHp === '0') {
+            $rawNoHp = trim($santri['NoHpAyah'] ?? $santri['NoHpIbu'] ?? '');
+        }
+
+        $digitsHp = preg_replace('/[^0-9]/', '', $rawNoHp);
+        $noHp = '';
+        if (strlen($digitsHp) >= 8) {
+            if (str_starts_with($digitsHp, '62')) {
+                $noHp = '+' . $digitsHp;
+            } elseif (str_starts_with($digitsHp, '0')) {
+                $noHp = '+62' . substr($digitsHp, 1);
+            } else {
+                $noHp = '+62' . $digitsHp;
+            }
         }
         $tidakPunyaHp = empty($noHp);
 
@@ -1666,6 +1708,7 @@ class Santri extends BaseController
         $formatted = [
             'id_santri'           => $santri['IdSantri'],
             'tanggal_masuk'       => $tanggalMasuk,
+            'tanggal_masuk_label' => $tanggalMasukLabel,
             'tingkat_kelas'       => $tingkatKelas,
             'nama_kelas_asal'     => $rawKelas,
             'nama_santri'         => $namaSantri,
@@ -1679,6 +1722,7 @@ class Santri extends BaseController
             'tempat_lahir'        => $tempatLahir,
             'tempat_lahir_clean'  => $tempatLahirClean,
             'tanggal_lahir'       => $tanggalLahir,
+            'tanggal_lahir_label' => $tanggalLahirLabel,
             'agama'               => 'Islam',
             'tidak_punya_hp'      => $tidakPunyaHp,
             'no_hp'               => $noHp,

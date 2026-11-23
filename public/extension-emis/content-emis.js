@@ -25,16 +25,18 @@ console.log('[TPQ-EMIS Bridge] Content script aktif di EMIS Kemenag.');
 // Inisialisasi pengawas transisi otomatis dari Step 1 ke Step 2
 initStepTransitionWatcher();
 
-// Listener global: jika tombol SELANJUTNYA/LANJUT diklik di Step 1, langsung tutup popup Step 1
+// Listener global: jika tombol SELANJUTNYA/LANJUT diklik di Step 1, langsung tutup popup
 document.addEventListener('click', (e) => {
     const target = e.target;
     if (!target) return;
     const btn = target.closest('button, [role="button"], a, input[type="button"], input[type="submit"]') || target;
     const txt = (btn.innerText || btn.textContent || btn.value || '').trim().toUpperCase();
     if (txt.includes('SELANJUT') || txt.includes('LANJUT') || txt.includes('NEXT')) {
-        console.log('[TPQ-EMIS Bridge] Tombol SELANJUTNYA diklik, menutup popup Step 1...');
+        console.log('[TPQ-EMIS Bridge] Tombol SELANJUTNYA diklik, menutup popup Step 0 & Step 1...');
         const step1Alert = document.getElementById('tpq-step1-alert');
         if (step1Alert) step1Alert.remove();
+        const step0Alert = document.getElementById('tpq-step0-alert');
+        if (step0Alert) step0Alert.remove();
     }
 }, true);
 
@@ -51,11 +53,9 @@ chrome.storage.local.get(['pendingSantriData', 'waitingForStep2'], (result) => {
             console.log('[TPQ-EMIS Bridge] Form utama (Step 2) terdeteksi, mengisi NIK, HP & Nama Ortu...');
             fillEmisStep2(santri);
             chrome.storage.local.remove(['waitingForStep2']);
-        } else if (currentStep === 1) {
-            console.log('[TPQ-EMIS Bridge] Step 1 terdeteksi, memulai pengisian...');
-            fillEmisStep1(santri);
         } else {
-            showPendingBanner(santri, currentStep);
+            console.log('[TPQ-EMIS Bridge] Menampilkan popup start pengisian (Step 0 / Step 1)...');
+            showStep0StartPopup(santri);
         }
     }
 });
@@ -70,15 +70,20 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         console.log('[TPQ-EMIS Bridge] Langkah halaman EMIS saat ini: Step', currentStep);
 
         if (currentStep === 1) {
-            fillEmisStep1(santriData);
-            sendResponse({ success: true, step: 1 });
+            // Tampilkan popup start (Step 0 / Step 1) di bagian atas agar user dapat memilih metode dengan akurat
+            showStep0StartPopup(santriData);
+            sendResponse({ success: true, step: 'step0_popup' });
         } else if (currentStep === 2) {
-            fillEmisStep2(santriData);
-            sendResponse({ success: true, step: 2 });
+            // Jika form masih di posisi Step 2 (santri sebelumnya), muat ulang ke link PPDB baru
+            chrome.storage.local.set({ pendingSantriData: santriData, waitingForStep2: false }, () => {
+                window.location.href = "https://emis.kemenag.go.id/search-data-ppdb/baru";
+            });
+            sendResponse({ success: true, action: 'reloading_for_new_santri' });
         } else {
-            chrome.storage.local.set({ pendingSantriData: santriData });
-            showPendingBanner(santriData, 0);
-            sendResponse({ success: false, message: 'Silakan buka menu Pendaftaran Santri Baru' });
+            chrome.storage.local.set({ pendingSantriData: santriData, waitingForStep2: false }, () => {
+                window.location.href = "https://emis.kemenag.go.id/search-data-ppdb/baru";
+            });
+            sendResponse({ success: false, message: 'Mengarahkan ke halaman PPDB Baru' });
         }
         return true;
     }
@@ -103,14 +108,15 @@ function detectCurrentEmisStep() {
     }
 
     // Ciri Step 1 (Pencarian / Validasi Awal):
-    // Ada pilihan "BERDASARKAN", "NAMA, TEMPAT, DAN TANGGAL LAHIR", atau tombol "SELANJUTNYA"
+    // Ada URL search-data-ppdb, pilihan "BERDASARKAN", "NAMA, TEMPAT, DAN TANGGAL LAHIR", atau tombol "SELANJUTNYA"
+    const isPpdbUrl = window.location.href.includes('search-data-ppdb');
     const hasBerdasarkan = textContent.includes('BERDASARKAN');
     const hasOpsiTtl = textContent.includes('NAMA, TEMPAT, DAN TANGGAL LAHIR');
     const hasNextBtn = Array.from(document.querySelectorAll('button')).some(btn => 
         (btn.innerText || btn.textContent || '').trim().toUpperCase().includes('SELANJUTNYA')
     );
 
-    if (hasBerdasarkan || hasOpsiTtl || hasNextBtn) {
+    if (isPpdbUrl || hasBerdasarkan || hasOpsiTtl || hasNextBtn) {
         return 1;
     }
 
@@ -129,6 +135,10 @@ function initStepTransitionWatcher() {
                     console.log('[TPQ-EMIS Bridge] Transisi otomatis ke Step 2 terdeteksi! Mengisi NIK, HP & Ortu...');
                     const oldStep1 = document.getElementById('tpq-step1-alert');
                     if (oldStep1) oldStep1.remove();
+                    const oldStep0 = document.getElementById('tpq-step0-alert');
+                    if (oldStep0) oldStep0.remove();
+                    const oldPending = document.getElementById('tpq-pending-banner');
+                    if (oldPending) oldPending.remove();
 
                     fillEmisStep2(res.pendingSantriData);
                     chrome.storage.local.remove(['waitingForStep2']);
@@ -450,6 +460,45 @@ function findStep2NikElements() {
 }
 
 /**
+ * Format nomor telepon ke standar internasional EMIS 4.0 (+62...)
+ */
+function formatEmisPhoneNumber(rawNoHp) {
+    if (!rawNoHp) return '';
+    let digits = String(rawNoHp).trim().replace(/[^0-9]/g, '');
+    if (digits.length < 8) return '';
+
+    if (digits.startsWith('62')) {
+        return '+' + digits;
+    } else if (digits.startsWith('0')) {
+        return '+62' + digits.substring(1);
+    } else {
+        return '+62' + digits;
+    }
+}
+
+/**
+ * Format tanggal YYYY-MM-DD ke format YYYY-NamaBulan-DD (contoh: 2024-Agustus-18)
+ * Memudahkan pemilihan kalender picker di EMIS yang menampilkan nama bulan
+ */
+function formatTanggalNamaBulan(tanggalStr) {
+    if (!tanggalStr) return '-';
+    const parts = String(tanggalStr).trim().split('-');
+    if (parts.length === 3) {
+        const tahun = parts[0];
+        const bulanIndex = parseInt(parts[1], 10);
+        const hari = parts[2];
+        const namaBulan = [
+            '', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+            'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+        ];
+        if (bulanIndex >= 1 && bulanIndex <= 12) {
+            return `${tahun}-${namaBulan[bulanIndex]}-${hari}`;
+        }
+    }
+    return tanggalStr;
+}
+
+/**
  * Mencari input No Handphone dan Checkbox 'Tidak memiliki nomor handphone' di Step 2
  */
 function findStep2HpElements() {
@@ -507,7 +556,7 @@ function findStep2HpElements() {
         }
 
         const combined = ph + ' ' + name + ' ' + id + ' ' + aria + ' ' + labelText;
-        if (combined.includes('HANDPHONE') || combined.includes('NO HP') || combined.includes('NOMOR HP') || combined.includes('TELEPON') || ph.includes('08') || ph.includes('CONTOH: 02') || ph.includes('CONTOH: 08')) {
+        if (combined.includes('HANDPHONE') || combined.includes('NO HP') || combined.includes('NOMOR HP') || combined.includes('TELEPON') || ph.includes('+62') || ph.includes('08') || ph.includes('CONTOH: 02') || ph.includes('CONTOH: 08') || ph.includes('CONTOH: +62')) {
             inputHp = inp;
             break;
         }
@@ -643,16 +692,13 @@ function fillEmisStep2(data) {
         // 2. Isi No Handphone Calon Santri / Centang Tidak Memiliki HP secara otomatis
         if (!filledHp) {
             const { inputHp, checkboxHp } = findStep2HpElements();
-            let cleanHp = String(data.no_hp || '').trim().replace(/[^0-9]/g, '');
-            if (cleanHp.startsWith('62')) {
-                cleanHp = '0' + cleanHp.substring(2);
-            }
+            const formattedHp = formatEmisPhoneNumber(data.no_hp);
 
-            if (cleanHp.length >= 8 && inputHp && !data.tidak_punya_hp) {
-                console.log('[TPQ-EMIS Bridge] Mengisi No Handphone Calon Santri:', cleanHp);
-                setNativeValue(inputHp, cleanHp);
+            if (formattedHp && inputHp && !data.tidak_punya_hp) {
+                console.log('[TPQ-EMIS Bridge] Mengisi No Handphone Calon Santri (+62):', formattedHp);
+                setNativeValue(inputHp, formattedHp);
                 filledHp = true;
-            } else if (data.tidak_punya_hp || !cleanHp) {
+            } else if (data.tidak_punya_hp || !formattedHp) {
                 if (checkboxHp) {
                     if (!checkboxHp.checked) {
                         console.log('[TPQ-EMIS Bridge] Mencentang [✓] Tidak Memiliki No Handphone');
@@ -820,6 +866,236 @@ function makeDraggable(element, handle = null) {
  */
 
 /**
+ * Mencoba mengisi input NIK jika sedang berada di tab pencarian NIK EMIS
+ */
+function tryFillNikInput(nik) {
+    if (!nik) return false;
+    const inputs = Array.from(document.querySelectorAll('input:not([type="hidden"]):not([type="radio"]):not([type="checkbox"])'))
+        .filter(inp => {
+            const rect = inp.getBoundingClientRect();
+            return rect.width > 0 && rect.height > 0 && !inp.disabled;
+        });
+
+    for (const inp of inputs) {
+        const ph = (inp.getAttribute('placeholder') || '').toUpperCase();
+        const nm = (inp.getAttribute('name') || '').toUpperCase();
+        const id = (inp.getAttribute('id') || '').toUpperCase();
+        if (ph.includes('NIK') || nm.includes('NIK') || id.includes('NIK') || inputs.length === 1) {
+            setNativeValue(inp, nik);
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * ============================================================================
+ * STEP 0 / START POPUP: Asisten Pendaftaran & Pemilihan Metode Pencarian
+ * Tampil di bagian atas saat halaman pendaftaran EMIS terbuka.
+ * Memberikan 2 opsi agar pengisian lebih akurat:
+ * - Step 0: Cari via NIK (tombol Salin NIK, berguna jika ingin mencoba cari via NIK)
+ * - Step 1: Cari via Nama & TTL (tombol Mulai Isi Step 1, mengisi otomatis Nama & TTL)
+ * ============================================================================
+ */
+function showStep0StartPopup(data) {
+    if (!data) return;
+
+    const popupId = 'tpq-step0-alert';
+    const old = document.getElementById(popupId);
+    if (old) old.remove();
+
+    const oldPending = document.getElementById('tpq-pending-banner');
+    if (oldPending) oldPending.remove();
+
+    // Format tanggal lahir berlabel nama bulan (misal: 2024-Agustus-18)
+    const tglLahirLabel = data.tanggal_lahir_label || formatTanggalNamaBulan(data.tanggal_lahir);
+
+    // Pastikan status antrean tersimpan dan aktif memantau transisi ke Step 2
+    chrome.storage.local.set({
+        pendingSantriData: data,
+        waitingForStep2: true
+    });
+
+    const isPpdbUrl = window.location.href.includes('search-data-ppdb');
+
+    const div = document.createElement('div');
+    div.id = popupId;
+    div.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999999;
+        background: #0d6efd;
+        color: white;
+        padding: 16px 18px;
+        border-radius: 8px;
+        box-shadow: 0 6px 25px rgba(0,0,0,0.35);
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        font-size: 13px;
+        max-width: 420px;
+        width: 380px;
+        line-height: 1.4;
+    `;
+
+    div.innerHTML = `
+        <style>
+            .tpq-btn-copy-gold {
+                background: #ffc107;
+                color: #000;
+                border: none;
+                padding: 4px 10px;
+                border-radius: 4px;
+                font-size: 11.5px;
+                font-weight: bold;
+                cursor: pointer;
+                transition: background 0.2s, transform 0.1s;
+                white-space: nowrap;
+            }
+            .tpq-btn-copy-gold:hover {
+                background: #ffca2c;
+                transform: translateY(-1px);
+            }
+        </style>
+
+        <div id="tpq-step0-header" style="cursor: move; user-select: none; font-weight: bold; font-size: 14px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;">
+            <span>⚡ Mulai Isi Formulir EMIS</span>
+            <span style="font-size: 11px; background: rgba(255,255,255,0.25); padding: 2px 7px; border-radius: 4px; display: flex; align-items: center; gap: 4px;">
+                <span>⠿</span> <span>Geser</span>
+            </span>
+        </div>
+
+        <!-- Info Singkat Santri -->
+        <div style="background: rgba(0,0,0,0.22); padding: 8px 12px; border-radius: 6px; margin-bottom: 10px;">
+            <div style="font-size: 11px; opacity: 0.85;">CALON SANTRI:</div>
+            <div style="font-size: 14.5px; font-weight: bold; color: #fff;">${data.nama_santri}</div>
+            <div style="font-size: 12px; color: #e2e8f0; margin-top: 1px;">
+                Kelas: <strong style="color: #ffc107;">${data.tingkat_kelas || 'Santri Baru'}</strong>
+            </div>
+        </div>
+
+        <!-- Opsi 1: Step 0 (Cari via NIK) -->
+        <div style="background: rgba(0,0,0,0.3); padding: 10px 12px; border-radius: 6px; margin-bottom: 10px; border-left: 3px solid #ffc107;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                <strong style="color: #ffc107; font-size: 12.5px;">🔍 Opsi 1: Cari via NIK (Step 0)</strong>
+            </div>
+            <div style="font-size: 11.5px; opacity: 0.9; margin-bottom: 6px;">
+                Jika ingin mencoba pencarian pada tab NIK di EMIS:
+            </div>
+            ${data.belum_punya_nik ? `
+                <div style="font-size: 11.5px; color: #ffc107; font-style: italic; background: rgba(0,0,0,0.2); padding: 5px 8px; border-radius: 4px;">
+                    ⚠️ Santri belum punya NIK (Silakan gunakan Opsi 2 / Step 1)
+                </div>
+            ` : `
+                <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.15); padding: 6px 10px; border-radius: 4px;">
+                    <span style="font-family: monospace; font-size: 13.5px; font-weight: bold; color: #fff;">${data.nik || '-'}</span>
+                    <button id="tpq-btn-copy-nik-step0" class="tpq-btn-copy-gold" data-val="${data.nik || ''}">📋 Salin NIK</button>
+                </div>
+            `}
+        </div>
+
+        <!-- Opsi 2: Step 1 (Cari via Nama & TTL) -->
+        <div style="background: rgba(0,0,0,0.3); padding: 10px 12px; border-radius: 6px; margin-bottom: 12px; border-left: 3px solid #10b981;">
+            <div style="margin-bottom: 4px;">
+                <strong style="color: #6ee7b7; font-size: 12.5px;">📝 Opsi 2: Cari via Nama & TTL (Step 1)</strong>
+            </div>
+            <div style="font-size: 11.5px; opacity: 0.9; margin-bottom: 7px;">
+                Pilih tab <em>"Nama, Tempat, dan tanggal lahir"</em> di EMIS, lalu klik tombol isi:
+            </div>
+            <div style="font-size: 11.5px; background: rgba(0,0,0,0.2); padding: 5px 8px; border-radius: 4px; margin-bottom: 8px; line-height: 1.4;">
+                • Tempat Lahir: <strong>${data.tempat_lahir || '-'}</strong><br>
+                • Tanggal Lahir: <strong>${tglLahirLabel}</strong>
+            </div>
+            <button id="tpq-btn-start-step1" style="
+                width: 100%; background: #198754; color: #ffffff; border: none;
+                padding: 8px 12px; border-radius: 4px; font-size: 13px; font-weight: bold;
+                cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+                display: flex; align-items: center; justify-content: center; gap: 6px;
+                transition: background 0.2s;
+            ">
+                <span>⚡ Mulai Isi Step 1 (Nama & TTL)</span>
+            </button>
+        </div>
+
+        <!-- Footer -->
+        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11.5px;">
+            ${!isPpdbUrl ? `
+                <button id="tpq-btn-nav-ppdb" style="
+                    background: #ffc107; color: #000; border: none; padding: 5px 9px;
+                    border-radius: 4px; font-size: 11.5px; font-weight: bold; cursor: pointer;
+                ">🔗 Buka PPDB Baru</button>
+            ` : '<span></span>'}
+            <div style="display: flex; gap: 6px;">
+                <button id="tpq-btn-cancel-antrean" style="
+                    background: rgba(255,255,255,0.18); color: white; border: none;
+                    padding: 5px 10px; border-radius: 4px; cursor: pointer;
+                ">Batal</button>
+                <button id="tpq-close-step0-alert" style="
+                    background: rgba(255,255,255,0.28); color: white; border: none;
+                    padding: 5px 12px; border-radius: 4px; cursor: pointer; font-weight: 500;
+                ">Tutup</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(div);
+
+    // Draggable
+    const headerEl = document.getElementById('tpq-step0-header');
+    makeDraggable(div, headerEl);
+
+    // Listener Tombol Salin NIK (Step 0)
+    const btnCopyNik = document.getElementById('tpq-btn-copy-nik-step0');
+    if (btnCopyNik) {
+        btnCopyNik.addEventListener('click', () => {
+            const val = btnCopyNik.getAttribute('data-val');
+            if (val) {
+                navigator.clipboard.writeText(val);
+                tryFillNikInput(val);
+
+                const origText = btnCopyNik.innerText;
+                const origBg = btnCopyNik.style.background;
+                btnCopyNik.innerText = '✓ NIK Tersalin!';
+                btnCopyNik.style.background = '#198754';
+                btnCopyNik.style.color = '#fff';
+                setTimeout(() => {
+                    btnCopyNik.innerText = origText;
+                    btnCopyNik.style.background = origBg;
+                    btnCopyNik.style.color = '#000';
+                }, 1500);
+            }
+        });
+    }
+
+    // Listener Tombol Mulai Isi Step 1
+    const btnStart1 = document.getElementById('tpq-btn-start-step1');
+    if (btnStart1) {
+        btnStart1.addEventListener('click', () => {
+            div.remove();
+            fillEmisStep1(data);
+        });
+    }
+
+    // Listener Buka PPDB jika di luar halaman
+    const btnNav = document.getElementById('tpq-btn-nav-ppdb');
+    if (btnNav) {
+        btnNav.addEventListener('click', () => {
+            window.location.href = "https://emis.kemenag.go.id/search-data-ppdb/baru";
+        });
+    }
+
+    // Tutup popup (antrean tetap ada di storage)
+    document.getElementById('tpq-close-step0-alert').addEventListener('click', () => {
+        div.remove();
+    });
+
+    // Batal (hapus antrean santri dari storage)
+    document.getElementById('tpq-btn-cancel-antrean').addEventListener('click', () => {
+        chrome.storage.local.remove(['pendingSantriData', 'waitingForStep2']);
+        div.remove();
+    });
+}
+
+/**
  * Banner Asisten Step 1: Memberikan tanggal lahir, NIK, Nama & TTL santri + tombol salin + draggable
  */
 function showStep1Assistant(data) {
@@ -843,6 +1119,9 @@ function showStep1Assistant(data) {
         font-size: 13px;
         max-width: 420px;
     `;
+
+    // Format Tampilan Tanggal Lahir (YYYY-NamaBulan-DD agar mudah di kalender picker EMIS)
+    const tglLahirLabel = data.tanggal_lahir_label || formatTanggalNamaBulan(data.tanggal_lahir);
 
     // Tampilan NIK di Step 1
     const nikDisplay = data.belum_punya_nik
@@ -915,7 +1194,7 @@ function showStep1Assistant(data) {
             </div>
             <div>Pilih <strong>TANGGAL LAHIR</strong> di kalender EMIS:</div>
             <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 6px;">
-                <span style="font-size: 16px; font-weight: bold; color: #fff;">📅 ${data.tanggal_lahir || '-'}</span>
+                <span style="font-size: 16px; font-weight: bold; color: #fff;">📅 ${tglLahirLabel}</span>
                 <button id="tpq-btn-copy-tgl-step1" style="
                     background: #ffc107; color: #000; border: none; padding: 4px 10px;
                     border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer;
@@ -984,7 +1263,9 @@ function showStep1Assistant(data) {
 }
 
 /**
- * Banner Asisten Step 2: Fokus pada Checklist yang Perlu Dipilih Manual oleh Operator + draggable
+ * Banner Asisten Step 2: Aligned dengan Step 1
+ * - Bagian Atas: Data yang terisi otomatis / bisa disalin
+ * - Bagian Bawah: 👉 Tugas Anda (Pilihan manual di EMIS: Tanggal Masuk, Tingkat Kelas, JK, Status)
  */
 function showStep2Assistant(data, filledAyah = false, filledIbu = false, filledNik = false, filledHp = false) {
     const alertId = 'tpq-step2-alert';
@@ -998,74 +1279,47 @@ function showStep2Assistant(data, filledAyah = false, filledIbu = false, filledN
         bottom: 25px;
         right: 25px;
         z-index: 9999999;
-        background: #1e293b;
-        color: #f8fafc;
-        padding: 18px 22px;
+        background: #0d6efd;
+        color: white;
+        padding: 16px 20px;
         border-radius: 8px;
-        border: 1px solid #334155;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+        box-shadow: 0 6px 25px rgba(0,0,0,0.35);
         font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         font-size: 13px;
         max-width: 440px;
     `;
 
-    // Status isian Otomatis
-    const allAutoFilled = filledAyah && filledIbu && filledNik && filledHp;
-    const statusOrtuBadge = allAutoFilled
-        ? '<span style="font-size: 11px; background: #059669; color: white; padding: 2px 7px; border-radius: 4px; font-weight: 600;">NIK, HP, Ayah & Ibu Terisi ✓</span>'
-        : '<span style="font-size: 11px; background: #059669; color: white; padding: 2px 7px; border-radius: 4px; font-weight: 600;">Ayah & Ibu Terisi ✓</span>';
-
-    // Backup tombol salin cepat jika ada kendala di browser
-    let ortuFallbackHtml = '';
-    if (!filledAyah || !filledIbu) {
-        ortuFallbackHtml = `
-            <div style="background: rgba(217, 119, 6, 0.15); border: 1px solid #d97706; border-radius: 6px; padding: 8px 10px; margin-bottom: 10px; font-size: 11px;">
-                <div style="color: #fcd34d; font-weight: bold; margin-bottom: 4px;">⚠️ Salin Cepat Nama Orang Tua (Jika Belum Terisi):</div>
-                <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-                    ${data.nama_ayah ? `<button class="tpq-copy-badge" data-val="${data.nama_ayah}">Salin Ayah: ${data.nama_ayah}</button>` : ''}
-                    ${data.nama_ibu ? `<button class="tpq-copy-badge" data-val="${data.nama_ibu}">Salin Ibu: ${data.nama_ibu}</button>` : ''}
-                </div>
-            </div>
-        `;
-    }
+    // Format Tampilan Tanggal Masuk & Tanggal Lahir (YYYY-NamaBulan-DD)
+    const tglMasukLabel = data.tanggal_masuk_label || formatTanggalNamaBulan(data.tanggal_masuk);
+    const tglLahirLabel = data.tanggal_lahir_label || formatTanggalNamaBulan(data.tanggal_lahir);
 
     // Tampilan NIK di Step 2 (Otomatis terisi)
     let nikDisplay = '';
-    if (data.belum_punya_nik) {
-        nikDisplay = '<span style="color: #10b981; font-weight: bold;">[✓] Belum Punya NIK (Tercentang Otomatis)</span>';
+    if (data.belum_punya_nik || !data.nik) {
+        nikDisplay = '<span style="color: #ffc107; font-weight: 600;">[✓] Belum Punya NIK</span>';
     } else {
-        nikDisplay = `<span style="font-family: monospace; font-size: 13px; color: #fff;">${data.nik || '-'}</span>
-           <span style="font-size: 11px; color: #10b981; font-weight: bold; margin-left: 4px;">(Terisi Otomatis ✓)</span>
-           <button class="tpq-copy-badge" data-val="${data.nik || ''}">Salin</button>`;
+        nikDisplay = `<span style="font-family: monospace; font-size: 13px; color: #fff;">${data.nik}</span>
+           <button class="tpq-copy-badge" data-val="${data.nik}">Salin</button>`;
     }
 
-    // Tampilan NISN di Step 2
-    const nisnDisplay = data.belum_punya_nisn
-        ? '<span style="color: #fbbf24; font-weight: bold;">Centang: [✓] Belum Punya NISN</span>'
-        : `<span style="font-family: monospace; font-size: 13px; color: #fff;">${data.nisn || '-'}</span>
-           <button class="tpq-copy-badge" data-val="${data.nisn || ''}">Salin</button>`;
-
-    // Tampilan No Handphone di Step 2 (Otomatis terisi)
-    let cleanHp = String(data.no_hp || '').trim().replace(/[^0-9]/g, '');
-    if (cleanHp.startsWith('62')) cleanHp = '0' + cleanHp.substring(2);
-
+    // Tampilan No Handphone di Step 2 (Otomatis terisi format +62)
+    const formattedHp = formatEmisPhoneNumber(data.no_hp);
     let hpDisplay = '';
-    if (data.tidak_punya_hp || !cleanHp) {
-        hpDisplay = '<span style="color: #10b981; font-weight: bold;">[✓] Tidak Ada HP (Tercentang Otomatis)</span>';
+    if (data.tidak_punya_hp || !formattedHp) {
+        hpDisplay = '<span style="color: #ffc107; font-weight: 600;">[✓] Tidak Punya HP</span>';
     } else {
-        hpDisplay = `<span style="font-family: monospace; font-size: 13px; color: #fff;">${cleanHp}</span>
-           <span style="font-size: 11px; color: #10b981; font-weight: bold; margin-left: 4px;">(Terisi Otomatis ✓)</span>
-           <button class="tpq-copy-badge" data-val="${cleanHp}">Salin</button>`;
+        hpDisplay = `<span style="font-family: monospace; font-size: 13px; color: #fff;">${formattedHp}</span>
+           <button class="tpq-copy-badge" data-val="${formattedHp}">Salin</button>`;
     }
 
     div.innerHTML = `
         <style>
             .tpq-copy-badge {
-                background: #334155;
-                color: #38bdf8;
-                border: 1px solid #475569;
-                padding: 2px 7px;
-                border-radius: 4px;
+                background: rgba(255, 255, 255, 0.25);
+                color: #fff;
+                border: 1px solid rgba(255, 255, 255, 0.4);
+                padding: 1px 6px;
+                border-radius: 3px;
                 font-size: 11px;
                 font-weight: bold;
                 cursor: pointer;
@@ -1073,85 +1327,118 @@ function showStep2Assistant(data, filledAyah = false, filledIbu = false, filledN
                 transition: background 0.2s;
             }
             .tpq-copy-badge:hover {
-                background: #475569;
-                color: #fff;
+                background: rgba(255, 255, 255, 0.45);
             }
-            .tpq-check-row {
+            .tpq-data-row {
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
-                border-bottom: 1px solid #334155;
-                padding: 6px 0;
+                margin-bottom: 5px;
+                font-size: 12.5px;
+            }
+            .tpq-manual-row {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 6px;
+                font-size: 12.5px;
+                border-bottom: 1px dashed rgba(255, 255, 255, 0.2);
+                padding-bottom: 4px;
             }
         </style>
 
-        <div id="tpq-step2-header" style="cursor: move; user-select: none; font-weight: bold; font-size: 14px; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between;">
-            <span style="color: #38bdf8;">📋 Panduan Isian Step 2</span>
-            <div style="display: flex; align-items: center; gap: 6px;">
-                ${statusOrtuBadge}
-                <span style="font-size: 11px; background: #334155; color: #cbd5e1; padding: 2px 6px; border-radius: 4px;">⠿ Geser</span>
+        <div id="tpq-step2-header" style="cursor: move; user-select: none; font-weight: bold; font-size: 14px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;">
+            <span>📋 Step 2: Formulir Utama Santri</span>
+            <span style="font-size: 11px; background: rgba(255,255,255,0.25); padding: 2px 7px; border-radius: 4px; display: flex; align-items: center; gap: 4px;">
+                <span>⠿</span> <span>Geser</span>
+            </span>
+        </div>
+
+        <!-- BAGIAN ATAS: DATA YANG TERISI OTOMATIS / BISA DISALIN -->
+        <div style="background: rgba(0,0,0,0.2); padding: 9px 12px; border-radius: 6px; margin-bottom: 10px;">
+            <div style="font-size: 11px; font-weight: bold; color: rgba(255,255,255,0.85); margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;">
+                <span>✨ TERISI OTOMATIS (Bisa Disalin):</span>
+                <span style="font-size: 10.5px; background: #198754; color: white; padding: 1px 6px; border-radius: 3px;">Auto-Filled ✓</span>
+            </div>
+
+            <!-- NIK -->
+            <div class="tpq-data-row">
+                <span>• <strong>NIK:</strong></span>
+                <div>${nikDisplay}</div>
+            </div>
+
+            <!-- No HP -->
+            <div class="tpq-data-row">
+                <span>• <strong>No HP:</strong></span>
+                <div>${hpDisplay}</div>
+            </div>
+
+            <!-- Ayah Kandung -->
+            <div class="tpq-data-row">
+                <span>• <strong>Ayah:</strong></span>
+                <div>
+                    <span style="font-weight: 600; color: #fff;">${data.nama_ayah || '-'}</span>
+                    ${data.nama_ayah ? `<button class="tpq-copy-badge" data-val="${data.nama_ayah}">Salin</button>` : ''}
+                </div>
+            </div>
+
+            <!-- Ibu Kandung -->
+            <div class="tpq-data-row" style="margin-bottom: 0;">
+                <span>• <strong>Ibu:</strong></span>
+                <div>
+                    <span style="font-weight: 600; color: #fff;">${data.nama_ibu || '-'}</span>
+                    ${data.nama_ibu ? `<button class="tpq-copy-badge" data-val="${data.nama_ibu}">Salin</button>` : ''}
+                </div>
             </div>
         </div>
 
-        <div style="font-size: 12px; margin-bottom: 10px; color: #94a3b8; line-height: 1.4;">
-            NIK, No HP, Nama Ayah & Ibu diisikan otomatis. Silakan lengkapi / sesuaikan opsi berikut:
-        </div>
+        <!-- BAGIAN BAWAH: TUGAS ANDA (YANG PERLU DIPILIH MANUAL DI EMIS) -->
+        <div style="background: rgba(0,0,0,0.3); padding: 10px 12px; border-radius: 6px; margin-bottom: 10px;">
+            <div style="font-weight: bold; color: #ffc107; margin-bottom: 6px;">
+                👉 Tugas Anda (Pilih Manual di EMIS):
+            </div>
 
-        ${ortuFallbackHtml}
-
-        <div style="background: #0f172a; padding: 10px 12px; border-radius: 6px; font-size: 12px; margin-bottom: 12px; border: 1px solid #334155;">
             <!-- 1. Tanggal Masuk -->
-            <div class="tpq-check-row">
+            <div class="tpq-manual-row">
                 <span>1. <strong>Tgl Masuk:</strong></span>
-                <div>
-                    <span style="font-family: monospace; color: #fff;">${data.tanggal_masuk || '-'}</span>
-                    <button class="tpq-copy-badge" data-val="${data.tanggal_masuk || ''}">Salin</button>
+                <div style="display: flex; align-items: center; gap: 4px;">
+                    <span style="font-size: 14px; font-weight: bold; color: #fff;">📅 ${tglMasukLabel}</span>
+                    <button class="tpq-copy-badge" data-val="${data.tanggal_masuk || ''}" style="background: #ffc107; color: #000; border: none;">Salin</button>
                 </div>
             </div>
 
             <!-- 2. Tingkat Kelas -->
-            <div class="tpq-check-row">
+            <div class="tpq-manual-row">
                 <span>2. <strong>Tingkat Kelas:</strong></span>
-                <strong style="color: #facc15; font-size: 13px;">${data.tingkat_kelas || '-'}</strong>
+                <strong style="color: #ffc107; font-size: 13.5px;">${data.tingkat_kelas || '-'}</strong>
             </div>
 
             <!-- 3. Jenis Kelamin -->
-            <div class="tpq-check-row">
+            <div class="tpq-manual-row">
                 <span>3. <strong>Jenis Kelamin:</strong></span>
-                <strong style="color: #facc15; font-size: 13px;">${data.jenis_kelamin || '-'}</strong>
+                <strong style="color: #ffc107; font-size: 13.5px;">${data.jenis_kelamin || '-'}</strong>
             </div>
 
-            <!-- 4. NIK (Otomatis) -->
-            <div class="tpq-check-row">
-                <span>4. <strong>NIK:</strong></span>
-                <div>${nikDisplay}</div>
-            </div>
-
-            <!-- 5. NISN -->
-            <div class="tpq-check-row">
-                <span>5. <strong>NISN:</strong></span>
-                <div>${nisnDisplay}</div>
-            </div>
-
-            <!-- 6. No HP (Otomatis) -->
-            <div class="tpq-check-row" style="border-bottom: none;">
-                <span>6. <strong>No Handphone:</strong></span>
-                <div>${hpDisplay}</div>
+            <!-- 4. Status Ortu & Wali -->
+            <div class="tpq-manual-row" style="margin-bottom: 0; border-bottom: none; padding-bottom: 0;">
+                <span>4. <strong>Status Ortu:</strong></span>
+                <span style="color: #fff; font-size: 12px;">Masih Hidup | Wali: Ayah</span>
             </div>
         </div>
 
-        <div style="margin-bottom: 12px; font-size: 12px; line-height: 1.4; color: #cbd5e1;">
-            👉 <strong>Setelah semua opsi dipilih, tekan tombol SIMPAN di pojok kanan bawah EMIS.</strong><br>
-            <span style="font-size: 11px; opacity: 0.8; color: #94a3b8;">(Popup ini dapat digeser bila menutupi tombol atau form)</span>
+        <div style="font-size: 11.5px; opacity: 0.95; line-height: 1.4; margin-bottom: 10px;">
+            Setelah semua opsi dipilih, tekan tombol <strong style="background: rgba(255,255,255,0.25); padding: 1px 6px; border-radius: 3px;">SIMPAN</strong> di pojok kanan bawah EMIS.<br>
+            <span style="font-size: 11px; opacity: 0.85;">(Popup ini dapat digeser jika menutupi formulir)</span>
         </div>
 
         <div style="display: flex; gap: 8px;">
             <button id="tpq-btn-tandai-selesai-step2" style="
-                background: #10b981; color: #ffffff; border: none; padding: 7px 12px;
+                background: #198754; color: #ffffff; border: none; padding: 7px 12px;
                 border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer; flex: 1;
+                box-shadow: 0 2px 6px rgba(0,0,0,0.2);
             ">✓ Tandai Selesai di TPQ Smart</button>
             <button id="tpq-close-step2-alert" style="
-                background: #475569; color: white; border: none;
+                background: rgba(255,255,255,0.25); color: white; border: none;
                 padding: 7px 12px; border-radius: 4px; font-size: 12px; cursor: pointer;
             ">Tutup</button>
         </div>
@@ -1164,7 +1451,7 @@ function showStep2Assistant(data, filledAyah = false, filledIbu = false, filledN
     const headerEl = document.getElementById('tpq-step2-header');
     makeDraggable(div, headerEl);
 
-    // Pasang listener copy badge di dalam checklist
+    // Pasang listener copy badge
     const copyBtns = div.querySelectorAll('.tpq-copy-badge');
     copyBtns.forEach(btn => {
         btn.addEventListener('click', () => {
@@ -1172,11 +1459,15 @@ function showStep2Assistant(data, filledAyah = false, filledIbu = false, filledN
             if (val) {
                 navigator.clipboard.writeText(val);
                 const originalText = btn.innerText;
+                const originalBg = btn.style.background;
+                const originalColor = btn.style.color;
                 btn.innerText = 'Tersalin!';
-                btn.style.color = '#10b981';
+                btn.style.background = '#198754';
+                btn.style.color = '#fff';
                 setTimeout(() => {
                     btn.innerText = originalText;
-                    btn.style.color = '#38bdf8';
+                    btn.style.background = originalBg;
+                    btn.style.color = originalColor;
                 }, 1200);
             }
         });
@@ -1206,70 +1497,5 @@ function showStep2Assistant(data, filledAyah = false, filledIbu = false, filledN
  * Banner mengambang jika halaman EMIS belum di posisi formulir
  */
 function showPendingBanner(santri, currentStep) {
-    const old = document.getElementById('tpq-pending-banner');
-    if (old) old.remove();
-
-    const banner = document.createElement('div');
-    banner.id = 'tpq-pending-banner';
-    banner.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        z-index: 9999999;
-        background: #0d6efd;
-        color: white;
-        padding: 16px 20px;
-        border-radius: 8px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-        font-family: system-ui, -apple-system, sans-serif;
-        font-size: 14px;
-        max-width: 400px;
-    `;
-
-    const stepLabel = currentStep === 1 ? 'Step 1: Pencarian Awal' : (currentStep === 2 ? 'Step 2: Form Utama' : 'Buka Menu Pendaftaran Santri Baru');
-
-    banner.innerHTML = `
-        <div id="tpq-pending-header" style="cursor: move; user-select: none; font-weight: bold; margin-bottom: 6px; font-size: 15px; display: flex; justify-content: space-between; align-items: center;">
-            <span>⚡ TPQ Smart Bridge</span>
-            <span style="font-size: 11px; background: rgba(255,255,255,0.25); padding: 1px 6px; border-radius: 4px;">⠿ Geser</span>
-        </div>
-        <div style="margin-bottom: 12px; line-height: 1.4;">
-            Data santri siap diisi:<br>
-            <strong>${santri.nama_santri}</strong> (${santri.tingkat_kelas || 'Santri Baru'})<br>
-            <span style="font-size: 12px; opacity: 0.9;">Halaman terdeteksi: <strong>${stepLabel}</strong></span>
-        </div>
-        <div style="display: flex; gap: 8px;">
-            <button id="tpq-btn-fill-now" style="
-                background: #198754; color: white; border: none; padding: 6px 14px;
-                border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px;
-            ">Isi Form Sekarang</button>
-            <button id="tpq-btn-cancel-fill" style="
-                background: #6c757d; color: white; border: none; padding: 6px 10px;
-                border-radius: 4px; cursor: pointer; font-size: 13px;
-            ">Batal</button>
-        </div>
-    `;
-
-    document.body.appendChild(banner);
-
-    const header = document.getElementById('tpq-pending-header');
-    makeDraggable(banner, header);
-
-    document.getElementById('tpq-btn-fill-now').addEventListener('click', () => {
-        const step = detectCurrentEmisStep();
-        if (step === 1) {
-            fillEmisStep1(santri);
-        } else if (step === 2) {
-            fillEmisStep2(santri);
-            chrome.storage.local.remove(['pendingSantriData']);
-        } else {
-            alert('Silakan buka menu Pendaftaran Santri Baru di EMIS terlebih dahulu.');
-        }
-        banner.remove();
-    });
-
-    document.getElementById('tpq-btn-cancel-fill').addEventListener('click', () => {
-        chrome.storage.local.remove(['pendingSantriData', 'waitingForStep2']);
-        banner.remove();
-    });
+    showStep0StartPopup(santri);
 }
