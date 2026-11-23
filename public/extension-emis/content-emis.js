@@ -1552,16 +1552,25 @@ function showStep2Assistant(data, filledAyah = false, filledIbu = false, filledN
             <span style="font-size: 11px; opacity: 0.85;">(Popup ini dapat digeser jika menutupi formulir)</span>
         </div>
 
-        <div style="display: flex; gap: 8px;">
-            <button id="tpq-btn-tandai-selesai-step2" style="
-                background: #198754; color: #ffffff; border: none; padding: 7px 12px;
-                border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer; flex: 1;
-                box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-            ">✓ Tandai Selesai di TPQ Smart</button>
-            <button id="tpq-close-step2-alert" style="
-                background: rgba(255,255,255,0.25); color: white; border: none;
-                padding: 7px 12px; border-radius: 4px; font-size: 12px; cursor: pointer;
-            ">Tutup</button>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+            <button id="tpq-btn-lanjut-update-alamat" style="
+                background: linear-gradient(135deg, #0d6efd, #0b5ed7); color: #ffffff; border: 1px solid rgba(255,255,255,0.4); padding: 9px 12px;
+                border-radius: 5px; font-size: 12.5px; font-weight: bold; cursor: pointer; width: 100%;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.25); display: flex; align-items: center; justify-content: center; gap: 6px;
+            ">
+                <span>🚀 Simpan & Lanjut Update Alamat di Kesiswaan</span>
+            </button>
+            <div style="display: flex; gap: 6px;">
+                <button id="tpq-btn-tandai-selesai-step2" style="
+                    background: #198754; color: #ffffff; border: none; padding: 7px 10px;
+                    border-radius: 4px; font-size: 11.5px; font-weight: bold; cursor: pointer; flex: 1;
+                    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+                ">✓ Selesai Saja</button>
+                <button id="tpq-close-step2-alert" style="
+                    background: rgba(255,255,255,0.25); color: white; border: none;
+                    padding: 7px 10px; border-radius: 4px; font-size: 11.5px; cursor: pointer;
+                ">Tutup</button>
+            </div>
         </div>
     `;
 
@@ -1598,7 +1607,42 @@ function showStep2Assistant(data, filledAyah = false, filledIbu = false, filledN
         });
     });
 
-    // Tombol tandai selesai
+    // Tombol Lanjut Update Alamat (Satu Paket Pendaftaran + Update Alamat)
+    const btnLanjutUpdate = document.getElementById('tpq-btn-lanjut-update-alamat');
+    if (btnLanjutUpdate && data.id_santri) {
+        btnLanjutUpdate.addEventListener('click', () => {
+            // 1. Beritahu TPQ Smart status pendaftaran PPDB selesai di database
+            try {
+                chrome.runtime.sendMessage({
+                    action: 'FORM_FILLED_NOTIFY',
+                    id_santri: data.id_santri
+                });
+            } catch (_) {}
+
+            // 2. Siapkan antrean untuk update alamat di Kesiswaan EMIS
+            chrome.storage.local.set({
+                pendingUpdateAlamatData: data,
+                currentTask: 'UPDATE_ALAMAT',
+                waitingForUpdateStep2: false
+            }, () => {
+                // Bersihkan antrean pendaftaran PPDB
+                chrome.storage.local.remove(['pendingSantriData', 'waitingForStep2']);
+
+                btnLanjutUpdate.innerHTML = '🔄 Mengalihkan ke Kesiswaan...';
+                btnLanjutUpdate.style.background = '#0b5ed7';
+                btnLanjutUpdate.disabled = true;
+
+                showTemporaryFloatingToast('Pendaftaran selesai! Mengalihkan ke menu Kesiswaan untuk update alamat...', 'success');
+
+                setTimeout(() => {
+                    div.remove();
+                    window.location.href = "https://emis.kemenag.go.id/kesiswaan";
+                }, 600);
+            });
+        });
+    }
+
+    // Tombol tandai selesai saja (tanpa lanjut alamat)
     const btnSelesai = document.getElementById('tpq-btn-tandai-selesai-step2');
     if (btnSelesai && data.id_santri) {
         btnSelesai.addEventListener('click', () => {
