@@ -831,12 +831,16 @@ class SantriBaruModel extends Model
                 COALESCE(ks.IdKelas, tbl_santri_baru.IdKelas) as IdKelas, 
                 COALESCE(tbl_kelas.NamaKelas, k_pendaftaran.NamaKelas) as NamaKelas, 
                 tbl_tpq.NamaTpq, 
-                tbl_tpq.KelurahanDesa
+                tbl_tpq.KelurahanDesa,
+                COALESCE(se.StatusEmis, "belum") as StatusEmis,
+                se.TglUpdateEmis,
+                se.UpdatedBy as EmisUpdatedBy
             ')
             ->join('tbl_kelas_santri ks', 'ks.IdSantri = tbl_santri_baru.IdSantri AND ks.IdTahunAjaran = "' . $IdTahunAjaran . '"', 'left')
             ->join('tbl_kelas', 'tbl_kelas.IdKelas = ks.IdKelas', 'left')
             ->join('tbl_kelas k_pendaftaran', 'k_pendaftaran.IdKelas = tbl_santri_baru.IdKelas', 'left')
-            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq', 'left');
+            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq', 'left')
+            ->join('tbl_santri_emis se', 'se.IdSantri = tbl_santri_baru.IdSantri', 'left');
 
             if (!empty($IdKelas)) {
                 if (is_array($IdKelas)) {
@@ -846,9 +850,18 @@ class SantriBaruModel extends Model
                 }
             }
         } else {
-            $builder->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq, tbl_tpq.KelurahanDesa')
+            $builder->select('
+                tbl_santri_baru.*, 
+                tbl_kelas.NamaKelas, 
+                tbl_tpq.NamaTpq, 
+                tbl_tpq.KelurahanDesa,
+                COALESCE(se.StatusEmis, "belum") as StatusEmis,
+                se.TglUpdateEmis,
+                se.UpdatedBy as EmisUpdatedBy
+            ')
                 ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas', 'left')
-                ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq', 'left');
+                ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq', 'left')
+                ->join('tbl_santri_emis se', 'se.IdSantri = tbl_santri_baru.IdSantri', 'left');
 
             if (!empty($IdKelas)) {
                 if (is_array($IdKelas)) {
@@ -900,6 +913,72 @@ class SantriBaruModel extends Model
         }
 
         return $builder->get()->getRowArray() ?: null;
+    }
+
+    /**
+     * Memperbarui / mencatat status sinkronisasi EMIS santri ke tbl_santri_emis
+     * @param string $IdSantri
+     * @param string $status 'selesai' atau 'belum'
+     * @param string|null $updatedBy Nama/ID user operator
+     * @param string|null $IdTpq
+     * @return bool
+     */
+    public function updateStatusEmis($IdSantri, $status = 'selesai', $updatedBy = null, $IdTpq = null)
+    {
+        $db = $this->db;
+        $builder = $db->table('tbl_santri_emis');
+        $now = date('Y-m-d H:i:s');
+
+        // Jika IdTpq belum diberikan, cari dari tbl_santri_baru
+        if (empty($IdTpq)) {
+            $rowSantri = $db->table('tbl_santri_baru')->select('IdTpq')->where('IdSantri', $IdSantri)->get()->getRowArray();
+            if ($rowSantri && !empty($rowSantri['IdTpq'])) {
+                $IdTpq = $rowSantri['IdTpq'];
+            }
+        }
+
+        $data = [
+            'IdSantri'      => $IdSantri,
+            'StatusEmis'    => $status,
+            'TglUpdateEmis' => ($status === 'selesai') ? $now : null,
+            'UpdatedBy'     => $updatedBy,
+            'updated_at'    => $now
+        ];
+        if (!empty($IdTpq)) {
+            $data['IdTpq'] = $IdTpq;
+        }
+
+        $existing = $builder->where('IdSantri', $IdSantri)->get()->getRowArray();
+        if ($existing) {
+            return $builder->where('IdSantri', $IdSantri)->update($data);
+        } else {
+            $data['created_at'] = $now;
+            return $builder->insert($data);
+        }
+    }
+
+    /**
+     * Mereset status EMIS santri (menjadi 'belum')
+     * @param string|null $IdTpq Filter per TPQ jika ada
+     * @return bool
+     */
+    public function resetStatusEmis($IdTpq = null)
+    {
+        $db = $this->db;
+        $builder = $db->table('tbl_santri_emis');
+        $now = date('Y-m-d H:i:s');
+        $data = [
+            'StatusEmis'    => 'belum',
+            'TglUpdateEmis' => null,
+            'updated_at'    => $now
+        ];
+
+        if (!empty($IdTpq)) {
+            $subQuery = $db->table('tbl_santri_baru')->select('IdSantri')->where('IdTpq', $IdTpq);
+            $builder->whereIn('IdSantri', $subQuery);
+        }
+
+        return $builder->update($data);
     }
 
     /**

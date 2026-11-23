@@ -45,17 +45,27 @@
                     </select>
                 </div>
                 <div class="col-md-6 col-sm-12 mb-2 text-md-right">
+                    <?php
+                        $totalSantri = count($dataSantri);
+                        $totalSelesai = 0;
+                        foreach ($dataSantri as $s) {
+                            if (($s['StatusEmis'] ?? 'belum') === 'selesai') {
+                                $totalSelesai++;
+                            }
+                        }
+                        $totalBelum = $totalSantri - $totalSelesai;
+                    ?>
                     <div class="btn-group" role="group">
                         <button type="button" class="btn btn-light border btn-sm" disabled>
-                            Total: <strong id="statTotalSantri"><?= count($dataSantri); ?></strong>
+                            Total: <strong id="statTotalSantri"><?= $totalSantri; ?></strong>
                         </button>
                         <button type="button" class="btn btn-success btn-sm" disabled>
-                            <i class="fas fa-check-circle mr-1"></i> Selesai: <strong id="statSelesaiSantri">0</strong>
+                            <i class="fas fa-check-circle mr-1"></i> Selesai: <strong id="statSelesaiSantri"><?= $totalSelesai; ?></strong>
                         </button>
                         <button type="button" class="btn btn-warning btn-sm" disabled>
-                            <i class="fas fa-clock mr-1"></i> Belum: <strong id="statBelumSantri"><?= count($dataSantri); ?></strong>
+                            <i class="fas fa-clock mr-1"></i> Belum: <strong id="statBelumSantri"><?= $totalBelum; ?></strong>
                         </button>
-                        <button type="button" class="btn btn-outline-danger btn-sm" onclick="resetSemuaStatusEmis()" title="Reset tanda selesai">
+                        <button type="button" class="btn btn-outline-danger btn-sm" onclick="resetSemuaStatusEmis()" title="Reset tanda selesai di database">
                             <i class="fas fa-undo"></i>
                         </button>
                     </div>
@@ -87,9 +97,24 @@
                                     </button>
                                 </td>
                                 <td class="align-middle text-center" id="col-status-<?= $santri['IdSantri']; ?>">
-                                    <span class="badge badge-warning p-2 status-badge cursor-pointer" onclick="toggleStatusSantriEmis('<?= $santri['IdSantri']; ?>')" title="Klik untuk ubah status">
-                                        <i class="fas fa-hourglass-half mr-1"></i> Belum
-                                    </span>
+                                    <?php 
+                                        $isSelesai = ($santri['StatusEmis'] ?? 'belum') === 'selesai';
+                                        $tglUpdate = !empty($santri['TglUpdateEmis']) ? date('d M Y, H:i', strtotime($santri['TglUpdateEmis'])) : '';
+                                    ?>
+                                    <?php if ($isSelesai): ?>
+                                        <span class="badge badge-success p-2 status-badge cursor-pointer" onclick="toggleStatusSantriEmis('<?= $santri['IdSantri']; ?>')" title="Klik untuk ubah status">
+                                            <i class="fas fa-check-circle mr-1"></i> Selesai
+                                        </span>
+                                        <?php if (!empty($tglUpdate)): ?>
+                                            <small class="text-muted d-block mt-1 status-time" style="font-size: 11px;">
+                                                <i class="far fa-clock mr-1"></i><?= $tglUpdate; ?>
+                                            </small>
+                                        <?php endif; ?>
+                                    <?php else: ?>
+                                        <span class="badge badge-warning p-2 status-badge cursor-pointer" onclick="toggleStatusSantriEmis('<?= $santri['IdSantri']; ?>')" title="Klik untuk ubah status">
+                                            <i class="fas fa-hourglass-half mr-1"></i> Belum
+                                        </span>
+                                    <?php endif; ?>
                                 </td>
                                 <td class="align-middle font-monospace"><?= htmlspecialchars($santri['NikSantri'] ?: '-'); ?></td>
                                 <td class="align-middle font-weight-bold text-dark">
@@ -515,62 +540,93 @@
     }
 
     // ==============================================================
-    // FITUR STATUS LOKAL (localStorage)
+    // FITUR STATUS DATABASE (tbl_santri_emis)
     // ==============================================================
-    const STORAGE_KEY_EMIS = 'tpqsmart_emis_status_map';
-
-    function getEmisStatusMap() {
-        try {
-            return JSON.parse(localStorage.getItem(STORAGE_KEY_EMIS)) || {};
-        } catch (e) {
-            return {};
-        }
-    }
-
-    function saveEmisStatusMap(map) {
-        localStorage.setItem(STORAGE_KEY_EMIS, JSON.stringify(map));
-    }
 
     function toggleStatusSantriEmis(idSantri) {
-        const map = getEmisStatusMap();
-        const isSelesai = map[idSantri] === true;
-        const newStatus = !isSelesai;
-        map[idSantri] = newStatus;
-        saveEmisStatusMap(map);
-        updateStatusBadgeUI(idSantri, newStatus);
-        hitungUlangStatistik();
+        const sObj = dataSantriMaster.find(s => String(s.IdSantri) === String(idSantri));
+        const currentIsSelesai = sObj ? (sObj.StatusEmis === 'selesai') : false;
+        const newStatus = currentIsSelesai ? 'belum' : 'selesai';
 
-        let namaSantri = '';
-        const santriObj = dataSantriMaster.find(s => String(s.IdSantri) === String(idSantri));
-        if (santriObj && santriObj.NamaSantri) {
-            namaSantri = santriObj.NamaSantri;
-        }
+        $.ajax({
+            url: '<?= base_url('backend/santri/updateStatusEmisAjax'); ?>',
+            method: 'POST',
+            data: {
+                IdSantri: idSantri,
+                Status: newStatus
+            },
+            dataType: 'json',
+            success: function(res) {
+                if (res.success) {
+                    updateStatusBadgeUI(idSantri, res.status === 'selesai', res.tgl_update_label || '');
+                    hitungUlangStatistik();
 
-        if (typeof toastr !== 'undefined') {
-            if (newStatus) {
-                toastr.success(namaSantri ? `Status ${namaSantri} ditandai Selesai.` : 'Status santri ditandai Selesai.', 'Status EMIS');
-            } else {
-                toastr.info(namaSantri ? `Status ${namaSantri} dikembalikan ke Belum.` : 'Status santri dikembalikan ke Belum.', 'Status EMIS');
+                    let namaSantri = sObj && sObj.NamaSantri ? sObj.NamaSantri : '';
+                    if (typeof toastr !== 'undefined') {
+                        if (res.status === 'selesai') {
+                            toastr.success(namaSantri ? `Status ${namaSantri} ditandai Selesai di database.` : 'Status santri ditandai Selesai di database.', 'Status EMIS');
+                        } else {
+                            toastr.info(namaSantri ? `Status ${namaSantri} dikembalikan ke Belum di database.` : 'Status santri dikembalikan ke Belum di database.', 'Status EMIS');
+                        }
+                    }
+                } else {
+                    if (typeof toastr !== 'undefined') {
+                        toastr.error(res.message || 'Gagal mengubah status di database', 'Gagal');
+                    }
+                }
+            },
+            error: function() {
+                if (typeof toastr !== 'undefined') {
+                    toastr.error('Terjadi kesalahan koneksi ke server saat memperbarui status.', 'Gagal');
+                }
             }
-        }
+        });
     }
 
-    function setStatusSantriEmis(idSantri, isSelesai) {
-        const map = getEmisStatusMap();
-        map[idSantri] = isSelesai;
-        saveEmisStatusMap(map);
-        updateStatusBadgeUI(idSantri, isSelesai);
-        hitungUlangStatistik();
+    function setStatusSantriEmis(idSantri, isSelesai, callback = null) {
+        const newStatus = isSelesai ? 'selesai' : 'belum';
+        $.ajax({
+            url: '<?= base_url('backend/santri/updateStatusEmisAjax'); ?>',
+            method: 'POST',
+            data: {
+                IdSantri: idSantri,
+                Status: newStatus
+            },
+            dataType: 'json',
+            success: function(res) {
+                if (res.success) {
+                    updateStatusBadgeUI(idSantri, res.status === 'selesai', res.tgl_update_label || '');
+                    hitungUlangStatistik();
+                    if (typeof callback === 'function') {
+                        callback(res);
+                    }
+                }
+            }
+        });
     }
 
-    function updateStatusBadgeUI(idSantri, isSelesai, refreshDataTable = true) {
+    function updateStatusBadgeUI(idSantri, isSelesai, tglUpdateLabel = '', refreshDataTable = true) {
         const cell = document.getElementById('col-status-' + idSantri);
         if (!cell) return;
+
+        // Update dataSantriMaster agar konsisten
+        const sObj = dataSantriMaster.find(s => String(s.IdSantri) === String(idSantri));
+        if (sObj) {
+            sObj.StatusEmis = isSelesai ? 'selesai' : 'belum';
+            if (isSelesai && tglUpdateLabel) {
+                sObj.TglUpdateEmis = tglUpdateLabel;
+            } else if (!isSelesai) {
+                sObj.TglUpdateEmis = null;
+            }
+        }
+
         if (isSelesai) {
+            const timeHtml = tglUpdateLabel ? `<small class="text-muted d-block mt-1 status-time" style="font-size: 11px;"><i class="far fa-clock mr-1"></i>${tglUpdateLabel}</small>` : '';
             cell.innerHTML = `
                 <span class="badge badge-success p-2 status-badge cursor-pointer" onclick="toggleStatusSantriEmis('${idSantri}')" title="Klik untuk ubah">
                     <i class="fas fa-check-circle mr-1"></i> Selesai
                 </span>
+                ${timeHtml}
             `;
         } else {
             cell.innerHTML = `
@@ -584,20 +640,10 @@
         }
     }
 
-    function loadSemuaStatusDariStorage() {
-        const map = getEmisStatusMap();
-        dataSantriMaster.forEach(s => {
-            if (map[s.IdSantri] === true) {
-                updateStatusBadgeUI(s.IdSantri, true, false);
-            }
-        });
-    }
-
     function hitungUlangStatistik() {
-        const map = getEmisStatusMap();
         let selesai = 0;
         dataSantriMaster.forEach(s => {
-            if (map[s.IdSantri] === true) selesai++;
+            if (s.StatusEmis === 'selesai') selesai++;
         });
         const total = dataSantriMaster.length;
         const belum = total - selesai;
@@ -611,7 +657,7 @@
         if (typeof Swal !== 'undefined') {
             Swal.fire({
                 title: 'Reset Semua Status EMIS?',
-                text: 'Semua tanda status santri yang sudah selesai akan dikembalikan menjadi "Belum".',
+                text: 'Semua tanda status santri yang sudah selesai akan dikembalikan menjadi "Belum" di database.',
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#d33',
@@ -620,24 +666,34 @@
                 cancelButtonText: 'Batal'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    localStorage.removeItem(STORAGE_KEY_EMIS);
-                    dataSantriMaster.forEach(s => updateStatusBadgeUI(s.IdSantri, false, false));
-                    if (dataTableSantri) {
-                        dataTableSantri.rows().invalidate().draw(false);
-                    }
-                    hitungUlangStatistik();
-                    if (typeof toastr !== 'undefined') {
-                        toastr.success('Semua status santri berhasil direset ke Belum.', 'Reset Selesai');
-                    }
+                    $.ajax({
+                        url: '<?= base_url('backend/santri/resetStatusEmisAjax'); ?>',
+                        method: 'POST',
+                        dataType: 'json',
+                        success: function(res) {
+                            if (res.success) {
+                                dataSantriMaster.forEach(s => {
+                                    s.StatusEmis = 'belum';
+                                    s.TglUpdateEmis = null;
+                                    updateStatusBadgeUI(s.IdSantri, false, '', false);
+                                });
+                                if (dataTableSantri) {
+                                    dataTableSantri.rows().invalidate().draw(false);
+                                }
+                                hitungUlangStatistik();
+                                if (typeof toastr !== 'undefined') {
+                                    toastr.success(res.message || 'Semua status santri berhasil direset di database.', 'Reset Selesai');
+                                }
+                            }
+                        },
+                        error: function() {
+                            if (typeof toastr !== 'undefined') {
+                                toastr.error('Gagal mereset status santri di database.', 'Gagal');
+                            }
+                        }
+                    });
                 }
             });
-        } else if (confirm('Apakah Anda yakin ingin mereset semua tanda status selesai?')) {
-            localStorage.removeItem(STORAGE_KEY_EMIS);
-            dataSantriMaster.forEach(s => updateStatusBadgeUI(s.IdSantri, false, false));
-            if (dataTableSantri) {
-                dataTableSantri.rows().invalidate().draw(false);
-            }
-            hitungUlangStatistik();
         }
     }
 
@@ -686,27 +742,29 @@
         if (event.data.type === 'EMIS_EXTENSION_FILLED_SUCCESS') {
             const santriId = event.data.id_santri;
             if (santriId) {
-                setStatusSantriEmis(santriId, true);
+                setStatusSantriEmis(santriId, true, function(res) {
+                    let namaSantri = '';
+                    const santriObj = dataSantriMaster.find(s => String(s.IdSantri) === String(santriId));
+                    if (santriObj && santriObj.NamaSantri) {
+                        namaSantri = santriObj.NamaSantri;
+                    }
 
-                let namaSantri = '';
-                const santriObj = dataSantriMaster.find(s => String(s.IdSantri) === String(santriId));
-                if (santriObj && santriObj.NamaSantri) {
-                    namaSantri = santriObj.NamaSantri;
-                }
+                    const recordTime = res.tgl_update_label || 'Baru saja';
 
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Status EMIS Ditandai Selesai!',
-                        html: namaSantri 
-                            ? `Data santri <strong>${namaSantri}</strong> berhasil ditandai <strong>Selesai</strong> di TPQ Smart.<br><small class="text-muted">Pastikan Anda telah menekan tombol SIMPAN di formulir EMIS.</small>`
-                            : 'Data santri berhasil ditandai <strong>Selesai</strong> di TPQ Smart.<br><small class="text-muted">Pastikan Anda telah menekan tombol SIMPAN di formulir EMIS.</small>',
-                        confirmButtonColor: '#198754',
-                        confirmButtonText: '<i class="fas fa-check mr-1"></i> OK'
-                    });
-                } else if (typeof toastr !== 'undefined') {
-                    toastr.success('Data santri berhasil ditandai Selesai di EMIS!', 'Status EMIS');
-                }
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Status EMIS Tersimpan ke Database!',
+                            html: namaSantri 
+                                ? `Data santri <strong>${namaSantri}</strong> berhasil disimpan dengan status <strong>Selesai</strong> di database.<br><small class="text-muted"><i class="far fa-clock mr-1"></i>Tercatat pada: ${recordTime}</small>`
+                                : `Data santri berhasil disimpan dengan status <strong>Selesai</strong> di database.<br><small class="text-muted"><i class="far fa-clock mr-1"></i>Tercatat pada: ${recordTime}</small>`,
+                            confirmButtonColor: '#198754',
+                            confirmButtonText: '<i class="fas fa-check mr-1"></i> OK'
+                        });
+                    } else if (typeof toastr !== 'undefined') {
+                        toastr.success('Data santri berhasil ditandai Selesai di database!', 'Status EMIS');
+                    }
+                });
             }
         }
     });

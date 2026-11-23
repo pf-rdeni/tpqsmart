@@ -1786,6 +1786,70 @@ class Santri extends BaseController
     }
 
     /**
+     * AJAX endpoint untuk menyimpan status sinkronisasi EMIS santri ke database (tbl_santri_emis)
+     */
+    public function updateStatusEmisAjax()
+    {
+        $idSantri = $this->request->getPost('IdSantri');
+        $rawStatus = $this->request->getPost('Status');
+        $status = ($rawStatus === 'selesai' || $rawStatus === true || $rawStatus === '1') ? 'selesai' : 'belum';
+
+        if (empty($idSantri)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'ID Santri wajib disertakan'
+            ])->setStatusCode(400);
+        }
+
+        $user = session()->get('username') 
+            ?: session()->get('NamaUser') 
+            ?: session()->get('Nama') 
+            ?: session()->get('user_id') 
+            ?: 'Operator';
+
+        $idTpq = session()->get('IdTpq');
+
+        $result = $this->DataSantriBaru->updateStatusEmis($idSantri, $status, $user, $idTpq);
+
+        if ($result) {
+            $now = date('Y-m-d H:i:s');
+            $tglLabel = ($status === 'selesai') ? date('d M Y, H:i') : null;
+
+            return $this->response->setJSON([
+                'success'          => true,
+                'id_santri'        => $idSantri,
+                'status'           => $status,
+                'tgl_update'       => ($status === 'selesai') ? $now : null,
+                'tgl_update_label' => $tglLabel,
+                'updated_by'       => $user,
+                'message'          => ($status === 'selesai') 
+                    ? 'Status santri berhasil ditandai Selesai di database' 
+                    : 'Status santri berhasil diubah ke Belum di database'
+            ]);
+        }
+
+        return $this->response->setJSON([
+            'success' => false,
+            'message' => 'Gagal memperbarui status santri di database'
+        ])->setStatusCode(500);
+    }
+
+    /**
+     * AJAX endpoint untuk mereset status EMIS santri ke 'belum' di database
+     */
+    public function resetStatusEmisAjax()
+    {
+        $idTpq = $this->request->getPost('IdTpq') ?: session()->get('IdTpq');
+
+        $this->DataSantriBaru->resetStatusEmis($idTpq);
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'Semua status santri berhasil dikembalikan ke Belum di database'
+        ]);
+    }
+
+    /**
      * Download file zip ekstensi browser TPQ Smart - EMIS 4.0 Bridge
      * Mendukung download di lingkungan lokal maupun webserver cPanel / VPS
      */
