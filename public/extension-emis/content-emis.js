@@ -421,23 +421,40 @@ function findStep2NikElements() {
     let inputNik = null;
     let checkboxNik = null;
 
-    // 1. Cari checkbox 'Belum Punya NIK'
-    const checkboxes = Array.from(document.querySelectorAll('input[type="checkbox"]'));
+    // 1. Cari checkbox 'Belum Punya NIK' (Mendukung [role="checkbox"] RNW & input[type="checkbox"])
+    const checkboxes = Array.from(document.querySelectorAll('[role="checkbox"], input[type="checkbox"]'));
     for (const cb of checkboxes) {
         let labelText = '';
         if (cb.id) {
             const lbl = document.querySelector(`label[for="${cb.id}"]`);
             if (lbl) labelText += ' ' + (lbl.innerText || lbl.textContent || '');
         }
-        const parent = cb.closest('label') || cb.parentElement;
+        const parent = cb.closest('.r-1awozwy') || cb.closest('.r-18u37iz') || cb.closest('label') || cb.parentElement;
         if (parent) {
             labelText += ' ' + (parent.innerText || parent.textContent || '');
         }
 
         const t = labelText.toUpperCase();
-        if (t.includes('BELUM') && t.includes('NIK')) {
+        if (t.includes('BELUM') && t.includes('NIK') && !t.includes('NISN')) {
             checkboxNik = cb;
             break;
+        }
+    }
+
+    // Fallback: Cari langsung elemen label teks "Belum Punya NIK"
+    if (!checkboxNik) {
+        const allTextEls = Array.from(document.querySelectorAll('.css-901oao, label, span, div')).filter(el => {
+            const t = (el.innerText || el.textContent || '').trim().toUpperCase();
+            return (t.includes('BELUM') && t.includes('NIK') && !t.includes('NISN') && t.length <= 30);
+        });
+
+        for (const tEl of allTextEls) {
+            const container = tEl.closest('.r-1awozwy') || tEl.parentElement;
+            if (container) {
+                const cb = container.querySelector('[role="checkbox"], input[type="checkbox"]');
+                checkboxNik = cb || container;
+                break;
+            }
         }
     }
 
@@ -493,6 +510,101 @@ function findStep2NikElements() {
 }
 
 /**
+ * Mencari input NISN dan Checkbox 'Belum Punya NISN' di Step 2 (Seksi Keterangan Calon Santri)
+ * Mendukung [role="checkbox"] (React Native for Web) dan input[type="checkbox"]
+ */
+function findStep2NisnElements() {
+    let inputNisn = null;
+    let checkboxNisn = null;
+
+    // 1. Cari checkbox 'Belum Punya NISN'
+    const checkboxes = Array.from(document.querySelectorAll('[role="checkbox"], input[type="checkbox"]'));
+    for (const cb of checkboxes) {
+        let labelText = '';
+        if (cb.id) {
+            const lbl = document.querySelector(`label[for="${cb.id}"]`);
+            if (lbl) labelText += ' ' + (lbl.innerText || lbl.textContent || '');
+        }
+        const parent = cb.closest('.r-1awozwy') || cb.closest('.r-18u37iz') || cb.closest('label') || cb.parentElement;
+        if (parent) {
+            labelText += ' ' + (parent.innerText || parent.textContent || '');
+        }
+
+        const t = labelText.toUpperCase();
+        if (t.includes('BELUM') && t.includes('NISN')) {
+            checkboxNisn = cb;
+            break;
+        }
+    }
+
+    // Fallback: Cari langsung label teks "Belum Punya NISN"
+    if (!checkboxNisn) {
+        const allTextEls = Array.from(document.querySelectorAll('.css-901oao, label, span, div')).filter(el => {
+            const t = (el.innerText || el.textContent || '').trim().toUpperCase();
+            return t === 'BELUM PUNYA NISN' || (t.includes('BELUM') && t.includes('NISN') && t.length <= 30);
+        });
+
+        for (const tEl of allTextEls) {
+            const container = tEl.closest('.r-1awozwy') || tEl.parentElement;
+            if (container) {
+                const cb = container.querySelector('[role="checkbox"], input[type="checkbox"]');
+                checkboxNisn = cb || container;
+                break;
+            }
+        }
+    }
+
+    // 2. Cari input teks untuk NISN di seksi KETERANGAN CALON SANTRI
+    const headingOrtu = findLeafHeading('KETERANGAN ORANG TUA SANTRI') || findLeafHeading('KETERANGAN ORANG TUA') || findLeafHeading('AYAH KANDUNG');
+
+    const allInputs = Array.from(document.querySelectorAll('input:not([type="hidden"]):not([type="radio"]):not([type="checkbox"])'))
+        .filter(inp => {
+            const rect = inp.getBoundingClientRect();
+            return rect.width > 0 && rect.height > 0 && !inp.disabled;
+        });
+
+    for (const inp of allInputs) {
+        if (headingOrtu && (headingOrtu.compareDocumentPosition(inp) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0) {
+            continue;
+        }
+
+        const ph = (inp.getAttribute('placeholder') || '').toUpperCase();
+        const name = (inp.getAttribute('name') || '').toUpperCase();
+        const id = (inp.getAttribute('id') || '').toUpperCase();
+        const aria = (inp.getAttribute('aria-label') || '').toUpperCase();
+
+        let labelText = '';
+        let p = inp.parentElement;
+        for (let i = 0; i < 4 && p; i++) {
+            const raw = (p.innerText || p.textContent || '').trim().toUpperCase();
+            if (raw.length <= 40) {
+                labelText += ' ' + raw;
+            }
+            p = p.parentElement;
+        }
+
+        const combined = ph + ' ' + name + ' ' + id + ' ' + aria + ' ' + labelText;
+        if (combined.includes('NISN')) {
+            inputNisn = inp;
+            break;
+        }
+    }
+
+    // Fallback: jika checkboxNisn ditemukan, input NISN biasanya ada di baris container yang sama
+    if (!inputNisn && checkboxNisn) {
+        const row = checkboxNisn.closest('.row, .ant-row, .form-group, .r-18u37iz, div') || checkboxNisn.parentElement?.parentElement;
+        if (row) {
+            const textInps = Array.from(row.querySelectorAll('input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"])'));
+            if (textInps.length > 0) {
+                inputNisn = textInps[0];
+            }
+        }
+    }
+
+    return { inputNisn, checkboxNisn };
+}
+
+/**
  * Format nomor telepon ke standar internasional EMIS 4.0 (+62...)
  */
 function formatEmisPhoneNumber(rawNoHp) {
@@ -538,15 +650,15 @@ function findStep2HpElements() {
     let inputHp = null;
     let checkboxHp = null;
 
-    // 1. Cari checkbox 'Tidak memiliki nomor handphone'
-    const checkboxes = Array.from(document.querySelectorAll('input[type="checkbox"]'));
+    // 1. Cari checkbox 'Tidak memiliki nomor handphone' (Mendukung [role="checkbox"] RNW & input[type="checkbox"])
+    const checkboxes = Array.from(document.querySelectorAll('[role="checkbox"], input[type="checkbox"]'));
     for (const cb of checkboxes) {
         let labelText = '';
         if (cb.id) {
             const lbl = document.querySelector(`label[for="${cb.id}"]`);
             if (lbl) labelText += ' ' + (lbl.innerText || lbl.textContent || '');
         }
-        const parent = cb.closest('label') || cb.parentElement;
+        const parent = cb.closest('.r-1awozwy') || cb.closest('.r-18u37iz') || cb.closest('label') || cb.parentElement;
         if (parent) {
             labelText += ' ' + (parent.innerText || parent.textContent || '');
         }
@@ -555,6 +667,23 @@ function findStep2HpElements() {
         if ((t.includes('TIDAK') || t.includes('BELUM')) && (t.includes('HANDPHONE') || t.includes('HP') || t.includes('NOMOR'))) {
             checkboxHp = cb;
             break;
+        }
+    }
+
+    // Fallback: Cari langsung elemen label teks jika checkbox belum terhubung
+    if (!checkboxHp) {
+        const allTextEls = Array.from(document.querySelectorAll('.css-901oao, label, span, div')).filter(el => {
+            const t = (el.innerText || el.textContent || '').trim().toUpperCase();
+            return (t.includes('TIDAK') || t.includes('BELUM')) && (t.includes('HANDPHONE') || t.includes('HP')) && t.length <= 40;
+        });
+
+        for (const tEl of allTextEls) {
+            const container = tEl.closest('.r-1awozwy') || tEl.parentElement;
+            if (container) {
+                const cb = container.querySelector('[role="checkbox"], input[type="checkbox"]');
+                checkboxHp = cb || container;
+                break;
+            }
         }
     }
 
@@ -685,8 +814,107 @@ function findOrangTuaInputs(data) {
     return { inputAyah, inputIbu };
 }
 
+/**
+ * Memilih radio button Jenis Kelamin (Laki-laki / Perempuan) di Formulir EMIS Step 2
+ * Kompatibel dengan React Native for Web (role="radio") dan input radio standar
+ */
+function selectJenisKelaminEmis(targetJk) {
+    if (!targetJk) return false;
+    const jkStr = String(targetJk).trim().toUpperCase();
+    const isPerempuan = jkStr.includes('PEREMPUAN') || jkStr === 'P';
+    const labelDisplayName = isPerempuan ? 'Perempuan' : 'Laki-laki';
+
+    console.log('[TPQ-EMIS Bridge] Mencoba memilih Jenis Kelamin otomatis:', labelDisplayName);
+
+    // 1. Cari elemen dengan role="radio" (React Native for Web) atau input[type="radio"]
+    const radioElements = Array.from(document.querySelectorAll('[role="radio"], input[type="radio"]'));
+    for (const r of radioElements) {
+        // Ambil container opsi terdekat (biasanya .r-1awozwy atau parent element)
+        const container = r.closest('.r-1awozwy') || r.closest('.r-18u37iz') || r.parentElement;
+        const txt = (container ? (container.innerText || container.textContent || '') : '').trim().toUpperCase();
+
+        const match = isPerempuan 
+            ? txt.includes('PEREMPUAN') 
+            : (txt.includes('LAKI') && !txt.includes('PEREMPUAN'));
+
+        if (match) {
+            const isChecked = r.getAttribute('aria-checked') === 'true' || r.checked === true;
+            if (!isChecked) {
+                console.log('[TPQ-EMIS Bridge] Menemukan radio Jenis Kelamin (' + labelDisplayName + '), melakukan klik...');
+                try { r.focus(); } catch (_) {}
+                try { r.click(); } catch (_) {}
+                try {
+                    r.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }));
+                    r.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+                    r.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, cancelable: true }));
+                    r.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
+                    r.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+                } catch (_) {}
+
+                // Klik juga container dan text element di sampingnya jika ada
+                if (container) {
+                    try { container.click(); } catch (_) {}
+                    const textEl = container.querySelector('.css-901oao, span, div:not([role="radio"])');
+                    if (textEl) {
+                        try { textEl.click(); } catch (_) {}
+                    }
+                }
+            }
+
+            // Visual feedback: beri highlight hijau lembut
+            if (container) {
+                try {
+                    container.style.transition = 'all 0.3s ease';
+                    container.style.backgroundColor = '#d1e7dd';
+                    container.style.borderRadius = '6px';
+                    container.style.padding = '2px 8px';
+                } catch (_) {}
+            }
+            return true;
+        }
+    }
+
+    // 2. Fallback: Cari langsung label teks "Laki-laki" atau "Perempuan"
+    const allLabels = Array.from(document.querySelectorAll('.css-901oao, label, span, div')).filter(el => {
+        const t = (el.innerText || el.textContent || '').trim().toUpperCase();
+        return isPerempuan ? (t === 'PEREMPUAN') : (t === 'LAKI-LAKI' || t === 'LAKI - LAKI');
+    });
+
+    for (const textEl of allLabels) {
+        const container = textEl.closest('.r-1awozwy') || textEl.parentElement;
+        if (container) {
+            const radio = container.querySelector('[role="radio"], input[type="radio"]');
+            if (radio) {
+                const isChecked = radio.getAttribute('aria-checked') === 'true' || radio.checked === true;
+                if (!isChecked) {
+                    try { radio.focus(); } catch (_) {}
+                    try { radio.click(); } catch (_) {}
+                    try {
+                        radio.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }));
+                        radio.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+                        radio.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, cancelable: true }));
+                        radio.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
+                        radio.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+                    } catch (_) {}
+                }
+            }
+            try { textEl.click(); } catch (_) {}
+            try { container.click(); } catch (_) {}
+            try {
+                container.style.transition = 'all 0.3s ease';
+                container.style.backgroundColor = '#d1e7dd';
+                container.style.borderRadius = '6px';
+                container.style.padding = '2px 8px';
+            } catch (_) {}
+            return true;
+        }
+    }
+
+    return false;
+}
+
 function fillEmisStep2(data) {
-    console.log('[TPQ-EMIS Bridge] Mengisi Step 2 (NIK, No HP, Nama Ayah & Ibu)...', data.nama_santri);
+    console.log('[TPQ-EMIS Bridge] Mengisi Step 2 (NIK, NISN, No HP, Nama Ayah & Ibu, Jenis Kelamin)...', data.nama_santri);
 
     // Pastikan popup Step 1 tertutup
     const step1Alert = document.getElementById('tpq-step1-alert');
@@ -695,7 +923,9 @@ function fillEmisStep2(data) {
     let filledAyah = false;
     let filledIbu = false;
     let filledNik = false;
+    let filledNisn = false;
     let filledHp = false;
+    let filledJk = false;
     let attempts = 0;
     const maxAttempts = 15; // 3 detik
 
@@ -705,14 +935,10 @@ function fillEmisStep2(data) {
         // 1. Isi NIK Calon Santri / Centang Belum Punya NIK secara otomatis
         if (!filledNik) {
             const { inputNik, checkboxNik } = findStep2NikElements();
-            if (data.belum_punya_nik) {
+            if (data.belum_punya_nik || !data.nik) {
                 if (checkboxNik) {
-                    if (!checkboxNik.checked) {
-                        console.log('[TPQ-EMIS Bridge] Mencentang [✓] Belum Punya NIK');
-                        checkboxNik.checked = true;
-                        checkboxNik.dispatchEvent(new Event('change', { bubbles: true }));
-                        checkboxNik.dispatchEvent(new Event('click', { bubbles: true }));
-                    }
+                    console.log('[TPQ-EMIS Bridge] Mencentang [✓] Belum Punya NIK');
+                    setCheckboxChecked(checkboxNik, true);
                     filledNik = true;
                 }
             } else if (data.nik && inputNik) {
@@ -722,7 +948,23 @@ function fillEmisStep2(data) {
             }
         }
 
-        // 2. Isi No Handphone Calon Santri / Centang Tidak Memiliki HP secara otomatis
+        // 2. Isi NISN Calon Santri / Centang Belum Punya NISN secara otomatis
+        if (!filledNisn) {
+            const { inputNisn, checkboxNisn } = findStep2NisnElements();
+            if (data.belum_punya_nisn || !data.nisn) {
+                if (checkboxNisn) {
+                    console.log('[TPQ-EMIS Bridge] Mencentang [✓] Belum Punya NISN');
+                    setCheckboxChecked(checkboxNisn, true);
+                    filledNisn = true;
+                }
+            } else if (data.nisn && inputNisn) {
+                console.log('[TPQ-EMIS Bridge] Mengisi NISN Calon Santri:', data.nisn);
+                setNativeValue(inputNisn, data.nisn);
+                filledNisn = true;
+            }
+        }
+
+        // 3. Isi No Handphone Calon Santri / Centang Tidak Memiliki HP secara otomatis
         if (!filledHp) {
             const { inputHp, checkboxHp } = findStep2HpElements();
             const formattedHp = formatEmisPhoneNumber(data.no_hp);
@@ -733,18 +975,14 @@ function fillEmisStep2(data) {
                 filledHp = true;
             } else if (data.tidak_punya_hp || !formattedHp) {
                 if (checkboxHp) {
-                    if (!checkboxHp.checked) {
-                        console.log('[TPQ-EMIS Bridge] Mencentang [✓] Tidak Memiliki No Handphone');
-                        checkboxHp.checked = true;
-                        checkboxHp.dispatchEvent(new Event('change', { bubbles: true }));
-                        checkboxHp.dispatchEvent(new Event('click', { bubbles: true }));
-                    }
+                    console.log('[TPQ-EMIS Bridge] Mencentang [✓] Tidak Memiliki No Handphone');
+                    setCheckboxChecked(checkboxHp, true);
                     filledHp = true;
                 }
             }
         }
 
-        // 3. Isi Nama Ayah & Ibu Kandung
+        // 4. Isi Nama Ayah & Ibu Kandung
         const { inputAyah, inputIbu } = findOrangTuaInputs(data);
 
         if (inputAyah && data.nama_ayah && !filledAyah) {
@@ -759,10 +997,15 @@ function fillEmisStep2(data) {
             filledIbu = true;
         }
 
-        if ((filledAyah && filledIbu && filledNik && filledHp) || attempts >= maxAttempts) {
+        // 5. Pilih Jenis Kelamin (Laki-laki / Perempuan) secara otomatis
+        if (!filledJk && data.jenis_kelamin) {
+            filledJk = selectJenisKelaminEmis(data.jenis_kelamin);
+        }
+
+        if ((filledAyah && filledIbu && filledNik && filledNisn && filledHp && filledJk) || attempts >= maxAttempts) {
             clearInterval(timer);
             // Tampilkan Floating Checklist Assistant untuk isian manual Step 2
-            showStep2Assistant(data, filledAyah, filledIbu, filledNik, filledHp);
+            showStep2Assistant(data, filledAyah, filledIbu, filledNik, filledHp, filledJk, filledNisn);
         }
     }, 200);
 
@@ -774,6 +1017,67 @@ function fillEmisStep2(data) {
  * HELPER FORM INTERACTION (REACT / VUE / ANT-DESIGN COMPATIBLE)
  * ============================================================================
  */
+
+/**
+ * Mencentang checkbox secara universal (kompatibel React Native for Web role="checkbox" dan input[type="checkbox"])
+ */
+function setCheckboxChecked(element, check = true) {
+    if (!element) return false;
+
+    // 1. Standar HTML <input type="checkbox">
+    if (element.tagName === 'INPUT' && element.type === 'checkbox') {
+        if (element.checked !== check) {
+            element.checked = check;
+            element.dispatchEvent(new Event('change', { bubbles: true }));
+            element.dispatchEvent(new Event('click', { bubbles: true }));
+        }
+        return true;
+    }
+
+    // 2. React Native for Web [role="checkbox"]
+    const roleCb = (element.getAttribute && element.getAttribute('role') === 'checkbox') 
+        ? element 
+        : (element.querySelector ? element.querySelector('[role="checkbox"]') : null);
+
+    const targetEl = roleCb || element;
+    const isChecked = targetEl.getAttribute && targetEl.getAttribute('aria-checked') === 'true';
+
+    if (isChecked !== check) {
+        console.log('[TPQ-EMIS Bridge] Mengubah status checkbox ke:', check ? 'Checked' : 'Unchecked', targetEl);
+        try { targetEl.focus(); } catch (_) {}
+        try { targetEl.click(); } catch (_) {}
+        try {
+            targetEl.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }));
+            targetEl.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+            targetEl.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, cancelable: true }));
+            targetEl.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
+            targetEl.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+        } catch (_) {}
+
+        // Klik juga parent container atau teks label di sampingnya jika ada
+        const container = (targetEl.closest ? targetEl.closest('.r-1awozwy') : null) || targetEl.parentElement;
+        if (container) {
+            try { container.click(); } catch (_) {}
+            const labelTextEl = container.querySelector ? container.querySelector('.css-901oao, span, label') : null;
+            if (labelTextEl && labelTextEl !== targetEl) {
+                try { labelTextEl.click(); } catch (_) {}
+            }
+        }
+    }
+
+    // Efek highlight visual hijau lembut
+    const visualContainer = (targetEl.closest ? targetEl.closest('.r-1awozwy') : null) || targetEl.parentElement;
+    if (visualContainer && visualContainer.style) {
+        try {
+            visualContainer.style.transition = 'background-color 0.3s ease, border-radius 0.3s ease';
+            visualContainer.style.backgroundColor = '#d1e7dd';
+            visualContainer.style.borderRadius = '4px';
+        } catch (_) {}
+    }
+
+    return true;
+}
+
 function setNativeValue(element, value) {
     if (!element) return false;
 
@@ -1485,13 +1789,32 @@ function showStep1Assistant(data) {
 
 /**
  * Banner Asisten Step 2: Aligned dengan Step 1
- * - Bagian Atas: Data yang terisi otomatis / bisa disalin
- * - Bagian Bawah: 👉 Tugas Anda (Pilihan manual di EMIS: Tanggal Masuk, Tingkat Kelas, JK, Status)
+ * - Bagian Atas: Data yang terisi otomatis / bisa disalin (NIK, HP, Ortu, JK)
+ * - Bagian Bawah: 👉 Tugas Anda (Pilihan manual di EMIS: Tanggal Masuk, Tingkat Kelas, Status Ortu)
  */
-function showStep2Assistant(data, filledAyah = false, filledIbu = false, filledNik = false, filledHp = false) {
+function showStep2Assistant(data, filledAyah = false, filledIbu = false, filledNik = false, filledHp = false, filledJk = false, filledNisn = false) {
     const alertId = 'tpq-step2-alert';
     const old = document.getElementById(alertId);
     if (old) old.remove();
+
+    // Pastikan jenis kelamin terpilih otomatis saat popup tampil
+    if (!filledJk && data.jenis_kelamin) {
+        filledJk = selectJenisKelaminEmis(data.jenis_kelamin);
+    }
+
+    // Pastikan NISN dicentang / diisi saat popup tampil
+    if (!filledNisn) {
+        const { inputNisn, checkboxNisn } = findStep2NisnElements();
+        if (data.belum_punya_nisn || !data.nisn) {
+            if (checkboxNisn) {
+                setCheckboxChecked(checkboxNisn, true);
+                filledNisn = true;
+            }
+        } else if (data.nisn && inputNisn) {
+            setNativeValue(inputNisn, data.nisn);
+            filledNisn = true;
+        }
+    }
 
     const div = document.createElement('div');
     div.id = alertId;
@@ -1521,6 +1844,15 @@ function showStep2Assistant(data, filledAyah = false, filledIbu = false, filledN
     } else {
         nikDisplay = `<span style="font-family: monospace; font-size: 13px; color: #fff;">${data.nik}</span>
            <button class="tpq-copy-badge" data-val="${data.nik}">Salin</button>`;
+    }
+
+    // Tampilan NISN di Step 2 (Otomatis terisi / centang belum punya NISN)
+    let nisnDisplay = '';
+    if (data.belum_punya_nisn || !data.nisn) {
+        nisnDisplay = '<span style="color: #ffc107; font-weight: 600;">[✓] Belum Punya NISN</span>';
+    } else {
+        nisnDisplay = `<span style="font-family: monospace; font-size: 13px; color: #fff;">${data.nisn}</span>
+           <button class="tpq-copy-badge" data-val="${data.nisn}">Salin</button>`;
     }
 
     // Tampilan No Handphone di Step 2 (Otomatis terisi format +62)
@@ -1588,6 +1920,12 @@ function showStep2Assistant(data, filledAyah = false, filledIbu = false, filledN
                 <div>${nikDisplay}</div>
             </div>
 
+            <!-- NISN -->
+            <div class="tpq-data-row">
+                <span>• <strong>NISN:</strong></span>
+                <div>${nisnDisplay}</div>
+            </div>
+
             <!-- No HP -->
             <div class="tpq-data-row">
                 <span>• <strong>No HP:</strong></span>
@@ -1604,11 +1942,20 @@ function showStep2Assistant(data, filledAyah = false, filledIbu = false, filledN
             </div>
 
             <!-- Ibu Kandung -->
-            <div class="tpq-data-row" style="margin-bottom: 0;">
+            <div class="tpq-data-row">
                 <span>• <strong>Ibu:</strong></span>
                 <div>
                     <span style="font-weight: 600; color: #fff;">${data.nama_ibu || '-'}</span>
                     ${data.nama_ibu ? `<button class="tpq-copy-badge" data-val="${data.nama_ibu}">Salin</button>` : ''}
+                </div>
+            </div>
+
+            <!-- Jenis Kelamin (Otomatis Dipilih) -->
+            <div class="tpq-data-row" style="margin-bottom: 0;">
+                <span>• <strong>Jenis Kelamin:</strong></span>
+                <div>
+                    <span style="font-weight: 600; color: #fff;">${data.jenis_kelamin || '-'}</span>
+                    <span style="font-size: 10.5px; background: #198754; color: white; padding: 1px 6px; border-radius: 3px; margin-left: 6px;">Dipilih ✓</span>
                 </div>
             </div>
         </div>
@@ -1634,15 +1981,9 @@ function showStep2Assistant(data, filledAyah = false, filledIbu = false, filledN
                 <strong style="color: #ffc107; font-size: 13.5px;">${data.tingkat_kelas || '-'}</strong>
             </div>
 
-            <!-- 3. Jenis Kelamin -->
-            <div class="tpq-manual-row">
-                <span>3. <strong>Jenis Kelamin:</strong></span>
-                <strong style="color: #ffc107; font-size: 13.5px;">${data.jenis_kelamin || '-'}</strong>
-            </div>
-
-            <!-- 4. Status Ortu & Wali -->
+            <!-- 3. Status Ortu & Wali -->
             <div class="tpq-manual-row" style="margin-bottom: 0; border-bottom: none; padding-bottom: 0;">
-                <span>4. <strong>Status Ortu:</strong></span>
+                <span>3. <strong>Status Ortu:</strong></span>
                 <span style="color: #fff; font-size: 12px;">Masih Hidup | Wali: Ayah</span>
             </div>
         </div>
