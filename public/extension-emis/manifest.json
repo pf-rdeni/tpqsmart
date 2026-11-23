@@ -24,7 +24,8 @@
     "*://emis.kemenag.go.id/*",
     "http://localhost/*",
     "http://127.0.0.1/*",
-    "https://tpqsmart.simpedis.com/*"
+    "*://*.simpedis.com/*",
+    "*://tpqsmart.*/*"
   ],
   "background": {
     "service_worker": "background.js"
@@ -34,7 +35,8 @@
       "matches": [
         "http://localhost/*",
         "http://127.0.0.1/*",
-        "https://tpqsmart.simpedis.com/*"
+        "*://*.simpedis.com/*",
+        "*://tpqsmart.*/*"
       ],
       "js": ["content-tpq.js"],
       "run_at": "document_end"

@@ -190,6 +190,8 @@ $routes->post('backend/santri/normalisasiNilai', 'Backend\Santri::normalisasiNil
 $routes->get('backend/santri/showSantriEmis', 'Backend\Santri::showSantriEmis');
 $routes->get('backend/santri/getSantriEmisJson/(:segment)', 'Backend\Santri::getSantriEmisJson/$1');
 $routes->match(['get', 'post'], 'backend/santri/getListSantriEmisAjax', 'Backend\Santri::getListSantriEmisAjax');
+$routes->get('backend/santri/downloadExtensionEmis', 'Backend\Santri::downloadExtensionEmis');
+$routes->get('download-extension-emis', 'Backend\Santri::downloadExtensionEmis');
 
 //Tabel Materi
 $routes->get('materipelajaran', 'MateriPelajaran::index');

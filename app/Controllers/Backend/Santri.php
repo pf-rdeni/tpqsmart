@@ -1741,6 +1741,75 @@ class Santri extends BaseController
             ]);
     }
 
+    /**
+     * Download file zip ekstensi browser TPQ Smart - EMIS 4.0 Bridge
+     * Mendukung download di lingkungan lokal maupun webserver cPanel / VPS
+     */
+    public function downloadExtensionEmis()
+    {
+        $zipPaths = [
+            FCPATH . 'extension-emis.zip',
+            ROOTPATH . 'public/extension-emis.zip',
+            FCPATH . 'public/extension-emis.zip',
+            '/home/u1525344/public_html/tpqsmart/extension-emis.zip',
+            '/home/u1525344/tpqsmart/public/extension-emis.zip',
+        ];
+
+        $foundPath = null;
+        foreach ($zipPaths as $path) {
+            if (file_exists($path) && filesize($path) > 0) {
+                $foundPath = $path;
+                break;
+            }
+        }
+
+        // Jika file zip belum ada tapi folder extension-emis ada, generate zip otomatis di server
+        if (!$foundPath) {
+            $folderPaths = [
+                FCPATH . 'extension-emis',
+                ROOTPATH . 'public/extension-emis',
+                APPPATH . '../public/extension-emis',
+                '/home/u1525344/public_html/tpqsmart/extension-emis',
+                '/home/u1525344/tpqsmart/public/extension-emis',
+            ];
+
+            $sourceDir = null;
+            foreach ($folderPaths as $f) {
+                if (is_dir($f)) {
+                    $sourceDir = $f;
+                    break;
+                }
+            }
+
+            if ($sourceDir && class_exists('ZipArchive')) {
+                $targetZip = (is_writable(FCPATH) ? FCPATH : WRITEPATH) . 'extension-emis.zip';
+                $zip = new \ZipArchive();
+                if ($zip->open($targetZip, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) === true) {
+                    $files = new \RecursiveIteratorIterator(
+                        new \RecursiveDirectoryIterator($sourceDir, \RecursiveDirectoryIterator::SKIP_DOTS),
+                        \RecursiveIteratorIterator::LEAVES_ONLY
+                    );
+
+                    foreach ($files as $name => $file) {
+                        if (!$file->isDir()) {
+                            $filePath = $file->getRealPath();
+                            $relativePath = substr($filePath, strlen($sourceDir) + 1);
+                            $zip->addFile($filePath, str_replace('\\', '/', $relativePath));
+                        }
+                    }
+                    $zip->close();
+                    $foundPath = $targetZip;
+                }
+            }
+        }
+
+        if ($foundPath && file_exists($foundPath)) {
+            return $this->response->download($foundPath, null)->setFileName('extension-emis.zip');
+        }
+
+        return redirect()->back()->with('error', 'File ekstensi belum tersedia di server. Silakan hubungi administrator.');
+    }
+
     public function viewDetailSantriBaru($IdSantri = null)
     {
         $santri = $this->DataSantriBaru->getDetailSantriById($IdSantri);

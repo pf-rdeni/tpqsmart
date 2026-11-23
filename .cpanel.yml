@@ -21,4 +21,12 @@ deployment:
     - /bin/cp /home/u1525344/repositories/tpqsmart/app/Config/Services.php $DEPLOYPATH/Config/
     - /bin/cp /home/u1525344/repositories/tpqsmart/app/Helpers/js/image-upload-helper.js $DEPLOYPATH/Helpers/js/
     - /bin/cp /home/u1525344/repositories/tpqsmart/app/Controllers/Helpers.php $DEPLOYPATH/Controllers/
+    # Ekstensi Chrome EMIS Bridge
+    - /bin/mkdir -p /home/u1525344/public_html/tpqsmart/extension-emis
+    - /bin/cp -r /home/u1525344/repositories/tpqsmart/public/extension-emis/* /home/u1525344/public_html/tpqsmart/extension-emis/ 2>/dev/null || true
+    - /bin/cp /home/u1525344/repositories/tpqsmart/public/extension-emis.zip /home/u1525344/public_html/tpqsmart/ 2>/dev/null || true
+    - /bin/mkdir -p /home/u1525344/tpqsmart/public/extension-emis
+    - /bin/cp -r /home/u1525344/repositories/tpqsmart/public/extension-emis/* /home/u1525344/tpqsmart/public/extension-emis/ 2>/dev/null || true
+    - /bin/cp /home/u1525344/repositories/tpqsmart/public/extension-emis.zip /home/u1525344/tpqsmart/public/ 2>/dev/null || true
+
 
