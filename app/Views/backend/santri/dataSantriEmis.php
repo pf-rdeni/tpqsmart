@@ -31,7 +31,17 @@
                         <option value="">-- Semua Kelas --</option>
                         <?php if (!empty($dataKelas)) : ?>
                             <?php foreach ($dataKelas as $k) : ?>
-                                <option value="<?= htmlspecialchars($k['NamaKelas']); ?>"><?= htmlspecialchars($k['NamaKelas']); ?></option>
+                                <?php 
+                                    $val = $k['NamaKelas'];
+                                    $raw = $k['NamaKelasRaw'] ?? $val;
+                                    $label = $val;
+                                    if ($raw !== $val) {
+                                        $label = $val . ' (' . $raw . ')';
+                                    }
+                                ?>
+                                <option value="<?= htmlspecialchars($val); ?>" data-raw="<?= htmlspecialchars($raw); ?>">
+                                    <?= htmlspecialchars($label); ?>
+                                </option>
                             <?php endforeach; ?>
                         <?php endif; ?>
                     </select>
@@ -89,7 +99,7 @@
                     </thead>
                     <tbody>
                         <?php $no = 1; foreach ($dataSantri as $index => $santri) : ?>
-                            <tr id="row-santri-<?= $santri['IdSantri']; ?>" data-id="<?= $santri['IdSantri']; ?>" data-kelas="<?= htmlspecialchars($santri['NamaKelas'] ?? ''); ?>">
+                            <tr id="row-santri-<?= $santri['IdSantri']; ?>" data-id="<?= $santri['IdSantri']; ?>" data-kelas="<?= htmlspecialchars($santri['NamaKelas'] ?? ''); ?>" data-kelas-raw="<?= htmlspecialchars($santri['NamaKelasRaw'] ?? ($santri['NamaKelas'] ?? '')); ?>" data-idkelas="<?= $santri['IdKelas'] ?? ''; ?>">
                                 <td class="text-center align-middle font-weight-bold"><?= $no++; ?></td>
                                 <td class="align-middle text-center">
                                     <div class="d-flex flex-column" style="gap: 5px;">
@@ -138,6 +148,9 @@
                                 </td>
                                 <td class="align-middle text-center">
                                     <span class="badge badge-secondary"><?= htmlspecialchars($santri['NamaKelas'] ?? '-'); ?></span>
+                                    <?php if (!empty($santri['NamaKelasRaw']) && $santri['NamaKelasRaw'] !== $santri['NamaKelas']) : ?>
+                                        <small class="text-muted d-block" style="font-size: 10px;"><?= htmlspecialchars($santri['NamaKelasRaw']); ?></small>
+                                    <?php endif; ?>
                                 </td>
                                 <td class="align-middle small">
                                     <?= htmlspecialchars($santri['TempatLahirSantri'] ?? '-'); ?><br>
@@ -495,8 +508,19 @@
 
     function terapkanFilterKelas(val) {
         if (!dataTableSantri) return;
-        const regexVal = val ? '^' + $.fn.dataTable.util.escapeRegex(val) + '$' : '';
-        dataTableSantri.column(5).search(regexVal, true, false).draw();
+        if (!val) {
+            dataTableSantri.column(5).search('').draw();
+            return;
+        }
+        const selectedOpt = $('#filterKelasEmis').find('option:selected');
+        const rawVal = selectedOpt.data('raw');
+        let searchPattern = '';
+        if (rawVal && rawVal !== val) {
+            searchPattern = '(?:' + $.fn.dataTable.util.escapeRegex(val) + '|' + $.fn.dataTable.util.escapeRegex(rawVal) + ')';
+        } else {
+            searchPattern = $.fn.dataTable.util.escapeRegex(val);
+        }
+        dataTableSantri.column(5).search(searchPattern, true, false).draw();
     }
 
     function terapkanFilterStatus(val) {
@@ -521,13 +545,26 @@
 
             // Pulihkan Filter Kelas
             if (filterState.kelas !== undefined && filterState.kelas !== null && filterState.kelas !== '') {
-                $('#filterKelasEmis').val(filterState.kelas);
-                if ($.fn.select2 && $('#filterKelasEmis').data('select2')) {
-                    $('#filterKelasEmis').trigger('change.select2');
+                let matchOpt = $('#filterKelasEmis').find('option').filter(function() {
+                    return $(this).val() === filterState.kelas || $(this).data('raw') === filterState.kelas;
+                });
+
+                if (matchOpt.length > 0) {
+                    const matchedVal = matchOpt.first().val();
+                    const rawVal = matchOpt.first().data('raw');
+                    $('#filterKelasEmis').val(matchedVal);
+                    if ($.fn.select2 && $('#filterKelasEmis').data('select2')) {
+                        $('#filterKelasEmis').trigger('change.select2');
+                    }
+                    let searchPattern = '';
+                    if (rawVal && rawVal !== matchedVal) {
+                        searchPattern = '(?:' + $.fn.dataTable.util.escapeRegex(matchedVal) + '|' + $.fn.dataTable.util.escapeRegex(rawVal) + ')';
+                    } else {
+                        searchPattern = $.fn.dataTable.util.escapeRegex(matchedVal);
+                    }
+                    dataTableSantri.column(5).search(searchPattern, true, false);
+                    needsDraw = true;
                 }
-                const regexVal = '^' + $.fn.dataTable.util.escapeRegex(filterState.kelas) + '$';
-                dataTableSantri.column(5).search(regexVal, true, false);
-                needsDraw = true;
             }
 
             // Pulihkan Filter Status

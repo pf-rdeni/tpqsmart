@@ -820,68 +820,70 @@ class SantriBaruModel extends Model
      * @param mixed $IdKelas ID Kelas (null untuk semua kelas)
      * @return array
      */
-    public function getListSantriEmis($IdTpq = null, $IdKelas = null)
+    /**
+     * Mendapatkan daftar santri untuk sinkronisasi / transfer EMIS 4.0
+     * Diselaraskan dengan GetDataPerKelasTpq agar hanya memunculkan data santri yang aktif di tbl_kelas_santri
+     * pada tahun ajaran aktif saat ini dan bukan alumni.
+     * 
+     * @param mixed $IdTpq ID TPQ (null untuk semua TPQ)
+     * @param mixed $IdKelas ID Kelas (null untuk semua kelas)
+     * @param string|null $IdTahunAjaran Tahun Ajaran (null untuk otomatis tahun ajaran saat ini)
+     * @return array
+     */
+    public function getListSantriEmis($IdTpq = null, $IdKelas = null, $IdTahunAjaran = null)
     {
-        $IdTahunAjaran = session()->get('IdTahunAjaran');
+        if (empty($IdTahunAjaran)) {
+            $IdTahunAjaran = session()->get('IdTahunAjaran');
+        }
+        if (empty($IdTahunAjaran)) {
+            $IdTahunAjaran = (new \App\Models\HelpFunctionModel())->getTahunAjaranSaatIni();
+        }
+
         $builder = $this->db->table('tbl_santri_baru');
 
-        if (!empty($IdTahunAjaran)) {
-            $builder->select('
-                tbl_santri_baru.*, 
-                COALESCE(ks.IdKelas, tbl_santri_baru.IdKelas) as IdKelas, 
-                COALESCE(tbl_kelas.NamaKelas, k_pendaftaran.NamaKelas) as NamaKelas, 
-                tbl_tpq.NamaTpq, 
-                tbl_tpq.KelurahanDesa,
-                COALESCE(se.StatusEmis, "belum") as StatusEmis,
-                se.TglUpdateEmis,
-                COALESCE(se.StatusAlamatEmis, "belum") as StatusAlamatEmis,
-                se.TglUpdateAlamatEmis,
-                se.UpdatedBy as EmisUpdatedBy
-            ')
-            ->join('tbl_kelas_santri ks', 'ks.IdSantri = tbl_santri_baru.IdSantri AND ks.IdTahunAjaran = "' . $IdTahunAjaran . '"', 'left')
-            ->join('tbl_kelas', 'tbl_kelas.IdKelas = ks.IdKelas', 'left')
-            ->join('tbl_kelas k_pendaftaran', 'k_pendaftaran.IdKelas = tbl_santri_baru.IdKelas', 'left')
-            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq', 'left')
-            ->join('tbl_santri_emis se', 'se.IdSantri = tbl_santri_baru.IdSantri', 'left');
+        $builder->select('
+            tbl_santri_baru.*, 
+            ks.IdKelas as IdKelas, 
+            ks.IdTahunAjaran,
+            tbl_kelas.NamaKelas as NamaKelas, 
+            k_pendaftaran.NamaKelas as NamaKelasPendaftaran, 
+            tbl_tpq.NamaTpq, 
+            tbl_tpq.KelurahanDesa,
+            COALESCE(se.StatusEmis, "belum") as StatusEmis,
+            se.TglUpdateEmis,
+            COALESCE(se.StatusAlamatEmis, "belum") as StatusAlamatEmis,
+            se.TglUpdateAlamatEmis,
+            se.UpdatedBy as EmisUpdatedBy
+        ')
+        // Inner join ke tbl_kelas_santri persis seperti GetDataPerKelasTpq
+        ->join('tbl_kelas_santri ks', 'ks.IdSantri = tbl_santri_baru.IdSantri AND ks.IdTahunAjaran = "' . $IdTahunAjaran . '"', 'inner')
+        ->join('tbl_kelas', 'tbl_kelas.IdKelas = ks.IdKelas', 'left')
+        ->join('tbl_kelas k_pendaftaran', 'k_pendaftaran.IdKelas = tbl_santri_baru.IdKelas', 'left')
+        ->join('tbl_tpq', 'tbl_tpq.IdTpq = ks.IdTpq', 'left')
+        ->join('tbl_santri_emis se', 'se.IdSantri = tbl_santri_baru.IdSantri', 'left');
 
-            if (!empty($IdKelas)) {
-                if (is_array($IdKelas)) {
-                    $builder->whereIn('COALESCE(ks.IdKelas, tbl_santri_baru.IdKelas)', $IdKelas);
-                } else {
-                    $builder->where('COALESCE(ks.IdKelas, tbl_santri_baru.IdKelas)', $IdKelas);
-                }
-            }
-        } else {
-            $builder->select('
-                tbl_santri_baru.*, 
-                tbl_kelas.NamaKelas, 
-                tbl_tpq.NamaTpq, 
-                tbl_tpq.KelurahanDesa,
-                COALESCE(se.StatusEmis, "belum") as StatusEmis,
-                se.TglUpdateEmis,
-                COALESCE(se.StatusAlamatEmis, "belum") as StatusAlamatEmis,
-                se.TglUpdateAlamatEmis,
-                se.UpdatedBy as EmisUpdatedBy
-            ')
-                ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas', 'left')
-                ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq', 'left')
-                ->join('tbl_santri_emis se', 'se.IdSantri = tbl_santri_baru.IdSantri', 'left');
+        if (!empty($IdTpq)) {
+            $builder->where('ks.IdTpq', $IdTpq);
+        }
 
-            if (!empty($IdKelas)) {
-                if (is_array($IdKelas)) {
-                    $builder->whereIn('tbl_santri_baru.IdKelas', $IdKelas);
-                } else {
-                    $builder->where('tbl_santri_baru.IdKelas', $IdKelas);
-                }
+        if (!empty($IdKelas)) {
+            if (is_array($IdKelas)) {
+                $builder->whereIn('ks.IdKelas', $IdKelas);
+            } else {
+                $builder->where('ks.IdKelas', $IdKelas);
             }
         }
 
-        if ($IdTpq != null) {
-            $builder->where('tbl_santri_baru.IdTpq', $IdTpq);
-        }
+        // Hanya santri yang aktif di data induk (Active = 1, bukan nonaktif/alumni Active = 2)
+        $builder->where('tbl_santri_baru.Active', 1);
 
-        $builder->orderBy('tbl_santri_baru.Status', 'DESC')
-            ->orderBy('tbl_santri_baru.updated_at', 'DESC');
+        // Jangan tampilkan santri Alumni (IdKelas = 10 atau NamaKelas Alumni)
+        $builder->where('ks.IdKelas !=', 10);
+        $builder->where('tbl_santri_baru.IdKelas !=', 10);
+        $builder->whereNotIn('tbl_kelas.NamaKelas', ['ALUMNI', 'Alumni', 'alumni']);
+
+        $builder->orderBy('ks.IdKelas', 'ASC')
+            ->orderBy('tbl_santri_baru.NamaSantri', 'ASC');
 
         return $builder->get()->getResultArray();
     }
@@ -894,27 +896,24 @@ class SantriBaruModel extends Model
     public function getSantriForEmis($IdSantri)
     {
         $IdTahunAjaran = session()->get('IdTahunAjaran');
+        if (empty($IdTahunAjaran)) {
+            $IdTahunAjaran = (new \App\Models\HelpFunctionModel())->getTahunAjaranSaatIni();
+        }
+
         $builder = $this->db->table('tbl_santri_baru');
 
-        if (!empty($IdTahunAjaran)) {
-            $builder->select('
-                tbl_santri_baru.*, 
-                COALESCE(ks.IdKelas, tbl_santri_baru.IdKelas) as IdKelas, 
-                COALESCE(tbl_kelas.NamaKelas, k_pendaftaran.NamaKelas) as NamaKelas, 
-                tbl_tpq.NamaTpq, 
-                tbl_tpq.KelurahanDesa
-            ')
-            ->join('tbl_kelas_santri ks', 'ks.IdSantri = tbl_santri_baru.IdSantri AND ks.IdTahunAjaran = "' . $IdTahunAjaran . '"', 'left')
-            ->join('tbl_kelas', 'tbl_kelas.IdKelas = ks.IdKelas', 'left')
-            ->join('tbl_kelas k_pendaftaran', 'k_pendaftaran.IdKelas = tbl_santri_baru.IdKelas', 'left')
-            ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq', 'left')
-            ->where('tbl_santri_baru.IdSantri', $IdSantri);
-        } else {
-            $builder->select('tbl_santri_baru.*, tbl_kelas.NamaKelas, tbl_tpq.NamaTpq, tbl_tpq.KelurahanDesa')
-                ->join('tbl_kelas', 'tbl_kelas.IdKelas = tbl_santri_baru.IdKelas', 'left')
-                ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq', 'left')
-                ->where('tbl_santri_baru.IdSantri', $IdSantri);
-        }
+        $builder->select('
+            tbl_santri_baru.*, 
+            COALESCE(ks.IdKelas, tbl_santri_baru.IdKelas) as IdKelas, 
+            COALESCE(tbl_kelas.NamaKelas, k_pendaftaran.NamaKelas) as NamaKelas, 
+            tbl_tpq.NamaTpq, 
+            tbl_tpq.KelurahanDesa
+        ')
+        ->join('tbl_kelas_santri ks', 'ks.IdSantri = tbl_santri_baru.IdSantri AND ks.IdTahunAjaran = "' . $IdTahunAjaran . '"', 'left')
+        ->join('tbl_kelas', 'tbl_kelas.IdKelas = ks.IdKelas', 'left')
+        ->join('tbl_kelas k_pendaftaran', 'k_pendaftaran.IdKelas = tbl_santri_baru.IdKelas', 'left')
+        ->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_santri_baru.IdTpq', 'left')
+        ->where('tbl_santri_baru.IdSantri', $IdSantri);
 
         return $builder->get()->getRowArray() ?: null;
     }

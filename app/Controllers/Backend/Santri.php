@@ -1526,11 +1526,12 @@ class Santri extends BaseController
 
     public function showSantriEmis()
     {
-        // ambil IdTpq dari session
-        $IdTpq = session()->get('IdTpq');
+        // ambil IdTpq dari request atau session
+        $IdTpq = $this->request->getGet('IdTpq') ?: session()->get('IdTpq');
+        $IdTahunAjaran = $this->helpFunction->getTahunAjaranSaatIni();
 
-        // Ambil data santri menggunakan method dari model
-        $santri = $this->DataSantriBaru->getListSantriEmis($IdTpq);
+        // Ambil data santri menggunakan method dari model selaras dengan tahun ajaran aktif saat ini
+        $santri = $this->DataSantriBaru->getListSantriEmis($IdTpq, null, $IdTahunAjaran);
 
         $tpq = $this->helpFunction->getDataTpq();
         usort($tpq, function ($a, $b) {
@@ -1538,7 +1539,7 @@ class Santri extends BaseController
         });
 
         // Ambil jumlah santri per TPQ menggunakan method dari model
-        $santriPerTpq = $this->DataSantriBaru->getJumlahSantriPerTpq();
+        $santriPerTpq = $this->DataSantriBaru->getJumlahSantriPerTpq($IdTahunAjaran);
 
         // Gabungkan data jumlah santri ke array TPQ
         foreach ($tpq as &$t) {
@@ -1557,6 +1558,7 @@ class Santri extends BaseController
             foreach ($santri as $key => $santriItem) {
                 if (isset($santriItem['NamaKelas']) && !empty($santriItem['NamaKelas'])) {
                     $namaKelasOriginal = $santriItem['NamaKelas'];
+                    $santri[$key]['NamaKelasRaw'] = $namaKelasOriginal;
                     $mdaCheckResult = $this->helpFunction->checkMdaKelasMapping($IdTpq, $namaKelasOriginal);
                     $santri[$key]['NamaKelas'] = $this->helpFunction->convertKelasToMda(
                         $namaKelasOriginal,
@@ -1566,11 +1568,32 @@ class Santri extends BaseController
             }
         }
 
+        // Susun daftar kelas dinamis yang benar-benar ada di santri aktif (selaras dengan showSantriBaruPerKelasTpq)
+        $uniqueKelas = [];
+        if (!empty($santri)) {
+            foreach ($santri as $s) {
+                $kId = $s['IdKelas'];
+                if ($kId == 10 || strtoupper($s['NamaKelas'] ?? '') === 'ALUMNI') {
+                    continue;
+                }
+                if (!isset($uniqueKelas[$kId])) {
+                    $uniqueKelas[$kId] = [
+                        'IdKelas'      => $kId,
+                        'NamaKelas'    => $s['NamaKelas'],
+                        'NamaKelasRaw' => $s['NamaKelasRaw'] ?? $s['NamaKelas']
+                    ];
+                }
+            }
+            ksort($uniqueKelas);
+        }
+        $dataKelas = !empty($uniqueKelas) ? array_values($uniqueKelas) : $this->helpFunction->getDataKelas();
+
         $data = [
             'page_title' => 'Data Santri Update Emis',
             'dataSantri' => $santri,
             'dataTpq' => $tpq,
-            'dataKelas' => $this->helpFunction->getDataKelas()
+            'dataKelas' => $dataKelas,
+            'IdTahunAjaran' => $IdTahunAjaran
         ];
         return view('backend/santri/dataSantriEmis', $data);
     }
@@ -1625,7 +1648,9 @@ class Santri extends BaseController
             $tingkatKelas = 'Kelompok B';
         } elseif (stripos($rawKelas, 'TKQ') !== false) {
             $tingkatKelas = 'Kelompok A';
-        } elseif (preg_match('/(?:TPQ|SD|SMP|SMA|KELAS)?\s*(\d+)/i', $rawKelas, $matches)) {
+        } elseif (preg_match('/(?:TPQ|SD)\s*(\d+)/i', $rawKelas, $matches)) {
+            $tingkatKelas = 'Kelas ' . $matches[1];
+        } elseif (preg_match('/(?:MDA|SMP|SMA|KELAS)?\s*(\d+)/i', $rawKelas, $matches)) {
             $tingkatKelas = 'Kelas ' . $matches[1];
         }
 
@@ -1780,14 +1805,16 @@ class Santri extends BaseController
     {
         $IdTpq = $this->request->getGetPost('IdTpq') ?: session()->get('IdTpq');
         $IdKelas = $this->request->getGetPost('IdKelas');
+        $IdTahunAjaran = $this->helpFunction->getTahunAjaranSaatIni();
 
-        $santri = $this->DataSantriBaru->getListSantriEmis($IdTpq, $IdKelas ?: null);
+        $santri = $this->DataSantriBaru->getListSantriEmis($IdTpq, $IdKelas ?: null, $IdTahunAjaran);
 
         // Konversi nama kelas menjadi MDA jika sesuai dengan mapping
         if (!empty($santri) && !empty($IdTpq)) {
             foreach ($santri as $key => $santriItem) {
                 if (isset($santriItem['NamaKelas']) && !empty($santriItem['NamaKelas'])) {
                     $namaKelasOriginal = $santriItem['NamaKelas'];
+                    $santri[$key]['NamaKelasRaw'] = $namaKelasOriginal;
                     $mdaCheckResult = $this->helpFunction->checkMdaKelasMapping($IdTpq, $namaKelasOriginal);
                     $santri[$key]['NamaKelas'] = $this->helpFunction->convertKelasToMda(
                         $namaKelasOriginal,
