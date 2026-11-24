@@ -1757,7 +1757,7 @@ class Santri extends BaseController
             // Bagian Santri & Mobilitas ke Lembaga
             'santri_status_mukim'          => !empty($santri['StatusMukim']) ? trim($santri['StatusMukim']) : 'Tidak Mukim',
             'santri_status_tempat_tinggal' => !empty($santri['StatusTempatTinggalSantri']) ? trim($santri['StatusTempatTinggalSantri']) : 'Tinggal dengan Ayah Kandung',
-            'santri_jarak_tempuh'          => !empty($santri['JarakTempuhSantri']) ? trim($santri['JarakTempuhSantri']) : 'Kurang dari 5 km',
+            'santri_jarak_tempuh'          => (!empty($santri['JarakTempuhSantri']) && (stripos($santri['JarakTempuhSantri'], '5') !== false || stripos($santri['JarakTempuhSantri'], 'kurang') !== false)) ? 'Kurang dari 5 km' : (!empty($santri['JarakTempuhSantri']) ? trim($santri['JarakTempuhSantri']) : 'Kurang dari 5 km'),
             'santri_transportasi'          => !empty($santri['TransportasiSantri']) ? trim($santri['TransportasiSantri']) : 'Jalan Kaki',
             'santri_waktu_tempuh'          => !empty($santri['WaktuTempuhSantri']) ? trim($santri['WaktuTempuhSantri']) : '1-10 menit',
             'santri_titik_koordinat'       => trim($santri['TitikKoordinatSantri'] ?? ''),

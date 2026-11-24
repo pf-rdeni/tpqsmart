@@ -1223,13 +1223,282 @@ function setNativeValue(element, value) {
 }
 
 /**
+ * Normalisasi nilai jarak tempuh dari database / format apapun ke format opsi EMIS
+ */
+function normalizeJarakTempuhEmis(rawJarak) {
+    if (!rawJarak) return 'Kurang dari 5 km';
+    const str = String(rawJarak).trim().toLowerCase();
+    if (str.includes('kurang') || str.includes('<') || str.includes('5 km') || str === '1' || str.includes('kurang dari 5')) {
+        return 'Kurang dari 5 km';
+    }
+    if (str.includes('5') && str.includes('10')) {
+        return 'Antara 5 – 10 Km';
+    }
+    if (str.includes('11') && str.includes('20')) {
+        return 'Antara 11 – 20 Km';
+    }
+    if (str.includes('21') && str.includes('30')) {
+        return 'Antara 21 – 30 Km';
+    }
+    if (str.includes('lebih') || str.includes('>')) {
+        return 'Lebih dari 30 Km';
+    }
+    return 'Kurang dari 5 km';
+}
+
+/**
+ * Helper untuk mengecek apakah dropdown Jarak sudah benar-benar terpilih di DOM
+ */
+function checkIsJarakSelected() {
+    const selects = Array.from(document.querySelectorAll('select'));
+    for (const sel of selects) {
+        const options = Array.from(sel.options || sel.querySelectorAll('option'));
+        if (options.length === 0) continue;
+        const optionTexts = options.map(o => (o.label || o.text || o.innerText || '').toLowerCase().trim());
+        const hasKurang5Km = optionTexts.some(t => t.includes('kurang dari 5 km') || t.includes('kurang dari 5'));
+        const hasLebih30Km = optionTexts.some(t => t.includes('lebih dari 30 km') || t.includes('lebih dari 30'));
+        if (hasKurang5Km && hasLebih30Km) {
+            return sel.value === '1' || sel.selectedIndex === 1;
+        }
+    }
+    return false;
+}
+
+/**
+ * Normalisasi nilai transportasi santri ke format teks pilihan EMIS
+ */
+function normalizeTransportasiEmis(rawTransport) {
+    if (!rawTransport) return 'Jalan Kaki';
+    const str = String(rawTransport).trim().toLowerCase();
+    if (str.includes('motor')) return 'Sepeda Motor';
+    if (str.includes('sepeda')) return 'Sepeda';
+    if (str.includes('jalan')) return 'Jalan Kaki';
+    if (str.includes('mobil')) return 'Mobil Pribadi';
+    if (str.includes('ojek')) return 'Ojek';
+    if (str.includes('antar') || str.includes('jemput')) return 'Antar Jemput Sekolah';
+    if (str.includes('angkutan') || str.includes('umum')) return 'Angkutan Umum';
+    if (str.includes('perahu') || str.includes('sampan')) return 'Perahu/Sampan';
+    if (str.includes('andong') || str.includes('delman') || str.includes('becak')) return 'Andong/Bendi/Sado/Dokar/Delman/Becak';
+    return String(rawTransport).trim();
+}
+
+/**
+ * Normalisasi nilai waktu tempuh santri ke format teks pilihan EMIS
+ */
+function normalizeWaktuTempuhEmis(rawWaktu) {
+    if (!rawWaktu) return '1-10 menit';
+    const str = String(rawWaktu).trim().toLowerCase();
+    if (str.includes('1-10') || str.includes('1 - 10') || str.includes('kurang dari 10')) return '1-10 menit';
+    if (str.includes('10-19') || str.includes('10 - 19') || str.includes('11-20') || str.includes('11 - 20')) return '10-19 menit';
+    if (str.includes('20-29') || str.includes('20 - 29') || str.includes('21-30') || str.includes('21 - 30')) return '20-29 menit';
+    if (str.includes('30-39') || str.includes('30 - 39') || str.includes('31-40') || str.includes('31 - 40')) return '30-39 menit';
+    if (str.includes('1-2 jam') || str.includes('1 - 2 jam')) return '1-2 jam';
+    if (str.includes('> 2 jam') || str.includes('>2 jam') || str.includes('lebih dari 2')) return '> 2 jam';
+    return String(rawWaktu).trim();
+}
+
+/**
+ * Helper untuk mengecek apakah dropdown Transportasi sudah benar-benar terpilih di DOM
+ */
+function checkIsTransportasiSelected() {
+    const selects = Array.from(document.querySelectorAll('select'));
+    for (const sel of selects) {
+        const options = Array.from(sel.options || sel.querySelectorAll('option'));
+        if (options.length === 0) continue;
+        const optionTexts = options.map(o => (o.label || o.text || o.innerText || '').toLowerCase().trim());
+        const hasJalanKaki = optionTexts.some(t => t.includes('jalan kaki'));
+        const hasSepeda = optionTexts.some(t => t.includes('sepeda'));
+        if (hasJalanKaki && hasSepeda) {
+            return (sel.value !== '' && sel.value !== '0') || sel.selectedIndex > 0;
+        }
+    }
+    return false;
+}
+
+/**
+ * Helper untuk mengecek apakah dropdown Waktu Tempuh sudah benar-benar terpilih di DOM
+ */
+function checkIsWaktuTempuhSelected() {
+    const selects = Array.from(document.querySelectorAll('select'));
+    for (const sel of selects) {
+        const options = Array.from(sel.options || sel.querySelectorAll('option'));
+        if (options.length === 0) continue;
+        const optionTexts = options.map(o => (o.label || o.text || o.innerText || '').toLowerCase().trim());
+        const hasMenit = optionTexts.some(t => t.includes('menit'));
+        const hasKm = optionTexts.some(t => t.includes('km'));
+        if (hasMenit && !hasKm) {
+            return (sel.value !== '' && sel.value !== '0') || sel.selectedIndex > 0;
+        }
+    }
+    return false;
+}
+
+/**
+ * Mencari dan memilih dropdown Transportasi ke Lembaga di Tab DATA ALAMAT
+ */
+function selectTransportasiEmis(rawTransport) {
+    const target = normalizeTransportasiEmis(rawTransport);
+    console.log('[TPQ-EMIS Bridge] Mencari dan memilih dropdown Transportasi:', target, '(raw:', rawTransport, ')');
+
+    const selects = Array.from(document.querySelectorAll('select'));
+    for (const sel of selects) {
+        const options = Array.from(sel.options || sel.querySelectorAll('option'));
+        if (options.length === 0) continue;
+
+        const optionTexts = options.map(o => (o.label || o.text || o.innerText || '').toLowerCase().trim());
+        const hasJalanKaki = optionTexts.some(t => t.includes('jalan kaki'));
+        const hasSepeda = optionTexts.some(t => t.includes('sepeda'));
+        const hasMotor = optionTexts.some(t => t.includes('motor'));
+
+        let contextText = (sel.name || '') + ' ' + (sel.id || '');
+        let p = sel.parentElement;
+        for (let i = 0; i < 4 && p; i++) {
+            contextText += ' ' + (p.innerText || p.textContent || '');
+            p = p.parentElement;
+        }
+        const contextUpper = contextText.toUpperCase();
+        const hasTransportLabel = contextUpper.includes('TRANSPORTASI') || contextUpper.includes('KENDARAAN');
+
+        if ((hasJalanKaki && (hasSepeda || hasMotor)) || (hasJalanKaki && hasTransportLabel) || (hasTransportLabel && options.length > 3)) {
+            console.log('[TPQ-EMIS Bridge] Dropdown Transportasi ditemukan! Menyetel ke:', target);
+            let success = setNativeSelectValue(sel, target);
+            if (!success || sel.value === '' || sel.value === '0') {
+                success = setNativeSelectValue(sel, 'Jalan Kaki');
+                if (!success && options.length > 1) {
+                    success = setNativeSelectValue(sel, options[1].value || options[1].text);
+                }
+            }
+            if (success || (sel.value && sel.value !== '0') || sel.selectedIndex > 0) {
+                const container = sel.closest('.r-16y2uox') || sel.closest('.r-crgep1') || sel.parentElement;
+                if (container) {
+                    try {
+                        container.style.transition = 'background-color 0.3s ease, border-radius 0.3s ease';
+                        container.style.backgroundColor = '#d1e7dd';
+                        container.style.borderRadius = '6px';
+                    } catch (_) {}
+                }
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+/**
+ * Mencari dan memilih dropdown Waktu Tempuh ke Lembaga di Tab DATA ALAMAT
+ */
+function selectWaktuTempuhEmis(rawWaktu) {
+    const target = normalizeWaktuTempuhEmis(rawWaktu);
+    console.log('[TPQ-EMIS Bridge] Mencari dan memilih dropdown Waktu Tempuh:', target, '(raw:', rawWaktu, ')');
+
+    const selects = Array.from(document.querySelectorAll('select'));
+    for (const sel of selects) {
+        const options = Array.from(sel.options || sel.querySelectorAll('option'));
+        if (options.length === 0) continue;
+
+        const optionTexts = options.map(o => (o.label || o.text || o.innerText || '').toLowerCase().trim());
+        const hasMenit = optionTexts.some(t => t.includes('menit'));
+        const hasJam = optionTexts.some(t => t.includes('jam'));
+        const hasKm = optionTexts.some(t => t.includes('km'));
+
+        let contextText = (sel.name || '') + ' ' + (sel.id || '');
+        let p = sel.parentElement;
+        for (let i = 0; i < 4 && p; i++) {
+            contextText += ' ' + (p.innerText || p.textContent || '');
+            p = p.parentElement;
+        }
+        const contextUpper = contextText.toUpperCase();
+        const hasWaktuLabel = contextUpper.includes('WAKTU') || contextUpper.includes('TEMPUH');
+
+        if ((hasMenit && hasJam && !hasKm) || (hasMenit && hasWaktuLabel && !hasKm)) {
+            console.log('[TPQ-EMIS Bridge] Dropdown Waktu Tempuh ditemukan! Menyetel ke:', target);
+            let success = setNativeSelectValue(sel, target);
+            if (!success || sel.value === '' || sel.value === '0') {
+                success = setNativeSelectValue(sel, '1-10 menit');
+                if (!success || sel.value === '' || sel.value === '0') {
+                    success = setNativeSelectValue(sel, '1');
+                }
+            }
+            if (success || (sel.value && sel.value !== '0') || sel.selectedIndex > 0) {
+                const container = sel.closest('.r-16y2uox') || sel.closest('.r-crgep1') || sel.parentElement;
+                if (container) {
+                    try {
+                        container.style.transition = 'background-color 0.3s ease, border-radius 0.3s ease';
+                        container.style.backgroundColor = '#d1e7dd';
+                        container.style.borderRadius = '6px';
+                    } catch (_) {}
+                }
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+/**
+ * Mencari dan memilih dropdown Jarak Tempat Tinggal ke Lembaga di Tab DATA ALAMAT
+ * Ciri opsi: "Kurang dari 5 km" (value 1), "Antara 5 – 10 Km" (value 2), dst
+ */
+function selectJarakTempatTinggalEmis(rawJarak) {
+    const target = normalizeJarakTempuhEmis(rawJarak);
+    console.log('[TPQ-EMIS Bridge] Mencari dan memilih dropdown Jarak:', target, '(raw:', rawJarak, ')');
+
+    const selects = Array.from(document.querySelectorAll('select'));
+    for (const sel of selects) {
+        const options = Array.from(sel.options || sel.querySelectorAll('option'));
+        if (options.length === 0) continue;
+
+        const optionTexts = options.map(o => (o.label || o.text || o.innerText || '').toLowerCase().trim());
+        const optionValues = options.map(o => String(o.value ?? '').trim());
+
+        // Ciri unik dropdown Jarak di EMIS:
+        const hasKurang5Km = optionTexts.some(t => t.includes('kurang dari 5 km') || t.includes('kurang dari 5'));
+        const hasLebih30Km = optionTexts.some(t => t.includes('lebih dari 30 km') || t.includes('lebih dari 30'));
+        const hasKm = optionTexts.some(t => t.includes('km'));
+
+        let contextText = (sel.name || '') + ' ' + (sel.id || '');
+        let p = sel.parentElement;
+        for (let i = 0; i < 4 && p; i++) {
+            contextText += ' ' + (p.innerText || p.textContent || '');
+            p = p.parentElement;
+        }
+        const contextUpper = contextText.toUpperCase();
+        const hasJarakLabel = contextUpper.includes('JARAK');
+
+        if ((hasKurang5Km && hasLebih30Km) || (hasKm && hasJarakLabel) || (hasKurang5Km && hasJarakLabel)) {
+            console.log('[TPQ-EMIS Bridge] Dropdown Jarak ditemukan! Menyetel ke:', target);
+            // 1. Coba dengan teks target ("Kurang dari 5 km")
+            let success = setNativeSelectValue(sel, target);
+            // 2. Jika belum terpilih (value masih kosong), paksa coba dengan value "1"
+            if (!success || sel.value === '' || sel.value === '0') {
+                success = setNativeSelectValue(sel, '1');
+            }
+            if (success || sel.value === '1' || sel.selectedIndex === 1) {
+                const container = sel.closest('.r-16y2uox') || sel.closest('.r-crgep1') || sel.parentElement;
+                if (container) {
+                    try {
+                        container.style.transition = 'background-color 0.3s ease, border-radius 0.3s ease';
+                        container.style.backgroundColor = '#d1e7dd';
+                        container.style.borderRadius = '6px';
+                    } catch (_) {}
+                }
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+/**
  * Helper khusus memilih opsi pada elemen <select> (kompatibel React Native for Web / React Synthetic Events)
  */
 function setNativeSelectValue(selectElement, targetValueOrText) {
     if (!selectElement || targetValueOrText === undefined || targetValueOrText === null) return false;
 
     try {
-        const target = String(targetValueOrText).trim().toLowerCase();
+        const rawTarget = String(targetValueOrText).trim();
+        const target = rawTarget.toLowerCase();
         if (!target) return false;
 
         const options = Array.from(selectElement.options || selectElement.querySelectorAll('option'));
@@ -1250,6 +1519,15 @@ function setNativeSelectValue(selectElement, targetValueOrText) {
             });
         }
 
+        // 3. Khusus pencocokan angka jarak / km (misal: "Kurang dari 5 km", "Kurang Dari 5 Km", "< 5 km", "1")
+        if (!matchedOption && (target.includes('5') || target.includes('kurang') || target === '1')) {
+            matchedOption = options.find(opt => {
+                const val = String(opt.value ?? '').trim();
+                const lbl = String(opt.label || opt.text || opt.innerText || '').trim().toLowerCase();
+                return val === '1' || (lbl.includes('5') && (lbl.includes('kurang') || lbl.includes('<')));
+            });
+        }
+
         if (!matchedOption) {
             console.warn('[TPQ-EMIS Bridge] Opsi tidak ditemukan pada <select> untuk nilai:', targetValueOrText);
             return false;
@@ -1258,9 +1536,21 @@ function setNativeSelectValue(selectElement, targetValueOrText) {
         const valToSet = matchedOption.value;
         const lastValue = selectElement.value;
 
+        // Fokus ke elemen sebelum perubahan
+        try { selectElement.focus(); } catch (_) {}
+
         // Tandai option yang dipilih
+        const targetIndex = options.indexOf(matchedOption);
+        if (targetIndex >= 0) {
+            selectElement.selectedIndex = targetIndex;
+        }
         options.forEach(opt => {
             opt.selected = (opt === matchedOption);
+            if (opt === matchedOption) {
+                opt.setAttribute('selected', 'selected');
+            } else {
+                opt.removeAttribute('selected');
+            }
         });
 
         // Bypass React overridden setter dengan prototype HTMLSelectElement asli
@@ -1277,25 +1567,45 @@ function setNativeSelectValue(selectElement, targetValueOrText) {
             selectElement._valueTracker.setValue(lastValue);
         }
 
-        // Trigger input & change events dengan bubbles: true
-        selectElement.dispatchEvent(new Event('input', { bubbles: true }));
-        selectElement.dispatchEvent(new Event('change', { bubbles: true }));
+        // Integrasi langsung dengan React Fiber / React Native for Web internal state
+        try {
+            const reactPropKey = Object.keys(selectElement).find(k => k.startsWith('__reactProps$') || k.startsWith('__reactFiber$') || k.startsWith('__reactInternalInstance$'));
+            if (reactPropKey) {
+                const node = selectElement[reactPropKey];
+                const props = node?.memoizedProps || node;
+                if (props && typeof props.onChange === 'function') {
+                    props.onChange({
+                        target: selectElement,
+                        currentTarget: selectElement,
+                        bubbles: true,
+                        preventDefault: () => {},
+                        stopPropagation: () => {}
+                    });
+                }
+                if (props && typeof props.onValueChange === 'function') {
+                    props.onValueChange(valToSet, targetIndex);
+                }
+            }
+        } catch (_) {}
+
+        // Trigger input & change events dengan bubbles: true & cancelable: true
+        selectElement.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+        selectElement.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
 
         // Highlight visual hijau
         try {
             selectElement.style.transition = 'background-color 0.3s ease, border-color 0.3s ease';
             selectElement.style.backgroundColor = '#d1e7dd';
             selectElement.style.borderColor = '#198754';
-            if (selectElement.parentElement) {
-                selectElement.parentElement.style.borderColor = '#198754';
+            const container = selectElement.closest('.r-16y2uox') || selectElement.closest('.r-crgep1') || selectElement.parentElement;
+            if (container) {
+                container.style.backgroundColor = '#d1e7dd';
             }
             setTimeout(() => {
                 try {
                     selectElement.style.backgroundColor = '';
                     selectElement.style.borderColor = '';
-                    if (selectElement.parentElement) {
-                        selectElement.parentElement.style.borderColor = '';
-                    }
+                    if (container) container.style.backgroundColor = '';
                 } catch (_) {}
             }, 3000);
         } catch (_) {}
@@ -2558,49 +2868,85 @@ function fillUpdateAlamatTextFields(santri) {
         }
     });
 
-    // Auto-select dropdown khusus di tab DATA ALAMAT (Hanya 3 dropdown yang diizinkan otomatis: Status Kepemilikan Rumah, Status Mukim, Status Tempat Tinggal)
+    // Auto-select dropdown khusus di tab DATA ALAMAT (Status Kepemilikan Rumah, Status Mukim, Status Tempat Tinggal, Jarak Tempuh)
     const selects = Array.from(document.querySelectorAll('select'));
     if (selects.length > 0) {
-        console.log(`[TPQ-EMIS Bridge] Menemukan ${selects.length} elemen <select> di tab DATA ALAMAT, menyetel pilihan otomatis (Status Rumah, Mukim, Tempat Tinggal)...`);
+        console.log(`[TPQ-EMIS Bridge] Menemukan ${selects.length} elemen <select> di tab DATA ALAMAT, menyetel pilihan otomatis...`);
 
         selects.forEach(sel => {
             const options = Array.from(sel.options || sel.querySelectorAll('option'));
-            const optionTexts = options.map(o => (o.label || o.text || o.innerText || '').toLowerCase());
+            if (options.length === 0) return;
+
+            const optionTexts = options.map(o => (o.label || o.text || o.innerText || '').toLowerCase().trim());
             const optionValues = options.map(o => String(o.value || '').trim());
 
             let contextText = (sel.name || '') + ' ' + (sel.id || '');
             let p = sel.parentElement;
-            for (let i = 0; i < 5 && p; i++) {
+            for (let i = 0; i < 4 && p; i++) {
                 contextText += ' ' + (p.innerText || p.textContent || '');
                 p = p.parentElement;
             }
             contextText = contextText.toUpperCase();
 
-            // 1. Status Kepemilikan Rumah (Ayah)
-            // Ciri: memiliki opsi value '9' atau 'Milik Sendiri', atau teks label KEPEMILIKAN RUMAH
-            if (optionValues.includes('9') || optionTexts.some(t => t.includes('milik sendiri')) || contextText.includes('KEPEMILIKAN RUMAH')) {
+            // 1. Jarak Tempat Tinggal - Lembaga (Santri)
+            // Identifikasi STRICT berdasarkan opsi uniknya: "kurang dari 5 km", "antara 5", atau "lebih dari 30 km"
+            const isJarakSelect = optionTexts.some(t => t.includes('kurang dari 5 km') || t.includes('lebih dari 30 km') || (t.includes('antara 5') && t.includes('km'))) ||
+                (optionValues.includes('1') && optionValues.includes('5') && optionTexts.some(t => t.includes('km')));
+
+            // 2. Status Kepemilikan Rumah (Ayah)
+            // Ciri unik: opsi value '9' atau teks 'milik sendiri'
+            const isRumahSelect = optionValues.includes('9') || optionTexts.some(t => t.includes('milik sendiri'));
+
+            // 3. Status Mukim (Santri)
+            // Ciri unik: opsi 'tidak mukim' dan 'mukim'
+            const isMukimSelect = optionTexts.includes('tidak mukim') && optionTexts.includes('mukim');
+
+            // 4. Status Tempat Tinggal (Santri)
+            // Ciri unik: opsi value '18' atau teks 'tinggal dengan ayah kandung' / 'tinggal dengan orang tua'
+            const isTempatTinggalSelect = optionValues.includes('18') || optionTexts.some(t => t.includes('tinggal dengan ayah') || t.includes('tinggal dengan orang tua'));
+
+            // 5. Transportasi ke Lembaga (Santri)
+            const isTransportSelect = (optionTexts.some(t => t.includes('jalan kaki')) && (optionTexts.some(t => t.includes('sepeda')) || optionTexts.some(t => t.includes('motor')))) ||
+                (contextText.includes('TRANSPORTASI') && options.length > 3);
+
+            // 6. Waktu Tempuh (Santri)
+            const isWaktuSelect = (optionTexts.some(t => t.includes('menit')) && !optionTexts.some(t => t.includes('km'))) ||
+                (contextText.includes('WAKTU') && optionTexts.some(t => t.includes('menit')));
+
+            if (isJarakSelect) {
+                const normalizedTarget = normalizeJarakTempuhEmis(santri.santri_jarak_tempuh || santri.santri_jarak);
+                console.log('[TPQ-EMIS Bridge] Menyetel Jarak Tempat Tinggal ke Lembaga:', normalizedTarget, '(raw:', santri.santri_jarak_tempuh, ')');
+                let ok = setNativeSelectValue(sel, normalizedTarget);
+                if (!ok || sel.value === '' || sel.value === '0') {
+                    setNativeSelectValue(sel, '1');
+                }
+            } else if (isRumahSelect) {
                 const target = santri.ayah_status_kepemilikan_rumah || 'Milik Sendiri';
                 console.log('[TPQ-EMIS Bridge] Menyetel Status Kepemilikan Rumah:', target);
                 setNativeSelectValue(sel, target);
-            }
-
-            // 2. Status Mukim (Santri)
-            // Ciri: memiliki opsi 'tidak mukim' dan 'mukim', atau teks label STATUS MUKIM
-            else if ((optionTexts.includes('tidak mukim') && optionTexts.includes('mukim')) || (contextText.includes('MUKIM') && !contextText.includes('TEMPAT TINGGAL'))) {
+            } else if (isMukimSelect) {
                 const target = santri.santri_status_mukim || 'Tidak Mukim';
                 console.log('[TPQ-EMIS Bridge] Menyetel Status Mukim:', target);
                 setNativeSelectValue(sel, target);
-            }
-
-            // 3. Status Tempat Tinggal (Santri)
-            // Ciri: memiliki opsi value '18' atau 'tinggal dengan ayah', atau teks label STATUS TEMPAT TINGGAL
-            else if (optionValues.includes('18') || optionTexts.some(t => t.includes('tinggal dengan ayah')) || (contextText.includes('STATUS TEMPAT TINGGAL') && !contextText.includes('WALI'))) {
+            } else if (isTempatTinggalSelect) {
                 const target = santri.santri_status_tempat_tinggal || 'Tinggal dengan Ayah Kandung';
                 console.log('[TPQ-EMIS Bridge] Menyetel Status Tempat Tinggal Santri:', target);
                 setNativeSelectValue(sel, target);
+            } else if (isTransportSelect) {
+                const target = normalizeTransportasiEmis(santri.santri_transportasi);
+                console.log('[TPQ-EMIS Bridge] Menyetel Transportasi ke Lembaga:', target, '(raw:', santri.santri_transportasi, ')');
+                let ok = setNativeSelectValue(sel, target);
+                if (!ok || sel.value === '' || sel.value === '0') {
+                    setNativeSelectValue(sel, 'Jalan Kaki');
+                }
+            } else if (isWaktuSelect) {
+                const target = normalizeWaktuTempuhEmis(santri.santri_waktu_tempuh);
+                console.log('[TPQ-EMIS Bridge] Menyetel Waktu Tempuh ke Lembaga:', target, '(raw:', santri.santri_waktu_tempuh, ')');
+                let ok = setNativeSelectValue(sel, target);
+                if (!ok || sel.value === '' || sel.value === '0') {
+                    setNativeSelectValue(sel, '1-10 menit');
+                }
             }
-
-            // Catatan: Jarak Tempuh, Transportasi, dan Waktu Tempuh sengaja TIDAK diotomatiskan (manual via panduan popup)
         });
     }
 }
@@ -2767,7 +3113,7 @@ let isStep3Executing = false;
 let isStep3Done = false;
 
 /**
- * Eksekusi Step 3: Tab DATA ALAMAT (Dijalankan SEKALI SAJA tanpa looping)
+ * Eksekusi Step 3: Tab DATA ALAMAT (Dengan Interval Retry untuk mengunci dropdown Jarak)
  */
 function executeStep3DataAlamat(santriData) {
     if (!santriData) return;
@@ -2788,13 +3134,52 @@ function executeStep3DataAlamat(santriData) {
     // 1. Pastikan tab DATA ALAMAT aktif hanya jika belum aktif
     ensureDataAlamatTabActive();
 
-    // 2. Beri jeda 400ms agar React selesai render tab alamat, lalu isi SEKALI SAJA
+    // 2. Tampilkan popup dan isi field domisili Ayah, centang checkbox, dan set status tinggal
     setTimeout(() => {
-        fillUpdateAlamatTextFields(santriData);
-        isStep3Executing = false;
-        isStep3Done = true;
         showUpdateAlamatStep3Popup(santriData);
-    }, 400);
+        fillUpdateAlamatTextFields(santriData);
+
+        // 3. Beri jeda 400ms setelah checkbox & dropdown lain diproses
+        // agar re-render React pada bagian bawah form selesai terlebih dahulu
+        setTimeout(() => {
+            let consecutiveSuccess = 0;
+            let attempts = 0;
+            const maxAttempts = 15; // Berjalan hingga 4.5 detik (15 x 300ms)
+
+            const step3Timer = setInterval(() => {
+                attempts++;
+                const isJarakOk = checkIsJarakSelected();
+                const isTransportOk = checkIsTransportasiSelected();
+                const isWaktuOk = checkIsWaktuTempuhSelected();
+
+                if (!isJarakOk) {
+                    selectJarakTempatTinggalEmis(santriData.santri_jarak_tempuh || santriData.santri_jarak);
+                }
+                if (!isTransportOk) {
+                    selectTransportasiEmis(santriData.santri_transportasi);
+                }
+                if (!isWaktuOk) {
+                    selectWaktuTempuhEmis(santriData.santri_waktu_tempuh);
+                }
+
+                if (isJarakOk && isTransportOk && isWaktuOk) {
+                    consecutiveSuccess++;
+                    console.log(`[TPQ-EMIS Bridge] [Mobilitas Timer #${attempts}] Jarak, Transportasi & Waktu terdeteksi terkunci (stabil ${consecutiveSuccess}/3)`);
+                } else {
+                    consecutiveSuccess = 0;
+                    console.log(`[TPQ-EMIS Bridge] [Mobilitas Timer #${attempts}] Status kunci - Jarak: ${isJarakOk}, Transportasi: ${isTransportOk}, Waktu: ${isWaktuOk}`);
+                }
+
+                // Berhenti hanya jika sudah stabil terpilih selama 3 siklus berturut-turut ATAU waktu habis
+                if (consecutiveSuccess >= 3 || attempts >= maxAttempts) {
+                    clearInterval(step3Timer);
+                    isStep3Executing = false;
+                    isStep3Done = true;
+                    console.log('[TPQ-EMIS Bridge] Penguncian Mobilitas (Jarak, Transportasi, Waktu) Step 3 selesai. Status stabil:', consecutiveSuccess >= 3);
+                }
+            }, 300);
+        }, 400);
+    }, 250);
 }
 
 /**
@@ -2919,25 +3304,34 @@ function showUpdateAlamatStep3Popup(data) {
                         <button class="tpq-copy-badge" data-val="${escapeHtml(data.santri_status_tempat_tinggal || 'Tinggal dengan Ayah Kandung')}" style="padding: 1px 6px; margin-left: 4px; border: 1px solid #198754; background: #fff; color: #198754; border-radius: 3px; font-size: 10px; cursor: pointer;">Salin</button>
                     </td>
                 </tr>
-                <tr>
-                    <td style="padding: 4px; color: #495057;">Jarak Tempuh:</td>
-                    <td style="padding: 4px; font-weight: bold;">
+                <tr style="background: #f8f9fa;">
+                    <td style="padding: 4px; color: #198754; font-weight: bold;">Jarak Tempuh (Auto):</td>
+                    <td style="padding: 4px; font-weight: bold; color: #198754;">
                         ${escapeHtml(data.santri_jarak_tempuh || 'Kurang dari 5 km')}
-                        <button class="tpq-copy-badge" data-val="${escapeHtml(data.santri_jarak_tempuh || 'Kurang dari 5 km')}" style="padding: 1px 6px; margin-left: 4px; border: 1px solid #0d6efd; background: #fff; color: #0d6efd; border-radius: 3px; font-size: 10px; cursor: pointer;">Salin</button>
+                        <button id="tpq-btn-force-jarak" style="padding: 2px 8px; margin-left: 6px; border: 1px solid #198754; background: #198754; color: #fff; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: bold;" title="Klik untuk langsung setel opsi Jarak di form EMIS">
+                            ⚡ Pilih Jarak di Form
+                        </button>
+                        <button class="tpq-copy-badge" data-val="${escapeHtml(data.santri_jarak_tempuh || 'Kurang dari 5 km')}" style="padding: 1px 6px; margin-left: 4px; border: 1px solid #198754; background: #fff; color: #198754; border-radius: 3px; font-size: 10px; cursor: pointer;">Salin</button>
                     </td>
                 </tr>
-                <tr>
-                    <td style="padding: 4px; color: #495057;">Transportasi:</td>
-                    <td style="padding: 4px; font-weight: bold;">
+                <tr style="background: #f8f9fa;">
+                    <td style="padding: 4px; color: #198754; font-weight: bold;">Transportasi (Auto):</td>
+                    <td style="padding: 4px; font-weight: bold; color: #198754;">
                         ${escapeHtml(data.santri_transportasi || 'Jalan Kaki')}
-                        <button class="tpq-copy-badge" data-val="${escapeHtml(data.santri_transportasi || 'Jalan Kaki')}" style="padding: 1px 6px; margin-left: 4px; border: 1px solid #0d6efd; background: #fff; color: #0d6efd; border-radius: 3px; font-size: 10px; cursor: pointer;">Salin</button>
+                        <button id="tpq-btn-force-transport" style="padding: 2px 8px; margin-left: 6px; border: 1px solid #198754; background: #198754; color: #fff; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: bold;" title="Klik untuk setel Transportasi di form EMIS">
+                            ⚡ Pilih di Form
+                        </button>
+                        <button class="tpq-copy-badge" data-val="${escapeHtml(data.santri_transportasi || 'Jalan Kaki')}" style="padding: 1px 6px; margin-left: 4px; border: 1px solid #198754; background: #fff; color: #198754; border-radius: 3px; font-size: 10px; cursor: pointer;">Salin</button>
                     </td>
                 </tr>
-                <tr>
-                    <td style="padding: 4px; color: #495057;">Waktu Tempuh:</td>
-                    <td style="padding: 4px; font-weight: bold;">
+                <tr style="background: #f8f9fa;">
+                    <td style="padding: 4px; color: #198754; font-weight: bold;">Waktu Tempuh (Auto):</td>
+                    <td style="padding: 4px; font-weight: bold; color: #198754;">
                         ${escapeHtml(data.santri_waktu_tempuh || '1-10 menit')}
-                        <button class="tpq-copy-badge" data-val="${escapeHtml(data.santri_waktu_tempuh || '1-10 menit')}" style="padding: 1px 6px; margin-left: 4px; border: 1px solid #0d6efd; background: #fff; color: #0d6efd; border-radius: 3px; font-size: 10px; cursor: pointer;">Salin</button>
+                        <button id="tpq-btn-force-waktu" style="padding: 2px 8px; margin-left: 6px; border: 1px solid #198754; background: #198754; color: #fff; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: bold;" title="Klik untuk setel Waktu Tempuh di form EMIS">
+                            ⚡ Pilih di Form
+                        </button>
+                        <button class="tpq-copy-badge" data-val="${escapeHtml(data.santri_waktu_tempuh || '1-10 menit')}" style="padding: 1px 6px; margin-left: 4px; border: 1px solid #198754; background: #fff; color: #198754; border-radius: 3px; font-size: 10px; cursor: pointer;">Salin</button>
                     </td>
                 </tr>
                 ${data.santri_titik_koordinat ? `<tr>
@@ -2988,9 +3382,100 @@ function showUpdateAlamatStep3Popup(data) {
         });
     });
 
+    // Tombol Pilih Jarak manual di form EMIS
+    const btnForceJarak = document.getElementById('tpq-btn-force-jarak');
+    if (btnForceJarak) {
+        btnForceJarak.addEventListener('click', () => {
+            btnForceJarak.innerText = '⏳ Menyetel...';
+            btnForceJarak.style.background = '#0d6efd';
+
+            selectJarakTempatTinggalEmis(data.santri_jarak_tempuh || data.santri_jarak);
+
+            // Penguncian berulang setelah klik manual agar tidak di-reset React
+            let manualAttempts = 0;
+            const manualTimer = setInterval(() => {
+                manualAttempts++;
+                const isOk = checkIsJarakSelected();
+                if (!isOk) {
+                    selectJarakTempatTinggalEmis(data.santri_jarak_tempuh || data.santri_jarak);
+                }
+                if (isOk || manualAttempts >= 5) {
+                    clearInterval(manualTimer);
+                    btnForceJarak.innerText = isOk ? '✓ Terpilih!' : '⚠️ Gagal';
+                    btnForceJarak.style.background = isOk ? '#059669' : '#dc3545';
+                    setTimeout(() => {
+                        btnForceJarak.innerText = '⚡ Pilih Jarak di Form';
+                        btnForceJarak.style.background = '#198754';
+                    }, 2500);
+                }
+            }, 250);
+        });
+    }
+
+    // Tombol Pilih Transportasi manual di form EMIS
+    const btnForceTransport = document.getElementById('tpq-btn-force-transport');
+    if (btnForceTransport) {
+        btnForceTransport.addEventListener('click', () => {
+            btnForceTransport.innerText = '⏳ Menyetel...';
+            btnForceTransport.style.background = '#0d6efd';
+
+            selectTransportasiEmis(data.santri_transportasi);
+
+            let manualAttempts = 0;
+            const manualTimer = setInterval(() => {
+                manualAttempts++;
+                const isOk = checkIsTransportasiSelected();
+                if (!isOk) {
+                    selectTransportasiEmis(data.santri_transportasi);
+                }
+                if (isOk || manualAttempts >= 5) {
+                    clearInterval(manualTimer);
+                    btnForceTransport.innerText = isOk ? '✓ Terpilih!' : '⚠️ Gagal';
+                    btnForceTransport.style.background = isOk ? '#059669' : '#dc3545';
+                    setTimeout(() => {
+                        btnForceTransport.innerText = '⚡ Pilih di Form';
+                        btnForceTransport.style.background = '#198754';
+                    }, 2500);
+                }
+            }, 250);
+        });
+    }
+
+    // Tombol Pilih Waktu Tempuh manual di form EMIS
+    const btnForceWaktu = document.getElementById('tpq-btn-force-waktu');
+    if (btnForceWaktu) {
+        btnForceWaktu.addEventListener('click', () => {
+            btnForceWaktu.innerText = '⏳ Menyetel...';
+            btnForceWaktu.style.background = '#0d6efd';
+
+            selectWaktuTempuhEmis(data.santri_waktu_tempuh);
+
+            let manualAttempts = 0;
+            const manualTimer = setInterval(() => {
+                manualAttempts++;
+                const isOk = checkIsWaktuTempuhSelected();
+                if (!isOk) {
+                    selectWaktuTempuhEmis(data.santri_waktu_tempuh);
+                }
+                if (isOk || manualAttempts >= 5) {
+                    clearInterval(manualTimer);
+                    btnForceWaktu.innerText = isOk ? '✓ Terpilih!' : '⚠️ Gagal';
+                    btnForceWaktu.style.background = isOk ? '#059669' : '#dc3545';
+                    setTimeout(() => {
+                        btnForceWaktu.innerText = '⚡ Pilih di Form';
+                        btnForceWaktu.style.background = '#198754';
+                    }, 2500);
+                }
+            }, 250);
+        });
+    }
+
     document.getElementById('tpq-btn-refill-alamat').addEventListener('click', () => {
         ensureDataAlamatTabActive();
         fillUpdateAlamatTextFields(data);
+        selectJarakTempatTinggalEmis(data.santri_jarak_tempuh || data.santri_jarak);
+        selectTransportasiEmis(data.santri_transportasi);
+        selectWaktuTempuhEmis(data.santri_waktu_tempuh);
     });
 
     const btnSelesai = document.getElementById('tpq-btn-selesai-alamat');
