@@ -1835,12 +1835,21 @@ class Santri extends BaseController
 
     /**
      * AJAX endpoint untuk menyimpan status sinkronisasi EMIS santri ke database (tbl_santri_emis)
+     * Mendukung status: 'selesai', 'konflik', 'belum' serta kolom Catatan
      */
     public function updateStatusEmisAjax()
     {
         $idSantri = $this->request->getPost('IdSantri');
-        $rawStatus = $this->request->getPost('Status');
-        $status = ($rawStatus === 'selesai' || $rawStatus === true || $rawStatus === '1') ? 'selesai' : 'belum';
+        $rawStatus = strtolower(trim((string)$this->request->getPost('Status')));
+        $catatan = $this->request->getPost('Catatan');
+
+        if (in_array($rawStatus, ['selesai', 'konflik', 'belum'])) {
+            $status = $rawStatus;
+        } elseif ($rawStatus === '1' || $rawStatus === 'true') {
+            $status = 'selesai';
+        } else {
+            $status = 'belum';
+        }
 
         if (empty($idSantri)) {
             return $this->response->setJSON([
@@ -1857,22 +1866,29 @@ class Santri extends BaseController
 
         $idTpq = session()->get('IdTpq');
 
-        $result = $this->DataSantriBaru->updateStatusEmis($idSantri, $status, $user, $idTpq);
+        $result = $this->DataSantriBaru->updateStatusEmis($idSantri, $status, $user, $idTpq, $catatan);
 
         if ($result) {
             $now = date('Y-m-d H:i:s');
-            $tglLabel = ($status === 'selesai') ? date('d M Y, H:i') : null;
+            $tglLabel = ($status !== 'belum') ? date('d M Y, H:i') : null;
+
+            $statusText = 'Belum';
+            if ($status === 'selesai') {
+                $statusText = 'Selesai';
+            } elseif ($status === 'konflik') {
+                $statusText = 'Konflik';
+            }
 
             return $this->response->setJSON([
                 'success'          => true,
                 'id_santri'        => $idSantri,
                 'status'           => $status,
-                'tgl_update'       => ($status === 'selesai') ? $now : null,
+                'status_text'      => $statusText,
+                'catatan'          => $catatan !== null ? trim($catatan) : '',
+                'tgl_update'       => ($status !== 'belum') ? $now : null,
                 'tgl_update_label' => $tglLabel,
                 'updated_by'       => $user,
-                'message'          => ($status === 'selesai') 
-                    ? 'Status santri berhasil ditandai Selesai di database' 
-                    : 'Status santri berhasil diubah ke Belum di database'
+                'message'          => "Status pendaftaran santri berhasil diubah ke {$statusText}"
             ]);
         }
 

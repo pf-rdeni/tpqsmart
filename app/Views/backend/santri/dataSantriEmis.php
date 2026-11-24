@@ -52,25 +52,33 @@
                         <option value="">-- Semua Status --</option>
                         <option value="belum">Belum Disalin</option>
                         <option value="selesai">Sudah Disalin (Selesai)</option>
+                        <option value="konflik">Konflik Lembaga Lain</option>
                     </select>
                 </div>
                 <div class="col-md-6 col-sm-12 mb-2 text-md-right">
                     <?php
                         $totalSantri = count($dataSantri);
                         $totalSelesai = 0;
+                        $totalKonflik = 0;
                         foreach ($dataSantri as $s) {
-                            if (($s['StatusEmis'] ?? 'belum') === 'selesai') {
+                            $st = $s['StatusEmis'] ?? 'belum';
+                            if ($st === 'selesai') {
                                 $totalSelesai++;
+                            } elseif ($st === 'konflik') {
+                                $totalKonflik++;
                             }
                         }
-                        $totalBelum = $totalSantri - $totalSelesai;
+                        $totalBelum = $totalSantri - $totalSelesai - $totalKonflik;
                     ?>
-                    <div class="btn-group" role="group">
+                    <div class="btn-group flex-wrap" role="group">
                         <button type="button" class="btn btn-light border btn-sm" disabled>
                             Total: <strong id="statTotalSantri"><?= $totalSantri; ?></strong>
                         </button>
                         <button type="button" class="btn btn-success btn-sm" disabled>
                             <i class="fas fa-check-circle mr-1"></i> Selesai: <strong id="statSelesaiSantri"><?= $totalSelesai; ?></strong>
+                        </button>
+                        <button type="button" class="btn btn-danger btn-sm" disabled>
+                            <i class="fas fa-exclamation-triangle mr-1"></i> Konflik: <strong id="statKonflikSantri"><?= $totalKonflik; ?></strong>
                         </button>
                         <button type="button" class="btn btn-warning btn-sm" disabled>
                             <i class="fas fa-clock mr-1"></i> Belum: <strong id="statBelumSantri"><?= $totalBelum; ?></strong>
@@ -113,14 +121,28 @@
                                 </td>
                                 <td class="align-middle text-center" id="col-status-<?= $santri['IdSantri']; ?>">
                                     <?php 
-                                        $isSelesai = ($santri['StatusEmis'] ?? 'belum') === 'selesai';
+                                        $statusEmis = $santri['StatusEmis'] ?? 'belum';
                                         $tglUpdate = !empty($santri['TglUpdateEmis']) ? date('d M Y, H:i', strtotime($santri['TglUpdateEmis'])) : '';
                                         $isAlamatSelesai = ($santri['StatusAlamatEmis'] ?? 'belum') === 'selesai';
                                         $tglUpdateAlamat = !empty($santri['TglUpdateAlamatEmis']) ? date('d M Y, H:i', strtotime($santri['TglUpdateAlamatEmis'])) : '';
+                                        $catatanEmis = trim($santri['CatatanEmis'] ?? '');
+
+                                        $badgeDaftarClass = 'badge-warning';
+                                        $badgeDaftarIcon = 'fa-hourglass-half';
+                                        $badgeDaftarText = 'Belum';
+                                        if ($statusEmis === 'selesai') {
+                                            $badgeDaftarClass = 'badge-success';
+                                            $badgeDaftarIcon = 'fa-check-circle';
+                                            $badgeDaftarText = 'Selesai';
+                                        } elseif ($statusEmis === 'konflik') {
+                                            $badgeDaftarClass = 'badge-danger';
+                                            $badgeDaftarIcon = 'fa-exclamation-triangle';
+                                            $badgeDaftarText = 'Konflik';
+                                        }
                                     ?>
                                     <div class="mb-1" id="box-status-daftar-<?= $santri['IdSantri']; ?>">
-                                        <span class="badge <?= $isSelesai ? 'badge-success' : 'badge-warning'; ?> p-1 status-badge cursor-pointer" onclick="toggleStatusSantriEmis('<?= $santri['IdSantri']; ?>')" title="Klik untuk ubah status pendaftaran">
-                                            <i class="fas <?= $isSelesai ? 'fa-check-circle' : 'fa-hourglass-half'; ?> mr-1"></i> Daftar: <?= $isSelesai ? 'Selesai' : 'Belum'; ?>
+                                        <span class="badge <?= $badgeDaftarClass; ?> p-1 status-badge cursor-pointer" onclick="openModalUbahStatusEmis('<?= $santri['IdSantri']; ?>')" title="Klik untuk ubah status pendaftaran / catatan">
+                                            <i class="fas <?= $badgeDaftarIcon; ?> mr-1"></i> Daftar: <?= $badgeDaftarText; ?>
                                         </span>
                                         <?php if (!empty($tglUpdate)): ?>
                                             <small class="text-muted d-block status-time" style="font-size: 10px;">
@@ -136,6 +158,13 @@
                                             <small class="text-muted d-block status-time-alamat" style="font-size: 10px;">
                                                 <i class="far fa-clock mr-1"></i><?= $tglUpdateAlamat; ?>
                                             </small>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div id="box-catatan-<?= $santri['IdSantri']; ?>" class="mt-1">
+                                        <?php if (!empty($catatanEmis)): ?>
+                                            <div class="p-1 px-2 rounded bg-light border border-danger text-danger text-left small cursor-pointer" onclick="openModalUbahStatusEmis('<?= $santri['IdSantri']; ?>')" style="font-size: 11px; max-width: 170px; margin: 0 auto; line-height: 1.2;" title="Klik untuk edit status / catatan">
+                                                <i class="fas fa-exclamation-circle text-danger mr-1"></i><span class="catatan-text"><?= htmlspecialchars($catatanEmis); ?></span>
+                                            </div>
                                         <?php endif; ?>
                                     </div>
                                 </td>
@@ -228,6 +257,106 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================== -->
+<!-- MODAL: UBAH STATUS PENDAFTARAN & CATATAN EMIS                  -->
+<!-- ============================================================== -->
+<div class="modal fade" id="modalUbahStatusEmis" tabindex="-1" role="dialog" aria-labelledby="modalUbahStatusEmisLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content shadow border-0">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title font-weight-bold" id="modalUbahStatusEmisLabel">
+                    <i class="fas fa-user-edit mr-2"></i> Ubah Status Pendaftaran EMIS
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body p-4">
+                <input type="hidden" id="modalStatusIdSantri">
+
+                <!-- Info Santri Singkat -->
+                <div class="bg-light p-3 rounded border mb-3">
+                    <div class="font-weight-bold text-primary" style="font-size: 15px;" id="modalStatusNamaSantri">-</div>
+                    <div class="d-flex flex-wrap justify-content-between small text-muted mt-1">
+                        <div>NIK: <strong id="modalStatusNikSantri" class="text-dark font-monospace">-</strong></div>
+                        <div>Kelas: <strong id="modalStatusKelasSantri" class="text-dark">-</strong></div>
+                    </div>
+                </div>
+
+                <!-- Pilihan Status Pendaftaran -->
+                <label class="font-weight-bold mb-2 text-dark">
+                    <i class="fas fa-tasks text-muted mr-1"></i> Pilih Status Pendaftaran di EMIS:
+                </label>
+                <div class="list-group mb-3">
+                    <label class="list-group-item list-group-item-action d-flex align-items-center cursor-pointer mb-2 rounded border" style="padding: 10px 14px;">
+                        <input class="form-check-input mr-3 ml-0" type="radio" name="radioStatusEmis" value="belum" id="radioStatusBelum">
+                        <div class="w-100 ml-4">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="font-weight-bold text-dark"><i class="fas fa-clock text-warning mr-1"></i> Belum Disalin</span>
+                                <span class="badge badge-warning">Belum</span>
+                            </div>
+                            <small class="text-muted d-block mt-1">Santri masih dalam antrean / belum diproses ke EMIS 4.0.</small>
+                        </div>
+                    </label>
+
+                    <label class="list-group-item list-group-item-action d-flex align-items-center cursor-pointer mb-2 rounded border" style="padding: 10px 14px;">
+                        <input class="form-check-input mr-3 ml-0" type="radio" name="radioStatusEmis" value="selesai" id="radioStatusSelesai">
+                        <div class="w-100 ml-4">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="font-weight-bold text-success"><i class="fas fa-check-circle text-success mr-1"></i> Sudah Berhasil (Selesai)</span>
+                                <span class="badge badge-success">Selesai</span>
+                            </div>
+                            <small class="text-muted d-block mt-1">Data santri telah berhasil disalin / didaftarkan ke EMIS 4.0.</small>
+                        </div>
+                    </label>
+
+                    <label class="list-group-item list-group-item-action d-flex align-items-center cursor-pointer rounded border border-danger" style="padding: 10px 14px; background-color: #fff8f8;">
+                        <input class="form-check-input mr-3 ml-0" type="radio" name="radioStatusEmis" value="konflik" id="radioStatusKonflik">
+                        <div class="w-100 ml-4">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="font-weight-bold text-danger"><i class="fas fa-exclamation-triangle text-danger mr-1"></i> Konflik Lembaga Lain (Gagal)</span>
+                                <span class="badge badge-danger">Konflik</span>
+                            </div>
+                            <small class="text-muted d-block mt-1">Santri tidak bisa didaftarkan karena sudah terdaftar di lembaga lain atau data bentrok.</small>
+                        </div>
+                    </label>
+                </div>
+
+                <!-- Input Catatan / Keterangan -->
+                <div class="form-group mb-2">
+                    <label class="font-weight-bold text-dark mb-1" for="modalStatusCatatan">
+                        <i class="fas fa-sticky-note text-muted mr-1"></i> Catatan / Keterangan Masalah:
+                    </label>
+                    <textarea class="form-control" id="modalStatusCatatan" rows="3" placeholder="Tuliskan keterangan detail (misal: Sudah aktif di TPQ Al-Huda / NIK ganda di sekolah lain / menunggu mutasi)..."></textarea>
+                </div>
+
+                <!-- Quick tags template -->
+                <div class="small mb-1 text-muted"><i class="fas fa-lightbulb text-warning mr-1"></i> Templat Keterangan Cepat (klik untuk mengisi):</div>
+                <div class="d-flex flex-wrap" style="gap: 5px;">
+                    <button type="button" class="btn btn-xs btn-outline-secondary" onclick="isiTemplateCatatan('Aktif di lembaga lain')">
+                        + Aktif di lembaga lain
+                    </button>
+                    <button type="button" class="btn btn-xs btn-outline-secondary" onclick="isiTemplateCatatan('NIK bentrok / sudah terdaftar')">
+                        + NIK bentrok
+                    </button>
+                    <button type="button" class="btn btn-xs btn-outline-secondary" onclick="isiTemplateCatatan('Menunggu mutasi EMIS')">
+                        + Menunggu mutasi
+                    </button>
+                    <button type="button" class="btn btn-xs btn-outline-secondary" onclick="isiTemplateCatatan('Data tidak valid di Dukcapil')">
+                        + Dukcapil tidak valid
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
+                <button type="button" class="btn btn-primary font-weight-bold" id="btnSimpanStatusEmis">
+                    <i class="fas fa-save mr-1"></i> Simpan Perubahan
+                </button>
             </div>
         </div>
     </div>
@@ -491,6 +620,11 @@
         // 5. Update statistik dan cek koneksi ekstensi
         hitungUlangStatistik();
         cekKoneksiExtension(false);
+
+        // 6. Handler tombol simpan perubahan status dari modal
+        $('#btnSimpanStatusEmis').on('click', function() {
+            simpanPerubahanStatusEmis();
+        });
     });
 
     // ==============================================================
@@ -526,9 +660,11 @@
     function terapkanFilterStatus(val) {
         if (!dataTableSantri) return;
         if (val === 'selesai') {
-            dataTableSantri.column(2).search('Selesai').draw();
+            dataTableSantri.column(2).search('Daftar:\\s*Selesai', true, false).draw();
         } else if (val === 'belum') {
-            dataTableSantri.column(2).search('Belum').draw();
+            dataTableSantri.column(2).search('Daftar:\\s*Belum', true, false).draw();
+        } else if (val === 'konflik') {
+            dataTableSantri.column(2).search('Daftar:\\s*Konflik', true, false).draw();
         } else {
             dataTableSantri.column(2).search('').draw();
         }
@@ -571,9 +707,11 @@
             if (filterState.status !== undefined && filterState.status !== null && filterState.status !== '') {
                 $('#filterStatusEmis').val(filterState.status);
                 if (filterState.status === 'selesai') {
-                    dataTableSantri.column(2).search('Selesai');
+                    dataTableSantri.column(2).search('Daftar:\\s*Selesai', true, false);
                 } else if (filterState.status === 'belum') {
-                    dataTableSantri.column(2).search('Belum');
+                    dataTableSantri.column(2).search('Daftar:\\s*Belum', true, false);
+                } else if (filterState.status === 'konflik') {
+                    dataTableSantri.column(2).search('Daftar:\\s*Konflik', true, false);
                 }
                 needsDraw = true;
             }
@@ -587,51 +725,123 @@
     }
 
     // ==============================================================
-    // FITUR STATUS DATABASE (tbl_santri_emis)
+    // HELPER & FITUR MODAL STATUS DATABASE (tbl_santri_emis)
     // ==============================================================
 
-    function toggleStatusSantriEmis(idSantri) {
+    function escapeHtml(text) {
+        if (!text) return '';
+        return String(text)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function openModalUbahStatusEmis(idSantri) {
         const sObj = dataSantriMaster.find(s => String(s.IdSantri) === String(idSantri));
-        const currentIsSelesai = sObj ? (sObj.StatusEmis === 'selesai') : false;
-        const newStatus = currentIsSelesai ? 'belum' : 'selesai';
+        if (!sObj) {
+            console.error('Santri tidak ditemukan:', idSantri);
+            return;
+        }
+
+        $('#modalStatusIdSantri').val(idSantri);
+        $('#modalStatusNamaSantri').text(sObj.NamaSantri || '-');
+        $('#modalStatusNikSantri').text(sObj.NikSantri || '-');
+        $('#modalStatusKelasSantri').text(sObj.NamaKelas || '-');
+
+        const currentStatus = (sObj.StatusEmis || 'belum').toLowerCase();
+        if (currentStatus === 'selesai') {
+            $('#radioStatusSelesai').prop('checked', true);
+        } else if (currentStatus === 'konflik') {
+            $('#radioStatusKonflik').prop('checked', true);
+        } else {
+            $('#radioStatusBelum').prop('checked', true);
+        }
+
+        $('#modalStatusCatatan').val(sObj.CatatanEmis || '');
+        $('#modalUbahStatusEmis').modal('show');
+    }
+
+    function isiTemplateCatatan(teks) {
+        const $catatan = $('#modalStatusCatatan');
+        const currentVal = $catatan.val().trim();
+        if (currentVal) {
+            if (!currentVal.includes(teks)) {
+                $catatan.val(currentVal + ', ' + teks);
+            }
+        } else {
+            $catatan.val(teks);
+        }
+        // Jika template terkait kendala/bentrok, arahkan radio status ke Konflik otomatis
+        if (teks.includes('lembaga') || teks.includes('bentrok') || teks.includes('Dukcapil') || teks.includes('mutasi')) {
+            $('#radioStatusKonflik').prop('checked', true);
+        }
+    }
+
+    function simpanPerubahanStatusEmis() {
+        const idSantri = $('#modalStatusIdSantri').val();
+        const status = $('input[name="radioStatusEmis"]:checked').val() || 'belum';
+        const catatan = $('#modalStatusCatatan').val().trim();
+
+        if (!idSantri) return;
+
+        const $btn = $('#btnSimpanStatusEmis');
+        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-1"></i> Menyimpan...');
 
         $.ajax({
             url: '<?= base_url('backend/santri/updateStatusEmisAjax'); ?>',
             method: 'POST',
             data: {
                 IdSantri: idSantri,
-                Status: newStatus
+                Status: status,
+                Catatan: catatan
             },
             dataType: 'json',
             success: function(res) {
+                $btn.prop('disabled', false).html('<i class="fas fa-save mr-1"></i> Simpan Perubahan');
                 if (res.success) {
-                    updateStatusBadgeUI(idSantri, res.status === 'selesai', res.tgl_update_label || '');
+                    $('#modalUbahStatusEmis').modal('hide');
+                    updateStatusBadgeUI(idSantri, res.status, res.tgl_update_label || '', res.catatan);
                     hitungUlangStatistik();
 
-                    let namaSantri = sObj && sObj.NamaSantri ? sObj.NamaSantri : '';
+                    const sObj = dataSantriMaster.find(s => String(s.IdSantri) === String(idSantri));
+                    const namaSantri = sObj && sObj.NamaSantri ? sObj.NamaSantri : 'Santri';
+
                     if (typeof toastr !== 'undefined') {
                         if (res.status === 'selesai') {
-                            toastr.success(namaSantri ? `Status ${namaSantri} ditandai Selesai di database.` : 'Status santri ditandai Selesai di database.', 'Status EMIS');
+                            toastr.success(`Status ${namaSantri} berhasil disimpan: Selesai`, 'Status EMIS');
+                        } else if (res.status === 'konflik') {
+                            toastr.warning(`Status ${namaSantri} disimpan: Konflik Lembaga Lain`, 'Status EMIS');
                         } else {
-                            toastr.info(namaSantri ? `Status ${namaSantri} dikembalikan ke Belum di database.` : 'Status santri dikembalikan ke Belum di database.', 'Status EMIS');
+                            toastr.info(`Status ${namaSantri} dikembalikan ke Belum`, 'Status EMIS');
                         }
                     }
                 } else {
                     if (typeof toastr !== 'undefined') {
-                        toastr.error(res.message || 'Gagal mengubah status di database', 'Gagal');
+                        toastr.error(res.message || 'Gagal menyimpan status.', 'Gagal');
                     }
                 }
             },
             error: function() {
+                $btn.prop('disabled', false).html('<i class="fas fa-save mr-1"></i> Simpan Perubahan');
                 if (typeof toastr !== 'undefined') {
-                    toastr.error('Terjadi kesalahan koneksi ke server saat memperbarui status.', 'Gagal');
+                    toastr.error('Terjadi kesalahan koneksi saat menyimpan status.', 'Error');
                 }
             }
         });
     }
 
-    function setStatusSantriEmis(idSantri, isSelesai, callback = null) {
-        const newStatus = isSelesai ? 'selesai' : 'belum';
+    function toggleStatusSantriEmis(idSantri) {
+        // Alihkan klik badge status untuk membuka modal perubahan status & catatan
+        openModalUbahStatusEmis(idSantri);
+    }
+
+    function setStatusSantriEmis(idSantri, statusInput, callback = null) {
+        const newStatus = (typeof statusInput === 'string') 
+            ? statusInput 
+            : (statusInput ? 'selesai' : 'belum');
+
         $.ajax({
             url: '<?= base_url('backend/santri/updateStatusEmisAjax'); ?>',
             method: 'POST',
@@ -642,7 +852,7 @@
             dataType: 'json',
             success: function(res) {
                 if (res.success) {
-                    updateStatusBadgeUI(idSantri, res.status === 'selesai', res.tgl_update_label || '');
+                    updateStatusBadgeUI(idSantri, res.status, res.tgl_update_label || '', res.catatan);
                     hitungUlangStatistik();
                     if (typeof callback === 'function') {
                         callback(res);
@@ -652,28 +862,74 @@
         });
     }
 
-    function updateStatusBadgeUI(idSantri, isSelesai, tglUpdateLabel = '', refreshDataTable = true) {
+    function updateStatusBadgeUI(idSantri, statusInput, tglUpdateLabel = '', catatan = null, refreshDataTable = true) {
         const box = document.getElementById('box-status-daftar-' + idSantri);
         if (!box) return;
+
+        // Normalisasi status
+        let normalizedStatus = 'belum';
+        if (typeof statusInput === 'boolean') {
+            normalizedStatus = statusInput ? 'selesai' : 'belum';
+        } else if (typeof statusInput === 'string') {
+            normalizedStatus = statusInput.toLowerCase();
+        }
 
         // Update dataSantriMaster agar konsisten
         const sObj = dataSantriMaster.find(s => String(s.IdSantri) === String(idSantri));
         if (sObj) {
-            sObj.StatusEmis = isSelesai ? 'selesai' : 'belum';
-            if (isSelesai && tglUpdateLabel) {
-                sObj.TglUpdateEmis = tglUpdateLabel;
-            } else if (!isSelesai) {
+            sObj.StatusEmis = normalizedStatus;
+            if (normalizedStatus === 'selesai' || normalizedStatus === 'konflik') {
+                if (tglUpdateLabel) sObj.TglUpdateEmis = tglUpdateLabel;
+            } else {
                 sObj.TglUpdateEmis = null;
+            }
+            if (catatan !== null && catatan !== undefined) {
+                sObj.CatatanEmis = catatan;
             }
         }
 
-        const timeHtml = (isSelesai && tglUpdateLabel) ? `<small class="text-muted d-block status-time" style="font-size: 10px;"><i class="far fa-clock mr-1"></i>${tglUpdateLabel}</small>` : '';
+        let badgeClass = 'badge-warning';
+        let badgeIcon = 'fa-hourglass-half';
+        let badgeText = 'Belum';
+
+        if (normalizedStatus === 'selesai') {
+            badgeClass = 'badge-success';
+            badgeIcon = 'fa-check-circle';
+            badgeText = 'Selesai';
+        } else if (normalizedStatus === 'konflik') {
+            badgeClass = 'badge-danger';
+            badgeIcon = 'fa-exclamation-triangle';
+            badgeText = 'Konflik';
+        }
+
+        const timeHtml = ((normalizedStatus === 'selesai' || normalizedStatus === 'konflik') && tglUpdateLabel) 
+            ? `<small class="text-muted d-block status-time" style="font-size: 10px;"><i class="far fa-clock mr-1"></i>${tglUpdateLabel}</small>` 
+            : '';
+
         box.innerHTML = `
-            <span class="badge ${isSelesai ? 'badge-success' : 'badge-warning'} p-1 status-badge cursor-pointer" onclick="toggleStatusSantriEmis('${idSantri}')" title="Klik untuk ubah status pendaftaran">
-                <i class="fas ${isSelesai ? 'fa-check-circle' : 'fa-hourglass-half'} mr-1"></i> Daftar: ${isSelesai ? 'Selesai' : 'Belum'}
+            <span class="badge ${badgeClass} p-1 status-badge cursor-pointer" onclick="openModalUbahStatusEmis('${idSantri}')" title="Klik untuk ubah status pendaftaran / catatan">
+                <i class="fas ${badgeIcon} mr-1"></i> Daftar: ${badgeText}
             </span>
             ${timeHtml}
         `;
+
+        // Update tampilan box catatan
+        const boxCatatan = document.getElementById('box-catatan-' + idSantri);
+        if (boxCatatan) {
+            const currentCatatan = (catatan !== null && catatan !== undefined) 
+                ? catatan 
+                : (sObj ? (sObj.CatatanEmis || '') : '');
+            
+            if (currentCatatan && currentCatatan.trim() !== '') {
+                boxCatatan.innerHTML = `
+                    <div class="p-1 px-2 rounded bg-light border border-danger text-danger text-left small cursor-pointer" onclick="openModalUbahStatusEmis('${idSantri}')" style="font-size: 11px; max-width: 170px; margin: 0 auto; line-height: 1.2;" title="Klik untuk edit status / catatan">
+                        <i class="fas fa-exclamation-circle text-danger mr-1"></i><span class="catatan-text">${escapeHtml(currentCatatan.trim())}</span>
+                    </div>
+                `;
+            } else {
+                boxCatatan.innerHTML = '';
+            }
+        }
 
         const cell = document.getElementById('col-status-' + idSantri);
         if (dataTableSantri && cell && refreshDataTable) {
@@ -771,14 +1027,18 @@
 
     function hitungUlangStatistik() {
         let selesai = 0;
+        let konflik = 0;
         dataSantriMaster.forEach(s => {
-            if (s.StatusEmis === 'selesai') selesai++;
+            const st = (s.StatusEmis || 'belum').toLowerCase();
+            if (st === 'selesai') selesai++;
+            else if (st === 'konflik') konflik++;
         });
         const total = dataSantriMaster.length;
-        const belum = total - selesai;
+        const belum = total - selesai - konflik;
 
         $('#statTotalSantri').text(total);
         $('#statSelesaiSantri').text(selesai);
+        $('#statKonflikSantri').text(konflik);
         $('#statBelumSantri').text(belum);
     }
 
@@ -786,7 +1046,7 @@
         if (typeof Swal !== 'undefined') {
             Swal.fire({
                 title: 'Reset Semua Status EMIS?',
-                text: 'Semua tanda status santri yang sudah selesai akan dikembalikan menjadi "Belum" di database.',
+                text: 'Semua status pendaftaran santri dan catatan akan dikembalikan menjadi "Belum" di database.',
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#d33',
@@ -804,7 +1064,8 @@
                                 dataSantriMaster.forEach(s => {
                                     s.StatusEmis = 'belum';
                                     s.TglUpdateEmis = null;
-                                    updateStatusBadgeUI(s.IdSantri, false, '', false);
+                                    s.CatatanEmis = null;
+                                    updateStatusBadgeUI(s.IdSantri, 'belum', '', '', false);
                                 });
                                 if (dataTableSantri) {
                                     dataTableSantri.rows().invalidate().draw(false);

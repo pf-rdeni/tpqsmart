@@ -853,7 +853,8 @@ class SantriBaruModel extends Model
             se.TglUpdateEmis,
             COALESCE(se.StatusAlamatEmis, "belum") as StatusAlamatEmis,
             se.TglUpdateAlamatEmis,
-            se.UpdatedBy as EmisUpdatedBy
+            se.UpdatedBy as EmisUpdatedBy,
+            se.Catatan as CatatanEmis
         ')
         // Inner join ke tbl_kelas_santri persis seperti GetDataPerKelasTpq
         ->join('tbl_kelas_santri ks', 'ks.IdSantri = tbl_santri_baru.IdSantri AND ks.IdTahunAjaran = "' . $IdTahunAjaran . '"', 'inner')
@@ -921,12 +922,13 @@ class SantriBaruModel extends Model
     /**
      * Memperbarui / mencatat status sinkronisasi EMIS santri ke tbl_santri_emis
      * @param string $IdSantri
-     * @param string $status 'selesai' atau 'belum'
+     * @param string $status 'selesai', 'konflik', atau 'belum'
      * @param string|null $updatedBy Nama/ID user operator
      * @param string|null $IdTpq
+     * @param string|null $catatan Keterangan / alasan jika ada konflik dll
      * @return bool
      */
-    public function updateStatusEmis($IdSantri, $status = 'selesai', $updatedBy = null, $IdTpq = null)
+    public function updateStatusEmis($IdSantri, $status = 'selesai', $updatedBy = null, $IdTpq = null, $catatan = null)
     {
         $db = $this->db;
         $builder = $db->table('tbl_santri_emis');
@@ -943,10 +945,13 @@ class SantriBaruModel extends Model
         $data = [
             'IdSantri'      => $IdSantri,
             'StatusEmis'    => $status,
-            'TglUpdateEmis' => ($status === 'selesai') ? $now : null,
+            'TglUpdateEmis' => ($status === 'selesai' || $status === 'konflik') ? $now : null,
             'UpdatedBy'     => $updatedBy,
             'updated_at'    => $now
         ];
+        if ($catatan !== null) {
+            $data['Catatan'] = trim($catatan);
+        }
         if (!empty($IdTpq)) {
             $data['IdTpq'] = $IdTpq;
         }
@@ -1015,6 +1020,7 @@ class SantriBaruModel extends Model
         $data = [
             'StatusEmis'    => 'belum',
             'TglUpdateEmis' => null,
+            'Catatan'       => null,
             'updated_at'    => $now
         ];
 
