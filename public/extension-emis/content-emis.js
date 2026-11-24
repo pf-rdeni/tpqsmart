@@ -2130,8 +2130,9 @@ function showStep0StartPopup(data) {
 
     div.innerHTML = `
         <div id="tpq-step0-header" style="background: linear-gradient(135deg, #0d6efd, #0b5ed7); color: #fff; padding: 8px 12px; font-weight: bold; font-size: 13px; display: flex; justify-content: space-between; align-items: center; cursor: move; user-select: none;">
-            <div style="display: flex; align-items: center; gap: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 170px;" title="${escapeHtml(data.nama_santri)}">
+            <div style="display: flex; align-items: center; gap: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 195px;" title="${escapeHtml(data.nama_santri)} - ${escapeHtml(tglLahirLabel)}">
                 <span style="font-size: 12px;">⚡ <strong>${escapeHtml(data.nama_santri)}</strong></span>
+                <span style="font-size: 10.5px; background: rgba(255,255,255,0.25); border-radius: 3px; padding: 1px 5px; font-weight: 500;" title="Tanggal Lahir Santri">📅 ${escapeHtml(tglLahirLabel)}</span>
             </div>
             <div style="display: flex; align-items: center; gap: 5px;">
                 <button id="tpq-btn-quick-step1" style="background: #198754; color: #fff; border: 1px solid rgba(255,255,255,0.4); border-radius: 4px; padding: 3px 8px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.15);" title="Mulai Isi Step 1 (Nama & TTL)">
@@ -2439,55 +2440,60 @@ function showStep1Assistant(data) {
                 <button id="tpq-btn-quick-copy-tgl-step1" style="background: #198754; color: #fff; border: 1px solid rgba(255,255,255,0.4); border-radius: 4px; padding: 3px 8px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.15);" title="Salin Tanggal Lahir">
                     📅 Salin Tgl
                 </button>
-                <button id="tpq-toggle-step1-body" style="background: rgba(255,255,255,0.25); border: 1px solid rgba(255,255,255,0.45); color: #fff; border-radius: 4px; padding: 3px 8px; font-size: 11px; font-weight: bold; cursor: pointer;" title="Buka panel panduan">
-                    ▼ Buka
+                <button id="tpq-toggle-step1-body" style="background: rgba(255,255,255,0.25); border: 1px solid rgba(255,255,255,0.45); color: #fff; border-radius: 4px; padding: 3px 8px; font-size: 11px; font-weight: bold; cursor: pointer;" title="Buka detail data">
+                    ▼ Detail
                 </button>
                 <span id="tpq-close-step1-alert" style="cursor: pointer; font-size: 17px; line-height: 1; padding: 1px 4px; opacity: 0.85;" title="Tutup">&times;</span>
             </div>
         </div>
 
-        <div id="tpq-step1-body" style="display: none; padding: 12px 14px; max-height: 75vh; overflow-y: auto;">
-            <!-- Info Singkat Santri -->
-            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 12px; margin-bottom: 10px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                    <div style="font-weight: bold; font-size: 14px; color: #0d6efd;">${escapeHtml(data.nama_santri)}</div>
-                    <button class="tpq-copy-btn" data-val="${escapeHtml(data.nama_santri)}" style="border: 1px solid #ced4da; background: #fff; padding: 2px 6px; border-radius: 4px; font-size: 11px; cursor: pointer; color: #495057;" title="Salin Nama">📋 Salin</button>
+        <!-- Bagian Langsung Muncul: Tanggal Lahir yang Harus Dipilih di Kalender EMIS (Tanpa Perlu Buka Manual) -->
+        <div style="padding: 10px 12px; background: #ffffff;">
+            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 8px 10px; font-size: 12px;">
+                <div style="font-size: 11px; font-weight: bold; color: #166534; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
+                    <span>📅 TANGGAL LAHIR (PILIH DI EMIS):</span>
+                    <span style="font-size: 9.5px; background: #dcfce7; color: #15803d; padding: 1px 5px; border-radius: 3px; font-weight: bold;">Manual</span>
                 </div>
-                <div style="font-size: 12px; color: #64748b; display: flex; flex-direction: column; gap: 4px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span>Tempat Lahir: <strong>${escapeHtml(data.tempat_lahir || '-')}</strong></span>
-                        ${data.tempat_lahir ? `<button class="tpq-copy-btn" data-val="${escapeHtml(data.tempat_lahir)}" style="border: 1px solid #ced4da; background: #fff; padding: 1px 5px; border-radius: 3px; font-size: 10px; cursor: pointer;">📋</button>` : ''}
-                    </div>
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span>NIK: <strong>${escapeHtml(data.nik || '(Belum Ada)')}</strong></span>
-                        ${data.nik ? `<button class="tpq-copy-btn" data-val="${escapeHtml(data.nik)}" style="border: 1px solid #ced4da; background: #fff; padding: 1px 5px; border-radius: 3px; font-size: 10px; cursor: pointer;">📋</button>` : ''}
-                    </div>
-                </div>
-            </div>
-
-            <!-- Tanggal Lahir Card -->
-            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 10px 12px; margin-bottom: 10px;">
-                <div style="font-size: 11px; font-weight: bold; color: #166534; margin-bottom: 4px;">
-                    📅 Tanggal Lahir (Pilih di Kalender EMIS):
-                </div>
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 4px;">
-                    <span style="font-size: 15px; font-weight: bold; color: #15803d;">${escapeHtml(tglLahirLabel)}</span>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 3px;">
+                    <span style="font-size: 15px; font-weight: bold; color: #15803d;">📅 ${escapeHtml(tglLahirLabel)}</span>
                     <button id="tpq-btn-copy-tgl-step1" class="tpq-copy-btn" data-val="${escapeHtml(data.tanggal_lahir || '')}" style="
                         background: #198754; color: #fff; border: none; padding: 3px 8px;
                         border-radius: 4px; font-size: 11px; font-weight: bold; cursor: pointer;
                     ">📋 Salin</button>
                 </div>
+                <div style="font-size: 11px; color: #64748b; margin-top: 5px; line-height: 1.35;">
+                    Pilih tanggal di atas pada kalender EMIS, lalu klik tombol <strong>SELANJUTNYA</strong>.
+                </div>
             </div>
+        </div>
 
-            <!-- Hint Card -->
-            <div style="font-size: 11px; color: #64748b; line-height: 1.4; margin-bottom: 12px; background: #fffbeb; border: 1px solid #fef3c7; border-radius: 6px; padding: 8px 10px;">
-                Setelah memilih tanggal lahir, klik tombol <strong>SELANJUTNYA</strong> di formulir EMIS.
+        <!-- Bagian Tersembunyi (Detail Santri): Dibuka via Tombol ▼ Detail -->
+        <div id="tpq-step1-body" style="display: none; padding: 0 12px 10px; max-height: 50vh; overflow-y: auto;">
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px 10px; font-size: 12px;">
+                <div style="font-size: 11px; font-weight: bold; color: #0d6efd; margin-bottom: 4px;">Detail Santri:</div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
+                    <span style="color: #64748b;">Nama:</span>
+                    <strong>${escapeHtml(data.nama_santri)}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
+                    <span style="color: #64748b;">Tempat Lahir:</span>
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <strong>${escapeHtml(data.tempat_lahir || '-')}</strong>
+                        ${data.tempat_lahir ? `<button class="tpq-copy-btn" data-val="${escapeHtml(data.tempat_lahir)}" style="border: 1px solid #ced4da; background: #fff; padding: 1px 5px; border-radius: 3px; font-size: 10px; cursor: pointer;">📋</button>` : ''}
+                    </div>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                    <span style="color: #64748b;">NIK:</span>
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <strong>${escapeHtml(data.nik || '(Belum Ada)')}</strong>
+                        ${data.nik ? `<button class="tpq-copy-btn" data-val="${escapeHtml(data.nik)}" style="border: 1px solid #ced4da; background: #fff; padding: 1px 5px; border-radius: 3px; font-size: 10px; cursor: pointer;">📋</button>` : ''}
+                    </div>
+                </div>
+                <button id="tpq-btn-close-step1-body" style="
+                    width: 100%; background: #fff; color: #64748b; border: 1px solid #cbd5e1;
+                    padding: 5px 10px; border-radius: 4px; font-size: 11px; cursor: pointer;
+                ">Tutup Detail</button>
             </div>
-
-            <button id="tpq-btn-close-step1-body" style="
-                width: 100%; background: #f8fafc; color: #64748b; border: 1px solid #cbd5e1;
-                padding: 6px 12px; border-radius: 5px; font-size: 11.5px; cursor: pointer;
-            ">Tutup Panduan</button>
         </div>
     `;
 
@@ -2497,7 +2503,7 @@ function showStep1Assistant(data) {
     const headerEl = document.getElementById('tpq-step1-header');
     makeDraggable(div, headerEl);
 
-    // Toggle Collapse / Expand Step 1
+    // Toggle Collapse / Expand Step 1 Detail
     let isStep1Expanded = false;
     const btnToggleStep1 = document.getElementById('tpq-toggle-step1-body');
     const bodyStep1 = document.getElementById('tpq-step1-body');
@@ -2511,7 +2517,7 @@ function showStep1Assistant(data) {
         } else {
             div.style.width = '350px';
             bodyStep1.style.display = 'none';
-            btnToggleStep1.innerHTML = '▼ Buka';
+            btnToggleStep1.innerHTML = '▼ Detail';
             btnToggleStep1.style.background = 'rgba(255,255,255,0.25)';
         }
     }
@@ -2640,34 +2646,81 @@ function showStep2Assistant(data, filledAyah = false, filledIbu = false, filledN
                 <button id="tpq-btn-quick-selesai-step2" style="background: #198754; color: #fff; border: 1px solid rgba(255,255,255,0.4); border-radius: 4px; padding: 3px 8px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.15);" title="Selesaikan pendaftaran & tandai selesai">
                     ✓ Selesai
                 </button>
-                <button id="tpq-toggle-step2-asst" style="background: rgba(255,255,255,0.25); border: 1px solid rgba(255,255,255,0.45); color: #fff; border-radius: 4px; padding: 3px 8px; font-size: 11px; font-weight: bold; cursor: pointer;" title="Buka panel panduan">
-                    ▼ Buka
+                <button id="tpq-toggle-step2-asst" style="background: rgba(255,255,255,0.25); border: 1px solid rgba(255,255,255,0.45); color: #fff; border-radius: 4px; padding: 3px 8px; font-size: 11px; font-weight: bold; cursor: pointer;" title="Buka detail data">
+                    ▼ Detail
                 </button>
                 <span id="tpq-close-step2-alert-top" style="cursor: pointer; font-size: 17px; line-height: 1; padding: 1px 4px; opacity: 0.85;" title="Tutup">&times;</span>
             </div>
         </div>
 
-        <div id="tpq-step2-body" style="display: none; padding: 12px 14px; max-height: 75vh; overflow-y: auto;">
-            <!-- Info Singkat Santri -->
-            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 12px; margin-bottom: 10px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                    <div style="font-weight: bold; font-size: 14px; color: #0d6efd;">${escapeHtml(data.nama_santri)}</div>
-                    <button class="tpq-copy-btn" data-val="${escapeHtml(data.nama_santri)}" style="border: 1px solid #ced4da; background: #fff; padding: 2px 6px; border-radius: 4px; font-size: 11px; cursor: pointer; color: #495057;" title="Salin Nama">📋 Salin</button>
+        <!-- Bagian Langsung Muncul: Tugas Manual yang Harus Dipilih di EMIS (Tanpa Perlu Buka Manual) -->
+        <div style="padding: 10px 12px; background: #ffffff;">
+            <!-- Manual Checklist Card -->
+            <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 8px 10px; font-size: 12px; margin-bottom: 8px;">
+                <div style="font-weight: bold; color: #1d4ed8; font-size: 11px; margin-bottom: 5px; text-transform: uppercase; display: flex; justify-content: space-between; align-items: center;">
+                    <span>👉 PILIH MANUAL DI EMIS:</span>
+                    <span style="font-size: 9.5px; background: #dbeafe; color: #1e40af; padding: 1px 5px; border-radius: 3px; font-weight: bold;">Manual</span>
                 </div>
-                <div style="font-size: 12px; color: #64748b;">
+
+                <!-- 1. Tanggal Masuk -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; border-bottom: 1px dashed #bfdbfe; padding-bottom: 4px;">
+                    <span style="color: #334155;">1. <strong>Tgl Masuk:</strong></span>
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <strong style="color: #1e40af; font-size: 13.5px;">📅 ${escapeHtml(tglMasukLabel)}</strong>
+                        <button class="tpq-copy-btn" data-val="${escapeHtml(data.tanggal_masuk || '')}" style="border: 1px solid #bfdbfe; background: #fff; padding: 1px 5px; border-radius: 3px; font-size: 10px; cursor: pointer; color: #1d4ed8;" title="Salin Tgl Masuk">📋</button>
+                    </div>
+                </div>
+
+                <!-- 2. Status Ortu & Wali -->
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="color: #334155;">2. <strong>Status Ortu:</strong></span>
+                    <span style="color: #475569; font-weight: 500;">Masih Hidup | Wali: Ayah</span>
+                </div>
+            </div>
+
+            <!-- Action Buttons (Langsung Dapat Diakses) -->
+            <div style="display: flex; flex-direction: column; gap: 5px;">
+                <button id="tpq-btn-lanjut-update-alamat" style="
+                    background: #0d6efd; color: #ffffff; border: none; padding: 7px 10px;
+                    border-radius: 5px; font-size: 12px; font-weight: bold; cursor: pointer; width: 100%;
+                ">
+                    🚀 Simpan & Lanjut Update Alamat di Kesiswaan
+                </button>
+                <div style="display: flex; gap: 6px;">
+                    <button id="tpq-btn-tandai-selesai-step2" style="
+                        background: #198754; color: #ffffff; border: none; padding: 5px 8px;
+                        border-radius: 4px; font-size: 11px; font-weight: bold; cursor: pointer; flex: 1;
+                    ">✓ Selesai Saja</button>
+                    <button id="tpq-close-step2-alert" style="
+                        background: #f8fafc; color: #64748b; border: 1px solid #cbd5e1;
+                        padding: 5px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; flex: 0.6;
+                    ">Tutup</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bagian Tersembunyi (Detail Data Terisi Otomatis): Dibuka via Tombol ▼ Detail -->
+        <div id="tpq-step2-body" style="display: none; padding: 0 12px 10px; max-height: 50vh; overflow-y: auto;">
+            <!-- Info Singkat Santri -->
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px 10px; margin-bottom: 8px; font-size: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+                    <div style="font-weight: bold; font-size: 13px; color: #0d6efd;">${escapeHtml(data.nama_santri)}</div>
+                    <button class="tpq-copy-btn" data-val="${escapeHtml(data.nama_santri)}" style="border: 1px solid #ced4da; background: #fff; padding: 1px 5px; border-radius: 3px; font-size: 10px; cursor: pointer; color: #495057;" title="Salin Nama">📋 Salin</button>
+                </div>
+                <div style="font-size: 11.5px; color: #64748b;">
                     Kelas: <strong>${escapeHtml(normalizedKelas || data.tingkat_kelas || '-')}</strong>
                 </div>
             </div>
 
             <!-- Auto-filled Data Card -->
-            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 10px 12px; margin-bottom: 10px; font-size: 12px;">
-                <div style="font-size: 11px; font-weight: bold; color: #166534; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;">
-                    <span>✨ TERISI OTOMATIS:</span>
-                    <span style="font-size: 10px; background: #dcfce7; color: #15803d; padding: 1px 6px; border-radius: 10px; font-weight: bold;">Auto-Filled ✓</span>
+            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 8px 10px; font-size: 12px;">
+                <div style="font-size: 10.5px; font-weight: bold; color: #166534; margin-bottom: 5px; display: flex; justify-content: space-between; align-items: center;">
+                    <span>✨ DATA TERISI OTOMATIS:</span>
+                    <span style="font-size: 9.5px; background: #dcfce7; color: #15803d; padding: 1px 5px; border-radius: 8px; font-weight: bold;">Auto-Filled ✓</span>
                 </div>
 
                 <!-- NIK -->
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px;">
                     <span>NIK:</span>
                     <div style="display: flex; align-items: center; gap: 4px;">
                         <strong>${escapeHtml(data.nik || '(Belum Ada)')}</strong>
@@ -2676,7 +2729,7 @@ function showStep2Assistant(data, filledAyah = false, filledIbu = false, filledN
                 </div>
 
                 <!-- NISN -->
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px;">
                     <span>NISN:</span>
                     <div style="display: flex; align-items: center; gap: 4px;">
                         <strong>${escapeHtml(data.nisn || '(Belum Ada)')}</strong>
@@ -2685,7 +2738,7 @@ function showStep2Assistant(data, filledAyah = false, filledIbu = false, filledN
                 </div>
 
                 <!-- No HP -->
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px;">
                     <span>No HP:</span>
                     <div style="display: flex; align-items: center; gap: 4px;">
                         <strong>${escapeHtml(formattedHp || '(Tidak Ada)')}</strong>
@@ -2694,7 +2747,7 @@ function showStep2Assistant(data, filledAyah = false, filledIbu = false, filledN
                 </div>
 
                 <!-- Ayah -->
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px;">
                     <span>Ayah:</span>
                     <div style="display: flex; align-items: center; gap: 4px;">
                         <strong>${escapeHtml(data.nama_ayah || '-')}</strong>
@@ -2703,7 +2756,7 @@ function showStep2Assistant(data, filledAyah = false, filledIbu = false, filledN
                 </div>
 
                 <!-- Ibu -->
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px;">
                     <span>Ibu:</span>
                     <div style="display: flex; align-items: center; gap: 4px;">
                         <strong>${escapeHtml(data.nama_ibu || '-')}</strong>
@@ -2717,52 +2770,6 @@ function showStep2Assistant(data, filledAyah = false, filledIbu = false, filledN
                     <strong>${escapeHtml(data.jenis_kelamin || '-')} | ${escapeHtml(normalizedKelas || data.tingkat_kelas || '-')}</strong>
                 </div>
             </div>
-
-            <!-- Manual Checklist Card -->
-            <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 10px 12px; margin-bottom: 10px; font-size: 12px;">
-                <div style="font-weight: bold; color: #1d4ed8; margin-bottom: 6px;">
-                    👉 Tugas Anda (Pilih Manual di EMIS):
-                </div>
-
-                <!-- 1. Tanggal Masuk -->
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; border-bottom: 1px dashed #bfdbfe; padding-bottom: 4px;">
-                    <span>1. Tgl Masuk:</span>
-                    <div style="display: flex; align-items: center; gap: 4px;">
-                        <strong style="color: #1e40af;">📅 ${escapeHtml(tglMasukLabel)}</strong>
-                        <button class="tpq-copy-btn" data-val="${escapeHtml(data.tanggal_masuk || '')}" style="border: 1px solid #bfdbfe; background: #fff; padding: 1px 5px; border-radius: 3px; font-size: 10px; cursor: pointer; color: #1d4ed8;">📋</button>
-                    </div>
-                </div>
-
-                <!-- 2. Status Ortu & Wali -->
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span>2. Status Ortu:</span>
-                    <span style="color: #475569; font-weight: 500;">Masih Hidup | Wali: Ayah</span>
-                </div>
-            </div>
-
-            <div style="font-size: 11px; color: #64748b; line-height: 1.4; margin-bottom: 12px; background: #fffbeb; border: 1px solid #fef3c7; border-radius: 6px; padding: 8px 10px;">
-                Setelah semua opsi dipilih, tekan tombol <strong>SIMPAN</strong> di pojok kanan bawah EMIS.
-            </div>
-
-            <!-- Action Buttons -->
-            <div style="display: flex; flex-direction: column; gap: 6px;">
-                <button id="tpq-btn-lanjut-update-alamat" style="
-                    background: #0d6efd; color: #ffffff; border: none; padding: 8px 12px;
-                    border-radius: 5px; font-size: 12px; font-weight: bold; cursor: pointer; width: 100%;
-                ">
-                    🚀 Simpan & Lanjut Update Alamat di Kesiswaan
-                </button>
-                <div style="display: flex; gap: 6px;">
-                    <button id="tpq-btn-tandai-selesai-step2" style="
-                        background: #198754; color: #ffffff; border: none; padding: 6px 10px;
-                        border-radius: 5px; font-size: 11.5px; font-weight: bold; cursor: pointer; flex: 1;
-                    ">✓ Selesai Saja</button>
-                    <button id="tpq-close-step2-alert" style="
-                        background: #f8fafc; color: #64748b; border: 1px solid #cbd5e1;
-                        padding: 6px 10px; border-radius: 5px; font-size: 11.5px; cursor: pointer; flex: 0.8;
-                    ">Tutup</button>
-                </div>
-            </div>
         </div>
     `;
 
@@ -2772,7 +2779,7 @@ function showStep2Assistant(data, filledAyah = false, filledIbu = false, filledN
     const headerEl = document.getElementById('tpq-step2-header');
     makeDraggable(div, headerEl);
 
-    // Toggle Collapse / Expand Step 2
+    // Toggle Collapse / Expand Step 2 Detail
     let isStep2AsstExpanded = false;
     const btnToggleStep2Asst = document.getElementById('tpq-toggle-step2-asst');
     const bodyStep2Asst = document.getElementById('tpq-step2-body');
@@ -2786,9 +2793,15 @@ function showStep2Assistant(data, filledAyah = false, filledIbu = false, filledN
         } else {
             div.style.width = '350px';
             bodyStep2Asst.style.display = 'none';
-            btnToggleStep2Asst.innerHTML = '▼ Buka';
+            btnToggleStep2Asst.innerHTML = '▼ Detail';
             btnToggleStep2Asst.style.background = 'rgba(255,255,255,0.25)';
         }
+    }
+    if (btnToggleStep2Asst && bodyStep2Asst) {
+        btnToggleStep2Asst.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleStep2Asst();
+        });
     }
     if (btnToggleStep2Asst && bodyStep2Asst) {
         btnToggleStep2Asst.addEventListener('click', (e) => {
@@ -3833,82 +3846,100 @@ function showUpdateAlamatStep3Popup(data) {
 
     div.innerHTML = `
         <div id="tpq-update-step3-header" style="background: linear-gradient(135deg, #0d6efd, #0b5ed7); color: #fff; padding: 8px 12px; font-weight: bold; font-size: 13px; display: flex; justify-content: space-between; align-items: center; cursor: move; user-select: none;">
-            <div style="display: flex; align-items: center; gap: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 170px;" title="${escapeHtml(data.nama_santri)}">
+            <div style="display: flex; align-items: center; gap: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 160px;" title="${escapeHtml(data.nama_santri)}">
                 <span style="font-size: 12px;">⚡ <strong>${escapeHtml(data.nama_santri)}</strong></span>
             </div>
             <div style="display: flex; align-items: center; gap: 5px;">
                 <button id="tpq-btn-quick-selesai-step3" style="background: #198754; color: #fff; border: 1px solid rgba(255,255,255,0.4); border-radius: 4px; padding: 3px 8px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.15);" title="Tandai update selesai & simpan ke TPQ Smart">
                     ✓ Selesai
                 </button>
-                <button id="tpq-toggle-step3" style="background: rgba(255,255,255,0.25); border: 1px solid rgba(255,255,255,0.45); color: #fff; border-radius: 4px; padding: 3px 8px; font-size: 11px; font-weight: bold; cursor: pointer;" title="Buka data referensi untuk salin manual">
-                    ▼ Salin
+                <button id="tpq-toggle-step3" style="background: rgba(255,255,255,0.25); border: 1px solid rgba(255,255,255,0.45); color: #fff; border-radius: 4px; padding: 3px 8px; font-size: 11px; font-weight: bold; cursor: pointer;" title="Buka detail data alamat & koordinat">
+                    ▼ Detail
                 </button>
                 <span id="tpq-close-update-step3" style="cursor: pointer; font-size: 17px; line-height: 1; padding: 1px 4px; opacity: 0.85;" title="Tutup & batalkan antrean">&times;</span>
             </div>
         </div>
-        <div id="tpq-update-step3-body" style="display: none; padding: 12px 14px; max-height: 75vh; overflow-y: auto;">
-            <!-- Info Santri -->
-            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 12px; margin-bottom: 10px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                    <div style="font-weight: bold; font-size: 14px; color: #0d6efd;">${escapeHtml(data.nama_santri)}</div>
-                    <button class="tpq-copy-btn" data-val="${escapeHtml(data.nama_santri)}" style="border: 1px solid #ced4da; background: #fff; padding: 2px 6px; border-radius: 4px; font-size: 11px; cursor: pointer; color: #495057;" title="Salin Nama">📋 Salin</button>
-                </div>
-                <div style="font-size: 12px; color: #64748b; display: flex; align-items: center; gap: 8px;">
-                    <span>NIK: <strong>${escapeHtml(data.nik || '-')}</strong></span>
-                    ${data.nik ? `<button class="tpq-copy-btn" data-val="${escapeHtml(data.nik)}" style="border: 1px solid #ced4da; background: #fff; padding: 1px 5px; border-radius: 3px; font-size: 10px; cursor: pointer; color: #495057;" title="Salin NIK">📋</button>` : ''}
-                </div>
-            </div>
 
-            <!-- Bagian 1: Wilayah Domisili (Pilih Manual) -->
-            <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 12px; margin-bottom: 10px;">
-                <div style="font-size: 11px; font-weight: bold; text-transform: uppercase; color: #0d6efd; margin-bottom: 8px; letter-spacing: 0.5px;">
-                    Wilayah Domisili (Pilih di EMIS):
+        <!-- Bagian Langsung Muncul: Wilayah Domisili (Pilih Manual di EMIS) & Tombol Selesai (Tanpa Perlu Buka Manual) -->
+        <div style="padding: 10px 12px; background: #ffffff;">
+            <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 8px 10px; font-size: 12px; margin-bottom: 8px;">
+                <div style="font-size: 11px; font-weight: bold; color: #1d4ed8; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.3px; display: flex; justify-content: space-between; align-items: center;">
+                    <span>📍 WILAYAH DOMISILI (PILIH DI EMIS):</span>
+                    <span style="font-size: 9.5px; background: #dbeafe; color: #1e40af; padding: 1px 5px; border-radius: 3px; font-weight: bold;">Manual</span>
                 </div>
-                <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px;">
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <!-- Provinsi -->
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <span style="color: #64748b;">Provinsi:</span>
                         <div style="display: flex; align-items: center; gap: 4px;">
-                            <strong>${escapeHtml(data.ayah_provinsi || '-')}</strong>
-                            ${data.ayah_provinsi ? `<button class="tpq-copy-btn" data-val="${escapeHtml(data.ayah_provinsi)}" style="border: 1px solid #ced4da; background: #f8fafc; padding: 1px 5px; border-radius: 3px; font-size: 10px; cursor: pointer; color: #495057;">📋</button>` : ''}
+                            <strong style="color: #1e293b;">${escapeHtml(data.ayah_provinsi || '-')}</strong>
+                            ${data.ayah_provinsi ? `<button class="tpq-copy-btn" data-val="${escapeHtml(data.ayah_provinsi)}" style="border: 1px solid #bfdbfe; background: #fff; padding: 1px 5px; border-radius: 3px; font-size: 10px; cursor: pointer; color: #1d4ed8;" title="Salin Provinsi">📋</button>` : ''}
                         </div>
                     </div>
+                    <!-- Kab / Kota -->
                     <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span style="color: #64748b;">Kab / Kota:</span>
+                        <span style="color: #64748b;">Kab/Kota:</span>
                         <div style="display: flex; align-items: center; gap: 4px;">
-                            <strong>${escapeHtml(data.ayah_kabupaten_kota || '-')}</strong>
-                            ${data.ayah_kabupaten_kota ? `<button class="tpq-copy-btn" data-val="${escapeHtml(data.ayah_kabupaten_kota)}" style="border: 1px solid #ced4da; background: #f8fafc; padding: 1px 5px; border-radius: 3px; font-size: 10px; cursor: pointer; color: #495057;">📋</button>` : ''}
+                            <strong style="color: #1e293b;">${escapeHtml(data.ayah_kabupaten_kota || '-')}</strong>
+                            ${data.ayah_kabupaten_kota ? `<button class="tpq-copy-btn" data-val="${escapeHtml(data.ayah_kabupaten_kota)}" style="border: 1px solid #bfdbfe; background: #fff; padding: 1px 5px; border-radius: 3px; font-size: 10px; cursor: pointer; color: #1d4ed8;" title="Salin Kab/Kota">📋</button>` : ''}
                         </div>
                     </div>
+                    <!-- Kecamatan -->
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <span style="color: #64748b;">Kecamatan:</span>
                         <div style="display: flex; align-items: center; gap: 4px;">
-                            <strong>${escapeHtml(data.ayah_kecamatan || '-')}</strong>
-                            ${data.ayah_kecamatan ? `<button class="tpq-copy-btn" data-val="${escapeHtml(data.ayah_kecamatan)}" style="border: 1px solid #ced4da; background: #f8fafc; padding: 1px 5px; border-radius: 3px; font-size: 10px; cursor: pointer; color: #495057;">📋</button>` : ''}
+                            <strong style="color: #1e293b;">${escapeHtml(data.ayah_kecamatan || '-')}</strong>
+                            ${data.ayah_kecamatan ? `<button class="tpq-copy-btn" data-val="${escapeHtml(data.ayah_kecamatan)}" style="border: 1px solid #bfdbfe; background: #fff; padding: 1px 5px; border-radius: 3px; font-size: 10px; cursor: pointer; color: #1d4ed8;" title="Salin Kecamatan">📋</button>` : ''}
                         </div>
                     </div>
+                    <!-- Kelurahan / Desa -->
                     <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span style="color: #64748b;">Kel / Desa:</span>
+                        <span style="color: #64748b;">Kel/Desa:</span>
                         <div style="display: flex; align-items: center; gap: 4px;">
-                            <strong>${escapeHtml(data.ayah_kelurahan_desa || '-')}</strong>
-                            ${data.ayah_kelurahan_desa ? `<button class="tpq-copy-btn" data-val="${escapeHtml(data.ayah_kelurahan_desa)}" style="border: 1px solid #ced4da; background: #f8fafc; padding: 1px 5px; border-radius: 3px; font-size: 10px; cursor: pointer; color: #495057;">📋</button>` : ''}
+                            <strong style="color: #1e293b;">${escapeHtml(data.ayah_kelurahan_desa || '-')}</strong>
+                            ${data.ayah_kelurahan_desa ? `<button class="tpq-copy-btn" data-val="${escapeHtml(data.ayah_kelurahan_desa)}" style="border: 1px solid #bfdbfe; background: #fff; padding: 1px 5px; border-radius: 3px; font-size: 10px; cursor: pointer; color: #1d4ed8;" title="Salin Kel/Desa">📋</button>` : ''}
                         </div>
                     </div>
-                    <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed #e2e8f0; padding-top: 5px;">
+                    <!-- Status Rumah -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed #bfdbfe; padding-top: 4px; margin-top: 2px;">
                         <span style="color: #64748b;">Status Rumah:</span>
-                        <div style="display: flex; align-items: center; gap: 4px;">
-                            <strong style="color: #198754;">${escapeHtml(data.ayah_status_kepemilikan_rumah || 'Milik Sendiri')}</strong>
-                            <button class="tpq-copy-btn" data-val="${escapeHtml(data.ayah_status_kepemilikan_rumah || 'Milik Sendiri')}" style="border: 1px solid #ced4da; background: #f8fafc; padding: 1px 5px; border-radius: 3px; font-size: 10px; cursor: pointer; color: #495057;">📋</button>
-                        </div>
+                        <strong style="color: #166534;">${escapeHtml(data.ayah_status_kepemilikan_rumah || 'Milik Sendiri')}</strong>
                     </div>
                 </div>
             </div>
 
-            <!-- Bagian 2: Data Terisi Otomatis -->
-            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 10px 12px; margin-bottom: 12px;">
-                <div style="font-size: 11px; font-weight: bold; text-transform: uppercase; color: #166534; margin-bottom: 8px; letter-spacing: 0.5px;">
-                    Data Otomatis (Terisi):
+            <!-- Tombol Aksi (Langsung Dapat Diakses) -->
+            <div style="display: flex; gap: 6px;">
+                <button id="tpq-btn-selesai-alamat" style="flex: 1.2; background: #198754; color: #fff; border: none; padding: 7px 10px; border-radius: 5px; font-weight: bold; font-size: 12px; cursor: pointer;">
+                    ✓ Selesai di TPQ Smart
+                </button>
+                <button id="tpq-btn-refill-alamat" style="flex: 1; background: #f8fafc; color: #0d6efd; border: 1px solid #0d6efd; padding: 7px 8px; border-radius: 5px; font-weight: 500; font-size: 11px; cursor: pointer;">
+                    ⚡ Isi Ulang
+                </button>
+            </div>
+        </div>
+
+        <!-- Bagian Tersembunyi (Detail Data Alamat Terisi): Dibuka via Tombol ▼ Detail -->
+        <div id="tpq-update-step3-body" style="display: none; padding: 0 12px 10px; max-height: 50vh; overflow-y: auto;">
+            <!-- Info Santri -->
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px 10px; margin-bottom: 8px; font-size: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+                    <div style="font-weight: bold; font-size: 13px; color: #0d6efd;">${escapeHtml(data.nama_santri)}</div>
+                    <button class="tpq-copy-btn" data-val="${escapeHtml(data.nama_santri)}" style="border: 1px solid #ced4da; background: #fff; padding: 1px 5px; border-radius: 3px; font-size: 10px; cursor: pointer; color: #495057;" title="Salin Nama">📋 Salin</button>
                 </div>
-                <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px;">
+                <div style="font-size: 11.5px; color: #64748b; display: flex; align-items: center; gap: 6px;">
+                    <span>NIK: <strong>${escapeHtml(data.nik || '-')}</strong></span>
+                    ${data.nik ? `<button class="tpq-copy-btn" data-val="${escapeHtml(data.nik)}" style="border: 1px solid #ced4da; background: #fff; padding: 1px 4px; border-radius: 3px; font-size: 9px; cursor: pointer; color: #495057;" title="Salin NIK">📋</button>` : ''}
+                </div>
+            </div>
+
+            <!-- Data Terisi Otomatis -->
+            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 8px 10px; margin-bottom: 8px; font-size: 12px;">
+                <div style="font-size: 10.5px; font-weight: bold; color: #166534; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;">
+                    <span>✨ DATA TERISI OTOMATIS:</span>
+                    <span style="font-size: 9.5px; background: #dcfce7; color: #15803d; padding: 1px 5px; border-radius: 8px; font-weight: bold;">Auto-Filled ✓</span>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 4px;">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                         <span style="color: #4b5563;">Alamat:</span>
                         <div style="display: flex; align-items: center; gap: 4px; text-align: right; max-width: 65%;">
@@ -3931,7 +3962,7 @@ function showUpdateAlamatStep3Popup(data) {
                             <button class="tpq-copy-btn" data-val="${escapeHtml(data.santri_titik_koordinat)}" style="border: 1px solid #86efac; background: #fff; padding: 1px 5px; border-radius: 3px; font-size: 10px; cursor: pointer; color: #166534;">📋</button>
                         </div>
                     </div>` : ''}
-                    <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed #bbf7d0; padding-top: 5px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed #bbf7d0; padding-top: 4px;">
                         <span style="color: #4b5563;">Jarak / Waktu:</span>
                         <div style="display: flex; align-items: center; gap: 4px;">
                             <span style="font-weight: 500;">${escapeHtml(data.santri_jarak_tempuh || 'Kurang dari 5 km')} · ${escapeHtml(data.santri_waktu_tempuh || '1-10 menit')}</span>
@@ -3948,20 +3979,9 @@ function showUpdateAlamatStep3Popup(data) {
                 </div>
             </div>
 
-            <!-- Tombol Aksi -->
-            <div style="display: flex; flex-direction: column; gap: 6px;">
-                <div style="display: flex; gap: 6px;">
-                    <button id="tpq-btn-refill-alamat" style="flex: 1; background: #f8fafc; color: #0d6efd; border: 1px solid #0d6efd; padding: 7px 10px; border-radius: 5px; font-weight: bold; font-size: 12px; cursor: pointer;">
-                        ⚡ Isi Ulang di Form
-                    </button>
-                    <button id="tpq-btn-selesai-alamat" style="flex: 1.2; background: #198754; color: #fff; border: none; padding: 7px 10px; border-radius: 5px; font-weight: bold; font-size: 12px; cursor: pointer;">
-                        ✓ Selesai di TPQ Smart
-                    </button>
-                </div>
-                <button id="tpq-btn-cancel-update-step3" style="width: 100%; background: transparent; color: #dc3545; border: 1px solid #fecaca; padding: 6px 10px; border-radius: 5px; font-size: 11px; cursor: pointer;">
-                    Batalkan Santri Ini
-                </button>
-            </div>
+            <button id="tpq-btn-cancel-update-step3" style="width: 100%; background: transparent; color: #dc3545; border: 1px solid #fecaca; padding: 5px 10px; border-radius: 5px; font-size: 11px; cursor: pointer;">
+                Batalkan Santri Ini
+            </button>
         </div>
     `;
 
@@ -3982,7 +4002,7 @@ function showUpdateAlamatStep3Popup(data) {
         } else {
             div.style.width = '350px';
             bodyStep3.style.display = 'none';
-            btnToggleStep3.innerHTML = '▼ Salin';
+            btnToggleStep3.innerHTML = '▼ Detail';
             btnToggleStep3.style.background = 'rgba(255,255,255,0.25)';
         }
     }
