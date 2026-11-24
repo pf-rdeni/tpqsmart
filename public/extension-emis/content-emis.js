@@ -20,7 +20,8 @@
  *  - Popup Step 2 dapat digeser (draggable) dan memandu checklist isian manual
  */
 
-console.log('[TPQ-EMIS Bridge] Content script aktif di EMIS Kemenag.');
+const EXTENSION_VERSION = '1.4.3';
+console.log(`[TPQ-EMIS Bridge v${EXTENSION_VERSION}] Content script aktif di EMIS Kemenag.`);
 
 // Inisialisasi pengawas transisi otomatis dari Step 1 ke Step 2
 initStepTransitionWatcher();
@@ -1960,6 +1961,701 @@ function setNativeSelectValue(selectElement, targetValueOrText) {
 }
 
 /**
+ * Mengambil teks konteks label sekitar elemen <select> atau input (aman, cepat, tidak memicu reflow DOM berlebih)
+ */
+function getFieldLabelText(el) {
+    if (!el) return '';
+    let str = (el.name || '') + ' ' + (el.id || '') + ' ' + (el.getAttribute('aria-label') || '');
+    let cur = el;
+    for (let i = 0; i < 4 && cur; i++) {
+        if (cur.previousElementSibling) {
+            str += ' ' + (cur.previousElementSibling.textContent || '').substring(0, 150);
+        }
+        if (cur.parentElement) {
+            str += ' ' + (cur.parentElement.textContent || '').substring(0, 150);
+        }
+        cur = cur.parentElement;
+    }
+    return str.toUpperCase();
+}
+
+/**
+ * Helper untuk memeriksa apakah elemen <select> sedang disabled / non-aktif
+ */
+function isSelectDisabled(sel) {
+    if (!sel) return true;
+    if (sel.disabled || sel.hasAttribute('disabled') || sel.getAttribute('aria-disabled') === 'true') return true;
+    if (sel.style && (sel.style.pointerEvents === 'none' || sel.style.opacity === '0.5')) return true;
+    const fieldset = sel.closest('fieldset[disabled]');
+    if (fieldset) return true;
+    return false;
+}
+
+/**
+ * Mencari elemen <select> Status Kepemilikan Rumah (Ayah) di Tab DATA ALAMAT
+ * Prioritas:
+ * 1. Label DOM bertuliskan "STATUS KEPEMILIKAN RUMAH" atau "KEPEMILIKAN RUMAH"
+ * 2. Dropdown tepat sebelum dropdown Provinsi (provIdx - 1)
+ * 3. Dropdown dengan opsi spesifik kepemilikan rumah (Milik Sendiri / Orang Tua / Sewa / Kontrak / Dinas)
+ * 4. Dropdown pertama di formulir jika opsinya <= 15
+ */
+function findStatusKepemilikanRumahSelect() {
+    // 1. Prioritas Utama: Cari berdasarkan teks label "STATUS KEPEMILIKAN RUMAH" atau "KEPEMILIKAN RUMAH"
+    const allLabels = Array.from(document.querySelectorAll('div, label, span, p, h1, h2, h3, h4'));
+    for (const el of allLabels) {
+        if (el.children.length > 2) continue;
+        const txt = (el.innerText || el.textContent || '').trim().toUpperCase();
+        if ((txt.includes('KEPEMILIKAN RUMAH') || txt.includes('STATUS RUMAH')) && txt.length <= 50) {
+            let p = el.parentElement;
+            for (let i = 0; i < 6 && p && p !== document.body; i++) {
+                const sel = p.querySelector('select:not([disabled])');
+                if (sel) {
+                    console.log('[TPQ-EMIS Bridge] ✓ findStatusKepemilikanRumahSelect ditemukan via Label DOM:', sel);
+                    return sel;
+                }
+                p = p.parentElement;
+            }
+        }
+    }
+
+    // 2. Prioritas Kedua: Temukan dropdown Provinsi lebih dulu, lalu ambil dropdown tepat sebelum Provinsi!
+    const allSelects = Array.from(document.querySelectorAll('select:not([disabled])'));
+    const selProv = findProvinsiSelect(allSelects);
+    if (selProv) {
+        const provIdx = allSelects.indexOf(selProv);
+        if (provIdx > 0 && allSelects[provIdx - 1]) {
+            console.log(`[TPQ-EMIS Bridge] ✓ findStatusKepemilikanRumahSelect ditemukan sebelum Provinsi (index ${provIdx - 1}):`, allSelects[provIdx - 1]);
+            return allSelects[provIdx - 1];
+        }
+    }
+
+    // 3. Prioritas Ketiga: Cari dropdown yang memiliki opsi kepemilikan rumah
+    for (const sel of allSelects) {
+        const options = Array.from(sel.options || sel.querySelectorAll('option'));
+        if (options.length === 0 || options.length > 20) continue;
+        const texts = options.map(o => (o.label || o.text || o.innerText || '').toLowerCase().trim());
+        if (texts.some(t => t.includes('km') || t.includes('jalan kaki') || t.includes('mukim') || (t.includes('menit') && !t.includes('rumah')))) continue;
+
+        const hasMilikSendiri = texts.some(t => t.includes('milik sendiri') || t.includes('sendiri'));
+        const hasOther = texts.some(t => t.includes('orang tua') || t.includes('sewa') || t.includes('kontrak') || t.includes('dinas') || t.includes('menumpang'));
+        if (hasMilikSendiri || hasOther) {
+            console.log('[TPQ-EMIS Bridge] ✓ findStatusKepemilikanRumahSelect ditemukan via opsi dropdown:', sel);
+            return sel;
+        }
+    }
+
+    // 4. Fallback Posisi: Dropdown pertama di formulir jika opsinya <= 15
+    if (allSelects.length > 0 && allSelects[0].options.length > 0 && allSelects[0].options.length <= 15) {
+        console.log('[TPQ-EMIS Bridge] findStatusKepemilikanRumahSelect fallback dropdown pertama:', allSelects[0]);
+        return allSelects[0];
+    }
+
+    return null;
+}
+
+/**
+ * Mengecek apakah nilai Status Kepemilikan Rumah yang terpilih sudah cocok dengan target
+ */
+function isStatusRumahTargetSelected(sel, targetRaw) {
+    if (!sel || sel.selectedIndex < 0) return false;
+    const selectedOpt = sel.options[sel.selectedIndex];
+    if (!selectedOpt) return false;
+    const selectedText = (selectedOpt.text || selectedOpt.label || '').toLowerCase().trim();
+    const selectedVal = String(sel.value ?? '').trim().toLowerCase();
+
+    // Abaikan jika masih placeholder ("pilih", "", "0")
+    if (selectedVal === '' || selectedVal === '0' || selectedText.includes('pilih') || selectedText === '') {
+        return false;
+    }
+
+    const target = (targetRaw || 'Milik Sendiri').toLowerCase().trim();
+    if (target.includes('sendiri')) {
+        return selectedText.includes('sendiri') || selectedVal === '9';
+    }
+    if (target.includes('orang tua')) {
+        return selectedText.includes('orang tua');
+    }
+    if (target.includes('sewa') || target.includes('kontrak')) {
+        return selectedText.includes('sewa') || selectedText.includes('kontrak');
+    }
+    if (target.includes('dinas')) {
+        return selectedText.includes('dinas');
+    }
+    return selectedText.includes(target) || target.includes(selectedText);
+}
+
+/**
+ * Mengecek apakah dropdown Status Kepemilikan Rumah sudah terisi/terpilih
+ */
+function checkIsStatusKepemilikanRumahSelected() {
+    const sel = findStatusKepemilikanRumahSelect();
+    if (!sel) return false;
+    return isStatusRumahTargetSelected(sel, 'Milik Sendiri');
+}
+
+/**
+ * Memilih Status Kepemilikan Rumah (Ayah) di Tab DATA ALAMAT
+ */
+function selectStatusKepemilikanRumahEmis(targetRaw) {
+    const target = targetRaw || 'Milik Sendiri';
+    const sel = findStatusKepemilikanRumahSelect();
+    if (!sel) return false;
+
+    console.log('[TPQ-EMIS Bridge] Menyetel Status Kepemilikan Rumah:', target);
+    let ok = setNativeSelectValue(sel, target);
+    if (!ok || !isStatusRumahTargetSelected(sel, target)) {
+        const options = Array.from(sel.options || sel.querySelectorAll('option'));
+        const isSendiri = target.toLowerCase().includes('sendiri');
+        const opt = options.find(o => {
+            const txt = (o.label || o.text || '').toLowerCase();
+            return isSendiri ? (txt.includes('sendiri') || o.value === '9') : txt.includes(target.toLowerCase());
+        });
+        if (opt) {
+            ok = setNativeSelectValue(sel, opt.value || opt.text);
+        } else if (options.length > 1) {
+            ok = setNativeSelectValue(sel, options[1].value || options[1].text);
+        }
+    }
+    return ok;
+}
+
+/**
+ * Menunggu dan menyetel Status Kepemilikan Rumah (Ayah) sampai benar-benar terverifikasi terpilih
+ * Menampilkan status real-time di UI popup (seperti cascading Provinsi)
+ */
+function waitAndSelectStatusRumah(targetRaw, timeoutMs = 8000) {
+    return new Promise((resolve) => {
+        const target = targetRaw || 'Milik Sendiri';
+        console.log('[TPQ-EMIS Bridge] Menyetel Status Kepemilikan Rumah (Ayah):', target);
+        updateWilayahStatusUI('status-rumah', '[⏳ Memilih...]', '#0d6efd');
+
+        const startTime = Date.now();
+
+        const timer = setInterval(() => {
+            const sel = findStatusKepemilikanRumahSelect();
+            if (sel) {
+                // Log opsi yang tersedia untuk visibilitas debugging
+                if (sel.options && sel.options.length > 0) {
+                    console.log(`[TPQ-EMIS Bridge] Opsi Status Rumah ditemukan (${sel.options.length} opsi):`, Array.from(sel.options).map(o => `[${o.value}] ${o.text}`).join(', '));
+                }
+
+                if (isStatusRumahTargetSelected(sel, target)) {
+                    clearInterval(timer);
+                    console.log(`[TPQ-EMIS Bridge] ✓ Status Kepemilikan Rumah terverifikasi terpilih: "${sel.options[sel.selectedIndex]?.text || sel.value}"`);
+                    updateWilayahStatusUI('status-rumah', '[✓ Terpilih]', '#198754');
+                    return resolve(true);
+                }
+
+                // Coba setel nilainya
+                updateWilayahStatusUI('status-rumah', '[⏳ Mengisi...]', '#0d6efd');
+                setNativeSelectValue(sel, target);
+
+                // Jika belum terpilih, coba paksa via pencarian opsi manual
+                if (!isStatusRumahTargetSelected(sel, target)) {
+                    const opts = Array.from(sel.options || sel.querySelectorAll('option'));
+                    const isSendiri = target.toLowerCase().includes('sendiri');
+                    const opt = opts.find(o => {
+                        const txt = (o.text || o.label || '').toLowerCase();
+                        return isSendiri ? (txt.includes('sendiri') || o.value === '9') : txt.includes(target.toLowerCase());
+                    });
+                    if (opt) setNativeSelectValue(sel, opt.value || opt.text);
+                    else if (opts.length > 1) setNativeSelectValue(sel, opts[1].value || opts[1].text);
+                }
+            } else {
+                updateWilayahStatusUI('status-rumah', '[⏳ Mencari field...]', '#0d6efd');
+            }
+
+            if (Date.now() - startTime >= timeoutMs) {
+                clearInterval(timer);
+                console.warn('[TPQ-EMIS Bridge] ⚠️ Batas waktu tunggu Status Kepemilikan Rumah tercapai.');
+                updateWilayahStatusUI('status-rumah', '[⚠️ Gagal / Pilih Manual]', '#dc3545');
+                resolve(false);
+            }
+        }, 300);
+    });
+}
+
+/**
+ * Mencari elemen <select> Status Mukim (Santri) di Tab DATA ALAMAT
+ * Diidentifikasi dari opsi uniknya ("Tidak Mukim" dan "Mukim")
+ */
+function findStatusMukimSelect() {
+    const allSelects = Array.from(document.querySelectorAll('select'));
+    for (const sel of allSelects) {
+        const options = Array.from(sel.options || sel.querySelectorAll('option'));
+        if (options.length === 0 || options.length > 5) continue;
+        const texts = options.map(o => (o.label || o.text || o.innerText || '').toLowerCase().trim());
+        const hasTidakMukim = texts.some(t => t.includes('tidak mukim'));
+        const hasMukim = texts.some(t => t === 'mukim' || t.includes('mukim'));
+        if (hasTidakMukim && hasMukim) {
+            return sel;
+        }
+    }
+    return null;
+}
+
+/**
+ * Mengecek apakah dropdown Status Mukim sudah terisi/terpilih
+ */
+function checkIsStatusMukimSelected() {
+    const sel = findStatusMukimSelect();
+    if (!sel) return false;
+    return (sel.value !== '' && sel.value !== '0') && sel.selectedIndex > 0;
+}
+
+/**
+ * Memilih Status Mukim (Santri) di Tab DATA ALAMAT
+ */
+function selectStatusMukimEmis(targetRaw) {
+    const target = targetRaw || 'Tidak Mukim';
+    const sel = findStatusMukimSelect();
+    if (!sel) return false;
+
+    console.log('[TPQ-EMIS Bridge] Menyetel Status Mukim:', target);
+    let ok = setNativeSelectValue(sel, target);
+    if (!ok && (sel.value === '' || sel.value === '0')) {
+        const options = Array.from(sel.options || sel.querySelectorAll('option'));
+        const isTidak = target.toLowerCase().includes('tidak');
+        const opt = options.find(o => {
+            const txt = (o.label || o.text || '').toLowerCase();
+            return isTidak ? txt.includes('tidak') : (!txt.includes('tidak') && txt.includes('mukim'));
+        });
+        if (opt) {
+            ok = setNativeSelectValue(sel, opt.value || opt.text);
+        } else if (options.length > 1) {
+            ok = setNativeSelectValue(sel, options[1].value || options[1].text);
+        }
+    }
+    return ok;
+}
+
+/**
+ * Menunggu dan menyetel Status Mukim (Santri) sampai terpilih
+ */
+function waitAndSelectStatusMukim(targetRaw, timeoutMs = 6000) {
+    return new Promise((resolve) => {
+        const target = targetRaw || 'Tidak Mukim';
+        console.log('[TPQ-EMIS Bridge] Menyetel Status Mukim (Santri):', target);
+        const startTime = Date.now();
+
+        const timer = setInterval(() => {
+            const sel = findStatusMukimSelect();
+            if (sel) {
+                const isSelected = (sel.value !== '' && sel.value !== '0') && sel.selectedIndex > 0;
+                if (!isSelected) {
+                    setNativeSelectValue(sel, target);
+                    if (sel.value === '' || sel.value === '0') {
+                        const opts = Array.from(sel.options || sel.querySelectorAll('option'));
+                        const isTidak = target.toLowerCase().includes('tidak');
+                        const opt = opts.find(o => {
+                            const txt = (o.label || o.text || '').toLowerCase();
+                            return isTidak ? txt.includes('tidak') : (!txt.includes('tidak') && txt.includes('mukim'));
+                        });
+                        if (opt) setNativeSelectValue(sel, opt.value || opt.text);
+                        else if (opts.length > 1) setNativeSelectValue(sel, opts[1].value || opts[1].text);
+                    }
+                } else {
+                    clearInterval(timer);
+                    console.log(`[TPQ-EMIS Bridge] ✓ Status Mukim terpilih: "${sel.options[sel.selectedIndex]?.text || sel.value}"`);
+                    updateWilayahStatusUI('status-mukim', '[✓ Terpilih]', '#198754');
+                    return resolve(true);
+                }
+            }
+
+            if (Date.now() - startTime >= timeoutMs) {
+                clearInterval(timer);
+                console.warn('[TPQ-EMIS Bridge] Batas waktu tunggu Status Mukim.');
+                resolve(false);
+            }
+        }, 250);
+    });
+}
+
+/**
+ * Mencari container section SANTRI di formulir
+ */
+function findSantriSectionContainer() {
+    const headings = Array.from(document.querySelectorAll('div, h1, h2, h3, h4, span, p'));
+    for (const h of headings) {
+        if (h.children.length > 2) continue;
+        const txt = (h.innerText || h.textContent || '').trim().toUpperCase();
+        if (txt === 'SANTRI' || txt === 'TEMPAT TINGGAL SANTRI') {
+            let p = h.parentElement;
+            for (let i = 0; i < 5 && p && p !== document.body; i++) {
+                if (p.querySelectorAll('select').length >= 2) {
+                    return p;
+                }
+                p = p.parentElement;
+            }
+        }
+    }
+    return null;
+}
+
+/**
+ * Helper untuk memvalidasi apakah suatu elemen <select> benar-benar dropdown Status Tempat Tinggal (Santri)
+ * dan BUKAN dropdown Provinsi/Wilayah, Status Rumah, Status Mukim, atau Mobilitas!
+ */
+function isStatusTempatTinggalSelect(sel) {
+    if (!sel || !sel.options || sel.options.length === 0) return false;
+    // Status Tempat Tinggal memiliki sekitar 10 opsi (placeholder + 9 opsi tinggal)
+    // Jika lebih dari 20 opsi, hampir pasti dropdown Provinsi (39 opsi) atau Kab/Kota!
+    if (sel.options.length < 3 || sel.options.length > 20) return false;
+
+    const options = Array.from(sel.options);
+    const texts = options.map(o => (o.text || o.label || '').toLowerCase().trim());
+
+    // 1. EKSKLUSI MUTLAK: Nama-nama provinsi / wilayah
+    const hasWilayahText = texts.some(t => 
+        t.includes('aceh') || t.includes('lampung') || t.includes('jawa') || 
+        t.includes('bali') || t.includes('sumatera') || t.includes('kalimantan') || 
+        t.includes('sulawesi') || t.includes('papua') || t.includes('banten') || 
+        t.includes('bengkulu') || t.includes('riau') || t.includes('jambi') || 
+        t.includes('maluku') || t.includes('gorontalo')
+    );
+    if (hasWilayahText) return false;
+
+    // 2. EKSKLUSI MUTLAK: Opsi kepemilikan rumah, mukim, mobilitas
+    if (texts.some(t => 
+        t.includes('milik sendiri') || t.includes('rumah dinas') || 
+        t.includes('tidak mukim') || t === 'mukim' || 
+        t.includes('jalan kaki') || t.includes('sepeda') || 
+        t.includes('km') || (t.includes('menit') && !t.includes('tinggal'))
+    )) {
+        return false;
+    }
+
+    // 3. KRITERIA WAJIB: Memiliki teks khas Status Tempat Tinggal
+    // Di EMIS 4.0: "Tinggal dengan Ayah Kandung", "Tinggal dengan Ibu Kandung", "Tinggal dengan Wali", dll.
+    const hasAyah = texts.some(t => t.includes('tinggal dengan ayah') || (t.includes('ayah') && t.includes('kandung')));
+    const hasWali = texts.some(t => t.includes('tinggal dengan wali') || t.includes('wali'));
+    const hasIbu = texts.some(t => t.includes('tinggal dengan ibu') || (t.includes('ibu') && t.includes('kandung')));
+    const hasKostOrAsrama = texts.some(t => t.includes('kost') || t.includes('kontrak') || t.includes('asrama') || t.includes('panti asuhan') || t.includes('kerabat'));
+
+    return hasAyah && (hasWali || hasIbu || hasKostOrAsrama);
+}
+
+/**
+ * Helper untuk memetakan target teks/nilai Status Tempat Tinggal ke elemen <option> yang tepat
+ * Berdasarkan opsi resmi EMIS 4.0:
+ * - 18: "Tinggal dengan Ayah Kandung"
+ * - 19: "Tinggal dengan Ibu Kandung"
+ * - 20: "Tinggal dengan Wali"
+ * - 2:  "Ikut Saudara/Kerabat"
+ * - 4:  "Kontrak/Kost"
+ * - 15: "Tinggal di Asrama Bukan Milik Pesantren"
+ * - 6:  "Panti Asuhan"
+ * - 7:  "Rumah Singgah"
+ * - 8:  "Lainnya"
+ */
+function mapStatusTempatTinggalOption(sel, targetRaw) {
+    if (!sel || !sel.options || sel.options.length === 0) return null;
+    const target = String(targetRaw || 'Tinggal dengan Ayah Kandung').toLowerCase().trim();
+    const opts = Array.from(sel.options);
+
+    // Filter agar option yang dipilih bukan nama provinsi
+    const isOptionValid = (o) => {
+        const txt = (o.text || o.label || '').toLowerCase();
+        return !txt.includes('lampung') && !txt.includes('aceh') && !txt.includes('jawa') && !txt.includes('sumatera');
+    };
+
+    let matchedOpt = null;
+    if (target.includes('ayah') || target.includes('orang tua') || target === '18' || !target) {
+        matchedOpt = opts.find(o => isOptionValid(o) && ((o.text || '').toLowerCase().includes('ayah') || (o.value === '18' && (o.text || '').toLowerCase().includes('tinggal'))));
+        if (!matchedOpt) {
+            matchedOpt = opts.find(o => isOptionValid(o) && (o.text || '').toLowerCase().includes('ayah'));
+        }
+    } else if (target.includes('ibu') || target === '19') {
+        matchedOpt = opts.find(o => isOptionValid(o) && ((o.text || '').toLowerCase().includes('ibu') || (o.value === '19' && (o.text || '').toLowerCase().includes('tinggal'))));
+    } else if (target.includes('wali') || target === '20') {
+        matchedOpt = opts.find(o => isOptionValid(o) && ((o.text || '').toLowerCase().includes('wali') || (o.value === '20' && (o.text || '').toLowerCase().includes('tinggal'))));
+    } else if (target.includes('saudara') || target.includes('kerabat') || target === '2') {
+        matchedOpt = opts.find(o => isOptionValid(o) && ((o.text || '').toLowerCase().includes('saudara') || (o.text || '').toLowerCase().includes('kerabat')));
+    } else if (target.includes('kost') || target.includes('kontrak') || target === '4') {
+        matchedOpt = opts.find(o => isOptionValid(o) && ((o.text || '').toLowerCase().includes('kost') || (o.text || '').toLowerCase().includes('kontrak')));
+    } else if (target.includes('asrama') || target === '15') {
+        matchedOpt = opts.find(o => isOptionValid(o) && ((o.text || '').toLowerCase().includes('asrama') || (o.value === '15' && (o.text || '').toLowerCase().includes('tinggal'))));
+    } else if (target.includes('panti') || target === '6') {
+        matchedOpt = opts.find(o => isOptionValid(o) && ((o.text || '').toLowerCase().includes('panti') || o.value === '6'));
+    } else if (target.includes('singgah') || target === '7') {
+        matchedOpt = opts.find(o => isOptionValid(o) && ((o.text || '').toLowerCase().includes('singgah') || o.value === '7'));
+    } else if (target.includes('lain') || target === '8') {
+        matchedOpt = opts.find(o => isOptionValid(o) && ((o.text || '').toLowerCase().includes('lain') || o.value === '8'));
+    }
+
+    if (!matchedOpt) {
+        matchedOpt = opts.find(o => {
+            if (!isOptionValid(o)) return false;
+            const txt = (o.text || o.label || '').toLowerCase();
+            return (txt && (txt.includes(target) || target.includes(txt))) && o.value !== '';
+        });
+    }
+
+    if (!matchedOpt) {
+        matchedOpt = opts.find(o => isOptionValid(o) && o.value !== '' && o.value !== '0' && !(o.text || '').toLowerCase().includes('pilih'));
+    }
+
+    return matchedOpt || null;
+}
+
+/**
+ * Mencari elemen <select> Status Tempat Tinggal (Santri) di Tab DATA ALAMAT
+ * Menggunakan validasi ketat isStatusTempatTinggalSelect agar TIDAK PERNAH salah memilih Provinsi!
+ */
+function findStatusTempatTinggalSelect() {
+    const allSelects = Array.from(document.querySelectorAll('select'));
+
+    // 1. Prioritas Utama: Cari di semua <select> yang memenuhi kriteria ketat isStatusTempatTinggalSelect
+    for (let i = 0; i < allSelects.length; i++) {
+        const sel = allSelects[i];
+        if (isSelectDisabled(sel)) continue;
+        if (isStatusTempatTinggalSelect(sel)) {
+            return sel;
+        }
+    }
+
+    // 2. Prioritas Kedua: Cari di dalam container section SANTRI
+    const santriSection = findSantriSectionContainer();
+    if (santriSection) {
+        const santriSelects = Array.from(santriSection.querySelectorAll('select')).filter(s => !isSelectDisabled(s));
+        for (const sel of santriSelects) {
+            if (isStatusTempatTinggalSelect(sel)) {
+                return sel;
+            }
+        }
+    }
+
+    // 3. Prioritas Ketiga: Label DOM bertuliskan "STATUS TEMPAT TINGGAL" atau "TEMPAT TINGGAL SANTRI"
+    const allLabels = Array.from(document.querySelectorAll('div, label, span, p, h1, h2, h3, h4'));
+    for (const el of allLabels) {
+        if (el.children.length > 2) continue;
+        const txt = (el.innerText || el.textContent || '').trim().toUpperCase();
+        if ((txt.includes('STATUS TEMPAT TINGGAL') || (txt.includes('TEMPAT TINGGAL') && !txt.includes('JARAK') && !txt.includes('DOMISILI'))) && txt.length <= 50) {
+            let p = el.parentElement;
+            for (let i = 0; i < 6 && p && p !== document.body; i++) {
+                const sel = p.querySelector('select');
+                if (sel && !isSelectDisabled(sel) && isStatusTempatTinggalSelect(sel)) {
+                    return sel;
+                }
+                p = p.parentElement;
+            }
+        }
+    }
+
+    return null;
+}
+
+/**
+ * Mengecek apakah nilai Status Tempat Tinggal yang terpilih sudah cocok dengan target
+ */
+function isStatusTempatTinggalTargetSelected(sel, targetRaw) {
+    if (!sel || sel.selectedIndex < 0) return false;
+    const selectedOpt = sel.options ? sel.options[sel.selectedIndex] : null;
+    if (!selectedOpt) return false;
+    const selectedText = (selectedOpt.text || selectedOpt.label || '').toLowerCase().trim();
+    const selectedVal = String(sel.value ?? '').trim().toLowerCase();
+
+    // Mutlak tolak jika yang terpilih adalah nama provinsi!
+    if (selectedText.includes('lampung') || selectedText.includes('jawa') || selectedText.includes('aceh') || selectedText.includes('sumatera') || selectedText.includes('kalimantan') || selectedText.includes('sulawesi') || selectedText.includes('bali')) {
+        return false;
+    }
+
+    // Abaikan jika masih placeholder ("pilih", "", "0")
+    if (selectedVal === '' || selectedVal === '0' || selectedText.includes('pilih') || selectedText === '') {
+        return false;
+    }
+
+    const target = (targetRaw || 'Tinggal dengan Ayah Kandung').toLowerCase().trim();
+    if (target.includes('ayah') || target.includes('orang tua')) {
+        return selectedText.includes('ayah') || (selectedVal === '18' && selectedText.includes('tinggal'));
+    }
+    if (target.includes('ibu')) {
+        return selectedText.includes('ibu') || (selectedVal === '19' && selectedText.includes('tinggal'));
+    }
+    if (target.includes('wali')) {
+        return selectedText.includes('wali') || (selectedVal === '20' && selectedText.includes('tinggal'));
+    }
+    if (target.includes('saudara') || target.includes('kerabat')) {
+        return selectedText.includes('saudara') || selectedText.includes('kerabat') || (selectedVal === '2' && selectedText.includes('tinggal'));
+    }
+    if (target.includes('kost') || target.includes('kontrak')) {
+        return selectedText.includes('kost') || selectedText.includes('kontrak');
+    }
+    if (target.includes('asrama')) {
+        return selectedText.includes('asrama');
+    }
+    if (target.includes('panti')) {
+        return selectedText.includes('panti');
+    }
+    if (target.includes('singgah')) {
+        return selectedText.includes('singgah');
+    }
+    if (target.includes('lain')) {
+        return selectedText.includes('lain');
+    }
+    return (selectedText.includes(target) || target.includes(selectedText)) && selectedText.includes('tinggal');
+}
+
+/**
+ * Mengecek apakah dropdown Status Tempat Tinggal Santri sudah terisi/terpilih
+ */
+function checkIsStatusTempatTinggalSelected() {
+    const sel = findStatusTempatTinggalSelect();
+    if (!sel) return false;
+    return isStatusTempatTinggalTargetSelected(sel, 'Tinggal dengan Ayah Kandung');
+}
+
+/**
+ * Memilih Status Tempat Tinggal (Santri) di Tab DATA ALAMAT
+ */
+function selectStatusTempatTinggalEmis(targetRaw) {
+    const target = targetRaw || 'Tinggal dengan Ayah Kandung';
+    const sel = findStatusTempatTinggalSelect();
+    if (!sel) {
+        console.warn('[TPQ-EMIS Bridge] [Status Tempat Tinggal] selectStatusTempatTinggalEmis: Dropdown tidak ditemukan');
+        return false;
+    }
+
+    console.log('[TPQ-EMIS Bridge] [Status Tempat Tinggal] Menyetel Status Tempat Tinggal Santri:', target);
+    const targetOpt = mapStatusTempatTinggalOption(sel, target);
+    let ok = false;
+    if (targetOpt) {
+        ok = setNativeSelectValue(sel, targetOpt.value);
+    }
+    if (!ok || !isStatusTempatTinggalTargetSelected(sel, target)) {
+        ok = setNativeSelectValue(sel, target);
+    }
+    return ok;
+}
+
+/**
+ * Menunggu dan menyetel Status Tempat Tinggal (Santri) sampai benar-benar terverifikasi terpilih
+ * Menampilkan status real-time di UI popup dan console log diagnostik lengkap jika gagal/berhasil
+ */
+function waitAndSelectStatusTempatTinggal(targetRaw, timeoutMs = 8000) {
+    return new Promise((resolve) => {
+        const target = targetRaw || 'Tinggal dengan Ayah Kandung';
+        console.log(`%c[TPQ-EMIS Bridge] [Status Tempat Tinggal] Memulai proses pengisian. Target: "${target}"`, 'background: #2563eb; color: #fff; font-weight: bold; padding: 2px 6px; border-radius: 3px;');
+        updateWilayahStatusUI('tempat-tinggal', '[⏳ Memilih...]', '#0d6efd');
+
+        const startTime = Date.now();
+        let lastLoggedSel = false;
+
+        const timer = setInterval(() => {
+            const sel = findStatusTempatTinggalSelect();
+            if (sel) {
+                if (!lastLoggedSel) {
+                    lastLoggedSel = true;
+                    console.log('[TPQ-EMIS Bridge] [Status Tempat Tinggal] ✓ Dropdown STATUS TEMPAT TINGGAL valid ditemukan di DOM:', sel);
+                    const optList = Array.from(sel.options || []).map(o => `[val="${o.value}"] ${o.text}`).join(' | ');
+                    console.log(`[TPQ-EMIS Bridge] [Status Tempat Tinggal] Daftar Opsi (${sel.options.length}):`, optList);
+                }
+
+                // Cek apakah sudah terverifikasi terpilih sesuai target
+                if (isStatusTempatTinggalTargetSelected(sel, target)) {
+                    clearInterval(timer);
+                    const curOpt = sel.options[sel.selectedIndex];
+                    console.log(`%c[TPQ-EMIS Bridge] [Status Tempat Tinggal] ✓ BERHASIL TERVERIFIKASI TERPILIH! [val="${sel.value}"] "${curOpt?.text}"`, 'background: #16a34a; color: #fff; font-weight: bold; padding: 2px 6px; border-radius: 3px;');
+                    updateWilayahStatusUI('tempat-tinggal', '[✓ Terpilih]', '#198754');
+                    return resolve(true);
+                }
+
+                // Tentukan opsi yang harus dipilih dari pemetaan
+                const targetOpt = mapStatusTempatTinggalOption(sel, target);
+                if (targetOpt) {
+                    console.log(`[TPQ-EMIS Bridge] [Status Tempat Tinggal] Mencoba menyetel ke opsi: [val="${targetOpt.value}"] "${targetOpt.text}"`);
+                    updateWilayahStatusUI('tempat-tinggal', '[⏳ Mengisi...]', '#0d6efd');
+                    const ok = setNativeSelectValue(sel, targetOpt.value);
+                    if (!ok) {
+                        console.warn('[TPQ-EMIS Bridge] [Status Tempat Tinggal] setNativeSelectValue mengembalikan false, mencoba direct value setter');
+                        sel.value = targetOpt.value;
+                        sel.dispatchEvent(new Event('input', { bubbles: true }));
+                        sel.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                } else {
+                    console.warn(`[TPQ-EMIS Bridge] [Status Tempat Tinggal] Tidak menemukan opsi yang cocok dengan target "${target}"`);
+                }
+            } else {
+                updateWilayahStatusUI('tempat-tinggal', '[⏳ Mencari dropdown...]', '#0d6efd');
+            }
+
+            if (Date.now() - startTime >= timeoutMs) {
+                clearInterval(timer);
+                const finalSel = findStatusTempatTinggalSelect();
+                console.group('%c[TPQ-EMIS Bridge] [Status Tempat Tinggal] ❌ GAGAL SETELAH ' + (timeoutMs / 1000) + ' DETIK!', 'background: #dc2626; color: #fff; font-weight: bold; padding: 2px 6px; border-radius: 3px;');
+                console.error('Target yang diminta:', target);
+                if (!finalSel) {
+                    console.error('Penyebab Gagal: Elemen <select> Status Tempat Tinggal yang valid TIDAK DITEMUKAN di DOM halaman!');
+                    console.error('Daftar semua <select> yang ada di halaman saat ini:');
+                    document.querySelectorAll('select').forEach((s, idx) => {
+                        console.error(`Select #${idx} (Total ${s.options.length} opsi):`, s, 'Contoh Opsi:', Array.from(s.options).slice(0, 5).map(o => `[${o.value}] ${o.text}`).join(', '));
+                    });
+                } else {
+                    const curOpt = finalSel.options[finalSel.selectedIndex];
+                    console.error('Penyebab Gagal: Dropdown ditemukan tetapi nilai belum cocok atau gagal disimpan ke React state.');
+                    console.error('Elemen select:', finalSel);
+                    console.error('Nilai saat ini:', finalSel.value, `(Teks: "${curOpt?.text}")`);
+                    console.error('Status Disabled:', finalSel.disabled, 'aria-disabled:', finalSel.getAttribute('aria-disabled'));
+                    console.error('Daftar opsi tersedia:', Array.from(finalSel.options).map(o => `[${o.value}] ${o.text}`));
+                }
+                console.groupEnd();
+
+                updateWilayahStatusUI('tempat-tinggal', '[⚠️ Gagal / Pilih Manual]', '#dc3545');
+                resolve(false);
+            }
+        }, 300);
+    });
+}
+
+/**
+ * Menunggu dan menyetel Mobilitas Santri (Jarak, Transportasi, Waktu Tempuh, Koordinat) sampai stabil
+ */
+function waitAndSelectMobilitas(santriData, timeoutMs = 6000) {
+    return new Promise((resolve) => {
+        console.log('[TPQ-EMIS Bridge] Menyetel Mobilitas Santri (Jarak, Transportasi, Waktu, Koordinat)...');
+        const startTime = Date.now();
+        let consecutiveSuccess = 0;
+
+        const timer = setInterval(() => {
+            const isJarakOk = checkIsJarakSelected();
+            const isTransportOk = checkIsTransportasiSelected();
+            const isWaktuOk = checkIsWaktuTempuhSelected();
+            const isKoordinatOk = checkIsKoordinatFilled(santriData.santri_titik_koordinat);
+
+            if (!isJarakOk) {
+                selectJarakTempatTinggalEmis(santriData.santri_jarak_tempuh || santriData.santri_jarak);
+            }
+            if (!isTransportOk) {
+                selectTransportasiEmis(santriData.santri_transportasi);
+            }
+            if (!isWaktuOk) {
+                selectWaktuTempuhEmis(santriData.santri_waktu_tempuh);
+            }
+            if (!isKoordinatOk && santriData.santri_titik_koordinat) {
+                fillTitikKoordinatEmis(santriData.santri_titik_koordinat);
+            }
+
+            if (isJarakOk && isTransportOk && isWaktuOk && isKoordinatOk) {
+                consecutiveSuccess++;
+                if (consecutiveSuccess >= 2) {
+                    clearInterval(timer);
+                    console.log('[TPQ-EMIS Bridge] ✓ Mobilitas Santri terkonfirmasi stabil!');
+                    return resolve(true);
+                }
+            } else {
+                consecutiveSuccess = 0;
+            }
+
+            if (Date.now() - startTime >= timeoutMs) {
+                clearInterval(timer);
+                console.warn('[TPQ-EMIS Bridge] Batas waktu tunggu Mobilitas Santri.');
+                resolve(false);
+            }
+        }, 250);
+    });
+}
+
+/**
  * Membuat elemen floating card dapat digeser (draggable) dengan mouse
  */
 function makeDraggable(element, handle = null) {
@@ -2132,6 +2828,7 @@ function showStep0StartPopup(data) {
         <div id="tpq-step0-header" style="background: linear-gradient(135deg, #0d6efd, #0b5ed7); color: #fff; padding: 8px 12px; font-weight: bold; font-size: 13px; display: flex; justify-content: space-between; align-items: center; cursor: move; user-select: none;">
             <div style="display: flex; align-items: center; gap: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 195px;" title="${escapeHtml(data.nama_santri)} - ${escapeHtml(tglLahirLabel)}">
                 <span style="font-size: 12px;">⚡ <strong>${escapeHtml(data.nama_santri)}</strong></span>
+                <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 4px; border-radius: 3px; font-weight: normal;">v1.4.3</span>
                 <span style="font-size: 10.5px; background: rgba(255,255,255,0.25); border-radius: 3px; padding: 1px 5px; font-weight: 500;" title="Tanggal Lahir Santri">📅 ${escapeHtml(tglLahirLabel)}</span>
             </div>
             <div style="display: flex; align-items: center; gap: 5px;">
@@ -2435,6 +3132,7 @@ function showStep1Assistant(data) {
         <div id="tpq-step1-header" style="background: linear-gradient(135deg, #0d6efd, #0b5ed7); color: #fff; padding: 8px 12px; font-weight: bold; font-size: 13px; display: flex; justify-content: space-between; align-items: center; cursor: move; user-select: none;">
             <div style="display: flex; align-items: center; gap: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 170px;" title="${escapeHtml(data.nama_santri)}">
                 <span style="font-size: 12px;">⚡ <strong>${escapeHtml(data.nama_santri)}</strong></span>
+                <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 4px; border-radius: 3px; font-weight: normal; margin-left: 2px;">v1.4.3</span>
             </div>
             <div style="display: flex; align-items: center; gap: 5px;">
                 <button id="tpq-btn-quick-copy-tgl-step1" style="background: #198754; color: #fff; border: 1px solid rgba(255,255,255,0.4); border-radius: 4px; padding: 3px 8px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.15);" title="Salin Tanggal Lahir">
@@ -2641,6 +3339,7 @@ function showStep2Assistant(data, filledAyah = false, filledIbu = false, filledN
         <div id="tpq-step2-header" style="background: linear-gradient(135deg, #0d6efd, #0b5ed7); color: #fff; padding: 8px 12px; font-weight: bold; font-size: 13px; display: flex; justify-content: space-between; align-items: center; cursor: move; user-select: none;">
             <div style="display: flex; align-items: center; gap: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 160px;" title="${escapeHtml(data.nama_santri)}">
                 <span style="font-size: 12px;">⚡ <strong>${escapeHtml(data.nama_santri)}</strong></span>
+                <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 4px; border-radius: 3px; font-weight: normal; margin-left: 2px;">v1.4.3</span>
             </div>
             <div style="display: flex; align-items: center; gap: 5px;">
                 <button id="tpq-btn-quick-selesai-step2" style="background: #198754; color: #fff; border: 1px solid rgba(255,255,255,0.4); border-radius: 4px; padding: 3px 8px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.15);" title="Selesaikan pendaftaran & tandai selesai">
@@ -2932,25 +3631,236 @@ function escapeHtml(str) {
         .replace(/'/g, '&#039;');
 }
 
+// ==============================================================
+// PENGATURAN MODE AUTOMASI (Full Otomatis vs Semi-Otomatis)
+// ==============================================================
+let currentAutoMode = 'FULL'; // Default: FULL (Hands-Free), pilihan lain: SEMI (Manual Klik)
+
+chrome.storage.local.get(['emisAutoMode'], (res) => {
+    if (res && res.emisAutoMode) {
+        currentAutoMode = res.emisAutoMode;
+    } else {
+        currentAutoMode = 'FULL';
+        chrome.storage.local.set({ emisAutoMode: 'FULL' });
+    }
+    updateAllPopupsModeUI();
+});
+
+function toggleAutoMode() {
+    currentAutoMode = (currentAutoMode === 'FULL') ? 'SEMI' : 'FULL';
+    chrome.storage.local.set({ emisAutoMode: currentAutoMode }, () => {
+        console.log('[TPQ-EMIS Bridge] Mode automasi berganti ke:', currentAutoMode);
+        updateAllPopupsModeUI();
+        const modeLabel = (currentAutoMode === 'FULL') ? 'Full Otomatis (Hands-Free)' : 'Semi-Otomatis (Klik Manual)';
+        showTemporaryFloatingToast(`Mode diubah: ${modeLabel}`, currentAutoMode === 'FULL' ? 'success' : 'info');
+    });
+}
+
+function updateAllPopupsModeUI() {
+    const isFull = currentAutoMode === 'FULL';
+    const text = isFull ? '⚡ FULL AUTO' : '✋ SEMI AUTO';
+    const bg = isFull ? '#059669' : '#d97706';
+    const title = isFull 
+        ? 'Mode Full Otomatis aktif (klik untuk beralih ke Semi-Otomatis)' 
+        : 'Mode Semi-Otomatis aktif (klik untuk beralih ke Full Otomatis)';
+
+    ['tpq-btn-mode-step1', 'tpq-btn-mode-step2', 'tpq-btn-mode-step3'].forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) {
+            btn.innerText = text;
+            btn.style.background = bg;
+            btn.title = title;
+        }
+    });
+}
+
+// ==============================================================
+// HELPER DETEKSI TOMBOL SIMPAN & PENANGANAN DIALOG MODAL EMIS
+// ==============================================================
+
+/**
+ * Mencari tombol Simpan utama pada formulir EMIS (mengabaikan popup ekstensi kita)
+ * Di EMIS (React Native Web), tombol yang aktif ditandai dengan warna HIJAU,
+ * sedangkan tombol nonaktif/disabled berwarna ABU-ABU (gray) tanpa atribut disabled HTML standar.
+ */
+function findEmisSimpanButton() {
+    const candidates = Array.from(document.querySelectorAll('button, [role="button"], div[tabindex="0"], a'));
+    for (const el of candidates) {
+        if (el.closest('#tpq-update-alamat-step1-popup, #tpq-update-santri-step2-popup, #tpq-update-alamat-step3-popup, #tpq-temp-toast, #tpq-step1-alert, #tpq-step0-alert')) {
+            continue;
+        }
+        const txt = (el.innerText || el.textContent || '').trim().toUpperCase();
+        if (txt === 'SIMPAN' || txt === 'SIMPAN DATA' || txt === 'SIMPAN PERUBAHAN') {
+            const rect = el.getBoundingClientRect();
+            if (rect.width > 0 && rect.height > 0) {
+                const ariaDisabled = el.getAttribute('aria-disabled') === 'true';
+                const nativeDisabled = el.disabled === true;
+                const style = window.getComputedStyle(el);
+                const pointerEventsNone = style.pointerEvents === 'none';
+                const opacityLow = parseFloat(style.opacity || '1') < 0.55;
+
+                // Telusuri background color tombol atau container terdekatnya
+                let cur = el;
+                let bgFound = '';
+                for (let i = 0; i < 4 && cur; i++) {
+                    const bg = window.getComputedStyle(cur).backgroundColor;
+                    if (bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') {
+                        bgFound = bg;
+                        break;
+                    }
+                    cur = cur.parentElement;
+                }
+                const isGreen = isGreenColor(bgFound || style.backgroundColor);
+
+                return {
+                    element: el,
+                    isGreen: isGreen,
+                    isDisabled: !isGreen || ariaDisabled || nativeDisabled || pointerEventsNone || opacityLow
+                };
+            }
+        }
+    }
+    return null;
+}
+
+/**
+ * Helper untuk memastikan elemen (seperti tombol YA atau TUTUP) benar-benar berada di dalam overlay modal/dialog riil
+ */
+function isElementInsideModal(el) {
+    if (!el) return false;
+    if (el.closest('#tpq-update-alamat-step1-popup, #tpq-update-santri-step2-popup, #tpq-update-alamat-step3-popup, #tpq-temp-toast, #tpq-step1-alert, #tpq-step0-alert')) {
+        return false;
+    }
+    // Cek elemen standar modal / dialog HTML5 / Bootstrap / SweetAlert dsb
+    if (el.closest('[role="dialog"], .modal, .swal2-modal, .swal2-container, [aria-modal="true"], .modal-dialog, .modal-content')) {
+        return true;
+    }
+    // Cek apakah elemen berada di dalam fixed / absolute overlay dengan z-index tinggi (React Native for Web Modal)
+    let p = el.parentElement;
+    for (let i = 0; i < 8 && p && p !== document.body; i++) {
+        const s = window.getComputedStyle(p);
+        const z = parseInt(s.zIndex || '0', 10);
+        if ((s.position === 'fixed' || s.position === 'absolute') && (z >= 900 || s.backgroundColor.includes('rgba(0, 0, 0'))) {
+            return true;
+        }
+        p = p.parentElement;
+    }
+    return false;
+}
+
+/**
+ * Menangani dialog konfirmasi ("Batal" / "Ya") lalu dialog sukses ("Tutup")
+ * dengan timeout aman dan notifikasi status
+ */
+function handleEmisConfirmAndSuccessModal(options = {}) {
+    const {
+        onSuccess,
+        onTimeout,
+        onStatusUpdate,
+        stepName = 'Formulir'
+    } = options;
+
+    const reportStatus = (text, type = 'info') => {
+        if (typeof onStatusUpdate === 'function') {
+            onStatusUpdate(text, type);
+        }
+    };
+
+    reportStatus(`Menunggu dialog konfirmasi Simpan ${stepName}...`, 'info');
+    console.log(`[TPQ-EMIS Bridge] Menunggu dialog konfirmasi untuk ${stepName}...`);
+
+    let confirmClicked = false;
+    let successHandled = false;
+    const startTime = Date.now();
+    const timeoutMs = 12000; // Maksimal 12 detik
+
+    const pollTimer = setInterval(() => {
+        const elapsed = Date.now() - startTime;
+        if (elapsed > timeoutMs) {
+            clearInterval(pollTimer);
+            console.warn(`[TPQ-EMIS Bridge] Timeout menunggu dialog konfirmasi/sukses ${stepName}.`);
+            if (typeof onTimeout === 'function') onTimeout();
+            return;
+        }
+
+        // TAHAP 1: Dialog Konfirmasi ("Ya" / "Ya, Simpan")
+        if (!confirmClicked) {
+            const allElements = Array.from(document.querySelectorAll('button, [role="button"], div[tabindex="0"], a'));
+            for (const el of allElements) {
+                if (!isElementInsideModal(el)) {
+                    continue;
+                }
+                const txt = (el.innerText || el.textContent || '').trim().toUpperCase();
+                if (txt === 'YA' || txt === 'YA, SIMPAN' || txt === 'YA, LANJUTKAN' || txt === 'YA, YAKIN') {
+                    const rect = el.getBoundingClientRect();
+                    if (rect.width > 0 && rect.height > 0) {
+                        console.log(`[TPQ-EMIS Bridge] ✓ Dialog konfirmasi terdeteksi! Menekan '${txt}'...`);
+                        reportStatus(`Dialog konfirmasi: Menekan '${txt}'...`, 'process');
+                        triggerNativeClick(el);
+                        confirmClicked = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        // TAHAP 2: Dialog Sukses ("Tutup" / "OK" / "Selesai")
+        if (confirmClicked && !successHandled) {
+            const allElements = Array.from(document.querySelectorAll('button, [role="button"], div[tabindex="0"], a'));
+            for (const el of allElements) {
+                if (!isElementInsideModal(el)) {
+                    continue;
+                }
+                const txt = (el.innerText || el.textContent || '').trim().toUpperCase();
+                if (txt === 'TUTUP' || txt === 'OK' || txt === 'SELESAI') {
+                    const rect = el.getBoundingClientRect();
+                    if (rect.width > 0 && rect.height > 0) {
+                        console.log(`[TPQ-EMIS Bridge] ✓ Dialog sukses terdeteksi! Menekan '${txt}'...`);
+                        reportStatus(`Berhasil disimpan! Menutup notifikasi...`, 'success');
+                        triggerNativeClick(el);
+                        successHandled = true;
+                        clearInterval(pollTimer);
+
+                        setTimeout(() => {
+                            if (typeof onSuccess === 'function') onSuccess();
+                        }, 600);
+                        break;
+                    }
+                }
+            }
+        }
+    }, 300);
+}
+
 /**
  * Deteksi apakah halaman berada pada Step 1 (Pencarian Kesiswaan), Step 2 (Tab DATA SANTRI), atau Step 3 (Tab DATA ALAMAT)
  */
 function detectUpdateAlamatStage() {
     const textContent = (document.body.innerText || document.body.textContent || '').toUpperCase();
-    const currentUrl = window.location.href.toLowerCase();
 
-    // Ciri Step 3: Tab DATA ALAMAT aktif (ada teks TEMPAT TINGGAL DOMISILI atau STATUS KEPEMILIKAN RUMAH)
-    const hasDataAlamatText = textContent.includes('TEMPAT TINGGAL DOMISILI') || textContent.includes('STATUS KEPEMILIKAN RUMAH');
+    // Ciri Step 3: Tab DATA ALAMAT aktif (ada teks field alamat domisili atau tab Alamat berlatar hijau)
+    const hasDataAlamatText = textContent.includes('TEMPAT TINGGAL DOMISILI') || 
+                              textContent.includes('STATUS KEPEMILIKAN RUMAH') ||
+                              textContent.includes('JENIS TEMPAT TINGGAL') ||
+                              textContent.includes('JARAK TEMPAT TINGGAL') ||
+                              textContent.includes('TITIK KOORDINAT');
     if (hasDataAlamatText) {
         return 3;
     }
 
-    // Ciri Step 2: Halaman Detail Santri (Tab DATA SANTRI aktif / pertama kali masuk detail)
-    const hasTabs = textContent.includes('DATA SANTRI') && (textContent.includes('DATA ORANG TUA') || textContent.includes('DATA ALAMAT'));
-    const hasDetailUrl = currentUrl.includes('/detail') || currentUrl.includes('/edit') || currentUrl.includes('/kesiswaan/');
-    const hasDetailHeader = textContent.includes('DETAIL SANTRI') || textContent.includes('YANG MEMBIAYAI SEKOLAH');
+    try {
+        const tabAlamat = findDataAlamatTabElement();
+        if (tabAlamat && isGreenColor(window.getComputedStyle(tabAlamat).backgroundColor)) {
+            return 3;
+        }
+    } catch (_) {}
 
-    if (hasTabs || hasDetailHeader || (hasDetailUrl && textContent.includes('DATA SANTRI'))) {
+    // Ciri Step 2: Halaman Form Detail/Edit Santri
+    // Ada tab DATA SANTRI + DATA ALAMAT, ATAU ada teks field spesifik detail santri
+    const hasDetailTabs = textContent.includes('DATA SANTRI') && textContent.includes('DATA ALAMAT') && (textContent.includes('DATA ORANG TUA') || textContent.includes('DATA AKADEMIK') || textContent.includes('ORANG TUA'));
+    const hasDetailField = textContent.includes('MEMBIAYAI') || textContent.includes('KEBUTUHAN KHUSUS') || textContent.includes('JUMLAH SAUDARA KANDUNG');
+
+    if (hasDetailTabs || hasDetailField) {
         return 2;
     }
 
@@ -3058,6 +3968,449 @@ function applyKesiswaanFilter(searchInput, query) {
 }
 
 /**
+ * Helper deteksi warna hijau (berbagai variasi hijau tombol EMIS / Bootstrap / Tailwind)
+ */
+function isGreenColor(colorStr) {
+    if (!colorStr) return false;
+    const m = colorStr.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/i);
+    if (m) {
+        const r = parseInt(m[1], 10), g = parseInt(m[2], 10), b = parseInt(m[3], 10);
+        // Dominan hijau: hijau tinggi dan lebih besar dari merah dan biru
+        return (g > 65 && g > r * 1.15 && g > b * 1.15) || (r <= 60 && g >= 85 && b <= 120);
+    }
+    return false;
+}
+
+/**
+ * Mencari elemen baris data santri pada tabel kesiswaan EMIS berdasarkan nama
+ */
+function findSantriTableRow(santriName) {
+    if (!santriName) return null;
+    const cleanName = santriName.trim().toUpperCase();
+    const nameParts = cleanName.split(/\s+/).filter(p => p.length >= 3);
+
+    const candidates = Array.from(document.querySelectorAll('*')).filter(el => {
+        if (el.closest('#tpq-update-alamat-step1-popup, #tpq-update-santri-step2-popup, #tpq-update-alamat-step3-popup, #tpq-temp-toast')) return false;
+        if (el.children.length > 2) return false;
+        const txt = (el.innerText || el.textContent || '').trim().toUpperCase();
+        return txt === cleanName || (nameParts.length >= 2 && nameParts.every(p => txt.includes(p)));
+    });
+
+    for (const nameEl of candidates) {
+        let row = nameEl.closest('tr, [role="row"]');
+        if (!row) {
+            let cur = nameEl;
+            for (let i = 0; i < 7 && cur; i++) {
+                if (cur.parentElement) {
+                    const siblings = cur.parentElement.children;
+                    if (siblings.length >= 3) {
+                        row = cur.parentElement;
+                        break;
+                    }
+                }
+                cur = cur.parentElement;
+            }
+        }
+        if (row) return row;
+    }
+    return null;
+}
+
+/**
+ * Memicu event klik lengkap pada elemen React Native Web (PointerEvent, MouseEvent, TouchEvent, dan Native Click)
+ * Menghitung koordinat tepat di tengah elemen agar React Native Web Responder System merespons dengan benar
+ */
+function triggerNativeClick(el) {
+    if (!el) return;
+    try {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } catch (_) {}
+    try { el.focus?.(); } catch (_) {}
+
+    const rect = el.getBoundingClientRect();
+    const clientX = Math.round(rect.left + (rect.width > 0 ? rect.width / 2 : 10));
+    const clientY = Math.round(rect.top + (rect.height > 0 ? rect.height / 2 : 10));
+    const screenX = window.screenX + clientX;
+    const screenY = window.screenY + clientY;
+
+    const baseEventInit = {
+        bubbles: true,
+        cancelable: true,
+        composed: true,
+        view: window,
+        detail: 1,
+        clientX: clientX,
+        clientY: clientY,
+        screenX: screenX,
+        screenY: screenY,
+        button: 0,
+        buttons: 1
+    };
+
+    // 1. PointerEvent (Sangat esensial untuk React Native Web Responder System)
+    if (typeof PointerEvent !== 'undefined') {
+        const pointerInit = Object.assign({}, baseEventInit, {
+            pointerId: 1,
+            pointerType: 'mouse',
+            isPrimary: true,
+            width: 1,
+            height: 1,
+            pressure: 0.5
+        });
+        ['pointerover', 'pointerenter', 'pointerdown', 'pointerup'].forEach(type => {
+            try { el.dispatchEvent(new PointerEvent(type, pointerInit)); } catch (_) {}
+        });
+    }
+
+    // 2. MouseEvent standar
+    ['mouseover', 'mouseenter', 'mousedown', 'mouseup', 'click'].forEach(type => {
+        try { el.dispatchEvent(new MouseEvent(type, baseEventInit)); } catch (_) {}
+    });
+
+    // 3. TouchEvent fallback jika platform mobile/touch responder aktif
+    if (typeof Touch !== 'undefined' && typeof TouchEvent !== 'undefined') {
+        try {
+            const touch = new Touch({
+                identifier: Date.now(),
+                target: el,
+                clientX: clientX,
+                clientY: clientY,
+                screenX: screenX,
+                screenY: screenY,
+                pageX: clientX + window.scrollX,
+                pageY: clientY + window.scrollY
+            });
+            const touchInit = {
+                bubbles: true,
+                cancelable: true,
+                touches: [touch],
+                targetTouches: [touch],
+                changedTouches: [touch],
+                view: window
+            };
+            el.dispatchEvent(new TouchEvent('touchstart', touchInit));
+            el.dispatchEvent(new TouchEvent('touchend', touchInit));
+        } catch (_) {}
+    }
+
+    // 4. Native DOM .click()
+    try { el.click(); } catch (_) {}
+
+    // 5. Cek apakah elemen atau parent adalah tag <a> dengan href
+    const anchor = el.closest('a') || el.querySelector('a');
+    if (anchor && anchor.href && !anchor.href.startsWith('javascript:void') && !anchor.href.endsWith('#')) {
+        console.log('[TPQ-EMIS Bridge] Mengikuti link anchor Ubah Data:', anchor.href);
+        try { anchor.click(); } catch (_) {}
+    }
+
+    // 6. Dispatch juga ke child pertama jika child adalah container teks
+    if (el.firstElementChild && el.firstElementChild !== el) {
+        try {
+            el.firstElementChild.dispatchEvent(new MouseEvent('click', baseEventInit));
+            el.firstElementChild.click();
+        } catch (_) {}
+    }
+}
+
+/**
+ * Mencari semua tombol Ubah Data hijau atau tombol aksi pada tabel kesiswaan EMIS
+ * (mengabaikan elemen popup ekstensi kita)
+ */
+function getAllUbahDataButtonsInTable() {
+    const all = Array.from(document.querySelectorAll('*'));
+    const buttons = [];
+
+    for (const el of all) {
+        // Abaikan elemen dari popup ekstensi kita sendiri
+        if (el.closest('#tpq-update-alamat-step1-popup, #tpq-update-santri-step2-popup, #tpq-update-alamat-step3-popup, #tpq-temp-toast, #tpq-step1-alert, #tpq-step0-alert')) {
+            continue;
+        }
+
+        const rawTxt = (el.innerText || el.textContent || '');
+        const cleanTxt = rawTxt.replace(/\s+/g, ' ').trim().toUpperCase();
+        const ariaTxt = (el.getAttribute('aria-label') || '').toUpperCase();
+
+        const hasUbahText = cleanTxt === 'UBAH DATA' || cleanTxt === 'UBAH' || ariaTxt.includes('UBAH') || (cleanTxt.includes('UBAH') && cleanTxt.includes('DATA'));
+        if (!hasUbahText) continue;
+
+        const rect = el.getBoundingClientRect();
+        if (rect.width < 15 || rect.height < 15 || rect.top <= 0) continue;
+
+        const style = window.getComputedStyle(el);
+        const hasGreenBg = isGreenColor(style.backgroundColor);
+        const hasRoleBtn = el.getAttribute('role') === 'button' || el.tagName === 'BUTTON' || el.tagName === 'A';
+
+        // Hanya masukkan tombol dengan background hijau atau role button dengan ukuran tombol wajar
+        if ((hasGreenBg || hasRoleBtn) && rect.width <= 260 && rect.height <= 80) {
+            buttons.push({
+                el: el,
+                hasGreenBg: hasGreenBg,
+                hasRoleBtn: hasRoleBtn,
+                width: rect.width,
+                height: rect.height
+            });
+        }
+    }
+
+    // Ambil elemen terdalam (innermost) agar tidak duplikat dengan container
+    const innermost = buttons.filter(b => !buttons.some(other => other !== b && other.el.contains(b.el)));
+
+    // Jika elemen innermost tidak memiliki latar hijau sendiri tetapi parent-nya hijau, ambil parent hijau
+    return innermost.map(b => {
+        if (b.hasGreenBg) return b.el;
+        let cur = b.el.parentElement;
+        for (let i = 0; i < 3 && cur; i++) {
+            if (isGreenColor(window.getComputedStyle(cur).backgroundColor)) {
+                return cur;
+            }
+            cur = cur.parentElement;
+        }
+        return b.el;
+    });
+}
+
+/**
+ * Mengambil seluruh teks dalam baris tabel tempat tombol berada
+ */
+function getRowTextForButton(btn) {
+    if (!btn) return '';
+    let row = btn.closest('tr, [role="row"]');
+    if (!row) {
+        let cur = btn;
+        for (let i = 0; i < 7 && cur; i++) {
+            if (cur.parentElement) {
+                const siblings = cur.parentElement.children;
+                if (siblings.length >= 3) {
+                    row = cur.parentElement;
+                    break;
+                }
+            }
+            cur = cur.parentElement;
+        }
+    }
+    return row ? (row.innerText || row.textContent || '').toUpperCase() : '';
+}
+
+/**
+ * Mengecek apakah teks dalam baris tabel cocok dengan nama santri target
+ */
+function isRowMatchingSantri(rowText, santriName) {
+    if (!rowText || !santriName) return false;
+    const cleanName = santriName.trim().toUpperCase().replace(/\s+/g, ' ');
+    const normRowText = rowText.toUpperCase().replace(/\s+/g, ' ');
+    if (normRowText.includes(cleanName)) return true;
+
+    const nameParts = cleanName.split(' ').filter(p => p.length >= 3);
+    if (nameParts.length > 0 && nameParts.every(p => normRowText.includes(p))) return true;
+
+    if (nameParts.length >= 2) {
+        const matches = nameParts.filter(p => normRowText.includes(p));
+        if (matches.length >= Math.ceil(nameParts.length * 0.7)) return true;
+    }
+    return false;
+}
+
+/**
+ * Mencari tombol Ubah Data santri pada tabel kesiswaan EMIS
+ * HANYA mengembalikan tombol jika tabel sudah terfilter dan cocok dengan santri target
+ */
+function findUbahDataButton(santriName = null) {
+    const allButtons = getAllUbahDataButtonsInTable();
+    if (allButtons.length === 0) return null;
+
+    if (santriName) {
+        // Cek tombol yang barisnya benar-benar memuat nama santri
+        const matchingButtons = allButtons.filter(btn => {
+            const rowTxt = getRowTextForButton(btn);
+            return isRowMatchingSantri(rowTxt, santriName);
+        });
+
+        if (matchingButtons.length === 1) {
+            return matchingButtons[0];
+        }
+
+        // Jika tombol lebih dari 1 dan belum terfilter spesifik, JANGAN kembalikan sembarang tombol!
+        if (allButtons.length > 1) {
+            console.log(`[TPQ-EMIS Bridge] Tabel masih memuat ${allButtons.length} santri (belum terfilter 1 baris). Menunggu...`);
+            return null;
+        }
+
+        // Jika hanya ada 1 tombol di seluruh tabel tapi baris belum terdeteksi sempurna,
+        // periksa teks dokumen secara keseluruhan
+        if (allButtons.length === 1) {
+            const bodyTxt = (document.body.innerText || '').toUpperCase();
+            if (isRowMatchingSantri(bodyTxt, santriName)) {
+                return allButtons[0];
+            }
+        }
+
+        return null;
+    }
+
+    // Jika tanpa santriName (fallback manual) dan hanya ada 1 tombol di layar
+    if (allButtons.length === 1) {
+        return allButtons[0];
+    }
+    return null;
+}
+
+/**
+ * Menunggu tabel EMIS BENAR-BENAR terfilter hingga hanya ada 1 baris santri target,
+ * baru kemudian membungkus tombol dengan outline kuning dan mengeksekusi klik.
+ */
+function waitAndAutoClickUbahData(santriData) {
+    const statusBadge = document.getElementById('tpq-step1-filter-status');
+    let attempts = 0;
+    const maxAttempts = 45; // 45 x 350ms = ~15.7 detik
+    let reFilterTriggered = false;
+
+    console.log('[TPQ-EMIS Bridge] waitAndAutoClickUbahData aktif, target:', santriData.nama_santri, 'Mode:', currentAutoMode);
+
+    const poll = setInterval(() => {
+        attempts++;
+
+        const allButtons = getAllUbahDataButtonsInTable();
+        const searchInput = findKesiswaanSearchInput();
+
+        // 1. Kondisi: Tabel masih memuat BANYAK santri (> 1 baris)
+        // EMIS belum selesai memfilter. JANGAN BUNGKUS KUNING, JANGAN KLIK!
+        if (allButtons.length > 1) {
+            if (statusBadge) {
+                statusBadge.innerHTML = `<span>⏳</span> <span>Memfilter tabel kesiswaan... (masih ada ${allButtons.length} santri)</span>`;
+                statusBadge.style.color = '#1d4ed8';
+                statusBadge.style.background = '#eff6ff';
+                statusBadge.style.borderColor = '#bfdbfe';
+            }
+
+            // Jika setelah 8 percobaan (~2.8s) tabel masih banyak, re-trigger Enter pada kolom pencarian
+            if (attempts >= 8 && !reFilterTriggered && searchInput) {
+                console.log('[TPQ-EMIS Bridge] Re-trigger Enter filter pencarian karena tabel masih memuat banyak baris...');
+                reFilterTriggered = true;
+                applyKesiswaanFilter(searchInput, santriData.nama_santri);
+            }
+            return;
+        }
+
+        // 2. Kondisi: Tabel kosong / sedang memuat data (0 baris)
+        if (allButtons.length === 0) {
+            if (statusBadge) {
+                statusBadge.innerHTML = `<span>⏳</span> <span>Memuat hasil filter santri... (${attempts}/${maxAttempts})</span>`;
+            }
+            return;
+        }
+
+        // 3. Kondisi: Tabel HANYA MEMILIKI 1 TOMBOL / 1 ROW!
+        if (allButtons.length === 1) {
+            const candidateBtn = allButtons[0];
+            const rowTxt = getRowTextForButton(candidateBtn);
+            const isMatch = isRowMatchingSantri(rowTxt, santriData.nama_santri) || 
+                            isRowMatchingSantri(document.body.innerText, santriData.nama_santri);
+
+            if (!isMatch) {
+                // Baris tunggal ini belum sesuai dengan nama santri yang dicari (mungkin delay render)
+                if (statusBadge) {
+                    statusBadge.innerHTML = `<span>⏳</span> <span>Menunggu kecocokan data santri...</span>`;
+                }
+                return;
+            }
+
+            // =========================================================================
+            // DATA TELAH BENAR-BENAR TERFILTER DAN HANYA TERSISA 1 ROW YANG SESUAI!
+            // =========================================================================
+            clearInterval(poll);
+            console.log('[TPQ-EMIS Bridge] ✓ Filter tuntas! Ditemukan tepat 1 baris santri yang cocok pada attempt #' + attempts + ':', candidateBtn);
+
+            // LANGKAH 1: Baru membungkus kuning area button hijau
+            try {
+                candidateBtn.style.outline = '4px solid #ffc107';
+                candidateBtn.style.outlineOffset = '2px';
+                candidateBtn.style.boxShadow = '0 0 14px rgba(255, 193, 7, 0.9)';
+                candidateBtn.style.transition = 'all 0.25s ease';
+            } catch (_) {}
+
+            if (statusBadge) {
+                statusBadge.innerHTML = `<span>✓</span> <span>Santri terfilter (1 baris): <strong>${escapeHtml(santriData.nama_santri)}</strong></span>`;
+                statusBadge.style.color = '#15803d';
+                statusBadge.style.background = '#dcfce7';
+                statusBadge.style.borderColor = '#86efac';
+            }
+
+            // LANGKAH 2: Baru eksekusi menekan button setelah jeda visual
+            if (currentAutoMode === 'FULL') {
+                setTimeout(() => {
+                    if (statusBadge) {
+                        statusBadge.innerHTML = '<span>⚡</span> <span>Tombol Ubah Data aktif! Membuka formulir data santri...</span>';
+                    }
+
+                    console.log('[TPQ-EMIS Bridge] Memicu klik otomatis pada tombol Ubah Data hijau...');
+                    chrome.storage.local.set({ waitingForUpdateStep2: true }, () => {
+                        triggerNativeClick(candidateBtn);
+                    });
+
+                    // Supervisor pengawas transisi ke Step 2 (tanpa menutup popup)
+                    let retryCount = 0;
+                    const retryTimer = setInterval(() => {
+                        const curStage = detectUpdateAlamatStage();
+                        if (curStage === 2 || curStage === 3) {
+                            clearInterval(retryTimer);
+                            console.log('[TPQ-EMIS Bridge] Berhasil masuk ke Detail Santri!');
+                            return;
+                        }
+
+                        retryCount++;
+                        if (retryCount <= 4) {
+                            console.log(`[TPQ-EMIS Bridge] Retry klik #${retryCount} pada tombol Ubah Data...`);
+                            triggerNativeClick(candidateBtn);
+                            if (statusBadge) {
+                                statusBadge.innerHTML = `<span>⚡</span> <span>Membuka formulir (percobaan ${retryCount + 1})... Atau <strong id="tpq-manual-retry-link" style="color:#0d6efd;text-decoration:underline;cursor:pointer;">klik di sini</strong></span>`;
+                                const retryLink = document.getElementById('tpq-manual-retry-link');
+                                if (retryLink) {
+                                    retryLink.onclick = (e) => {
+                                        e.preventDefault();
+                                        triggerNativeClick(candidateBtn);
+                                    };
+                                }
+                            }
+                        } else {
+                            clearInterval(retryTimer);
+                            console.warn('[TPQ-EMIS Bridge] Klik otomatis belum memicu perpindahan halaman. Meminta klik manual operator.');
+                            if (statusBadge) {
+                                statusBadge.innerHTML = '<span>✋</span> <span>Silakan <strong>klik langsung tombol "Ubah Data" bergaris kuning</strong> di tabel kesiswaan untuk melanjutkan.</span>';
+                                statusBadge.style.color = '#b45309';
+                                statusBadge.style.background = '#fef3c7';
+                                statusBadge.style.borderColor = '#fde68a';
+                            }
+                        }
+                    }, 1400);
+
+                }, 750); // Jeda 750ms agar operator melihat outline kuning membungkus tombol sebelum klik
+            } else {
+                // Mode SEMI-OTOMATIS
+                if (statusBadge) {
+                    statusBadge.innerHTML = '<span>✓</span> <span>Santri terfilter (1 baris). Silakan <strong>klik tombol "Ubah Data" bergaris kuning</strong> di tabel.</span>';
+                    statusBadge.style.color = '#1d4ed8';
+                    statusBadge.style.background = '#eff6ff';
+                    statusBadge.style.borderColor = '#bfdbfe';
+                }
+            }
+            return;
+        }
+
+        // 4. Batas Waktu Terlewati
+        if (attempts >= maxAttempts) {
+            clearInterval(poll);
+            console.warn('[TPQ-EMIS Bridge] Filter santri belum menyisakan 1 baris setelah batas waktu.');
+            if (statusBadge) {
+                statusBadge.innerHTML = `<span>⚠️</span> <span>Tabel belum terfilter sempurna (${allButtons.length} santri). Silakan filter ulang atau klik tombol Ubah Data secara manual.</span>`;
+                statusBadge.style.color = '#b45309';
+                statusBadge.style.background = '#fef3c7';
+                statusBadge.style.borderColor = '#fde68a';
+            }
+        }
+    }, 350);
+}
+
+/**
  * Eksekusi Step 1 Update Alamat: Pencarian Nama Santri dengan Delay & Pengecekan Daftar Siap
  */
 function executeStep1UpdateAlamat(santriData) {
@@ -3065,6 +4418,11 @@ function executeStep1UpdateAlamat(santriData) {
 
     // 1. Tampilkan popup panduan langsung agar user mengetahui status proses
     showUpdateAlamatStep1Popup(santriData);
+
+    const statusBadge = document.getElementById('tpq-step1-filter-status');
+    if (statusBadge) {
+        statusBadge.innerHTML = '<span>⏳</span> <span>Menunggu tabel daftar santri EMIS siap...</span>';
+    }
 
     const startTime = Date.now();
     const minDelayMs = 2000; // Jeda minimal 2.0 detik agar request list awal EMIS selesai
@@ -3081,32 +4439,20 @@ function executeStep1UpdateAlamat(santriData) {
         if (searchInput && ((elapsed >= minDelayMs && tableReady) || elapsed >= maxWaitMs)) {
             clearInterval(timer);
             console.log(`[TPQ-EMIS Bridge] Menerapkan filter nama setelah ${elapsed}ms (tableReady: ${tableReady})`);
+            
+            if (statusBadge) {
+                statusBadge.innerHTML = `<span>⏳</span> <span>Menerapkan filter nama: <strong>${escapeHtml(santriData.nama_santri)}</strong>...</span>`;
+            }
+
             applyKesiswaanFilter(searchInput, santriData.nama_santri);
 
-            // Verifikasi sekunder: 1.2 detik kemudian pastikan input tidak terhapus oleh re-render EMIS
-            setTimeout(() => {
-                const curInput = findKesiswaanSearchInput();
-                if (curInput) {
-                    const currentVal = (curInput.value || '').trim();
-                    if (!currentVal || currentVal !== santriData.nama_santri.trim()) {
-                        console.log('[TPQ-EMIS Bridge] Re-triggering filter nama santri setelah verifikasi...');
-                        applyKesiswaanFilter(curInput, santriData.nama_santri);
-                    }
-                }
-            }, 1200);
-
-            // Perbarui status pada popup
-            const statusBadge = document.getElementById('tpq-step1-filter-status');
-            if (statusBadge) {
-                statusBadge.innerHTML = '<span>✓</span> <span>Nama telah dimasukkan & difilter otomatis</span>';
-                statusBadge.style.color = '#198754';
-                statusBadge.style.background = '#d1e7dd';
-                statusBadge.style.borderColor = '#badbcc';
-            }
+            // Jalankan deteksi tombol Ubah Data & auto-click dengan alur ketat:
+            // Hanya bungkus kuning & klik setelah tabel BENAR-BENAR terfilter 1 baris
+            waitAndAutoClickUbahData(santriData);
         }
     }, 300);
 
-    // Listener global: jika tombol Ubah Data diklik, bersiap untuk Step 2
+    // Listener global: jika tombol Ubah Data diklik manual, bersiap untuk Step 2
     document.addEventListener('click', (e) => {
         const target = e.target;
         if (!target) return;
@@ -3114,9 +4460,17 @@ function executeStep1UpdateAlamat(santriData) {
         const txt = (btn.innerText || btn.textContent || '').trim().toUpperCase();
         if (txt.includes('UBAH DATA') || txt.includes('EDIT')) {
             console.log('[TPQ-EMIS Bridge] Tombol Ubah Data diklik! Bersiap untuk Step 2...');
-            const p1 = document.getElementById('tpq-update-alamat-step1-popup');
-            if (p1) p1.remove();
+            // JANGAN hapus popup Step 1 di sini!
+            // Popup Step 1 akan ditutup otomatis oleh initStepTransitionWatcher
+            // saat halaman formulir Step 2 terkonfirmasi aktif di DOM.
             chrome.storage.local.set({ waitingForUpdateStep2: true });
+            const badge = document.getElementById('tpq-step1-filter-status');
+            if (badge) {
+                badge.innerHTML = '<span>⚡</span> <span>Membuka data santri... Menunggu formulir terbuka...</span>';
+                badge.style.color = '#15803d';
+                badge.style.background = '#dcfce7';
+                badge.style.borderColor = '#86efac';
+            }
         }
     }, true);
 }
@@ -3213,8 +4567,12 @@ function showUpdateAlamatStep1Popup(data) {
         <div id="tpq-update-step1-header" style="background: linear-gradient(135deg, #0d6efd, #0b5ed7); color: #fff; padding: 8px 12px; font-weight: bold; font-size: 13px; display: flex; justify-content: space-between; align-items: center; cursor: move; user-select: none;">
             <div style="display: flex; align-items: center; gap: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 170px;" title="${escapeHtml(data.nama_santri)}">
                 <span style="font-size: 12px;">⚡ <strong>${escapeHtml(data.nama_santri)}</strong></span>
+                <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 4px; border-radius: 3px; font-weight: normal; margin-left: 2px;">v1.4.3</span>
             </div>
             <div style="display: flex; align-items: center; gap: 5px;">
+                <button id="tpq-btn-mode-step1" style="background: ${currentAutoMode === 'FULL' ? '#059669' : '#d97706'}; color: #fff; border: 1px solid rgba(255,255,255,0.4); border-radius: 4px; padding: 3px 8px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.15);" title="${currentAutoMode === 'FULL' ? 'Mode Full Otomatis aktif (klik untuk ganti ke Semi-Otomatis)' : 'Mode Semi-Otomatis aktif (klik untuk ganti ke Full Otomatis)'}">
+                    ${currentAutoMode === 'FULL' ? '⚡ FULL AUTO' : '✋ SEMI AUTO'}
+                </button>
                 <button id="tpq-btn-quick-step2" style="background: #198754; color: #fff; border: 1px solid rgba(255,255,255,0.4); border-radius: 4px; padding: 3px 8px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.15);" title="Langsung masuk ke Step 2 (DATA SANTRI)">
                     ⚡ Step 2
                 </button>
@@ -3282,6 +4640,11 @@ function showUpdateAlamatStep1Popup(data) {
         toggleStep1();
     });
 
+    const btnMode1 = document.getElementById('tpq-btn-mode-step1');
+    if (btnMode1) {
+        btnMode1.addEventListener('click', toggleAutoMode);
+    }
+
     document.getElementById('tpq-close-update-step1').addEventListener('click', () => {
         cancelUpdateAlamatProcess('Proses update data ditutup dan antrean telah dibersihkan.');
     });
@@ -3322,11 +4685,12 @@ function showUpdateAlamatStep1Popup(data) {
                 }, 400);
                 const statusBadge = document.getElementById('tpq-step1-filter-status');
                 if (statusBadge) {
-                    statusBadge.innerHTML = '<span>✓</span> <span>Nama telah dimasukkan & difilter manual</span>';
+                    statusBadge.innerHTML = '<span>✓</span> <span>Nama telah difilter ulang. Mencari tombol Ubah Data...</span>';
                     statusBadge.style.color = '#198754';
                     statusBadge.style.background = '#d1e7dd';
                     statusBadge.style.borderColor = '#badbcc';
                 }
+                waitAndAutoClickUbahData(data);
             } else {
                 btnRefilter.innerText = '⚠️ Kolom Cari Tidak Ditemukan';
                 setTimeout(() => { btnRefilter.innerText = '🔍 Filter Ulang'; }, 1800);
@@ -3335,8 +4699,28 @@ function showUpdateAlamatStep1Popup(data) {
     }
 
     const goToStep2 = () => {
-        div.remove();
-        executeStep2DataSantri(data);
+        const currentStage = detectUpdateAlamatStage();
+        if (currentStage === 1) {
+            const btnUbah = findUbahDataButton(data.nama_santri);
+            if (btnUbah) {
+                console.log('[TPQ-EMIS Bridge] Menekan tombol Ubah Data via tombol Step 2 popup...');
+                chrome.storage.local.set({ waitingForUpdateStep2: true }, () => {
+                    triggerNativeClick(btnUbah);
+                });
+                const statusBadge = document.getElementById('tpq-step1-filter-status');
+                if (statusBadge) {
+                    statusBadge.innerHTML = '<span>⚡</span> <span>Membuka data santri... Menunggu formulir terbuka...</span>';
+                    statusBadge.style.color = '#15803d';
+                    statusBadge.style.background = '#dcfce7';
+                    statusBadge.style.borderColor = '#86efac';
+                }
+            } else {
+                console.warn('[TPQ-EMIS Bridge] Tombol Ubah Data tidak ditemukan saat tombol Step 2 popup ditekan.');
+            }
+        } else {
+            div.remove();
+            executeStep2DataSantri(data);
+        }
     };
 
     document.getElementById('tpq-btn-force-step2').addEventListener('click', goToStep2);
@@ -3344,30 +4728,127 @@ function showUpdateAlamatStep1Popup(data) {
 }
 
 /**
- * Memastikan tab DATA ALAMAT aktif (hanya mengklik jika tab belum aktif)
+ * Mencari elemen tombol tab DATA ALAMAT secara presisi di baris navigasi tab
+ */
+function findDataAlamatTabElement() {
+    const all = Array.from(document.querySelectorAll('*'));
+    const candidates = [];
+
+    for (const el of all) {
+        if (el.closest('#tpq-update-alamat-step1-popup, #tpq-update-santri-step2-popup, #tpq-update-alamat-step3-popup, #tpq-temp-toast, #tpq-step1-alert, #tpq-step0-alert')) {
+            continue;
+        }
+
+        const rawTxt = (el.innerText || el.textContent || '');
+        const cleanTxt = rawTxt.replace(/\s+/g, ' ').trim().toUpperCase();
+
+        if (cleanTxt === 'DATA ALAMAT') {
+            const rect = el.getBoundingClientRect();
+            if (rect.width >= 30 && rect.height >= 12 && rect.top > 0) {
+                // Cari container tombol tab terdekat (role="tab", role="button", dsb)
+                const clickable = el.closest('[role="tab"], [role="button"], button, a, div[tabindex="0"]') || el;
+                const cRect = clickable.getBoundingClientRect();
+                if (cRect.width <= 350 && cRect.height <= 80) {
+                    candidates.push(clickable);
+                }
+            }
+        }
+    }
+
+    if (candidates.length === 0) return null;
+
+    // Prioritaskan kandidat yang berada di dalam baris tab (memiliki tetangga "DATA SANTRI" atau "DATA ORANG TUA")
+    for (const cand of candidates) {
+        let parent = cand.parentElement;
+        for (let i = 0; i < 4 && parent; i++) {
+            const pTxt = (parent.innerText || parent.textContent || '').toUpperCase();
+            if (pTxt.includes('DATA SANTRI') && (pTxt.includes('DATA ORANG TUA') || pTxt.includes('AKTIVITAS'))) {
+                console.log('[TPQ-EMIS Bridge] ✓ Tab bar container terdeteksi, memilih tab DATA ALAMAT:', cand);
+                return cand;
+            }
+            parent = parent.parentElement;
+        }
+    }
+
+    return candidates[0];
+}
+
+/**
+ * Berpindah ke tab DATA ALAMAT dan MENUNGGU secara aktif sampai tab tersebut terkonfirmasi aktif
+ */
+function switchToDataAlamatTab(onSuccess, onFail) {
+    console.log('[TPQ-EMIS Bridge] Memulai proses perpindahan ke tab DATA ALAMAT...');
+
+    // Jika tab DATA ALAMAT sudah aktif (Stage 3 terdeteksi)
+    if (detectUpdateAlamatStage() === 3) {
+        console.log('[TPQ-EMIS Bridge] Tab DATA ALAMAT sudah dalam keadaan aktif.');
+        if (typeof onSuccess === 'function') onSuccess();
+        return;
+    }
+
+    let attempts = 0;
+    const maxAttempts = 30; // 30 x 250ms = 7.5 detik
+
+    const timer = setInterval(() => {
+        attempts++;
+
+        // 1. Cek apakah Stage 3 sudah terkonfirmasi aktif
+        const stage = detectUpdateAlamatStage();
+        if (stage === 3) {
+            clearInterval(timer);
+            console.log('[TPQ-EMIS Bridge] ✓ Tab DATA ALAMAT terkonfirmasi aktif pada attempt #' + attempts + '!');
+            if (typeof onSuccess === 'function') onSuccess();
+            return;
+        }
+
+        // 2. Cari elemen tab DATA ALAMAT dan kirim event klik lengkap
+        const tabEl = findDataAlamatTabElement();
+        if (tabEl) {
+            try {
+                tabEl.style.outline = '3px solid #198754';
+                tabEl.style.outlineOffset = '2px';
+            } catch (_) {}
+
+            console.log(`[TPQ-EMIS Bridge] Memicu triggerNativeClick pada tab DATA ALAMAT (attempt #${attempts})...`);
+            triggerNativeClick(tabEl);
+        } else {
+            console.warn(`[TPQ-EMIS Bridge] Elemen tab DATA ALAMAT belum ditemukan (attempt #${attempts})...`);
+        }
+
+        // 3. Batas waktu habis
+        if (attempts >= maxAttempts) {
+            clearInterval(timer);
+            console.warn('[TPQ-EMIS Bridge] Batas waktu menunggu aktivasi tab DATA ALAMAT tercapai.');
+            if (typeof onFail === 'function') {
+                onFail();
+            } else if (typeof onSuccess === 'function') {
+                onSuccess();
+            }
+        }
+    }, 250);
+}
+
+/**
+ * Memastikan tab DATA ALAMAT aktif (helper kompatibilitas)
  */
 function ensureDataAlamatTabActive() {
-    // Jika tab DATA ALAMAT sudah aktif (form alamat sudah tampil di layar), JANGAN klik lagi agar tidak me-reset form
     if (detectUpdateAlamatStage() === 3) {
         return true;
     }
-
-    const tabs = Array.from(document.querySelectorAll('a, button, [role="tab"], li, span, div'));
-    for (const t of tabs) {
-        const txt = (t.innerText || t.textContent || '').trim().toUpperCase();
-        if (txt === 'DATA ALAMAT') {
-            console.log('[TPQ-EMIS Bridge] Menemukan tab DATA ALAMAT, mengaktifkan...');
-            try { t.click(); } catch (_) {}
-            return true;
-        }
+    const tabEl = findDataAlamatTabElement();
+    if (tabEl) {
+        console.log('[TPQ-EMIS Bridge] Mengaktifkan tab DATA ALAMAT via triggerNativeClick...');
+        triggerNativeClick(tabEl);
+        return true;
     }
     return false;
 }
 
 /**
- * Auto-fill field teks domisili Ayah dan Centang Checkbox Ibu di tab DATA ALAMAT
+ * Mengisi field teks domisili Ayah Kandung (RT, RW, Alamat, Kode Pos) di tab DATA ALAMAT
  */
-function fillUpdateAlamatTextFields(santri) {
+function fillUpdateAlamatAyahTextFields(santri) {
+    if (!santri) return;
     console.log('[TPQ-EMIS Bridge] Mengisi field teks domisili Ayah di tab DATA ALAMAT...');
     const inputs = Array.from(document.querySelectorAll('input[type="text"], input[type="number"], input:not([type]), textarea'));
 
@@ -3405,126 +4886,8 @@ function fillUpdateAlamatTextFields(santri) {
                 setNativeValue(inp, santri.ayah_kode_pos);
                 filledKodePos = true;
             }
-        } else if (labelText.includes('KOORDINAT') || labelText.includes('TITIK KOORDINAT')) {
-            if (santri.santri_titik_koordinat) {
-                console.log('[TPQ-EMIS Bridge] Menyetel Titik Koordinat Santri:', santri.santri_titik_koordinat);
-                setNativeValue(inp, santri.santri_titik_koordinat);
-            }
-        } else if (labelText.includes('LINTANG') || labelText.includes('LATITUDE')) {
-            const coords = parseTitikKoordinat(santri.santri_titik_koordinat);
-            if (coords.lat) {
-                console.log('[TPQ-EMIS Bridge] Menyetel Lintang/Latitude:', coords.lat);
-                setNativeValue(inp, coords.lat);
-            }
-        } else if (labelText.includes('BUJUR') || labelText.includes('LONGITUDE')) {
-            const coords = parseTitikKoordinat(santri.santri_titik_koordinat);
-            if (coords.lng) {
-                console.log('[TPQ-EMIS Bridge] Menyetel Bujur/Longitude:', coords.lng);
-                setNativeValue(inp, coords.lng);
-            }
         }
     });
-
-    // Auto-check checkbox "Sama dengan ayah kandung" untuk Ibu & Wali
-    const checkboxes = Array.from(document.querySelectorAll('input[type="checkbox"]'));
-    checkboxes.forEach(cb => {
-        let cbText = (cb.name || '') + ' ' + (cb.id || '');
-        let p = cb.parentElement;
-        for (let i = 0; i < 3 && p; i++) {
-            cbText += ' ' + (p.innerText || p.textContent || '');
-            p = p.parentElement;
-        }
-        cbText = cbText.toUpperCase();
-        if (cbText.includes('SAMA DENGAN AYAH') || cbText.includes('SAMA DENGAN AYAH KANDUNG')) {
-            if (!cb.checked) {
-                cb.checked = true;
-                cb.dispatchEvent(new Event('change', { bubbles: true }));
-                cb.dispatchEvent(new Event('click', { bubbles: true }));
-            }
-        }
-    });
-
-    // Auto-select dropdown khusus di tab DATA ALAMAT (Status Kepemilikan Rumah, Status Mukim, Status Tempat Tinggal, Jarak Tempuh)
-    const selects = Array.from(document.querySelectorAll('select'));
-    if (selects.length > 0) {
-        console.log(`[TPQ-EMIS Bridge] Menemukan ${selects.length} elemen <select> di tab DATA ALAMAT, menyetel pilihan otomatis...`);
-
-        selects.forEach(sel => {
-            const options = Array.from(sel.options || sel.querySelectorAll('option'));
-            if (options.length === 0) return;
-
-            const optionTexts = options.map(o => (o.label || o.text || o.innerText || '').toLowerCase().trim());
-            const optionValues = options.map(o => String(o.value || '').trim());
-
-            let contextText = (sel.name || '') + ' ' + (sel.id || '');
-            let p = sel.parentElement;
-            for (let i = 0; i < 4 && p; i++) {
-                contextText += ' ' + (p.innerText || p.textContent || '');
-                p = p.parentElement;
-            }
-            contextText = contextText.toUpperCase();
-
-            // 1. Jarak Tempat Tinggal - Lembaga (Santri)
-            // Identifikasi STRICT berdasarkan opsi uniknya: "kurang dari 5 km", "antara 5", atau "lebih dari 30 km"
-            const isJarakSelect = optionTexts.some(t => t.includes('kurang dari 5 km') || t.includes('lebih dari 30 km') || (t.includes('antara 5') && t.includes('km'))) ||
-                (optionValues.includes('1') && optionValues.includes('5') && optionTexts.some(t => t.includes('km')));
-
-            // 2. Status Kepemilikan Rumah (Ayah)
-            // Ciri unik: opsi value '9' atau teks 'milik sendiri'
-            const isRumahSelect = optionValues.includes('9') || optionTexts.some(t => t.includes('milik sendiri'));
-
-            // 3. Status Mukim (Santri)
-            // Ciri unik: opsi 'tidak mukim' dan 'mukim'
-            const isMukimSelect = optionTexts.includes('tidak mukim') && optionTexts.includes('mukim');
-
-            // 4. Status Tempat Tinggal (Santri)
-            // Ciri unik: opsi value '18' atau teks 'tinggal dengan ayah kandung' / 'tinggal dengan orang tua'
-            const isTempatTinggalSelect = optionValues.includes('18') || optionTexts.some(t => t.includes('tinggal dengan ayah') || t.includes('tinggal dengan orang tua'));
-
-            // 5. Transportasi ke Lembaga (Santri)
-            const isTransportSelect = (optionTexts.some(t => t.includes('jalan kaki')) && (optionTexts.some(t => t.includes('sepeda')) || optionTexts.some(t => t.includes('motor')))) ||
-                (contextText.includes('TRANSPORTASI') && options.length > 3);
-
-            // 6. Waktu Tempuh (Santri)
-            const isWaktuSelect = (optionTexts.some(t => t.includes('menit')) && !optionTexts.some(t => t.includes('km'))) ||
-                (contextText.includes('WAKTU') && optionTexts.some(t => t.includes('menit')));
-
-            if (isJarakSelect) {
-                const normalizedTarget = normalizeJarakTempuhEmis(santri.santri_jarak_tempuh || santri.santri_jarak);
-                console.log('[TPQ-EMIS Bridge] Menyetel Jarak Tempat Tinggal ke Lembaga:', normalizedTarget, '(raw:', santri.santri_jarak_tempuh, ')');
-                let ok = setNativeSelectValue(sel, normalizedTarget);
-                if (!ok || sel.value === '' || sel.value === '0') {
-                    setNativeSelectValue(sel, '1');
-                }
-            } else if (isRumahSelect) {
-                const target = santri.ayah_status_kepemilikan_rumah || 'Milik Sendiri';
-                console.log('[TPQ-EMIS Bridge] Menyetel Status Kepemilikan Rumah:', target);
-                setNativeSelectValue(sel, target);
-            } else if (isMukimSelect) {
-                const target = santri.santri_status_mukim || 'Tidak Mukim';
-                console.log('[TPQ-EMIS Bridge] Menyetel Status Mukim:', target);
-                setNativeSelectValue(sel, target);
-            } else if (isTempatTinggalSelect) {
-                const target = santri.santri_status_tempat_tinggal || 'Tinggal dengan Ayah Kandung';
-                console.log('[TPQ-EMIS Bridge] Menyetel Status Tempat Tinggal Santri:', target);
-                setNativeSelectValue(sel, target);
-            } else if (isTransportSelect) {
-                const target = normalizeTransportasiEmis(santri.santri_transportasi);
-                console.log('[TPQ-EMIS Bridge] Menyetel Transportasi ke Lembaga:', target, '(raw:', santri.santri_transportasi, ')');
-                let ok = setNativeSelectValue(sel, target);
-                if (!ok || sel.value === '' || sel.value === '0') {
-                    setNativeSelectValue(sel, 'Jalan Kaki');
-                }
-            } else if (isWaktuSelect) {
-                const target = normalizeWaktuTempuhEmis(santri.santri_waktu_tempuh);
-                console.log('[TPQ-EMIS Bridge] Menyetel Waktu Tempuh ke Lembaga:', target, '(raw:', santri.santri_waktu_tempuh, ')');
-                let ok = setNativeSelectValue(sel, target);
-                if (!ok || sel.value === '' || sel.value === '0') {
-                    setNativeSelectValue(sel, '1-10 menit');
-                }
-            }
-        });
-    }
 }
 
 /**
@@ -3560,6 +4923,74 @@ function fillDataSantriYangMembiayaiSekolah(santriData) {
     return false;
 }
 
+/**
+ * Auto-Simpan untuk Step 2 (Tab DATA SANTRI):
+ * Menunggu tombol Simpan aktif, klik Simpan, klik Ya pada dialog konfirmasi, klik Tutup pada dialog sukses,
+ * lalu memicu callback untuk beralih ke tab DATA ALAMAT (Step 3).
+ */
+function triggerAutoSimpanStep2(santriData, onFinishCallback) {
+    console.log('[TPQ-EMIS Bridge] Memulai auto-simpan Step 2 (DATA SANTRI)...');
+    const statusBox = document.getElementById('tpq-step2-status-banner');
+    const updateBanner = (msg, bg = '#eff6ff', color = '#1d4ed8', border = '#bfdbfe') => {
+        if (statusBox) {
+            statusBox.innerHTML = `<span>⚡</span> <span>${escapeHtml(msg)}</span>`;
+            statusBox.style.background = bg;
+            statusBox.style.color = color;
+            statusBox.style.borderColor = border;
+        }
+    };
+
+    updateBanner('Biaya sekolah terpilih. Memeriksa tombol Simpan...');
+
+    let attempts = 0;
+    const maxAttempts = 15; // 15 x 300ms = 4.5 detik
+
+    const checkTimer = setInterval(() => {
+        attempts++;
+        const simpanObj = findEmisSimpanButton();
+
+        if (simpanObj && !simpanObj.isDisabled && simpanObj.isGreen) {
+            clearInterval(checkTimer);
+            updateBanner('Menekan tombol Simpan di Tab Data Santri...', '#fef3c7', '#b45309', '#fde68a');
+
+            setTimeout(() => {
+                try {
+                    simpanObj.element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    simpanObj.element.click();
+                } catch (e) {
+                    console.error('[TPQ-EMIS Bridge] Gagal klik tombol Simpan Step 2:', e);
+                }
+
+                handleEmisConfirmAndSuccessModal({
+                    stepName: 'Data Santri',
+                    onStatusUpdate: (txt, type) => {
+                        if (type === 'success') {
+                            updateBanner(txt, '#dcfce7', '#15803d', '#86efac');
+                        } else {
+                            updateBanner(txt, '#eff6ff', '#1d4ed8', '#bfdbfe');
+                        }
+                    },
+                    onSuccess: () => {
+                        updateBanner('Data Santri tersimpan! Berpindah ke Tab Data Alamat...', '#dcfce7', '#15803d', '#86efac');
+                        setTimeout(() => {
+                            if (typeof onFinishCallback === 'function') {
+                                onFinishCallback();
+                            }
+                        }, 400);
+                    },
+                    onTimeout: () => {
+                        updateBanner('Dialog Simpan tidak terdeteksi. Silakan klik manual tombol Lanjut ke Step 3.', '#fff1f2', '#e11d48', '#fecdd3');
+                    }
+                });
+            }, 600);
+        } else if (attempts >= maxAttempts) {
+            clearInterval(checkTimer);
+            console.warn('[TPQ-EMIS Bridge] Tombol Simpan Step 2 belum aktif atau tidak ditemukan.');
+            updateBanner('Tombol Simpan belum aktif di EMIS. Silakan simpan manual jika diperlukan lalu klik Step 3.', '#fff1f2', '#e11d48', '#fecdd3');
+        }
+    }, 300);
+}
+
 let isStep2Executing = false;
 let isStep2Done = false;
 
@@ -3588,6 +5019,29 @@ function executeStep2DataSantri(santriData) {
             isStep2Executing = false;
             isStep2Done = true;
             showUpdateSantriStep2Popup(santriData);
+
+            // Jika Mode FULL OTOMATIS: Otomatis tekan Simpan, konfirmasi Ya, Tutup, dan pindah ke Step 3
+            if (currentAutoMode === 'FULL') {
+                triggerAutoSimpanStep2(santriData, () => {
+                    console.log('[TPQ-EMIS Bridge] Auto-simpan Step 2 selesai. Berpindah ke Tab DATA ALAMAT...');
+                    const statusBanner = document.getElementById('tpq-step2-status-banner');
+                    if (statusBanner) {
+                        statusBanner.innerHTML = '<span>🔄</span> <span>Menutup dialog sukses & berpindah ke Tab DATA ALAMAT...</span>';
+                        statusBanner.style.background = '#dcfce7';
+                        statusBanner.style.color = '#15803d';
+                        statusBanner.style.borderColor = '#86efac';
+                    }
+
+                    // Pindah tab terlebih dahulu dan tunggu sampai tab DATA ALAMAT benar-benar aktif!
+                    switchToDataAlamatTab(() => {
+                        const p2 = document.getElementById('tpq-update-santri-step2-popup');
+                        if (p2) p2.remove();
+                        isStep3Done = false;
+                        isStep3Executing = false;
+                        executeStep3DataAlamat(santriData);
+                    });
+                });
+            }
         }
     }, 350);
 }
@@ -3623,10 +5077,14 @@ function showUpdateSantriStep2Popup(data) {
 
     div.innerHTML = `
         <div id="tpq-update-santri-step2-header" style="background: linear-gradient(135deg, #0d6efd, #0b5ed7); color: #fff; padding: 8px 12px; font-weight: bold; font-size: 13px; display: flex; justify-content: space-between; align-items: center; cursor: move; user-select: none;">
-            <div style="display: flex; align-items: center; gap: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 170px;" title="${escapeHtml(data.nama_santri)}">
+            <div style="display: flex; align-items: center; gap: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 150px;" title="${escapeHtml(data.nama_santri)}">
                 <span style="font-size: 12px;">⚡ <strong>${escapeHtml(data.nama_santri)}</strong></span>
+                <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 4px; border-radius: 3px; font-weight: normal; margin-left: 2px;">v1.4.3</span>
             </div>
             <div style="display: flex; align-items: center; gap: 5px;">
+                <button id="tpq-btn-mode-step2" style="background: ${currentAutoMode === 'FULL' ? '#059669' : '#d97706'}; color: #fff; border: 1px solid rgba(255,255,255,0.4); border-radius: 4px; padding: 3px 8px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.15);" title="${currentAutoMode === 'FULL' ? 'Mode Full Otomatis aktif (klik untuk ganti ke Semi-Otomatis)' : 'Mode Semi-Otomatis aktif (klik untuk ganti ke Full Otomatis)'}">
+                    ${currentAutoMode === 'FULL' ? '⚡ FULL AUTO' : '✋ SEMI AUTO'}
+                </button>
                 <button id="tpq-btn-quick-lanjut-step2" style="background: #198754; color: #fff; border: 1px solid rgba(255,255,255,0.4); border-radius: 4px; padding: 3px 8px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.15);" title="Lanjut ke Tab DATA ALAMAT (Step 3)">
                     ➡️ Step 3
                 </button>
@@ -3636,6 +5094,12 @@ function showUpdateSantriStep2Popup(data) {
                 <span id="tpq-close-update-santri-step2" style="cursor: pointer; font-size: 17px; line-height: 1; padding: 1px 4px; opacity: 0.85;" title="Tutup & batalkan antrean">&times;</span>
             </div>
         </div>
+
+        <!-- Banner Status Real-Time Step 2 (Selalu Terlihat) -->
+        <div id="tpq-step2-status-banner" style="padding: 7px 12px; background: #eff6ff; border-bottom: 1px solid #bfdbfe; font-size: 11.5px; color: #1d4ed8; font-weight: 500; display: flex; align-items: center; gap: 6px;">
+            <span>⚡</span> <span>Biaya Sekolah dipilih. Menunggu tombol Simpan...</span>
+        </div>
+
         <div id="tpq-update-santri-step2-body" style="display: none; padding: 12px 14px; max-height: 75vh; overflow-y: auto;">
             <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 12px; margin-bottom: 10px;">
                 <div style="font-weight: bold; font-size: 14px; color: #0d6efd; margin-bottom: 4px;">${escapeHtml(data.nama_santri)}</div>
@@ -3729,13 +5193,25 @@ function showUpdateSantriStep2Popup(data) {
     });
 
     const handleLanjutStep3 = () => {
-        div.remove();
-        isStep3Done = false;
-        ensureDataAlamatTabActive();
-        setTimeout(() => {
+        const statusBanner = document.getElementById('tpq-step2-status-banner');
+        if (statusBanner) {
+            statusBanner.innerHTML = '<span>🔄</span> <span>Berpindah ke Tab DATA ALAMAT...</span>';
+            statusBanner.style.background = '#dcfce7';
+            statusBanner.style.color = '#15803d';
+            statusBanner.style.borderColor = '#86efac';
+        }
+        switchToDataAlamatTab(() => {
+            div.remove();
+            isStep3Done = false;
+            isStep3Executing = false;
             executeStep3DataAlamat(data);
-        }, 400);
+        });
     };
+
+    const btnMode2 = document.getElementById('tpq-btn-mode-step2');
+    if (btnMode2) {
+        btnMode2.addEventListener('click', toggleAutoMode);
+    }
 
     document.getElementById('tpq-btn-lanjut-step3').addEventListener('click', handleLanjutStep3);
     document.getElementById('tpq-btn-quick-lanjut-step2').addEventListener('click', handleLanjutStep3);
@@ -3756,25 +5232,6 @@ function cleanWilayahName(str) {
         .replace(/[^A-Z0-9\s]/g, ' ')
         .replace(/\s+/g, ' ')
         .trim();
-}
-
-/**
- * Mengambil teks konteks label sekitar elemen <select> (aman, cepat, tidak memicu reflow DOM berlebih)
- */
-function getFieldLabelText(el) {
-    if (!el) return '';
-    let str = (el.name || '') + ' ' + (el.id || '') + ' ' + (el.getAttribute('aria-label') || '');
-    let cur = el;
-    for (let i = 0; i < 4 && cur; i++) {
-        if (cur.previousElementSibling) {
-            str += ' ' + (cur.previousElementSibling.textContent || '').substring(0, 150);
-        }
-        if (cur.parentElement) {
-            str += ' ' + (cur.parentElement.textContent || '').substring(0, 150);
-        }
-        cur = cur.parentElement;
-    }
-    return str.toUpperCase();
 }
 
 /**
@@ -4117,35 +5574,155 @@ async function startCascadingWilayahUpdate(santriData) {
             console.log(`[TPQ-EMIS Bridge] ✓ Memilih Desa/Kelurahan: "${optDesa.label || optDesa.text}" (value: ${optDesa.value})`);
             setNativeSelectValue(liveDesaSelect, optDesa.value);
             updateWilayahStatusUI('desa', '[✓ Terpilih]', '#198754');
-            if (badgeOverall) {
-                badgeOverall.innerText = '✓ Selesai Auto';
-                badgeOverall.style.background = '#dcfce7';
-                badgeOverall.style.color = '#15803d';
-            }
+            return true;
         } else {
             console.log(`[TPQ-EMIS Bridge] ⚠️ Opsi Desa tidak cocok untuk: "${targetDesa}"`);
             updateWilayahStatusUI('desa', '[⚠️ Pilih manual]', '#dc3545');
+            return false;
         }
 
     } catch (err) {
         console.error('[TPQ-EMIS Bridge] Kesalahan saat cascading Wilayah:', err);
+        return false;
     } finally {
         isWilayahCascadeRunning = false;
     }
 }
 
 /**
- * Eksekusi Step 3: Tab DATA ALAMAT (Dengan Interval Retry untuk mengunci dropdown Jarak)
+ * Menandai santri selesai di tab DATA ALAMAT dan mengirim sinyal sukses ke TPQ Smart
  */
-function executeStep3DataAlamat(santriData) {
+function finishUpdateAlamatStep3(data) {
+    if (!data) return;
+    try {
+        console.log('[TPQ-EMIS Bridge] Mengirim notifikasi UPDATE_ALAMAT_SUCCESS_NOTIFY untuk:', data.nama_santri);
+        chrome.runtime.sendMessage({
+            action: 'UPDATE_ALAMAT_SUCCESS_NOTIFY',
+            id_santri: data.id_santri
+        });
+        isStep2Executing = false;
+        isStep2Done = false;
+        isStep3Executing = false;
+        isStep3Done = true;
+        isWilayahCascadeRunning = false;
+        chrome.storage.local.remove(['pendingUpdateAlamatData', 'currentTask', 'waitingForUpdateStep2', 'waitingForUpdateStep3']);
+        
+        const btnQuick = document.getElementById('tpq-btn-quick-selesai-step3');
+        if (btnQuick) {
+            btnQuick.innerText = '✅ Selesai!';
+            btnQuick.style.background = '#059669';
+            btnQuick.disabled = true;
+        }
+        const btnSelesai = document.getElementById('tpq-btn-selesai-alamat');
+        if (btnSelesai) {
+            btnSelesai.innerText = '✅ Ditandai Selesai!';
+            btnSelesai.style.background = '#059669';
+            btnSelesai.disabled = true;
+        }
+        const badgeOverall = document.getElementById('tpq-status-wilayah-badge');
+        if (badgeOverall) {
+            badgeOverall.innerText = '✅ Selesai';
+            badgeOverall.style.background = '#dcfce7';
+            badgeOverall.style.color = '#15803d';
+        }
+
+        const p3 = document.getElementById('tpq-update-alamat-step3-popup') || document.getElementById('tpq-update-alamat-step2-popup');
+        setTimeout(() => {
+            if (p3) p3.remove();
+        }, 1500);
+    } catch (err) {
+        console.error('[TPQ-EMIS Bridge] Gagal kirim notifikasi selesai:', err);
+    }
+}
+
+/**
+ * Auto-Simpan untuk Step 3 (Tab DATA ALAMAT):
+ * Menunggu tombol Simpan aktif (berubah warna menjadi HIJAU), klik Simpan, klik Ya pada dialog konfirmasi, klik Tutup pada dialog sukses,
+ * lalu memicu callback untuk menandai santri Selesai di TPQ Smart.
+ */
+function triggerAutoSimpanStep3(santriData, onFinishCallback) {
+    console.log('[TPQ-EMIS Bridge] Memulai auto-simpan Step 3 (DATA ALAMAT)...');
+    const badgeOverall = document.getElementById('tpq-status-wilayah-badge');
+    const updateStatus = (msg, bg = '#eff6ff', color = '#1d4ed8') => {
+        if (badgeOverall) {
+            badgeOverall.innerText = msg;
+            badgeOverall.style.background = bg;
+            badgeOverall.style.color = color;
+        }
+    };
+
+    updateStatus('Menunggu Simpan...', '#fef3c7', '#b45309');
+
+    let attempts = 0;
+    const maxAttempts = 30; // 30 x 300ms = 9 detik
+
+    const checkTimer = setInterval(() => {
+        attempts++;
+        const simpanObj = findEmisSimpanButton();
+
+        // Tombol hanya boleh diklik jika BENAR-BENAR HIJAU dan aktif
+        if (simpanObj && !simpanObj.isDisabled && simpanObj.isGreen) {
+            clearInterval(checkTimer);
+            updateStatus('Klik Simpan...', '#fef3c7', '#b45309');
+
+            setTimeout(() => {
+                try {
+                    simpanObj.element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    simpanObj.element.click();
+                    triggerNativeClick(simpanObj.element);
+                } catch (e) {
+                    console.error('[TPQ-EMIS Bridge] Gagal klik tombol Simpan Step 3:', e);
+                }
+
+                handleEmisConfirmAndSuccessModal({
+                    stepName: 'Data Alamat',
+                    onStatusUpdate: (txt, type) => {
+                        updateStatus(txt.length > 20 ? txt.substring(0, 18) + '...' : txt, type === 'success' ? '#dcfce7' : '#eff6ff', type === 'success' ? '#15803d' : '#1d4ed8');
+                    },
+                    onSuccess: () => {
+                        updateStatus('✓ Tersimpan!', '#dcfce7', '#15803d');
+                        setTimeout(() => {
+                            if (typeof onFinishCallback === 'function') {
+                                onFinishCallback();
+                            }
+                        }, 500);
+                    },
+                    onTimeout: () => {
+                        console.warn('[TPQ-EMIS Bridge] Timeout menunggu dialog konfirmasi/sukses Step 3.');
+                        updateStatus('⚠️ Simpan Manual', '#fee2e2', '#b91c1c');
+                    }
+                });
+            }, 700);
+        } else if (attempts >= maxAttempts) {
+            clearInterval(checkTimer);
+            console.warn('[TPQ-EMIS Bridge] Tombol Simpan Step 3 belum aktif (masih abu-abu) atau tidak ditemukan.');
+            updateStatus('⚠️ Simpan Belum Aktif', '#fee2e2', '#b91c1c');
+            // JANGAN panggil onFinishCallback jika tombol belum aktif!
+        }
+    }, 300);
+}
+
+/**
+ * Eksekusi Step 3: Tab DATA ALAMAT (Alur Sekuensial Kolom-demi-Kolom dari Atas ke Bawah)
+ */
+async function executeStep3DataAlamat(santriData) {
     if (!santriData) return;
     if (isStep3Executing || isStep3Done) {
-        console.log('[TPQ-EMIS Bridge] Step 3 sudah dijalankan sebelumnya, melewati panggilan ganda.');
+        console.log('[TPQ-EMIS Bridge] Step 3 sedang atau sudah dijalankan, melewati panggilan ganda.');
         return;
     }
-    isStep3Executing = true;
 
-    console.log('[TPQ-EMIS Bridge] Menjalankan Step 3 Update Alamat untuk:', santriData.nama_santri);
+    // Pastikan kita BENAR-BENAR berada di Tab DATA ALAMAT (Stage 3)!
+    if (detectUpdateAlamatStage() !== 3) {
+        console.log('[TPQ-EMIS Bridge] executeStep3DataAlamat dipanggil namun tab DATA ALAMAT belum aktif. Memindahkan tab...');
+        switchToDataAlamatTab(() => {
+            executeStep3DataAlamat(santriData);
+        });
+        return;
+    }
+
+    isStep3Executing = true;
+    console.log('[TPQ-EMIS Bridge] >>> Memulai alur sekuensial Step 3 Update Alamat untuk:', santriData.nama_santri);
 
     // Pastikan popup Step 1 & Step 2 tertutup
     const p1 = document.getElementById('tpq-update-alamat-step1-popup');
@@ -4153,64 +5730,104 @@ function executeStep3DataAlamat(santriData) {
     const p2 = document.getElementById('tpq-update-santri-step2-popup');
     if (p2) p2.remove();
 
-    // 1. Pastikan tab DATA ALAMAT aktif hanya jika belum aktif
-    ensureDataAlamatTabActive();
+    showUpdateAlamatStep3Popup(santriData);
+    const updateProgress = (text, bg = '#eff6ff', color = '#1d4ed8') => {
+        const badge = document.getElementById('tpq-status-wilayah-badge');
+        if (badge) {
+            badge.innerText = text;
+            badge.style.background = bg;
+            badge.style.color = color;
+        }
+    };
 
-    // 2. Tampilkan popup dan isi field domisili Ayah, centang checkbox, dan set status tinggal
-    setTimeout(() => {
-        showUpdateAlamatStep3Popup(santriData);
-        fillUpdateAlamatTextFields(santriData);
+    // Beri jeda 400ms agar DOM tab DATA ALAMAT siap
+    await new Promise(r => setTimeout(r, 400));
 
-        // 3. Beri jeda 400ms setelah checkbox & dropdown lain diproses
-        // agar re-render React pada bagian bawah form selesai terlebih dahulu
+    // ========================================================
+    // TAHAP 1: AYAH KANDUNG - STATUS KEPEMILIKAN RUMAH
+    // Wajib terisi terlebih dahulu, JANGAN lanjut ke step berikutnya jika belum terisi!
+    // ========================================================
+    updateProgress('1/5: Status Rumah...', '#fef3c7', '#92400e');
+    const isRumahOk = await waitAndSelectStatusRumah(santriData.ayah_status_kepemilikan_rumah || 'Milik Sendiri', 8000);
+    if (!isRumahOk) {
+        console.warn('[TPQ-EMIS Bridge] ⛔ Status Kepemilikan Rumah belum terisi! Menghentikan alur otomatis sesuai instruksi.');
+        updateProgress('⚠️ Isi Status Rumah!', '#fee2e2', '#b91c1c');
+        isStep3Executing = false;
+        return; // BERHENTI! JANGAN LANJUTKAN KE STEP BERIKUTNYA!
+    }
+    await new Promise(r => setTimeout(r, 400));
+
+    // ========================================================
+    // TAHAP 2: AYAH KANDUNG - CASCADING WILAYAH (PROVINSI -> KAB -> KEC -> DESA)
+    // ========================================================
+    updateProgress('2/5: Wilayah Ayah...', '#eff6ff', '#1d4ed8');
+    await startCascadingWilayahUpdate(santriData);
+    await new Promise(r => setTimeout(r, 200));
+
+    // ========================================================
+    // TAHAP 3: AYAH KANDUNG - FIELD TEKS (RT, RW, ALAMAT, KODEPOS)
+    // ========================================================
+    updateProgress('3/5: Alamat Ayah...', '#eff6ff', '#1d4ed8');
+    fillUpdateAlamatAyahTextFields(santriData);
+    await new Promise(r => setTimeout(r, 200));
+
+    // ========================================================
+    // TAHAP 4: IBU KANDUNG & WALI
+    // DILEWATI: Checkbox Ibu sudah tercentang & disable otomatis dari Data Orang Tua.
+    // ========================================================
+
+    // ========================================================
+    // TAHAP 5: SANTRI - STATUS MUKIM & STATUS TEMPAT TINGGAL
+    // Wajib terisi sebelum lanjut ke mobilitas santri!
+    // ========================================================
+    updateProgress('4/5: Status Santri...', '#fef3c7', '#92400e');
+    await waitAndSelectStatusMukim(santriData.santri_status_mukim || 'Tidak Mukim', 5000);
+    await new Promise(r => setTimeout(r, 200));
+    const isTempatOk = await waitAndSelectStatusTempatTinggal(santriData.santri_status_tempat_tinggal || 'Tinggal dengan Ayah Kandung', 8000);
+    if (!isTempatOk) {
+        console.warn('[TPQ-EMIS Bridge] ⛔ Status Tempat Tinggal belum terisi! Menghentikan alur otomatis sesuai instruksi.');
+        updateProgress('⚠️ Isi Tempat Tinggal!', '#fee2e2', '#b91c1c');
+        isStep3Executing = false;
+        return; // BERHENTI! JANGAN LANJUTKAN KE STEP BERIKUTNYA!
+    }
+    await new Promise(r => setTimeout(r, 400));
+
+    // ========================================================
+    // TAHAP 6: SANTRI - MOBILITAS (JARAK, TRANSPORTASI, WAKTU) & KOORDINAT
+    // ========================================================
+    updateProgress('5/5: Mobilitas...', '#eff6ff', '#1d4ed8');
+    await waitAndSelectMobilitas(santriData, 6000);
+    await new Promise(r => setTimeout(r, 300));
+
+    // Verifikasi akhir memastikan Status Kepemilikan Rumah & Status Tempat Tinggal benar-benar terpilih
+    const finalSelRumah = findStatusKepemilikanRumahSelect();
+    if (finalSelRumah && !isStatusRumahTargetSelected(finalSelRumah, santriData.ayah_status_kepemilikan_rumah || 'Milik Sendiri')) {
+        console.log('[TPQ-EMIS Bridge] Verifikasi akhir: Menyetel ulang Status Kepemilikan Rumah...');
+        selectStatusKepemilikanRumahEmis(santriData.ayah_status_kepemilikan_rumah || 'Milik Sendiri');
+    }
+    const finalSelTempat = findStatusTempatTinggalSelect();
+    if (finalSelTempat && !isStatusTempatTinggalTargetSelected(finalSelTempat, santriData.santri_status_tempat_tinggal || 'Tinggal dengan Ayah Kandung')) {
+        console.log('[TPQ-EMIS Bridge] Verifikasi akhir: Menyetel ulang Status Tempat Tinggal...');
+        selectStatusTempatTinggalEmis(santriData.santri_status_tempat_tinggal || 'Tinggal dengan Ayah Kandung');
+    }
+    await new Promise(r => setTimeout(r, 200));
+
+    // Selesai seluruh pengisian kolom per kolom
+    isStep3Executing = false;
+    isStep3Done = true;
+    console.log('[TPQ-EMIS Bridge] ✓ Seluruh kolom Step 3 telah terisi secara sekuensial!');
+    updateProgress('✓ Form Lengkap', '#dcfce7', '#15803d');
+
+    // ========================================================
+    // TAHAP 7: SIMPAN OTOMATIS (JIKA MODE FULL OTOMATIS)
+    // ========================================================
+    if (currentAutoMode === 'FULL') {
         setTimeout(() => {
-            let consecutiveSuccess = 0;
-            let attempts = 0;
-            const maxAttempts = 15; // Berjalan hingga 4.5 detik (15 x 300ms)
-
-            const step3Timer = setInterval(() => {
-                attempts++;
-                const isJarakOk = checkIsJarakSelected();
-                const isTransportOk = checkIsTransportasiSelected();
-                const isWaktuOk = checkIsWaktuTempuhSelected();
-                const isKoordinatOk = checkIsKoordinatFilled(santriData.santri_titik_koordinat);
-
-                if (!isJarakOk) {
-                    selectJarakTempatTinggalEmis(santriData.santri_jarak_tempuh || santriData.santri_jarak);
-                }
-                if (!isTransportOk) {
-                    selectTransportasiEmis(santriData.santri_transportasi);
-                }
-                if (!isWaktuOk) {
-                    selectWaktuTempuhEmis(santriData.santri_waktu_tempuh);
-                }
-                if (!isKoordinatOk && santriData.santri_titik_koordinat) {
-                    fillTitikKoordinatEmis(santriData.santri_titik_koordinat);
-                }
-
-                if (isJarakOk && isTransportOk && isWaktuOk && isKoordinatOk) {
-                    consecutiveSuccess++;
-                    console.log(`[TPQ-EMIS Bridge] [Mobilitas Timer #${attempts}] Jarak, Transportasi, Waktu & Koordinat terdeteksi terkunci (stabil ${consecutiveSuccess}/3)`);
-                } else {
-                    consecutiveSuccess = 0;
-                    console.log(`[TPQ-EMIS Bridge] [Mobilitas Timer #${attempts}] Status kunci - Jarak: ${isJarakOk}, Transportasi: ${isTransportOk}, Waktu: ${isWaktuOk}, Koordinat: ${isKoordinatOk}`);
-                }
-
-                // Berhenti hanya jika sudah stabil terpilih selama 3 siklus berturut-turut ATAU waktu habis
-                if (consecutiveSuccess >= 3 || attempts >= maxAttempts) {
-                    clearInterval(step3Timer);
-                    isStep3Executing = false;
-                    isStep3Done = true;
-                    console.log('[TPQ-EMIS Bridge] Penguncian Mobilitas (Jarak, Transportasi, Waktu, Koordinat) Step 3 selesai. Status stabil:', consecutiveSuccess >= 3);
-
-                    // Jalankan update berantai dropdown wilayah (Provinsi -> Kab -> Kec -> Desa) di akhir
-                    setTimeout(() => {
-                        startCascadingWilayahUpdate(santriData);
-                    }, 300);
-                }
-            }, 300);
-        }, 400);
-    }, 250);
+            triggerAutoSimpanStep3(santriData, () => {
+                finishUpdateAlamatStep3(santriData);
+            });
+        }, 500);
+    }
 }
 
 /**
@@ -4244,8 +5861,12 @@ function showUpdateAlamatStep3Popup(data) {
         <div id="tpq-update-step3-header" style="background: linear-gradient(135deg, #0d6efd, #0b5ed7); color: #fff; padding: 8px 12px; font-weight: bold; font-size: 13px; display: flex; justify-content: space-between; align-items: center; cursor: move; user-select: none;">
             <div style="display: flex; align-items: center; gap: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 160px;" title="${escapeHtml(data.nama_santri)}">
                 <span style="font-size: 12px;">⚡ <strong>${escapeHtml(data.nama_santri)}</strong></span>
+                <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 4px; border-radius: 3px; font-weight: normal; margin-left: 2px;">v1.4.3</span>
             </div>
             <div style="display: flex; align-items: center; gap: 5px;">
+                <button id="tpq-btn-mode-step3" style="background: ${currentAutoMode === 'FULL' ? '#059669' : '#d97706'}; color: #fff; border: 1px solid rgba(255,255,255,0.4); border-radius: 4px; padding: 3px 8px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.15);" title="${currentAutoMode === 'FULL' ? 'Mode Full Otomatis aktif (klik untuk ganti ke Semi-Otomatis)' : 'Mode Semi-Otomatis aktif (klik untuk ganti ke Full Otomatis)'}">
+                    ${currentAutoMode === 'FULL' ? '⚡ FULL AUTO' : '✋ SEMI AUTO'}
+                </button>
                 <button id="tpq-btn-quick-selesai-step3" style="background: #198754; color: #fff; border: 1px solid rgba(255,255,255,0.4); border-radius: 4px; padding: 3px 8px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.15);" title="Tandai update selesai & simpan ke TPQ Smart">
                     ✓ Selesai
                 </button>
@@ -4260,50 +5881,71 @@ function showUpdateAlamatStep3Popup(data) {
         <div style="padding: 10px 12px; background: #ffffff;">
             <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 8px 10px; font-size: 12px; margin-bottom: 8px;">
                 <div style="font-size: 11px; font-weight: bold; color: #1d4ed8; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.3px; display: flex; justify-content: space-between; align-items: center;">
-                    <span>📍 WILAYAH DOMISILI (OTOMATIS / SALIN):</span>
+                    <span>📍 DATA ALAMAT & WILAYAH DOMISILI:</span>
                     <span id="tpq-status-wilayah-badge" style="font-size: 9.5px; background: #dbeafe; color: #1e40af; padding: 1px 5px; border-radius: 3px; font-weight: bold;">Auto-Cascade</span>
                 </div>
                 <div style="display: flex; flex-direction: column; gap: 4px;">
-                    <!-- Provinsi -->
+                    <!-- 1. Status Kepemilikan Rumah (Ayah) - Kolom Pertama yang Wajib Diisi -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed #bfdbfe; padding-bottom: 5px; margin-bottom: 3px;">
+                        <span style="color: #64748b; font-weight: 500;">1. Status Rumah:</span>
+                        <div style="display: flex; align-items: center; gap: 4px;">
+                            <span id="tpq-status-status-rumah" style="font-size: 9.5px; color: #64748b; font-weight: bold;">[⏳ Tunggu]</span>
+                            <strong style="color: #166534;">${escapeHtml(data.ayah_status_kepemilikan_rumah || 'Milik Sendiri')}</strong>
+                            <button class="tpq-copy-btn" data-val="${escapeHtml(data.ayah_status_kepemilikan_rumah || 'Milik Sendiri')}" style="border: 1px solid #bfdbfe; background: #fff; padding: 1px 5px; border-radius: 3px; font-size: 10px; cursor: pointer; color: #1d4ed8;" title="Salin Status Kepemilikan Rumah">📋</button>
+                        </div>
+                    </div>
+                    <!-- 2. Provinsi -->
                     <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span style="color: #64748b;">Provinsi:</span>
+                        <span style="color: #64748b;">2. Provinsi:</span>
                         <div style="display: flex; align-items: center; gap: 4px;">
                             <span id="tpq-status-provinsi" style="font-size: 9.5px; color: #64748b;">[⏳ Tunggu]</span>
                             <strong style="color: #1e293b;">${escapeHtml(data.ayah_provinsi || '-')}</strong>
                             ${data.ayah_provinsi ? `<button class="tpq-copy-btn" data-val="${escapeHtml(data.ayah_provinsi)}" style="border: 1px solid #bfdbfe; background: #fff; padding: 1px 5px; border-radius: 3px; font-size: 10px; cursor: pointer; color: #1d4ed8;" title="Salin Provinsi">📋</button>` : ''}
                         </div>
                     </div>
-                    <!-- Kab / Kota -->
+                    <!-- 3. Kab / Kota -->
                     <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span style="color: #64748b;">Kab/Kota:</span>
+                        <span style="color: #64748b;">3. Kab/Kota:</span>
                         <div style="display: flex; align-items: center; gap: 4px;">
                             <span id="tpq-status-kabupaten" style="font-size: 9.5px; color: #64748b;">[⏳ Tunggu]</span>
                             <strong style="color: #1e293b;">${escapeHtml(data.ayah_kabupaten_kota || '-')}</strong>
                             ${data.ayah_kabupaten_kota ? `<button class="tpq-copy-btn" data-val="${escapeHtml(data.ayah_kabupaten_kota)}" style="border: 1px solid #bfdbfe; background: #fff; padding: 1px 5px; border-radius: 3px; font-size: 10px; cursor: pointer; color: #1d4ed8;" title="Salin Kab/Kota">📋</button>` : ''}
                         </div>
                     </div>
-                    <!-- Kecamatan -->
+                    <!-- 4. Kecamatan -->
                     <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span style="color: #64748b;">Kecamatan:</span>
+                        <span style="color: #64748b;">4. Kecamatan:</span>
                         <div style="display: flex; align-items: center; gap: 4px;">
                             <span id="tpq-status-kecamatan" style="font-size: 9.5px; color: #64748b;">[⏳ Tunggu]</span>
                             <strong style="color: #1e293b;">${escapeHtml(data.ayah_kecamatan || '-')}</strong>
                             ${data.ayah_kecamatan ? `<button class="tpq-copy-btn" data-val="${escapeHtml(data.ayah_kecamatan)}" style="border: 1px solid #bfdbfe; background: #fff; padding: 1px 5px; border-radius: 3px; font-size: 10px; cursor: pointer; color: #1d4ed8;" title="Salin Kecamatan">📋</button>` : ''}
                         </div>
                     </div>
-                    <!-- Kelurahan / Desa -->
+                    <!-- 5. Kelurahan / Desa -->
                     <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span style="color: #64748b;">Kel/Desa:</span>
+                        <span style="color: #64748b;">5. Kel/Desa:</span>
                         <div style="display: flex; align-items: center; gap: 4px;">
                             <span id="tpq-status-desa" style="font-size: 9.5px; color: #64748b;">[⏳ Tunggu]</span>
                             <strong style="color: #1e293b;">${escapeHtml(data.ayah_kelurahan_desa || '-')}</strong>
                             ${data.ayah_kelurahan_desa ? `<button class="tpq-copy-btn" data-val="${escapeHtml(data.ayah_kelurahan_desa)}" style="border: 1px solid #bfdbfe; background: #fff; padding: 1px 5px; border-radius: 3px; font-size: 10px; cursor: pointer; color: #1d4ed8;" title="Salin Kel/Desa">📋</button>` : ''}
                         </div>
                     </div>
-                    <!-- Status Rumah -->
+                    <!-- Status Mukim -->
                     <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed #bfdbfe; padding-top: 4px; margin-top: 2px;">
-                        <span style="color: #64748b;">Status Rumah:</span>
-                        <strong style="color: #166534;">${escapeHtml(data.ayah_status_kepemilikan_rumah || 'Milik Sendiri')}</strong>
+                        <span style="color: #64748b;">Status Mukim:</span>
+                        <div style="display: flex; align-items: center; gap: 4px;">
+                            <span id="tpq-status-status-mukim" style="font-size: 9.5px; color: #64748b; font-weight: bold;">[⏳ Tunggu]</span>
+                            <strong style="color: #166534;">${escapeHtml(data.santri_status_mukim || 'Tidak Mukim')}</strong>
+                        </div>
+                    </div>
+                    <!-- Status Tempat Tinggal -->
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="color: #64748b;">Tempat Tinggal:</span>
+                        <div style="display: flex; align-items: center; gap: 4px;">
+                            <span id="tpq-status-tempat-tinggal" style="font-size: 9.5px; color: #64748b; font-weight: bold;">[⏳ Tunggu]</span>
+                            <strong style="color: #166534; font-size: 11px;">${escapeHtml(data.santri_status_tempat_tinggal || 'Tinggal dengan Ayah Kandung')}</strong>
+                            <button class="tpq-copy-btn" data-val="${escapeHtml(data.santri_status_tempat_tinggal || 'Tinggal dengan Ayah Kandung')}" style="border: 1px solid #bfdbfe; background: #fff; padding: 1px 5px; border-radius: 3px; font-size: 10px; cursor: pointer; color: #1d4ed8;" title="Salin Tempat Tinggal">📋</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -4439,50 +6081,21 @@ function showUpdateAlamatStep3Popup(data) {
         });
     });
 
+    const btnMode3 = document.getElementById('tpq-btn-mode-step3');
+    if (btnMode3) {
+        btnMode3.addEventListener('click', toggleAutoMode);
+    }
+
     document.getElementById('tpq-btn-refill-alamat').addEventListener('click', () => {
         ensureDataAlamatTabActive();
-        fillUpdateAlamatTextFields(data);
-        selectJarakTempatTinggalEmis(data.santri_jarak_tempuh || data.santri_jarak);
-        selectTransportasiEmis(data.santri_transportasi);
-        selectWaktuTempuhEmis(data.santri_waktu_tempuh);
-        if (data.santri_titik_koordinat) {
-            fillTitikKoordinatEmis(data.santri_titik_koordinat);
-        }
-        setTimeout(() => {
-            isWilayahCascadeRunning = false;
-            startCascadingWilayahUpdate(data);
-        }, 300);
+        isStep3Executing = false;
+        isStep3Done = false;
+        isWilayahCascadeRunning = false;
+        executeStep3DataAlamat(data);
     });
 
     const handleFinishStep3 = () => {
-        try {
-            chrome.runtime.sendMessage({
-                action: 'UPDATE_ALAMAT_SUCCESS_NOTIFY',
-                id_santri: data.id_santri
-            });
-            isStep2Executing = false;
-            isStep2Done = false;
-            isStep3Executing = false;
-            isStep3Done = true;
-            isWilayahCascadeRunning = false;
-            chrome.storage.local.remove(['pendingUpdateAlamatData', 'currentTask', 'waitingForUpdateStep2', 'waitingForUpdateStep3']);
-            
-            const btnQuick = document.getElementById('tpq-btn-quick-selesai-step3');
-            if (btnQuick) {
-                btnQuick.innerText = '✅ Selesai!';
-                btnQuick.style.background = '#059669';
-                btnQuick.disabled = true;
-            }
-            const btnSelesai = document.getElementById('tpq-btn-selesai-alamat');
-            if (btnSelesai) {
-                btnSelesai.innerText = '✅ Ditandai Selesai!';
-                btnSelesai.style.background = '#059669';
-                btnSelesai.disabled = true;
-            }
-            setTimeout(() => { div.remove(); }, 1200);
-        } catch (err) {
-            console.error('[TPQ-EMIS Bridge] Gagal kirim notifikasi selesai:', err);
-        }
+        finishUpdateAlamatStep3(data);
     };
 
     const btnSelesai = document.getElementById('tpq-btn-selesai-alamat');

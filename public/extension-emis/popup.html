@@ -89,7 +89,7 @@
     <div class="header">
         <img src="icons/icon48.png" alt="Logo">
         <div>
-            <div class="title">TPQ Smart - EMIS Bridge</div>
+            <div class="title">TPQ Smart - EMIS Bridge <span style="font-size: 10px; background: #e0e7ff; color: #3730a3; padding: 1px 5px; border-radius: 8px; font-weight: normal; vertical-align: middle;">v1.4.3</span></div>
             <div class="subtitle">Asisten Pengisian Data Santri EMIS 4.0</div>
         </div>
     </div>
@@ -101,7 +101,9 @@
         </div>
         <div class="status-row">
             <span>Mode Kerja:</span>
-            <span class="badge badge-success">Semi-Otomatis</span>
+            <button id="btnToggleMode" style="cursor: pointer; border: 1px solid #198754; background: #d1e7dd; color: #0f5132; padding: 3px 8px; border-radius: 12px; font-weight: bold; font-size: 11px;" title="Klik untuk ganti mode">
+                ⚡ Full Otomatis
+            </button>
         </div>
     </div>
 
@@ -114,7 +116,8 @@
     </a>
 
     <div class="footer">
-        TPQ Smart Automation © 2026
+        TPQ Smart Automation v1.4.3 © 2026
     </div>
+    <script src="popup.js"></script>
 </body>
 </html>

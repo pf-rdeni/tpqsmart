@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "TPQ Smart - EMIS 4.0 Bridge",
-  "version": "1.3.7",
-  "description": "Ekstensi semi-otomatis pengisian formulir data santri baru dari TPQ Smart ke EMIS 4.0 Kemenag.",
+  "version": "1.4.3",
+  "description": "Ekstensi semi & full otomatis pengisian formulir data santri baru dari TPQ Smart ke EMIS 4.0 Kemenag.",
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
