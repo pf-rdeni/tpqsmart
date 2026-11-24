@@ -20,8 +20,12 @@
  *  - Popup Step 2 dapat digeser (draggable) dan memandu checklist isian manual
  */
 
-const EXTENSION_VERSION = '1.4.4';
+const EXTENSION_VERSION = '1.4.5';
 console.log(`[TPQ-EMIS Bridge v${EXTENSION_VERSION}] Content script aktif di EMIS Kemenag.`);
+
+// Flag status pengecekan NIK Step 1
+window.__tpqNikFoundInEmis = false;
+window.__tpqStep1CheckingNik = false;
 
 // Inisialisasi pengawas transisi otomatis dari Step 1 ke Step 2
 initStepTransitionWatcher();
@@ -56,6 +60,11 @@ chrome.storage.local.get(['pendingSantriData', 'waitingForStep2', 'pendingUpdate
         console.log('[TPQ-EMIS Bridge] Posisi halaman saat inisialisasi: Step', currentStep);
 
         if (currentStep === 2) {
+            if (window.__tpqNikFoundInEmis) {
+                console.log('[TPQ-EMIS Bridge] NIK ditemukan di EMIS. Melewati pengisian otomatis Step 2.');
+                chrome.storage.local.remove(['waitingForStep2', 'pendingSantriData']);
+                return;
+            }
             console.log('[TPQ-EMIS Bridge] Form utama (Step 2) terdeteksi, mengisi NIK, HP & Nama Ortu...');
             fillEmisStep2(santri);
             chrome.storage.local.remove(['waitingForStep2']);
@@ -162,6 +171,11 @@ function initStepTransitionWatcher() {
                     // Pantau dan otomatis isi jika user beralih ke Nama & TTL di formulir EMIS
                     checkAndAutoFillStep1Watcher(res.pendingSantriData);
                 } else if (step === 2 && res.waitingForStep2) {
+                    if (window.__tpqNikFoundInEmis || window.__tpqStep1CheckingNik) {
+                        console.log('[TPQ-EMIS Bridge] Step 2 terdeteksi saat pengecekan NIK. NIK santri ditemukan!');
+                        handleNikFoundInEmis(res.pendingSantriData, 'Halaman beralih ke Formulir Utama (Step 2)');
+                        return;
+                    }
                     console.log('[TPQ-EMIS Bridge] Transisi otomatis ke Step 2 terdeteksi! Mengisi NIK, HP & Ortu...');
                     const oldStep1 = document.getElementById('tpq-step1-alert');
                     if (oldStep1) oldStep1.remove();
@@ -187,10 +201,39 @@ function initStepTransitionWatcher() {
  */
 
 /**
+ * Memilih radio button 'NIK' di Step 1
+ */
+function selectRadioNikStep1() {
+    const radios = Array.from(document.querySelectorAll('input[type="radio"], [role="radio"]'));
+    for (const r of radios) {
+        let text = '';
+        if (r.id) {
+            const lbl = document.querySelector(`label[for="${r.id}"]`);
+            if (lbl) text += ' ' + (lbl.innerText || lbl.textContent || '');
+        }
+        const parent = r.closest('label') || r.parentElement;
+        if (parent) {
+            text += ' ' + (parent.innerText || parent.textContent || '');
+        }
+        const upper = text.toUpperCase();
+        if (upper.includes('NIK') && !upper.includes('NISN') && !upper.includes('TEMPAT')) {
+            if (!r.checked) {
+                console.log('[TPQ-EMIS Bridge] Memilih radio NIK:', r);
+                r.checked = true;
+                r.dispatchEvent(new Event('change', { bubbles: true }));
+                triggerNativeClick(r);
+            }
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
  * Memilih radio button 'Nama, Tempat, dan tanggal lahir' secara spesifik
  */
 function selectRadioStep1() {
-    const radios = Array.from(document.querySelectorAll('input[type="radio"]'));
+    const radios = Array.from(document.querySelectorAll('input[type="radio"], [role="radio"]'));
     for (const r of radios) {
         let text = '';
         if (r.id) {
@@ -204,37 +247,264 @@ function selectRadioStep1() {
 
         const upper = text.toUpperCase();
         if ((upper.includes('TEMPAT') || upper.includes('TANGGAL')) && !upper.includes('NISN')) {
-            if (!r.checked) {
-                console.log('[TPQ-EMIS Bridge] Memilih radio Nama/TTL:', r);
-                r.checked = true;
-                r.dispatchEvent(new Event('change', { bubbles: true }));
-                r.dispatchEvent(new Event('click', { bubbles: true }));
-                if (parent) {
-                    try { parent.click(); } catch (_) {}
-                }
+            console.log('[TPQ-EMIS Bridge] Memilih radio Nama/TTL:', r);
+            r.checked = true;
+            r.dispatchEvent(new Event('change', { bubbles: true }));
+            triggerNativeClick(r);
+            if (parent) {
+                triggerNativeClick(parent);
             }
             return true;
         }
     }
 
-    // Fallback: cari label yang memuat teks "Nama, Tempat, dan tanggal lahir"
-    const allLabels = Array.from(document.querySelectorAll('label, span'));
+    // Fallback: cari label atau span yang memuat teks "Nama, Tempat, dan tanggal lahir"
+    const allLabels = Array.from(document.querySelectorAll('label, span, div, p'));
     for (const el of allLabels) {
+        if (el.children.length > 3) continue;
         const txt = (el.innerText || el.textContent || '').trim().toUpperCase();
         if (txt === 'NAMA, TEMPAT, DAN TANGGAL LAHIR' || (txt.includes('TEMPAT') && txt.includes('TANGGAL LAHIR') && txt.length <= 40)) {
-            const r = el.querySelector('input[type="radio"]') || 
-                      el.parentElement?.querySelector('input[type="radio"]') ||
+            const r = el.querySelector('input[type="radio"], [role="radio"]') || 
+                      el.parentElement?.querySelector('input[type="radio"], [role="radio"]') ||
                       (el.htmlFor ? document.getElementById(el.htmlFor) : null);
             if (r) {
                 r.checked = true;
                 r.dispatchEvent(new Event('change', { bubbles: true }));
-                r.dispatchEvent(new Event('click', { bubbles: true }));
+                triggerNativeClick(r);
             }
-            try { el.click(); } catch (_) {}
+            triggerNativeClick(el);
+            if (el.parentElement) triggerNativeClick(el.parentElement);
             return true;
         }
     }
     return false;
+}
+
+/**
+ * Mencari tombol hijau 'SELANJUTNYA' di formulir Step 1
+ */
+function findStep1SelanjutnyaButton() {
+    const candidates = Array.from(document.querySelectorAll('button, [role="button"], div[role="button"], input[type="button"], input[type="submit"], a'));
+    const visible = candidates.filter(btn => {
+        if (btn.closest && (
+            btn.closest('#tpq-step0-alert') ||
+            btn.closest('#tpq-step1-alert') ||
+            btn.closest('#tpq-step2-alert') ||
+            btn.closest('#tpq-reopen-step0-pill') ||
+            btn.closest('#tpq-pending-banner') ||
+            btn.closest('#tpq-nik-found-alert')
+        )) return false;
+        const rect = btn.getBoundingClientRect();
+        if (rect.width <= 0 || rect.height <= 0) return false;
+        if (btn.disabled || btn.getAttribute('aria-disabled') === 'true') return false;
+        return true;
+    });
+
+    // 1. Tombol dengan teks persis "SELANJUTNYA"
+    let found = visible.find(btn => (btn.innerText || btn.textContent || btn.value || '').trim().toUpperCase() === 'SELANJUTNYA');
+    if (found) return found;
+
+    // 2. Tombol dengan teks mengandung "SELANJUTNYA"
+    found = visible.find(btn => {
+        const t = (btn.innerText || btn.textContent || btn.value || '').trim().toUpperCase();
+        return t.includes('SELANJUTNYA') && !t.includes('BATAL') && !t.includes('KEMBALI');
+    });
+    if (found) return found;
+
+    // 3. Elemen leaf yang memuat teks "SELANJUTNYA"
+    const allTextEls = Array.from(document.querySelectorAll('div, span, p, strong, b'));
+    for (const el of allTextEls) {
+        if (el.closest && el.closest('[id^="tpq-"]')) continue;
+        const t = (el.innerText || el.textContent || '').trim().toUpperCase();
+        if (t === 'SELANJUTNYA') {
+            const btnParent = el.closest('button, [role="button"], a');
+            if (btnParent) {
+                const rect = btnParent.getBoundingClientRect();
+                if (rect.width > 0 && rect.height > 0) return btnParent;
+            }
+            const rect = el.getBoundingClientRect();
+            if (rect.width > 0 && rect.height > 0) return el;
+        }
+    }
+
+    return null;
+}
+
+/**
+ * Mendeteksi modal popup "NIK Tidak Ditemukan" dan tombol "TUTUP" di EMIS 4.0
+ */
+function findNikTidakDitemukanModal() {
+    const allEls = Array.from(document.querySelectorAll('div, [role="dialog"], [role="alertdialog"], section, h1, h2, h3, h4, p, span'));
+    for (const el of allEls) {
+        if (el.closest && el.closest('[id^="tpq-"]')) continue;
+        const txt = (el.innerText || el.textContent || '').trim().toUpperCase();
+        if (txt === 'NIK TIDAK DITEMUKAN' || (txt.includes('NIK TIDAK DITEMUKAN') && txt.length <= 60)) {
+            let modalContainer = el.closest('[role="dialog"], [role="alertdialog"]') || el;
+            if (!modalContainer || modalContainer === el) {
+                let p = el;
+                for (let i = 0; i < 6 && p && p !== document.body; i++) {
+                    if (p.querySelector('button, [role="button"], div[role="button"]')) {
+                        modalContainer = p;
+                        break;
+                    }
+                    p = p.parentElement;
+                }
+            }
+
+            const btns = Array.from(modalContainer.querySelectorAll('button, [role="button"], div[role="button"], div, a, span'))
+                .filter(b => {
+                    if (b.closest && b.closest('[id^="tpq-"]')) return false;
+                    const bt = (b.innerText || b.textContent || b.value || '').trim().toUpperCase();
+                    return bt === 'TUTUP' || bt === 'CLOSE';
+                });
+
+            if (btns.length > 0) {
+                const tutupBtn = btns.find(b => b.tagName === 'BUTTON' || b.getAttribute('role') === 'button') || btns[0];
+                return { modal: modalContainer, tutupBtn };
+            }
+        }
+    }
+
+    // Fallback global di document.body
+    const bodyText = (document.body.innerText || document.body.textContent || '').toUpperCase();
+    if (bodyText.includes('NIK TIDAK DITEMUKAN')) {
+        const allBtns = Array.from(document.querySelectorAll('button, [role="button"], div[role="button"], div'))
+            .filter(b => {
+                if (b.closest && b.closest('[id^="tpq-"]')) return false;
+                const rect = b.getBoundingClientRect();
+                if (rect.width <= 0 || rect.height <= 0) return false;
+                const bt = (b.innerText || b.textContent || b.value || '').trim().toUpperCase();
+                return bt === 'TUTUP' || bt === 'CLOSE';
+            });
+        if (allBtns.length > 0) {
+            const tutupBtn = allBtns.find(b => b.tagName === 'BUTTON' || b.getAttribute('role') === 'button') || allBtns[0];
+            return { modal: tutupBtn.closest('[role="dialog"]') || tutupBtn.parentElement, tutupBtn };
+        }
+    }
+
+    return null;
+}
+
+/**
+ * Mengecek apakah respons validasi NIK menandakan santri ditemukan di EMIS
+ */
+function isNikFoundResponsePresent() {
+    // 1. Cek jika halaman beralih ke Step 2 (Formulir Utama)
+    if (detectCurrentEmisStep() === 2) {
+        return { type: 'step2', message: 'Halaman beralih ke Formulir Utama (Step 2)' };
+    }
+
+    // 2. Cek modal atau notifikasi data ditemukan
+    const allModals = Array.from(document.querySelectorAll('div, [role="dialog"], [role="alertdialog"], section'));
+    for (const el of allModals) {
+        if (el.closest && el.closest('[id^="tpq-"]')) continue;
+        const txt = (el.innerText || el.textContent || '').trim().toUpperCase();
+        if (txt.includes('NIK TIDAK DITEMUKAN') || txt.includes('TIDAK DITEMUKAN')) continue;
+
+        if (
+            txt.includes('DATA DITEMUKAN') ||
+            txt.includes('DATA SANTRI DITEMUKAN') ||
+            txt.includes('NIK SUDAH TERDAFTAR') ||
+            txt.includes('SUDAH PERNAH TERDAFTAR') ||
+            txt.includes('SUDAH TERDAFTAR DI') ||
+            txt.includes('SUDAH AKTIF') ||
+            txt.includes('SANTRI TELAH TERDAFTAR')
+        ) {
+            return { type: 'modal', message: txt.substring(0, 80) };
+        }
+    }
+
+    return null;
+}
+
+/**
+ * Menangani kondisi ketika NIK ditemukan di EMIS: Menghentikan proses dan TIDAK melanjutkan.
+ */
+function handleNikFoundInEmis(santriData, reason) {
+    console.log(`%c[TPQ-EMIS Bridge] [Step 1] ⚠️ NIK DITEMUKAN DI EMIS! (${reason || ''}) Sesuai instruksi, proses pengisian dihentikan dan TIDAK dilanjutkan.`, 'background: #dc2626; color: #fff; font-weight: bold; font-size: 13px; padding: 4px 8px; border-radius: 4px;');
+    
+    window.__tpqNikFoundInEmis = true;
+    window.__tpqStep1CheckingNik = false;
+
+    chrome.storage.local.remove(['pendingSantriData', 'waitingForStep2']);
+
+    const p0 = document.getElementById('tpq-step0-alert');
+    if (p0) p0.remove();
+    const p1 = document.getElementById('tpq-step1-alert');
+    if (p1) p1.remove();
+    const pill = document.getElementById('tpq-reopen-step0-pill');
+    if (pill) pill.remove();
+    const pending = document.getElementById('tpq-pending-banner');
+    if (pending) pending.remove();
+
+    showNikFoundAlert(santriData, reason);
+}
+
+/**
+ * Menampilkan banner peringatan bahwa NIK ditemukan dan proses dihentikan
+ */
+function showNikFoundAlert(santriData, reason) {
+    const old = document.getElementById('tpq-nik-found-alert');
+    if (old) old.remove();
+
+    const div = document.createElement('div');
+    div.id = 'tpq-nik-found-alert';
+    div.style.cssText = `
+        position: fixed;
+        top: 25px;
+        right: 25px;
+        z-index: 9999999;
+        width: 380px;
+        max-width: 95vw;
+        background: #ffffff;
+        border: 2px solid #dc2626;
+        border-radius: 8px;
+        box-shadow: 0 8px 24px rgba(220, 38, 38, 0.25);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        font-size: 13px;
+        color: #1e293b;
+        overflow: hidden;
+        animation: tpqFadeIn 0.3s ease-out;
+    `;
+
+    div.innerHTML = `
+        <div style="background: linear-gradient(135deg, #dc2626, #b91c1c); color: #fff; padding: 10px 14px; font-weight: bold; font-size: 13px; display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="font-size: 16px;">🛑</span>
+                <span>NIK DITEMUKAN DI EMIS</span>
+                <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 4px; border-radius: 3px;">v${EXTENSION_VERSION}</span>
+            </div>
+            <span id="tpq-close-nik-found-btn" style="cursor: pointer; font-size: 18px; line-height: 1; padding: 1px 5px; opacity: 0.85;" title="Tutup">&times;</span>
+        </div>
+        <div style="padding: 14px 16px;">
+            <div style="margin-bottom: 8px; font-size: 13px; line-height: 1.4;">
+                Data calon santri: <strong>${escapeHtml(santriData?.nama_santri || 'Santri')}</strong>
+            </div>
+            <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; padding: 8px 10px; margin-bottom: 12px; font-size: 12px; color: #991b1b;">
+                <div>NIK: <strong style="font-family: monospace; font-size: 13px;">${escapeHtml(santriData?.nik || '-')}</strong></div>
+                <div style="margin-top: 4px; font-size: 11.5px; color: #b91c1c;">
+                    ⚠️ Data dengan NIK tersebut <strong>ditemukan</strong> di sistem EMIS Kemenag (${escapeHtml(reason || 'Data ada')}).
+                </div>
+            </div>
+            <div style="background: #f8fafc; border-left: 3px solid #dc2626; padding: 8px 10px; font-size: 11.5px; color: #475569; line-height: 1.45; margin-bottom: 12px;">
+                🛑 <strong>Proses dihentikan:</strong> Sesuai instruksi sistem, pengisian otomatis tidak dilanjutkan untuk menghindari duplikasi atau kesalahan data santri yang sudah terdaftar.
+            </div>
+            <button id="tpq-btn-dismiss-nik-found" style="
+                width: 100%; background: #64748b; color: #ffffff; border: none;
+                padding: 7px 12px; border-radius: 5px; font-size: 12px; font-weight: bold;
+                cursor: pointer;
+            ">
+                Tutup Notifikasi
+            </button>
+        </div>
+    `;
+
+    document.body.appendChild(div);
+
+    const closeBtn = document.getElementById('tpq-close-nik-found-btn');
+    const dismissBtn = document.getElementById('tpq-btn-dismiss-nik-found');
+    if (closeBtn) closeBtn.addEventListener('click', () => div.remove());
+    if (dismissBtn) dismissBtn.addEventListener('click', () => div.remove());
 }
 
 /**
@@ -549,6 +819,9 @@ function autoFillStep1Nik(santriData) {
     let attempts = 0;
     const maxAttempts = 15;
 
+    // Pastikan radio NIK terpilih
+    selectRadioNikStep1();
+
     const pollTimer = setInterval(() => {
         attempts++;
         const filled = tryFillNikInput(santriData.nik);
@@ -556,9 +829,94 @@ function autoFillStep1Nik(santriData) {
             clearInterval(pollTimer);
             if (filled) {
                 step1FilledSantriKey = santriKey;
+                // Lanjut: Klik tombol SELANJUTNYA & pantau respons EMIS
+                handleStep1NikSubmission(santriData);
             }
         }
     }, 120);
+}
+
+function handleStep1NikSubmission(santriData) {
+    console.log(`%c[TPQ-EMIS Bridge] [Step 1] NIK ${santriData.nik} berhasil diisi. Menyiapkan penekanan tombol SELANJUTNYA...`, 'background: #0284c7; color: #fff; font-weight: bold; padding: 2px 6px;');
+
+    window.__tpqStep1CheckingNik = true;
+
+    // Beri jeda 350ms agar React selesai memproses input state
+    setTimeout(() => {
+        let attempts = 0;
+        const maxAttempts = 15; // 3 detik
+
+        const btnTimer = setInterval(() => {
+            attempts++;
+            const btn = findStep1SelanjutnyaButton();
+            if (btn) {
+                clearInterval(btnTimer);
+                console.log('%c[TPQ-EMIS Bridge] [Step 1] ✓ Tombol SELANJUTNYA ditemukan. Menekan tombol...', 'background: #16a34a; color: #fff; font-weight: bold; padding: 2px 6px;');
+                triggerNativeClick(btn);
+                try { btn.click(); } catch (_) {}
+
+                // Mulai memantau respons modal / transisi EMIS
+                monitorStep1NikValidationResult(santriData);
+            } else if (attempts >= maxAttempts) {
+                clearInterval(btnTimer);
+                window.__tpqStep1CheckingNik = false;
+                console.warn('[TPQ-EMIS Bridge] [Step 1] Tombol SELANJUTNYA tidak ditemukan setelah 3 detik.');
+            }
+        }, 200);
+    }, 350);
+}
+
+function monitorStep1NikValidationResult(santriData) {
+    console.log('[TPQ-EMIS Bridge] [Step 1] Memantau respons EMIS (Modal NIK Tidak Ditemukan vs NIK Ditemukan)...');
+
+    let attempts = 0;
+    const maxAttempts = 60; // 12 detik (60 * 200ms)
+
+    const monitorTimer = setInterval(() => {
+        attempts++;
+
+        // 1. Prioritas Pertama: Cek Modal "NIK Tidak Ditemukan" (Gambar 2)
+        const modalInfo = findNikTidakDitemukanModal();
+        if (modalInfo) {
+            clearInterval(monitorTimer);
+            window.__tpqStep1CheckingNik = false;
+            console.log('%c[TPQ-EMIS Bridge] [Step 1] ✓ Popup "NIK Tidak Ditemukan" terdeteksi! Mengklik tombol TUTUP...', 'background: #2563eb; color: #fff; font-weight: bold; padding: 2px 6px;');
+            
+            // Klik tombol TUTUP di modal
+            triggerNativeClick(modalInfo.tutupBtn);
+            try { modalInfo.tutupBtn.click(); } catch (_) {}
+
+            // Beri jeda 350ms agar modal tertutup di DOM, lalu beralih ke radio Nama & TTL
+            setTimeout(() => {
+                console.log('%c[TPQ-EMIS Bridge] [Step 1] Memilih radio "Nama, Tempat, dan tanggal lahir" dan otomatis mengisi data...', 'background: #16a34a; color: #fff; font-weight: bold; padding: 2px 6px;');
+                selectRadioStep1();
+
+                // Reset flag pengisian agar autoFillStep1NamaTtl dapat berjalan lancar
+                isStep1AutoPollActive = false;
+                step1FilledSantriKey = null;
+
+                setTimeout(() => {
+                    autoFillStep1NamaTtl(santriData);
+                }, 300);
+            }, 350);
+            return;
+        }
+
+        // 2. Prioritas Kedua: Cek jika NIK Ditemukan (Halaman berpindah ke Step 2 atau muncul notifikasi data ditemukan)
+        const foundResponse = isNikFoundResponsePresent();
+        if (foundResponse) {
+            clearInterval(monitorTimer);
+            handleNikFoundInEmis(santriData, foundResponse.message);
+            return;
+        }
+
+        // 3. Batas waktu tercapai tanpa respons
+        if (attempts >= maxAttempts) {
+            clearInterval(monitorTimer);
+            window.__tpqStep1CheckingNik = false;
+            console.log('[TPQ-EMIS Bridge] [Step 1] Waktu pantau respons NIK selesai (12 detik).');
+        }
+    }, 200);
 }
 
 function checkAndAutoFillStep1Watcher(santriData) {
@@ -2770,7 +3128,7 @@ function showStep0StartPopup(data) {
         <div id="tpq-step0-header" style="background: linear-gradient(135deg, #0d6efd, #0b5ed7); color: #fff; padding: 8px 12px; font-weight: bold; font-size: 13px; display: flex; justify-content: space-between; align-items: center; cursor: move; user-select: none;">
             <div style="display: flex; align-items: center; gap: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 195px;" title="${escapeHtml(data.nama_santri)} - ${escapeHtml(tglLahirLabel)}">
                 <span style="font-size: 12px;">⚡ <strong>${escapeHtml(data.nama_santri)}</strong></span>
-                <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 4px; border-radius: 3px; font-weight: normal;">v1.4.4</span>
+                <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 4px; border-radius: 3px; font-weight: normal;">v1.4.5</span>
                 <span style="font-size: 10.5px; background: rgba(255,255,255,0.25); border-radius: 3px; padding: 1px 5px; font-weight: 500;" title="Tanggal Lahir Santri">📅 ${escapeHtml(tglLahirLabel)}</span>
             </div>
             <div style="display: flex; align-items: center; gap: 5px;">
@@ -3074,7 +3432,7 @@ function showStep1Assistant(data) {
         <div id="tpq-step1-header" style="background: linear-gradient(135deg, #0d6efd, #0b5ed7); color: #fff; padding: 8px 12px; font-weight: bold; font-size: 13px; display: flex; justify-content: space-between; align-items: center; cursor: move; user-select: none;">
             <div style="display: flex; align-items: center; gap: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 170px;" title="${escapeHtml(data.nama_santri)}">
                 <span style="font-size: 12px;">⚡ <strong>${escapeHtml(data.nama_santri)}</strong></span>
-                <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 4px; border-radius: 3px; font-weight: normal; margin-left: 2px;">v1.4.4</span>
+                <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 4px; border-radius: 3px; font-weight: normal; margin-left: 2px;">v1.4.5</span>
             </div>
             <div style="display: flex; align-items: center; gap: 5px;">
                 <button id="tpq-btn-quick-copy-tgl-step1" style="background: #198754; color: #fff; border: 1px solid rgba(255,255,255,0.4); border-radius: 4px; padding: 3px 8px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.15);" title="Salin Tanggal Lahir">
@@ -3281,7 +3639,7 @@ function showStep2Assistant(data, filledAyah = false, filledIbu = false, filledN
         <div id="tpq-step2-header" style="background: linear-gradient(135deg, #0d6efd, #0b5ed7); color: #fff; padding: 8px 12px; font-weight: bold; font-size: 13px; display: flex; justify-content: space-between; align-items: center; cursor: move; user-select: none;">
             <div style="display: flex; align-items: center; gap: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 160px;" title="${escapeHtml(data.nama_santri)}">
                 <span style="font-size: 12px;">⚡ <strong>${escapeHtml(data.nama_santri)}</strong></span>
-                <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 4px; border-radius: 3px; font-weight: normal; margin-left: 2px;">v1.4.4</span>
+                <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 4px; border-radius: 3px; font-weight: normal; margin-left: 2px;">v1.4.5</span>
             </div>
             <div style="display: flex; align-items: center; gap: 5px;">
                 <button id="tpq-btn-quick-selesai-step2" style="background: #198754; color: #fff; border: 1px solid rgba(255,255,255,0.4); border-radius: 4px; padding: 3px 8px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.15);" title="Selesaikan pendaftaran & tandai selesai">
@@ -4467,7 +4825,7 @@ function showUpdateAlamatStep1Popup(data) {
         <div id="tpq-update-step1-header" style="background: linear-gradient(135deg, #0d6efd, #0b5ed7); color: #fff; padding: 8px 12px; font-weight: bold; font-size: 13px; display: flex; justify-content: space-between; align-items: center; cursor: move; user-select: none;">
             <div style="display: flex; align-items: center; gap: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 170px;" title="${escapeHtml(data.nama_santri)}">
                 <span style="font-size: 12px;">⚡ <strong>${escapeHtml(data.nama_santri)}</strong></span>
-                <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 4px; border-radius: 3px; font-weight: normal; margin-left: 2px;">v1.4.4</span>
+                <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 4px; border-radius: 3px; font-weight: normal; margin-left: 2px;">v1.4.5</span>
             </div>
             <div style="display: flex; align-items: center; gap: 5px;">
                 <button id="tpq-btn-mode-step1" style="background: ${currentAutoMode === 'FULL' ? '#059669' : '#d97706'}; color: #fff; border: 1px solid rgba(255,255,255,0.4); border-radius: 4px; padding: 3px 8px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.15);" title="${currentAutoMode === 'FULL' ? 'Mode Full Otomatis aktif (klik untuk ganti ke Semi-Otomatis)' : 'Mode Semi-Otomatis aktif (klik untuk ganti ke Full Otomatis)'}">
@@ -4961,7 +5319,7 @@ function showUpdateSantriStep2Popup(data) {
         <div id="tpq-update-santri-step2-header" style="background: linear-gradient(135deg, #0d6efd, #0b5ed7); color: #fff; padding: 8px 12px; font-weight: bold; font-size: 13px; display: flex; justify-content: space-between; align-items: center; cursor: move; user-select: none;">
             <div style="display: flex; align-items: center; gap: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 150px;" title="${escapeHtml(data.nama_santri)}">
                 <span style="font-size: 12px;">⚡ <strong>${escapeHtml(data.nama_santri)}</strong></span>
-                <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 4px; border-radius: 3px; font-weight: normal; margin-left: 2px;">v1.4.4</span>
+                <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 4px; border-radius: 3px; font-weight: normal; margin-left: 2px;">v1.4.5</span>
             </div>
             <div style="display: flex; align-items: center; gap: 5px;">
                 <button id="tpq-btn-mode-step2" style="background: ${currentAutoMode === 'FULL' ? '#059669' : '#d97706'}; color: #fff; border: 1px solid rgba(255,255,255,0.4); border-radius: 4px; padding: 3px 8px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.15);" title="${currentAutoMode === 'FULL' ? 'Mode Full Otomatis aktif (klik untuk ganti ke Semi-Otomatis)' : 'Mode Semi-Otomatis aktif (klik untuk ganti ke Full Otomatis)'}">
@@ -5745,7 +6103,7 @@ function showUpdateAlamatStep3Popup(data) {
         <div id="tpq-update-step3-header" style="background: linear-gradient(135deg, #0d6efd, #0b5ed7); color: #fff; padding: 8px 12px; font-weight: bold; font-size: 13px; display: flex; justify-content: space-between; align-items: center; cursor: move; user-select: none;">
             <div style="display: flex; align-items: center; gap: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 160px;" title="${escapeHtml(data.nama_santri)}">
                 <span style="font-size: 12px;">⚡ <strong>${escapeHtml(data.nama_santri)}</strong></span>
-                <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 4px; border-radius: 3px; font-weight: normal; margin-left: 2px;">v1.4.4</span>
+                <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 4px; border-radius: 3px; font-weight: normal; margin-left: 2px;">v1.4.5</span>
             </div>
             <div style="display: flex; align-items: center; gap: 5px;">
                 <button id="tpq-btn-mode-step3" style="background: ${currentAutoMode === 'FULL' ? '#059669' : '#d97706'}; color: #fff; border: 1px solid rgba(255,255,255,0.4); border-radius: 4px; padding: 3px 8px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.15);" title="${currentAutoMode === 'FULL' ? 'Mode Full Otomatis aktif (klik untuk ganti ke Semi-Otomatis)' : 'Mode Semi-Otomatis aktif (klik untuk ganti ke Full Otomatis)'}">
