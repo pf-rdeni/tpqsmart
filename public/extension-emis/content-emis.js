@@ -162,7 +162,10 @@ function initStepTransitionWatcher() {
                 }
             } else if (res && res.pendingSantriData) {
                 const step = detectCurrentEmisStep();
-                if (step === 2 && res.waitingForStep2) {
+                if (step === 1) {
+                    // Pantau dan otomatis isi jika user beralih ke Nama & TTL di formulir EMIS
+                    checkAndAutoFillStep1Watcher(res.pendingSantriData);
+                } else if (step === 2 && res.waitingForStep2) {
                     console.log('[TPQ-EMIS Bridge] Transisi otomatis ke Step 2 terdeteksi! Mengisi NIK, HP & Ortu...');
                     const oldStep1 = document.getElementById('tpq-step1-alert');
                     if (oldStep1) oldStep1.remove();
@@ -280,21 +283,34 @@ function findStep1Fields() {
     }
 
     // 2. Fallback posisi geometris: input pertama adalah Nama, kedua Tempat Lahir
+    // Pastikan tidak menyertakan input NIK dalam fallback geometris
     if (!inputNama || !inputTempat) {
-        const sorted = [...allInputs].sort((a, b) => {
-            const rectA = a.getBoundingClientRect();
-            const rectB = b.getBoundingClientRect();
-            if (Math.abs(rectA.top - rectB.top) > 20) {
-                return rectA.top - rectB.top;
+        const nonNikInputs = allInputs.filter(inp => {
+            const ph = (inp.getAttribute('placeholder') || '').toUpperCase();
+            const nm = (inp.getAttribute('name') || '').toUpperCase();
+            const id = (inp.getAttribute('id') || '').toUpperCase();
+            let lbl = '';
+            let p = inp.parentElement;
+            for (let i = 0; i < 3 && p; i++) {
+                lbl += ' ' + (p.innerText || p.textContent || '').toUpperCase();
+                p = p.parentElement;
             }
-            return rectA.left - rectB.left;
+            const c = `${ph} ${nm} ${id} ${lbl}`;
+            return (!c.includes('NIK') || c.includes('NAMA')) && !c.includes('NISN');
         });
 
-        if (sorted.length >= 2) {
+        if (nonNikInputs.length >= 2) {
+            const sorted = [...nonNikInputs].sort((a, b) => {
+                const rectA = a.getBoundingClientRect();
+                const rectB = b.getBoundingClientRect();
+                if (Math.abs(rectA.top - rectB.top) > 20) {
+                    return rectA.top - rectB.top;
+                }
+                return rectA.left - rectB.left;
+            });
+
             if (!inputNama) inputNama = sorted[0];
             if (!inputTempat) inputTempat = sorted[1];
-        } else if (sorted.length === 1) {
-            if (!inputNama) inputNama = sorted[0];
         }
     }
 
@@ -350,6 +366,12 @@ function eksekusiIsiStep1(fields, data) {
         } catch (_) {}
     }
 
+    // Tutup popup start Step 0 jika sedang ada agar tidak bertumpuk
+    const oldStep0 = document.getElementById('tpq-step0-alert');
+    if (oldStep0) oldStep0.remove();
+    const oldPill = document.getElementById('tpq-reopen-step0-pill');
+    if (oldPill) oldPill.remove();
+
     // 4. Tampilkan floating notification Step 1 (dengan fitur salin NIK, Nama, TTL & draggable)
     showStep1Assistant(data);
 
@@ -358,6 +380,235 @@ function eksekusiIsiStep1(fields, data) {
         pendingSantriData: data,
         waitingForStep2: true
     });
+}
+
+/**
+ * ============================================================================
+ * STEP 1 AUTO-DETECTION & AUTO-FILL SYSTEM
+ * Mendeteksi perpindahan pilihan/tab di formulir EMIS (NIK vs Nama & TTL)
+ * secara otomatis mengisi input tanpa mengharuskan user menekan tombol di popup
+ * ============================================================================
+ */
+let step1FilledSantriKey = null; // Menyimpan ID santri + mode agar tidak looping mengisi terus-menerus
+let isStep1AutoPollActive = false;
+
+function isNamaTtlRadioElement(target) {
+    if (!target) return false;
+
+    // PENTING: JANGAN PERNAH mendeteksi text input, textarea, select, tombol sebagai radio!
+    const tag = (target.tagName || '').toUpperCase();
+    if (tag === 'INPUT') {
+        const type = (target.type || '').toLowerCase();
+        if (type !== 'radio') return false;
+    } else if (tag === 'TEXTAREA' || tag === 'SELECT' || tag === 'BUTTON') {
+        return false;
+    }
+
+    // Abaikan elemen dari popup ekstensi kita sendiri
+    if (target.closest && (
+        target.closest('#tpq-step0-alert') ||
+        target.closest('#tpq-step1-alert') ||
+        target.closest('#tpq-step2-alert') ||
+        target.closest('#tpq-reopen-step0-pill') ||
+        target.closest('#tpq-pending-banner')
+    )) {
+        return false;
+    }
+
+    // Pastikan klik berada di elemen radio atau label "Nama, Tempat, dan tanggal lahir"
+    let curr = target;
+    for (let i = 0; i < 4 && curr && curr !== document.body; i++) {
+        // Jika elemen ini membungkus input teks (misal baris form tempat lahir), ini BUKAN radio!
+        if (curr.querySelector && curr.querySelector('input:not([type="radio"]):not([type="hidden"]):not([type="checkbox"])')) {
+            return false;
+        }
+
+        const text = (curr.innerText || curr.textContent || '').trim().toUpperCase();
+        if (text === 'NAMA, TEMPAT, DAN TANGGAL LAHIR' ||
+            (text.includes('TEMPAT') && text.includes('TANGGAL LAHIR') && !text.includes('NISN') && text.length <= 40)) {
+            return true;
+        }
+        curr = curr.parentElement;
+    }
+    return false;
+}
+
+function isNikRadioElement(target) {
+    if (!target) return false;
+
+    const tag = (target.tagName || '').toUpperCase();
+    if (tag === 'INPUT') {
+        const type = (target.type || '').toLowerCase();
+        if (type !== 'radio') return false;
+    } else if (tag === 'TEXTAREA' || tag === 'SELECT' || tag === 'BUTTON') {
+        return false;
+    }
+
+    if (target.closest && (
+        target.closest('#tpq-step0-alert') ||
+        target.closest('#tpq-step1-alert') ||
+        target.closest('#tpq-step2-alert') ||
+        target.closest('#tpq-reopen-step0-pill') ||
+        target.closest('#tpq-pending-banner')
+    )) {
+        return false;
+    }
+
+    let curr = target;
+    for (let i = 0; i < 4 && curr && curr !== document.body; i++) {
+        if (curr.querySelector && curr.querySelector('input:not([type="radio"]):not([type="hidden"]):not([type="checkbox"])')) {
+            return false;
+        }
+
+        const text = (curr.innerText || curr.textContent || '').trim().toUpperCase();
+        if (text === 'NIK' && text.length <= 10) {
+            return true;
+        }
+        curr = curr.parentElement;
+    }
+    return false;
+}
+
+function setupStep1AutoDetection(santriData) {
+    if (!santriData) return;
+
+    // HANYA pasang event listener 'click' ke document (JANGAN 'change' atau 'input' agar tidak looping)
+    if (!window.__tpqStep1ListenerAttached) {
+        window.__tpqStep1ListenerAttached = true;
+
+        document.addEventListener('click', (e) => {
+            handleStep1OptionSwitch(e.target);
+        }, true);
+    }
+
+    triggerStep1InitialFill(santriData);
+}
+
+function handleStep1OptionSwitch(target) {
+    if (!target) return;
+    if (detectCurrentEmisStep() !== 1) return;
+
+    if (target.closest && (
+        target.closest('#tpq-step0-alert') ||
+        target.closest('#tpq-step1-alert') ||
+        target.closest('#tpq-step2-alert') ||
+        target.closest('#tpq-reopen-step0-pill') ||
+        target.closest('#tpq-pending-banner')
+    )) {
+        return;
+    }
+
+    chrome.storage.local.get(['pendingSantriData'], (res) => {
+        if (!res || !res.pendingSantriData) return;
+        const santriData = res.pendingSantriData;
+
+        if (isNamaTtlRadioElement(target)) {
+            console.log('[TPQ-EMIS Bridge] Pilihan "Nama, Tempat, dan tanggal lahir" diklik di EMIS!');
+            autoFillStep1NamaTtl(santriData);
+        } else if (isNikRadioElement(target)) {
+            console.log('[TPQ-EMIS Bridge] Pilihan "NIK" diklik di EMIS!');
+            autoFillStep1Nik(santriData);
+        }
+    });
+}
+
+function autoFillStep1NamaTtl(santriData) {
+    const santriKey = (santriData.id_santri || santriData.nama_santri) + '_nama_ttl';
+    if (step1FilledSantriKey === santriKey) {
+        return; // Sudah pernah diisi, hindari looping
+    }
+
+    if (isStep1AutoPollActive) return;
+    isStep1AutoPollActive = true;
+
+    let attempts = 0;
+    const maxAttempts = 20;
+
+    const pollTimer = setInterval(() => {
+        attempts++;
+        const fields = findStep1Fields();
+
+        if (fields.inputNama && fields.inputTempat) {
+            clearInterval(pollTimer);
+            isStep1AutoPollActive = false;
+            step1FilledSantriKey = santriKey;
+            console.log('[TPQ-EMIS Bridge] Field Nama & TTL terdeteksi di DOM, mengisi satu kali...');
+            eksekusiIsiStep1(fields, santriData);
+        } else if (attempts >= maxAttempts) {
+            clearInterval(pollTimer);
+            isStep1AutoPollActive = false;
+            if (fields.inputNama || fields.inputTempat) {
+                step1FilledSantriKey = santriKey;
+                eksekusiIsiStep1(fields, santriData);
+            }
+        }
+    }, 120);
+}
+
+function autoFillStep1Nik(santriData) {
+    if (!santriData.nik || santriData.belum_punya_nik) return;
+    const santriKey = (santriData.id_santri || santriData.nama_santri) + '_nik';
+    if (step1FilledSantriKey === santriKey) return;
+
+    let attempts = 0;
+    const maxAttempts = 15;
+
+    const pollTimer = setInterval(() => {
+        attempts++;
+        const filled = tryFillNikInput(santriData.nik);
+        if (filled || attempts >= maxAttempts) {
+            clearInterval(pollTimer);
+            if (filled) {
+                step1FilledSantriKey = santriKey;
+            }
+        }
+    }, 120);
+}
+
+function checkAndAutoFillStep1Watcher(santriData) {
+    if (!santriData) return;
+
+    const santriKeyTtl = (santriData.id_santri || santriData.nama_santri) + '_nama_ttl';
+    if (step1FilledSantriKey === santriKeyTtl) return; // Sudah pernah diisi, abaikan
+
+    const fields = findStep1Fields();
+    if (fields.inputNama && fields.inputTempat) {
+        const curNama = (fields.inputNama.value || '').trim();
+        const curTempat = (fields.inputTempat.value || '').trim();
+
+        // Hanya isi jika KEDUA field benar-benar masih kosong dan user tidak sedang mengetik
+        if (!curNama && !curTempat &&
+            document.activeElement !== fields.inputNama &&
+            document.activeElement !== fields.inputTempat &&
+            !isStep1AutoPollActive) {
+            step1FilledSantriKey = santriKeyTtl;
+            console.log('[TPQ-EMIS Bridge] Watcher mendeteksi field kosong, mengisi satu kali...');
+            eksekusiIsiStep1(fields, santriData);
+        }
+    }
+}
+
+function triggerStep1InitialFill(santriData) {
+    if (santriData.belum_punya_nik || !santriData.nik) {
+        console.log('[TPQ-EMIS Bridge] Santri belum punya NIK, otomatis memilih tab Nama & TTL...');
+        selectRadioStep1();
+        autoFillStep1NamaTtl(santriData);
+        return;
+    }
+
+    const fields = findStep1Fields();
+    if (fields.inputNama && fields.inputTempat) {
+        const curNama = (fields.inputNama.value || '').trim();
+        if (!curNama) {
+            console.log('[TPQ-EMIS Bridge] Form telah berada di tab Nama & TTL, langsung mengisi...');
+            autoFillStep1NamaTtl(santriData);
+        }
+        return;
+    }
+
+    setTimeout(() => {
+        autoFillStep1Nik(santriData);
+    }, 250);
 }
 
 /**
@@ -1794,8 +2045,27 @@ function tryFillNikInput(nik) {
         const ph = (inp.getAttribute('placeholder') || '').toUpperCase();
         const nm = (inp.getAttribute('name') || '').toUpperCase();
         const id = (inp.getAttribute('id') || '').toUpperCase();
-        if (ph.includes('NIK') || nm.includes('NIK') || id.includes('NIK') || inputs.length === 1) {
-            setNativeValue(inp, nik);
+        const aria = (inp.getAttribute('aria-label') || '').toUpperCase();
+
+        let labelText = '';
+        let parent = inp.parentElement;
+        for (let i = 0; i < 4 && parent; i++) {
+            labelText += ' ' + (parent.innerText || parent.textContent || '').trim().toUpperCase();
+            parent = parent.parentElement;
+        }
+
+        const combined = `${ph} ${nm} ${id} ${aria} ${labelText}`;
+        if (combined.includes('NIK') && !combined.includes('NISN') && !combined.includes('TEMPAT') && !combined.includes('TANGGAL')) {
+            if ((inp.value || '').trim() !== String(nik).trim()) {
+                console.log('[TPQ-EMIS Bridge] Otomatis mengisi NIK Step 1:', nik);
+                setNativeValue(inp, nik);
+            }
+            return true;
+        } else if (inputs.length === 1 && !combined.includes('TEMPAT') && !combined.includes('TANGGAL')) {
+            if ((inp.value || '').trim() !== String(nik).trim()) {
+                console.log('[TPQ-EMIS Bridge] Otomatis mengisi NIK Step 1 (single input):', nik);
+                setNativeValue(inp, nik);
+            }
             return true;
         }
     }
@@ -1813,6 +2083,9 @@ function tryFillNikInput(nik) {
  */
 function showStep0StartPopup(data) {
     if (!data) return;
+
+    // Aktifkan pengawas otomatis tab/radio Step 1
+    setupStep1AutoDetection(data);
 
     const popupId = 'tpq-step0-alert';
     const old = document.getElementById(popupId);
@@ -1840,124 +2113,117 @@ function showStep0StartPopup(data) {
     div.style.cssText = `
         position: fixed;
         top: 20px;
-        right: 20px;
-        z-index: 9999999;
-        background: #0d6efd;
-        color: white;
-        padding: 16px 18px;
+        right: 25px;
+        z-index: 999999;
+        width: 350px;
+        max-width: 95vw;
+        background: #ffffff;
+        border: 2px solid #0d6efd;
         border-radius: 8px;
-        box-shadow: 0 6px 25px rgba(0,0,0,0.35);
-        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         font-size: 13px;
-        max-width: 420px;
-        width: 380px;
-        line-height: 1.4;
+        color: #212529;
+        overflow: hidden;
+        transition: width 0.25s ease;
     `;
 
     div.innerHTML = `
-        <style>
-            .tpq-btn-copy-gold {
-                background: #ffc107;
-                color: #000;
-                border: none;
-                padding: 4px 10px;
-                border-radius: 4px;
-                font-size: 11.5px;
-                font-weight: bold;
-                cursor: pointer;
-                transition: background 0.2s, transform 0.1s;
-                white-space: nowrap;
-            }
-            .tpq-btn-copy-gold:hover {
-                background: #ffca2c;
-                transform: translateY(-1px);
-            }
-            @keyframes tpq-pulse {
-                0% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7); }
-                70% { box-shadow: 0 0 0 10px rgba(255, 193, 7, 0); }
-                100% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0); }
-            }
-            .tpq-pulse-btn {
-                animation: tpq-pulse 1.8s infinite;
-            }
-        </style>
-
-        <div id="tpq-step0-header" style="cursor: move; user-select: none; font-weight: bold; font-size: 14px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;">
-            <span>⚡ Mulai Isi Formulir EMIS</span>
-            <span style="font-size: 11px; background: rgba(255,255,255,0.25); padding: 2px 7px; border-radius: 4px; display: flex; align-items: center; gap: 4px;">
-                <span>⠿</span> <span>Geser</span>
-            </span>
-        </div>
-
-        <!-- Info Singkat Santri -->
-        <div style="background: rgba(0,0,0,0.22); padding: 8px 12px; border-radius: 6px; margin-bottom: 10px;">
-            <div style="font-size: 11px; opacity: 0.85;">CALON SANTRI:</div>
-            <div style="font-size: 14.5px; font-weight: bold; color: #fff;">${data.nama_santri}</div>
-            <div style="font-size: 12px; color: #e2e8f0; margin-top: 1px;">
-                Kelas: <strong style="color: #ffc107;">${data.tingkat_kelas || 'Santri Baru'}</strong>
+        <div id="tpq-step0-header" style="background: linear-gradient(135deg, #0d6efd, #0b5ed7); color: #fff; padding: 8px 12px; font-weight: bold; font-size: 13px; display: flex; justify-content: space-between; align-items: center; cursor: move; user-select: none;">
+            <div style="display: flex; align-items: center; gap: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 170px;" title="${escapeHtml(data.nama_santri)}">
+                <span style="font-size: 12px;">⚡ <strong>${escapeHtml(data.nama_santri)}</strong></span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 5px;">
+                <button id="tpq-btn-quick-step1" style="background: #198754; color: #fff; border: 1px solid rgba(255,255,255,0.4); border-radius: 4px; padding: 3px 8px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.15);" title="Mulai Isi Step 1 (Nama & TTL)">
+                    ⚡ Step 1
+                </button>
+                <button id="tpq-toggle-step0" style="background: rgba(255,255,255,0.25); border: 1px solid rgba(255,255,255,0.45); color: #fff; border-radius: 4px; padding: 3px 8px; font-size: 11px; font-weight: bold; cursor: pointer;" title="Buka panel panduan">
+                    ▼ Buka
+                </button>
+                <span id="tpq-close-step0-alert" style="cursor: pointer; font-size: 17px; line-height: 1; padding: 1px 4px; opacity: 0.85;" title="Tutup">&times;</span>
             </div>
         </div>
 
-        <!-- Opsi 1: Step 0 (Cari via NIK) -->
-        <div style="background: rgba(0,0,0,0.3); padding: 10px 12px; border-radius: 6px; margin-bottom: 10px; border-left: 3px solid #ffc107;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                <strong style="color: #ffc107; font-size: 12.5px;">🔍 Opsi 1: Cari via NIK (Step 0)</strong>
-            </div>
-            <div style="font-size: 11.5px; opacity: 0.9; margin-bottom: 6px;">
-                Jika ingin mencoba pencarian pada tab NIK di EMIS:
-            </div>
-            ${data.belum_punya_nik ? `
-                <div style="font-size: 11.5px; color: #ffc107; font-style: italic; background: rgba(0,0,0,0.2); padding: 5px 8px; border-radius: 4px;">
-                    ⚠️ Santri belum punya NIK (Silakan gunakan Opsi 2 / Step 1)
+        <div id="tpq-step0-body" style="display: none; padding: 12px 14px; max-height: 75vh; overflow-y: auto;">
+            <!-- Info Singkat Santri -->
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 12px; margin-bottom: 10px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <div style="font-weight: bold; font-size: 14px; color: #0d6efd;">${escapeHtml(data.nama_santri)}</div>
+                    <button class="tpq-copy-btn" data-val="${escapeHtml(data.nama_santri)}" style="border: 1px solid #ced4da; background: #fff; padding: 2px 6px; border-radius: 4px; font-size: 11px; cursor: pointer; color: #495057;" title="Salin Nama">📋 Salin</button>
                 </div>
-            ` : `
-                <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.15); padding: 6px 10px; border-radius: 4px;">
-                    <span style="font-family: monospace; font-size: 13.5px; font-weight: bold; color: #fff;">${data.nik || '-'}</span>
-                    <button id="tpq-btn-copy-nik-step0" class="tpq-btn-copy-gold" data-val="${data.nik || ''}">📋 Salin NIK</button>
+                <div style="font-size: 12px; color: #64748b;">
+                    Kelas: <strong>${escapeHtml(data.tingkat_kelas || 'Santri Baru')}</strong>
                 </div>
-            `}
-        </div>
+            </div>
 
-        <!-- Opsi 2: Step 1 (Cari via Nama & TTL) -->
-        <div id="tpq-opsi2-box" style="background: rgba(0,0,0,0.3); padding: 10px 12px; border-radius: 6px; margin-bottom: 12px; border-left: 3px solid #10b981;">
-            <div style="margin-bottom: 4px;">
-                <strong style="color: #6ee7b7; font-size: 12.5px;">📝 Opsi 2: Cari via Nama & TTL (Step 1)</strong>
+            <!-- Opsi 1: Step 0 (Cari via NIK) -->
+            <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 10px 12px; margin-bottom: 10px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <strong style="color: #1d4ed8; font-size: 12px;">🔍 Opsi 1: Cari via NIK (Step 0)</strong>
+                    <span style="font-size: 10px; background: #dbeafe; color: #1e40af; padding: 1px 6px; border-radius: 10px; font-weight: bold;">Auto-Fill</span>
+                </div>
+                <div style="font-size: 11.5px; color: #475569; margin-bottom: 6px;">
+                    ${data.belum_punya_nik ? '⚠️ Santri belum punya NIK (otomatis beralih ke Opsi 2)' : 'NIK otomatis diisikan ke kolom pencarian NIK di EMIS:'}
+                </div>
+                ${data.belum_punya_nik ? `
+                    <div style="font-size: 11.5px; color: #b45309; font-style: italic; background: #fff; border: 1px solid #fde68a; padding: 5px 8px; border-radius: 4px;">
+                        ⚠️ Santri belum punya NIK (Silakan gunakan Opsi 2)
+                    </div>
+                ` : `
+                    <div style="display: flex; align-items: center; justify-content: space-between; background: #fff; border: 1px solid #bfdbfe; padding: 6px 10px; border-radius: 4px;">
+                        <span style="font-family: monospace; font-size: 13px; font-weight: bold; color: #1e293b;">${escapeHtml(data.nik || '-')}</span>
+                        <button id="tpq-btn-copy-nik-step0" class="tpq-copy-btn" data-val="${escapeHtml(data.nik || '')}" style="border: 1px solid #bfdbfe; background: #eff6ff; padding: 2px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; color: #1d4ed8; font-weight: bold;" title="Salin NIK">📋 Salin NIK</button>
+                    </div>
+                `}
             </div>
-            <div style="font-size: 11.5px; opacity: 0.9; margin-bottom: 7px;">
-                Pilih tab <em>"Nama, Tempat, dan tanggal lahir"</em> di EMIS, lalu klik tombol isi:
-            </div>
-            <div style="font-size: 11.5px; background: rgba(0,0,0,0.2); padding: 5px 8px; border-radius: 4px; margin-bottom: 8px; line-height: 1.4;">
-                • Tempat Lahir: <strong>${data.tempat_lahir || '-'}</strong><br>
-                • Tanggal Lahir: <strong>${tglLahirLabel}</strong>
-            </div>
-            <button id="tpq-btn-start-step1" style="
-                width: 100%; background: #198754; color: #ffffff; border: none;
-                padding: 8px 12px; border-radius: 4px; font-size: 13px; font-weight: bold;
-                cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.25);
-                display: flex; align-items: center; justify-content: center; gap: 6px;
-                transition: background 0.2s;
-            ">
-                <span>⚡ Mulai Isi Step 1 (Nama & TTL)</span>
-            </button>
-        </div>
 
-        <!-- Footer -->
-        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11.5px;">
-            ${!isPpdbUrl ? `
-                <button id="tpq-btn-nav-ppdb" style="
-                    background: #ffc107; color: #000; border: none; padding: 5px 9px;
-                    border-radius: 4px; font-size: 11.5px; font-weight: bold; cursor: pointer;
-                ">🔗 Buka PPDB Baru</button>
-            ` : '<span></span>'}
-            <div style="display: flex; gap: 6px;">
-                <button id="tpq-btn-cancel-antrean" style="
-                    background: rgba(255,255,255,0.18); color: white; border: none;
-                    padding: 5px 10px; border-radius: 4px; cursor: pointer;
-                ">Batal</button>
-                <button id="tpq-close-step0-alert" style="
-                    background: rgba(255,255,255,0.28); color: white; border: none;
-                    padding: 5px 12px; border-radius: 4px; cursor: pointer; font-weight: 500;
-                ">Tutup</button>
+            <!-- Opsi 2: Step 1 (Cari via Nama & TTL) -->
+            <div id="tpq-opsi2-box" style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 10px 12px; margin-bottom: 12px;">
+                <div style="margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
+                    <strong style="color: #166534; font-size: 12px;">📝 Opsi 2: Cari via Nama & TTL (Step 1)</strong>
+                    <span style="font-size: 10px; background: #dcfce7; color: #15803d; padding: 1px 6px; border-radius: 10px; font-weight: bold;">Auto-Detect</span>
+                </div>
+                <div style="font-size: 11.5px; color: #475569; margin-bottom: 6px; line-height: 1.4;">
+                    Pilih radio <em>"Nama, Tempat, dan tanggal lahir"</em> di EMIS. Formulir akan <strong>otomatis terisi</strong> tanpa perlu menekan tombol lagi:
+                </div>
+                <div style="font-size: 11.5px; background: #fff; border: 1px solid #bbf7d0; padding: 6px 8px; border-radius: 4px; margin-bottom: 8px; line-height: 1.5;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px;">
+                        <span>Tempat: <strong>${escapeHtml(data.tempat_lahir || '-')}</strong></span>
+                        <button class="tpq-copy-btn" data-val="${escapeHtml(data.tempat_lahir || '')}" style="border: 1px solid #ced4da; background: #f8fafc; padding: 1px 5px; border-radius: 3px; font-size: 10px; cursor: pointer;">📋</button>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>Tgl Lahir: <strong>${escapeHtml(tglLahirLabel)}</strong></span>
+                        <button class="tpq-copy-btn" data-val="${escapeHtml(data.tanggal_lahir || '')}" style="border: 1px solid #ced4da; background: #f8fafc; padding: 1px 5px; border-radius: 3px; font-size: 10px; cursor: pointer;">📋</button>
+                    </div>
+                </div>
+                <button id="tpq-btn-start-step1" style="
+                    width: 100%; background: #198754; color: #ffffff; border: none;
+                    padding: 8px 12px; border-radius: 5px; font-size: 12px; font-weight: bold;
+                    cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+                    display: flex; align-items: center; justify-content: center; gap: 6px;
+                ">
+                    <span>⚡ Mulai Isi Step 1 (Manual Trigger)</span>
+                </button>
+            </div>
+
+            <!-- Footer Buttons -->
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 6px;">
+                ${!isPpdbUrl ? `
+                    <button id="tpq-btn-nav-ppdb" style="
+                        background: #f8fafc; color: #0d6efd; border: 1px solid #0d6efd; padding: 6px 10px;
+                        border-radius: 5px; font-size: 11px; font-weight: bold; cursor: pointer;
+                    ">🔗 Buka PPDB Baru</button>
+                ` : '<span></span>'}
+                <div style="display: flex; gap: 6px;">
+                    <button id="tpq-btn-cancel-antrean" style="
+                        background: transparent; color: #dc3545; border: 1px solid #fecaca;
+                        padding: 6px 10px; border-radius: 5px; font-size: 11px; cursor: pointer;
+                    ">Batal</button>
+                    <button id="tpq-btn-close-step0-body" style="
+                        background: #f8fafc; color: #64748b; border: 1px solid #cbd5e1;
+                        padding: 6px 12px; border-radius: 5px; font-size: 11px; cursor: pointer;
+                    ">Tutup</button>
+                </div>
             </div>
         </div>
     `;
@@ -1968,39 +2234,67 @@ function showStep0StartPopup(data) {
     const headerEl = document.getElementById('tpq-step0-header');
     makeDraggable(div, headerEl);
 
-    // Listener Tombol Salin NIK (Step 0)
-    const btnCopyNik = document.getElementById('tpq-btn-copy-nik-step0');
-    if (btnCopyNik) {
-        btnCopyNik.addEventListener('click', () => {
-            const val = btnCopyNik.getAttribute('data-val');
+    // Toggle Collapse / Expand Step 0
+    let isStep0Expanded = false;
+    const btnToggleStep0 = document.getElementById('tpq-toggle-step0');
+    const bodyStep0 = document.getElementById('tpq-step0-body');
+    function toggleStep0(forceState) {
+        isStep0Expanded = typeof forceState === 'boolean' ? forceState : !isStep0Expanded;
+        if (isStep0Expanded) {
+            div.style.width = '390px';
+            bodyStep0.style.display = 'block';
+            btnToggleStep0.innerHTML = '▲ Tutup';
+            btnToggleStep0.style.background = 'rgba(255,255,255,0.35)';
+        } else {
+            div.style.width = '350px';
+            bodyStep0.style.display = 'none';
+            btnToggleStep0.innerHTML = '▼ Buka';
+            btnToggleStep0.style.background = 'rgba(255,255,255,0.25)';
+        }
+    }
+    if (btnToggleStep0 && bodyStep0) {
+        btnToggleStep0.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleStep0();
+        });
+    }
+
+    // Pasang listener copy ke semua tombol .tpq-copy-btn di dalam Step 0
+    div.querySelectorAll('.tpq-copy-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const val = btn.getAttribute('data-val');
             if (val) {
                 navigator.clipboard.writeText(val);
-                tryFillNikInput(val);
-
-                const origText = btnCopyNik.innerText;
-                const origBg = btnCopyNik.style.background;
-                btnCopyNik.innerText = '✓ NIK Tersalin!';
-                btnCopyNik.style.background = '#198754';
-                btnCopyNik.style.color = '#fff';
+                if (btn.id === 'tpq-btn-copy-nik-step0') {
+                    tryFillNikInput(val);
+                }
+                const oldContent = btn.innerHTML;
+                btn.innerHTML = '✓';
+                btn.style.color = '#198754';
+                btn.style.borderColor = '#198754';
                 setTimeout(() => {
-                    btnCopyNik.innerText = origText;
-                    btnCopyNik.style.background = origBg;
-                    btnCopyNik.style.color = '#000';
-                }, 1500);
+                    btn.innerHTML = oldContent;
+                    btn.style.color = '';
+                    btn.style.borderColor = '';
+                }, 1200);
             }
         });
-    }
+    });
 
     // Listener Tombol Mulai Isi Step 1
+    const handleTriggerStep1 = () => {
+        const pill = document.getElementById('tpq-reopen-step0-pill');
+        if (pill) pill.remove();
+        div.remove();
+        fillEmisStep1(data);
+    };
+
     const btnStart1 = document.getElementById('tpq-btn-start-step1');
-    if (btnStart1) {
-        btnStart1.addEventListener('click', () => {
-            const pill = document.getElementById('tpq-reopen-step0-pill');
-            if (pill) pill.remove();
-            div.remove();
-            fillEmisStep1(data);
-        });
-    }
+    if (btnStart1) btnStart1.addEventListener('click', handleTriggerStep1);
+
+    const btnQuickStep1 = document.getElementById('tpq-btn-quick-step1');
+    if (btnQuickStep1) btnQuickStep1.addEventListener('click', handleTriggerStep1);
 
     // Listener Buka PPDB jika di luar halaman
     const btnNav = document.getElementById('tpq-btn-nav-ppdb');
@@ -2011,10 +2305,13 @@ function showStep0StartPopup(data) {
     }
 
     // Tutup popup -> Munculkan mini pill mengambang agar mudah dibuka kembali tanpa refresh
-    document.getElementById('tpq-close-step0-alert').addEventListener('click', () => {
+    const handleCloseStep0 = () => {
         div.remove();
         showStep0MiniPill(data);
-    });
+    };
+    document.getElementById('tpq-close-step0-alert').addEventListener('click', handleCloseStep0);
+    const btnCloseBody = document.getElementById('tpq-btn-close-step0-body');
+    if (btnCloseBody) btnCloseBody.addEventListener('click', handleCloseStep0);
 
     // Batal (hapus antrean santri dari storage)
     document.getElementById('tpq-btn-cancel-antrean').addEventListener('click', () => {
@@ -2050,7 +2347,6 @@ function showStep0StartPopup(data) {
                 // Tambahkan efek sorot pada tombol Mulai Isi Step 1
                 const btn1 = step0.querySelector('#tpq-btn-start-step1');
                 if (btn1) {
-                    btn1.classList.add('tpq-pulse-btn');
                     btn1.style.outline = '2px solid #ffc107';
                 }
             }
@@ -2115,147 +2411,153 @@ function showStep1Assistant(data) {
     div.id = alertId;
     div.style.cssText = `
         position: fixed;
-        bottom: 25px;
+        top: 20px;
         right: 25px;
-        z-index: 9999999;
-        background: #0d6efd;
-        color: white;
-        padding: 16px 20px;
+        z-index: 999999;
+        width: 350px;
+        max-width: 95vw;
+        background: #ffffff;
+        border: 2px solid #0d6efd;
         border-radius: 8px;
-        box-shadow: 0 6px 25px rgba(0,0,0,0.35);
-        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         font-size: 13px;
-        max-width: 420px;
+        color: #212529;
+        overflow: hidden;
+        transition: width 0.25s ease;
     `;
 
     // Format Tampilan Tanggal Lahir (YYYY-NamaBulan-DD agar mudah di kalender picker EMIS)
     const tglLahirLabel = data.tanggal_lahir_label || formatTanggalNamaBulan(data.tanggal_lahir);
 
-    // Tampilan NIK di Step 1
-    const nikDisplay = data.belum_punya_nik
-        ? '<span style="color: #ffc107; font-weight: 600;">(Belum Punya NIK)</span>'
-        : `<span style="font-family: monospace; font-size: 13px; color: #fff;">${data.nik || '-'}</span>
-           <button class="tpq-copy-badge" data-val="${data.nik || ''}">Salin</button>`;
-
     div.innerHTML = `
-        <style>
-            .tpq-copy-badge {
-                background: rgba(255, 255, 255, 0.25);
-                color: #fff;
-                border: 1px solid rgba(255, 255, 255, 0.4);
-                padding: 1px 6px;
-                border-radius: 3px;
-                font-size: 11px;
-                font-weight: bold;
-                cursor: pointer;
-                margin-left: 6px;
-                transition: background 0.2s;
-            }
-            .tpq-copy-badge:hover {
-                background: rgba(255, 255, 255, 0.45);
-            }
-            .tpq-data-row {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 5px;
-                font-size: 12.5px;
-            }
-        </style>
-
-        <div id="tpq-step1-header" style="cursor: move; user-select: none; font-weight: bold; font-size: 14px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;">
-            <span>✅ Step 1: Validasi Awal Santri</span>
-            <span style="font-size: 11px; background: rgba(255,255,255,0.25); padding: 2px 7px; border-radius: 4px; display: flex; align-items: center; gap: 4px;">
-                <span>⠿</span> <span>Geser</span>
-            </span>
+        <div id="tpq-step1-header" style="background: linear-gradient(135deg, #0d6efd, #0b5ed7); color: #fff; padding: 8px 12px; font-weight: bold; font-size: 13px; display: flex; justify-content: space-between; align-items: center; cursor: move; user-select: none;">
+            <div style="display: flex; align-items: center; gap: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 170px;" title="${escapeHtml(data.nama_santri)}">
+                <span style="font-size: 12px;">⚡ <strong>${escapeHtml(data.nama_santri)}</strong></span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 5px;">
+                <button id="tpq-btn-quick-copy-tgl-step1" style="background: #198754; color: #fff; border: 1px solid rgba(255,255,255,0.4); border-radius: 4px; padding: 3px 8px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.15);" title="Salin Tanggal Lahir">
+                    📅 Salin Tgl
+                </button>
+                <button id="tpq-toggle-step1-body" style="background: rgba(255,255,255,0.25); border: 1px solid rgba(255,255,255,0.45); color: #fff; border-radius: 4px; padding: 3px 8px; font-size: 11px; font-weight: bold; cursor: pointer;" title="Buka panel panduan">
+                    ▼ Buka
+                </button>
+                <span id="tpq-close-step1-alert" style="cursor: pointer; font-size: 17px; line-height: 1; padding: 1px 4px; opacity: 0.85;" title="Tutup">&times;</span>
+            </div>
         </div>
 
-        <div style="background: rgba(0,0,0,0.2); padding: 9px 12px; border-radius: 6px; margin-bottom: 10px;">
-            <!-- Nama Santri -->
-            <div class="tpq-data-row">
-                <span>• <strong>Nama:</strong></span>
-                <div>
-                    <span style="font-weight: 600; color: #fff;">${data.nama_santri}</span>
-                    <button class="tpq-copy-badge" data-val="${data.nama_santri}">Salin</button>
+        <div id="tpq-step1-body" style="display: none; padding: 12px 14px; max-height: 75vh; overflow-y: auto;">
+            <!-- Info Singkat Santri -->
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 12px; margin-bottom: 10px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <div style="font-weight: bold; font-size: 14px; color: #0d6efd;">${escapeHtml(data.nama_santri)}</div>
+                    <button class="tpq-copy-btn" data-val="${escapeHtml(data.nama_santri)}" style="border: 1px solid #ced4da; background: #fff; padding: 2px 6px; border-radius: 4px; font-size: 11px; cursor: pointer; color: #495057;" title="Salin Nama">📋 Salin</button>
+                </div>
+                <div style="font-size: 12px; color: #64748b; display: flex; flex-direction: column; gap: 4px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>Tempat Lahir: <strong>${escapeHtml(data.tempat_lahir || '-')}</strong></span>
+                        ${data.tempat_lahir ? `<button class="tpq-copy-btn" data-val="${escapeHtml(data.tempat_lahir)}" style="border: 1px solid #ced4da; background: #fff; padding: 1px 5px; border-radius: 3px; font-size: 10px; cursor: pointer;">📋</button>` : ''}
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>NIK: <strong>${escapeHtml(data.nik || '(Belum Ada)')}</strong></span>
+                        ${data.nik ? `<button class="tpq-copy-btn" data-val="${escapeHtml(data.nik)}" style="border: 1px solid #ced4da; background: #fff; padding: 1px 5px; border-radius: 3px; font-size: 10px; cursor: pointer;">📋</button>` : ''}
+                    </div>
                 </div>
             </div>
 
-            <!-- Tempat Lahir -->
-            <div class="tpq-data-row">
-                <span>• <strong>Tempat Lahir:</strong></span>
-                <div>
-                    <span style="color: #fff;">${data.tempat_lahir || '-'}</span>
-                    <button class="tpq-copy-badge" data-val="${data.tempat_lahir || ''}">Salin</button>
+            <!-- Tanggal Lahir Card -->
+            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 10px 12px; margin-bottom: 10px;">
+                <div style="font-size: 11px; font-weight: bold; color: #166534; margin-bottom: 4px;">
+                    📅 Tanggal Lahir (Pilih di Kalender EMIS):
+                </div>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 4px;">
+                    <span style="font-size: 15px; font-weight: bold; color: #15803d;">${escapeHtml(tglLahirLabel)}</span>
+                    <button id="tpq-btn-copy-tgl-step1" class="tpq-copy-btn" data-val="${escapeHtml(data.tanggal_lahir || '')}" style="
+                        background: #198754; color: #fff; border: none; padding: 3px 8px;
+                        border-radius: 4px; font-size: 11px; font-weight: bold; cursor: pointer;
+                    ">📋 Salin</button>
                 </div>
             </div>
 
-            <!-- NIK -->
-            <div class="tpq-data-row" style="margin-bottom: 0;">
-                <span>• <strong>NIK:</strong></span>
-                <div>${nikDisplay}</div>
+            <!-- Hint Card -->
+            <div style="font-size: 11px; color: #64748b; line-height: 1.4; margin-bottom: 12px; background: #fffbeb; border: 1px solid #fef3c7; border-radius: 6px; padding: 8px 10px;">
+                Setelah memilih tanggal lahir, klik tombol <strong>SELANJUTNYA</strong> di formulir EMIS.
             </div>
-        </div>
-        
-        <div style="background: rgba(0,0,0,0.3); padding: 10px 12px; border-radius: 6px; margin-bottom: 10px;">
-            <div style="font-weight: bold; color: #ffc107; margin-bottom: 4px;">
-                👉 Tugas Anda:
-            </div>
-            <div>Pilih <strong>TANGGAL LAHIR</strong> di kalender EMIS:</div>
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 6px;">
-                <span style="font-size: 16px; font-weight: bold; color: #fff;">📅 ${tglLahirLabel}</span>
-                <button id="tpq-btn-copy-tgl-step1" style="
-                    background: #ffc107; color: #000; border: none; padding: 4px 10px;
-                    border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer;
-                ">Salin Tanggal</button>
-            </div>
-            <div style="font-size: 11px; opacity: 0.85; margin-top: 4px;">(Sudah otomatis disalin ke clipboard)</div>
-        </div>
 
-        <div style="font-size: 11.5px; opacity: 0.95; line-height: 1.4; margin-bottom: 10px;">
-            Setelah memilih tanggal lahir, klik tombol <strong style="background: rgba(255,255,255,0.25); padding: 1px 6px; border-radius: 3px;">SELANJUTNYA</strong> di formulir EMIS.<br>
-            <span style="font-size: 11px; opacity: 0.85;">(Popup ini otomatis tertutup saat tombol ditekan & dapat digeser jika menutupi form)</span>
+            <button id="tpq-btn-close-step1-body" style="
+                width: 100%; background: #f8fafc; color: #64748b; border: 1px solid #cbd5e1;
+                padding: 6px 12px; border-radius: 5px; font-size: 11.5px; cursor: pointer;
+            ">Tutup Panduan</button>
         </div>
-
-        <button id="tpq-close-step1-alert" style="
-            background: rgba(255,255,255,0.25); color: white; border: none;
-            padding: 5px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;
-        ">Tutup</button>
     `;
 
     document.body.appendChild(div);
-    document.getElementById('tpq-close-step1-alert').addEventListener('click', () => div.remove());
 
-    // Jadikan popup Step 1 dapat digeser (draggable)
+    // Draggable
     const headerEl = document.getElementById('tpq-step1-header');
     makeDraggable(div, headerEl);
 
-    // Pasang listener tombol salin tanggal
-    const btnCopyTgl = document.getElementById('tpq-btn-copy-tgl-step1');
-    if (btnCopyTgl && data.tanggal_lahir) {
-        btnCopyTgl.addEventListener('click', () => {
-            navigator.clipboard.writeText(data.tanggal_lahir);
-            btnCopyTgl.innerText = 'Tersalin!';
-            setTimeout(() => { btnCopyTgl.innerText = 'Salin Tanggal'; }, 1500);
+    // Toggle Collapse / Expand Step 1
+    let isStep1Expanded = false;
+    const btnToggleStep1 = document.getElementById('tpq-toggle-step1-body');
+    const bodyStep1 = document.getElementById('tpq-step1-body');
+    function toggleStep1(forceState) {
+        isStep1Expanded = typeof forceState === 'boolean' ? forceState : !isStep1Expanded;
+        if (isStep1Expanded) {
+            div.style.width = '390px';
+            bodyStep1.style.display = 'block';
+            btnToggleStep1.innerHTML = '▲ Tutup';
+            btnToggleStep1.style.background = 'rgba(255,255,255,0.35)';
+        } else {
+            div.style.width = '350px';
+            bodyStep1.style.display = 'none';
+            btnToggleStep1.innerHTML = '▼ Buka';
+            btnToggleStep1.style.background = 'rgba(255,255,255,0.25)';
+        }
+    }
+    if (btnToggleStep1 && bodyStep1) {
+        btnToggleStep1.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleStep1();
         });
     }
 
-    // Pasang listener ke semua tombol copy badge di dalam Step 1
-    const copyBadges = div.querySelectorAll('.tpq-copy-badge');
-    copyBadges.forEach(btn => {
-        btn.addEventListener('click', () => {
+    // Pasang listener copy ke semua tombol .tpq-copy-btn di dalam Step 1
+    div.querySelectorAll('.tpq-copy-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
             const val = btn.getAttribute('data-val');
             if (val) {
                 navigator.clipboard.writeText(val);
-                const originalText = btn.innerText;
-                btn.innerText = 'Tersalin!';
-                btn.style.background = '#198754';
+                const oldContent = btn.innerHTML;
+                btn.innerHTML = '✓';
+                btn.style.color = '#198754';
+                btn.style.borderColor = '#198754';
                 setTimeout(() => {
-                    btn.innerText = originalText;
-                    btn.style.background = 'rgba(255, 255, 255, 0.25)';
+                    btn.innerHTML = oldContent;
+                    btn.style.color = '';
+                    btn.style.borderColor = '';
                 }, 1200);
             }
         });
     });
+
+    // Quick copy button in header
+    const btnQuickTgl = document.getElementById('tpq-btn-quick-copy-tgl-step1');
+    if (btnQuickTgl && data.tanggal_lahir) {
+        btnQuickTgl.addEventListener('click', (e) => {
+            e.stopPropagation();
+            navigator.clipboard.writeText(data.tanggal_lahir);
+            const oldText = btnQuickTgl.innerHTML;
+            btnQuickTgl.innerHTML = '✓ Tersalin!';
+            setTimeout(() => { btnQuickTgl.innerHTML = oldText; }, 1500);
+        });
+    }
+
+    // Close handlers
+    document.getElementById('tpq-close-step1-alert').addEventListener('click', () => div.remove());
+    const btnCloseBody = document.getElementById('tpq-btn-close-step1-body');
+    if (btnCloseBody) btnCloseBody.addEventListener('click', () => div.remove());
 
     // Pasang listener langsung ke semua tombol SELANJUTNYA di halaman
     const allBtns = Array.from(document.querySelectorAll('button, a, div[role="button"]'));
@@ -2309,272 +2611,228 @@ function showStep2Assistant(data, filledAyah = false, filledIbu = false, filledN
     div.id = alertId;
     div.style.cssText = `
         position: fixed;
-        bottom: 25px;
+        top: 20px;
         right: 25px;
-        z-index: 9999999;
-        background: #0d6efd;
-        color: white;
-        padding: 16px 20px;
+        z-index: 999999;
+        width: 350px;
+        max-width: 95vw;
+        background: #ffffff;
+        border: 2px solid #0d6efd;
         border-radius: 8px;
-        box-shadow: 0 6px 25px rgba(0,0,0,0.35);
-        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         font-size: 13px;
-        max-width: 440px;
+        color: #212529;
+        overflow: hidden;
+        transition: width 0.25s ease;
     `;
 
     // Format Tampilan Tanggal Masuk & Tanggal Lahir (YYYY-NamaBulan-DD)
     const tglMasukLabel = data.tanggal_masuk_label || formatTanggalNamaBulan(data.tanggal_masuk);
-    const tglLahirLabel = data.tanggal_lahir_label || formatTanggalNamaBulan(data.tanggal_lahir);
-
-    // Tampilan NIK di Step 2 (Otomatis terisi)
-    let nikDisplay = '';
-    if (data.belum_punya_nik || !data.nik) {
-        nikDisplay = '<span style="color: #ffc107; font-weight: 600;">[✓] Belum Punya NIK</span>';
-    } else {
-        nikDisplay = `<span style="font-family: monospace; font-size: 13px; color: #fff;">${data.nik}</span>
-           <button class="tpq-copy-badge" data-val="${data.nik}">Salin</button>`;
-    }
-
-    // Tampilan NISN di Step 2 (Otomatis terisi / centang belum punya NISN)
-    let nisnDisplay = '';
-    if (data.belum_punya_nisn || !data.nisn) {
-        nisnDisplay = '<span style="color: #ffc107; font-weight: 600;">[✓] Belum Punya NISN</span>';
-    } else {
-        nisnDisplay = `<span style="font-family: monospace; font-size: 13px; color: #fff;">${data.nisn}</span>
-           <button class="tpq-copy-badge" data-val="${data.nisn}">Salin</button>`;
-    }
-
-    // Tampilan No Handphone di Step 2 (Otomatis terisi format +62)
     const formattedHp = formatEmisPhoneNumber(data.no_hp);
-    let hpDisplay = '';
-    if (data.tidak_punya_hp || !formattedHp) {
-        hpDisplay = '<span style="color: #ffc107; font-weight: 600;">[✓] Tidak Punya HP</span>';
-    } else {
-        hpDisplay = `<span style="font-family: monospace; font-size: 13px; color: #fff;">${formattedHp}</span>
-           <button class="tpq-copy-badge" data-val="${formattedHp}">Salin</button>`;
-    }
 
     div.innerHTML = `
-        <style>
-            .tpq-copy-badge {
-                background: rgba(255, 255, 255, 0.25);
-                color: #fff;
-                border: 1px solid rgba(255, 255, 255, 0.4);
-                padding: 1px 6px;
-                border-radius: 3px;
-                font-size: 11px;
-                font-weight: bold;
-                cursor: pointer;
-                margin-left: 6px;
-                transition: background 0.2s;
-            }
-            .tpq-copy-badge:hover {
-                background: rgba(255, 255, 255, 0.45);
-            }
-            .tpq-data-row {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 5px;
-                font-size: 12.5px;
-            }
-            .tpq-manual-row {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 6px;
-                font-size: 12.5px;
-                border-bottom: 1px dashed rgba(255, 255, 255, 0.2);
-                padding-bottom: 4px;
-            }
-        </style>
-
-        <div id="tpq-step2-header" style="cursor: move; user-select: none; font-weight: bold; font-size: 13px; display: flex; align-items: center; justify-content: space-between; gap: 8px;">
-            <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 250px;">
-                <span>📋 Step 2: <strong>${escapeHtml(data.nama_santri)}</strong></span>
+        <div id="tpq-step2-header" style="background: linear-gradient(135deg, #0d6efd, #0b5ed7); color: #fff; padding: 8px 12px; font-weight: bold; font-size: 13px; display: flex; justify-content: space-between; align-items: center; cursor: move; user-select: none;">
+            <div style="display: flex; align-items: center; gap: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 160px;" title="${escapeHtml(data.nama_santri)}">
+                <span style="font-size: 12px;">⚡ <strong>${escapeHtml(data.nama_santri)}</strong></span>
             </div>
-            <div style="display: flex; align-items: center; gap: 6px;">
-                <button id="tpq-toggle-step2-asst" style="background: rgba(255,255,255,0.25); border: 1px solid rgba(255,255,255,0.45); color: #fff; border-radius: 4px; padding: 2px 7px; font-size: 11px; font-weight: bold; cursor: pointer;">
+            <div style="display: flex; align-items: center; gap: 5px;">
+                <button id="tpq-btn-quick-selesai-step2" style="background: #198754; color: #fff; border: 1px solid rgba(255,255,255,0.4); border-radius: 4px; padding: 3px 8px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.15);" title="Selesaikan pendaftaran & tandai selesai">
+                    ✓ Selesai
+                </button>
+                <button id="tpq-toggle-step2-asst" style="background: rgba(255,255,255,0.25); border: 1px solid rgba(255,255,255,0.45); color: #fff; border-radius: 4px; padding: 3px 8px; font-size: 11px; font-weight: bold; cursor: pointer;" title="Buka panel panduan">
                     ▼ Buka
                 </button>
-                <span id="tpq-close-step2-alert-top" style="cursor: pointer; font-size: 18px; line-height: 1; padding: 0 4px;" title="Tutup">&times;</span>
+                <span id="tpq-close-step2-alert-top" style="cursor: pointer; font-size: 17px; line-height: 1; padding: 1px 4px; opacity: 0.85;" title="Tutup">&times;</span>
             </div>
         </div>
 
-        <div id="tpq-step2-body" style="display: none; margin-top: 10px;">
-        <!-- BAGIAN ATAS: DATA YANG TERISI OTOMATIS / BISA DISALIN -->
-        <div style="background: rgba(0,0,0,0.2); padding: 9px 12px; border-radius: 6px; margin-bottom: 10px;">
-            <div style="font-size: 11px; font-weight: bold; color: rgba(255,255,255,0.85); margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;">
-                <span>✨ TERISI OTOMATIS (Bisa Disalin):</span>
-                <span style="font-size: 10.5px; background: #198754; color: white; padding: 1px 6px; border-radius: 3px;">Auto-Filled ✓</span>
-            </div>
-
-            <!-- NIK -->
-            <div class="tpq-data-row">
-                <span>• <strong>NIK:</strong></span>
-                <div>${nikDisplay}</div>
-            </div>
-
-            <!-- NISN -->
-            <div class="tpq-data-row">
-                <span>• <strong>NISN:</strong></span>
-                <div>${nisnDisplay}</div>
-            </div>
-
-            <!-- No HP -->
-            <div class="tpq-data-row">
-                <span>• <strong>No HP:</strong></span>
-                <div>${hpDisplay}</div>
-            </div>
-
-            <!-- Tingkat Kelas (Otomatis Dipilih) -->
-            <div class="tpq-data-row">
-                <span>• <strong>Tingkat Kelas:</strong></span>
-                <div>
-                    <span style="font-weight: 600; color: #fff;">${normalizedKelas || data.tingkat_kelas || '-'}</span>
-                    <span style="font-size: 10.5px; background: #198754; color: white; padding: 1px 6px; border-radius: 3px; margin-left: 6px;">Dipilih ✓</span>
+        <div id="tpq-step2-body" style="display: none; padding: 12px 14px; max-height: 75vh; overflow-y: auto;">
+            <!-- Info Singkat Santri -->
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 12px; margin-bottom: 10px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <div style="font-weight: bold; font-size: 14px; color: #0d6efd;">${escapeHtml(data.nama_santri)}</div>
+                    <button class="tpq-copy-btn" data-val="${escapeHtml(data.nama_santri)}" style="border: 1px solid #ced4da; background: #fff; padding: 2px 6px; border-radius: 4px; font-size: 11px; cursor: pointer; color: #495057;" title="Salin Nama">📋 Salin</button>
+                </div>
+                <div style="font-size: 12px; color: #64748b;">
+                    Kelas: <strong>${escapeHtml(normalizedKelas || data.tingkat_kelas || '-')}</strong>
                 </div>
             </div>
 
-            <!-- Ayah Kandung -->
-            <div class="tpq-data-row">
-                <span>• <strong>Ayah:</strong></span>
-                <div>
-                    <span style="font-weight: 600; color: #fff;">${data.nama_ayah || '-'}</span>
-                    ${data.nama_ayah ? `<button class="tpq-copy-badge" data-val="${data.nama_ayah}">Salin</button>` : ''}
+            <!-- Auto-filled Data Card -->
+            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 10px 12px; margin-bottom: 10px; font-size: 12px;">
+                <div style="font-size: 11px; font-weight: bold; color: #166534; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;">
+                    <span>✨ TERISI OTOMATIS:</span>
+                    <span style="font-size: 10px; background: #dcfce7; color: #15803d; padding: 1px 6px; border-radius: 10px; font-weight: bold;">Auto-Filled ✓</span>
+                </div>
+
+                <!-- NIK -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <span>NIK:</span>
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <strong>${escapeHtml(data.nik || '(Belum Ada)')}</strong>
+                        ${data.nik ? `<button class="tpq-copy-btn" data-val="${escapeHtml(data.nik)}" style="border: 1px solid #ced4da; background: #fff; padding: 1px 5px; border-radius: 3px; font-size: 10px; cursor: pointer;">📋</button>` : ''}
+                    </div>
+                </div>
+
+                <!-- NISN -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <span>NISN:</span>
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <strong>${escapeHtml(data.nisn || '(Belum Ada)')}</strong>
+                        ${data.nisn ? `<button class="tpq-copy-btn" data-val="${escapeHtml(data.nisn)}" style="border: 1px solid #ced4da; background: #fff; padding: 1px 5px; border-radius: 3px; font-size: 10px; cursor: pointer;">📋</button>` : ''}
+                    </div>
+                </div>
+
+                <!-- No HP -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <span>No HP:</span>
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <strong>${escapeHtml(formattedHp || '(Tidak Ada)')}</strong>
+                        ${formattedHp ? `<button class="tpq-copy-btn" data-val="${escapeHtml(formattedHp)}" style="border: 1px solid #ced4da; background: #fff; padding: 1px 5px; border-radius: 3px; font-size: 10px; cursor: pointer;">📋</button>` : ''}
+                    </div>
+                </div>
+
+                <!-- Ayah -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <span>Ayah:</span>
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <strong>${escapeHtml(data.nama_ayah || '-')}</strong>
+                        ${data.nama_ayah ? `<button class="tpq-copy-btn" data-val="${escapeHtml(data.nama_ayah)}" style="border: 1px solid #ced4da; background: #fff; padding: 1px 5px; border-radius: 3px; font-size: 10px; cursor: pointer;">📋</button>` : ''}
+                    </div>
+                </div>
+
+                <!-- Ibu -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <span>Ibu:</span>
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <strong>${escapeHtml(data.nama_ibu || '-')}</strong>
+                        ${data.nama_ibu ? `<button class="tpq-copy-btn" data-val="${escapeHtml(data.nama_ibu)}" style="border: 1px solid #ced4da; background: #fff; padding: 1px 5px; border-radius: 3px; font-size: 10px; cursor: pointer;">📋</button>` : ''}
+                    </div>
+                </div>
+
+                <!-- JK & Kelas -->
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>JK / Kelas:</span>
+                    <strong>${escapeHtml(data.jenis_kelamin || '-')} | ${escapeHtml(normalizedKelas || data.tingkat_kelas || '-')}</strong>
                 </div>
             </div>
 
-            <!-- Ibu Kandung -->
-            <div class="tpq-data-row">
-                <span>• <strong>Ibu:</strong></span>
-                <div>
-                    <span style="font-weight: 600; color: #fff;">${data.nama_ibu || '-'}</span>
-                    ${data.nama_ibu ? `<button class="tpq-copy-badge" data-val="${data.nama_ibu}">Salin</button>` : ''}
+            <!-- Manual Checklist Card -->
+            <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 10px 12px; margin-bottom: 10px; font-size: 12px;">
+                <div style="font-weight: bold; color: #1d4ed8; margin-bottom: 6px;">
+                    👉 Tugas Anda (Pilih Manual di EMIS):
+                </div>
+
+                <!-- 1. Tanggal Masuk -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; border-bottom: 1px dashed #bfdbfe; padding-bottom: 4px;">
+                    <span>1. Tgl Masuk:</span>
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <strong style="color: #1e40af;">📅 ${escapeHtml(tglMasukLabel)}</strong>
+                        <button class="tpq-copy-btn" data-val="${escapeHtml(data.tanggal_masuk || '')}" style="border: 1px solid #bfdbfe; background: #fff; padding: 1px 5px; border-radius: 3px; font-size: 10px; cursor: pointer; color: #1d4ed8;">📋</button>
+                    </div>
+                </div>
+
+                <!-- 2. Status Ortu & Wali -->
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>2. Status Ortu:</span>
+                    <span style="color: #475569; font-weight: 500;">Masih Hidup | Wali: Ayah</span>
                 </div>
             </div>
 
-            <!-- Jenis Kelamin (Otomatis Dipilih) -->
-            <div class="tpq-data-row" style="margin-bottom: 0;">
-                <span>• <strong>Jenis Kelamin:</strong></span>
-                <div>
-                    <span style="font-weight: 600; color: #fff;">${data.jenis_kelamin || '-'}</span>
-                    <span style="font-size: 10.5px; background: #198754; color: white; padding: 1px 6px; border-radius: 3px; margin-left: 6px;">Dipilih ✓</span>
+            <div style="font-size: 11px; color: #64748b; line-height: 1.4; margin-bottom: 12px; background: #fffbeb; border: 1px solid #fef3c7; border-radius: 6px; padding: 8px 10px;">
+                Setelah semua opsi dipilih, tekan tombol <strong>SIMPAN</strong> di pojok kanan bawah EMIS.
+            </div>
+
+            <!-- Action Buttons -->
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+                <button id="tpq-btn-lanjut-update-alamat" style="
+                    background: #0d6efd; color: #ffffff; border: none; padding: 8px 12px;
+                    border-radius: 5px; font-size: 12px; font-weight: bold; cursor: pointer; width: 100%;
+                ">
+                    🚀 Simpan & Lanjut Update Alamat di Kesiswaan
+                </button>
+                <div style="display: flex; gap: 6px;">
+                    <button id="tpq-btn-tandai-selesai-step2" style="
+                        background: #198754; color: #ffffff; border: none; padding: 6px 10px;
+                        border-radius: 5px; font-size: 11.5px; font-weight: bold; cursor: pointer; flex: 1;
+                    ">✓ Selesai Saja</button>
+                    <button id="tpq-close-step2-alert" style="
+                        background: #f8fafc; color: #64748b; border: 1px solid #cbd5e1;
+                        padding: 6px 10px; border-radius: 5px; font-size: 11.5px; cursor: pointer; flex: 0.8;
+                    ">Tutup</button>
                 </div>
             </div>
-        </div>
-
-        <!-- BAGIAN BAWAH: TUGAS ANDA (YANG PERLU DIPILIH MANUAL DI EMIS) -->
-        <div style="background: rgba(0,0,0,0.3); padding: 10px 12px; border-radius: 6px; margin-bottom: 10px;">
-            <div style="font-weight: bold; color: #ffc107; margin-bottom: 6px;">
-                👉 Tugas Anda (Pilih Manual di EMIS):
-            </div>
-
-            <!-- 1. Tanggal Masuk -->
-            <div class="tpq-manual-row">
-                <span>1. <strong>Tgl Masuk:</strong></span>
-                <div style="display: flex; align-items: center; gap: 4px;">
-                    <span style="font-size: 14px; font-weight: bold; color: #fff;">📅 ${tglMasukLabel}</span>
-                    <button class="tpq-copy-badge" data-val="${data.tanggal_masuk || ''}" style="background: #ffc107; color: #000; border: none;">Salin</button>
-                </div>
-            </div>
-
-            <!-- 2. Status Ortu & Wali -->
-            <div class="tpq-manual-row" style="margin-bottom: 0; border-bottom: none; padding-bottom: 0;">
-                <span>2. <strong>Status Ortu:</strong></span>
-                <span style="color: #fff; font-size: 12px;">Masih Hidup | Wali: Ayah</span>
-            </div>
-        </div>
-
-        <div style="font-size: 11.5px; opacity: 0.95; line-height: 1.4; margin-bottom: 10px;">
-            Setelah semua opsi dipilih, tekan tombol <strong style="background: rgba(255,255,255,0.25); padding: 1px 6px; border-radius: 3px;">SIMPAN</strong> di pojok kanan bawah EMIS.<br>
-            <span style="font-size: 11px; opacity: 0.85;">(Popup ini dapat digeser jika menutupi formulir)</span>
-        </div>
-
-        <div style="display: flex; flex-direction: column; gap: 8px;">
-            <button id="tpq-btn-lanjut-update-alamat" style="
-                background: linear-gradient(135deg, #0d6efd, #0b5ed7); color: #ffffff; border: 1px solid rgba(255,255,255,0.4); padding: 9px 12px;
-                border-radius: 5px; font-size: 12.5px; font-weight: bold; cursor: pointer; width: 100%;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.25); display: flex; align-items: center; justify-content: center; gap: 6px;
-            ">
-                <span>🚀 Simpan & Lanjut Update Alamat di Kesiswaan</span>
-            </button>
-            <div style="display: flex; gap: 6px;">
-                <button id="tpq-btn-tandai-selesai-step2" style="
-                    background: #198754; color: #ffffff; border: none; padding: 7px 10px;
-                    border-radius: 4px; font-size: 11.5px; font-weight: bold; cursor: pointer; flex: 1;
-                    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-                ">✓ Selesai Saja</button>
-                <button id="tpq-close-step2-alert" style="
-                    background: rgba(255,255,255,0.25); color: white; border: none;
-                    padding: 7px 10px; border-radius: 4px; font-size: 11.5px; cursor: pointer;
-                ">Tutup</button>
-            </div>
-        </div>
         </div>
     `;
 
     document.body.appendChild(div);
 
-    let isStep2AsstExpanded = false;
-    const btnToggleStep2Asst = document.getElementById('tpq-toggle-step2-asst');
-    const bodyStep2Asst = document.getElementById('tpq-step2-body');
-    if (btnToggleStep2Asst && bodyStep2Asst) {
-        btnToggleStep2Asst.addEventListener('click', (e) => {
-            e.stopPropagation();
-            isStep2AsstExpanded = !isStep2AsstExpanded;
-            bodyStep2Asst.style.display = isStep2AsstExpanded ? 'block' : 'none';
-            btnToggleStep2Asst.innerHTML = isStep2AsstExpanded ? '▲ Tutup' : '▼ Buka';
-            btnToggleStep2Asst.style.background = isStep2AsstExpanded ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.25)';
-        });
-    }
-
-    const closeTop = document.getElementById('tpq-close-step2-alert-top');
-    if (closeTop) {
-        closeTop.addEventListener('click', () => {
-            chrome.storage.local.remove(['pendingSantriData', 'waitingForStep2']);
-            div.remove();
-            showTemporaryFloatingToast('Antrean pendaftaran santri ditutup.', 'danger');
-        });
-    }
-
-    document.getElementById('tpq-close-step2-alert').addEventListener('click', () => {
-        chrome.storage.local.remove(['pendingSantriData', 'waitingForStep2']);
-        div.remove();
-        showTemporaryFloatingToast('Antrean pendaftaran santri ditutup.', 'danger');
-    });
-
-    // Jadikan popup Step 2 dapat digeser (draggable)
+    // Draggable
     const headerEl = document.getElementById('tpq-step2-header');
     makeDraggable(div, headerEl);
 
-    // Pasang listener copy badge
-    const copyBtns = div.querySelectorAll('.tpq-copy-badge');
-    copyBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
+    // Toggle Collapse / Expand Step 2
+    let isStep2AsstExpanded = false;
+    const btnToggleStep2Asst = document.getElementById('tpq-toggle-step2-asst');
+    const bodyStep2Asst = document.getElementById('tpq-step2-body');
+    function toggleStep2Asst(forceState) {
+        isStep2AsstExpanded = typeof forceState === 'boolean' ? forceState : !isStep2AsstExpanded;
+        if (isStep2AsstExpanded) {
+            div.style.width = '390px';
+            bodyStep2Asst.style.display = 'block';
+            btnToggleStep2Asst.innerHTML = '▲ Tutup';
+            btnToggleStep2Asst.style.background = 'rgba(255,255,255,0.35)';
+        } else {
+            div.style.width = '350px';
+            bodyStep2Asst.style.display = 'none';
+            btnToggleStep2Asst.innerHTML = '▼ Buka';
+            btnToggleStep2Asst.style.background = 'rgba(255,255,255,0.25)';
+        }
+    }
+    if (btnToggleStep2Asst && bodyStep2Asst) {
+        btnToggleStep2Asst.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleStep2Asst();
+        });
+    }
+
+    // Pasang listener copy ke semua tombol .tpq-copy-btn di dalam Step 2
+    div.querySelectorAll('.tpq-copy-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
             const val = btn.getAttribute('data-val');
             if (val) {
                 navigator.clipboard.writeText(val);
-                const originalText = btn.innerText;
-                const originalBg = btn.style.background;
-                const originalColor = btn.style.color;
-                btn.innerText = 'Tersalin!';
-                btn.style.background = '#198754';
-                btn.style.color = '#fff';
+                const oldContent = btn.innerHTML;
+                btn.innerHTML = '✓';
+                btn.style.color = '#198754';
+                btn.style.borderColor = '#198754';
                 setTimeout(() => {
-                    btn.innerText = originalText;
-                    btn.style.background = originalBg;
-                    btn.style.color = originalColor;
+                    btn.innerHTML = oldContent;
+                    btn.style.color = '';
+                    btn.style.borderColor = '';
                 }, 1200);
             }
         });
     });
 
+    const handleCloseStep2 = () => {
+        chrome.storage.local.remove(['pendingSantriData', 'waitingForStep2']);
+        div.remove();
+        showTemporaryFloatingToast('Antrean pendaftaran santri ditutup.', 'danger');
+    };
+
+    const closeTop = document.getElementById('tpq-close-step2-alert-top');
+    if (closeTop) closeTop.addEventListener('click', handleCloseStep2);
+
+    const btnCloseBottom = document.getElementById('tpq-close-step2-alert');
+    if (btnCloseBottom) btnCloseBottom.addEventListener('click', handleCloseStep2);
+
     // Tombol Lanjut Update Alamat (Satu Paket Pendaftaran + Update Alamat)
     const btnLanjutUpdate = document.getElementById('tpq-btn-lanjut-update-alamat');
     if (btnLanjutUpdate && data.id_santri) {
         btnLanjutUpdate.addEventListener('click', () => {
-            // 1. Beritahu TPQ Smart status pendaftaran PPDB selesai di database
             try {
                 chrome.runtime.sendMessage({
                     action: 'FORM_FILLED_NOTIFY',
@@ -2582,15 +2840,12 @@ function showStep2Assistant(data, filledAyah = false, filledIbu = false, filledN
                 });
             } catch (_) {}
 
-            // 2. Siapkan antrean untuk update alamat di Kesiswaan EMIS
             chrome.storage.local.set({
                 pendingUpdateAlamatData: data,
                 currentTask: 'UPDATE_ALAMAT',
                 waitingForUpdateStep2: false
             }, () => {
-                // Bersihkan antrean pendaftaran PPDB
                 chrome.storage.local.remove(['pendingSantriData', 'waitingForStep2']);
-
                 btnLanjutUpdate.innerHTML = '🔄 Mengalihkan ke Kesiswaan...';
                 btnLanjutUpdate.style.background = '#0b5ed7';
                 btnLanjutUpdate.disabled = true;
@@ -2605,24 +2860,40 @@ function showStep2Assistant(data, filledAyah = false, filledIbu = false, filledN
         });
     }
 
-    // Tombol tandai selesai saja (tanpa lanjut alamat)
-    const btnSelesai = document.getElementById('tpq-btn-tandai-selesai-step2');
-    if (btnSelesai && data.id_santri) {
-        btnSelesai.addEventListener('click', () => {
-            try {
-                chrome.runtime.sendMessage({
-                    action: 'FORM_FILLED_NOTIFY',
-                    id_santri: data.id_santri
-                });
+    // Handler tandai selesai saja (dihubungkan ke tombol bottom & tombol quick di header)
+    const handleTandaiSelesai = () => {
+        if (!data.id_santri) {
+            div.remove();
+            return;
+        }
+        try {
+            chrome.runtime.sendMessage({
+                action: 'FORM_FILLED_NOTIFY',
+                id_santri: data.id_santri
+            });
+            const btnSelesai = document.getElementById('tpq-btn-tandai-selesai-step2');
+            if (btnSelesai) {
                 btnSelesai.innerText = '✅ Ditandai Selesai!';
                 btnSelesai.style.background = '#059669';
                 btnSelesai.disabled = true;
-                setTimeout(() => { div.remove(); }, 1800);
-            } catch (_) {
-                btnSelesai.innerText = '✅ Selesai!';
             }
-        });
-    }
+            const btnQuick = document.getElementById('tpq-btn-quick-selesai-step2');
+            if (btnQuick) {
+                btnQuick.innerText = '✓ Selesai!';
+                btnQuick.disabled = true;
+            }
+            showTemporaryFloatingToast('Pendaftaran berhasil ditandai selesai!', 'success');
+            setTimeout(() => { div.remove(); }, 1200);
+        } catch (_) {
+            div.remove();
+        }
+    };
+
+    const btnSelesai = document.getElementById('tpq-btn-tandai-selesai-step2');
+    if (btnSelesai) btnSelesai.addEventListener('click', handleTandaiSelesai);
+
+    const btnQuickSelesai = document.getElementById('tpq-btn-quick-selesai-step2');
+    if (btnQuickSelesai) btnQuickSelesai.addEventListener('click', handleTandaiSelesai);
 }
 
 /**
