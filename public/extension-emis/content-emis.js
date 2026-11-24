@@ -3167,6 +3167,7 @@ function cancelUpdateAlamatProcess(customMsg = null) {
     isStep2Done = false;
     isStep3Executing = false;
     isStep3Done = false;
+    isWilayahCascadeRunning = false;
     chrome.storage.local.remove(['pendingUpdateAlamatData', 'currentTask', 'waitingForUpdateStep2', 'waitingForUpdateStep3'], () => {
         console.log('[TPQ-EMIS Bridge] Antrean Update Data dibersihkan dari storage.');
     });
@@ -3742,6 +3743,396 @@ function showUpdateSantriStep2Popup(data) {
 
 let isStep3Executing = false;
 let isStep3Done = false;
+let isWilayahCascadeRunning = false;
+
+/**
+ * Normalisasi nama wilayah (menghapus awalan KAB, KABUPATEN, KOTA, KEC, KEL, DESA, tanda baca, dll)
+ */
+function cleanWilayahName(str) {
+    if (!str) return '';
+    return String(str)
+        .toUpperCase()
+        .replace(/\b(KAB\.|KABUPATEN|KOTA|KEC\.|KECAMATAN|KEL\.|KELURAHAN|DESA)\b/gi, '')
+        .replace(/[^A-Z0-9\s]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+/**
+ * Mengambil teks konteks label sekitar elemen <select> (aman, cepat, tidak memicu reflow DOM berlebih)
+ */
+function getFieldLabelText(el) {
+    if (!el) return '';
+    let str = (el.name || '') + ' ' + (el.id || '') + ' ' + (el.getAttribute('aria-label') || '');
+    let cur = el;
+    for (let i = 0; i < 4 && cur; i++) {
+        if (cur.previousElementSibling) {
+            str += ' ' + (cur.previousElementSibling.textContent || '').substring(0, 150);
+        }
+        if (cur.parentElement) {
+            str += ' ' + (cur.parentElement.textContent || '').substring(0, 150);
+        }
+        cur = cur.parentElement;
+    }
+    return str.toUpperCase();
+}
+
+/**
+ * Mencari dropdown Provinsi (pasti memiliki >25 opsi dan memuat nama provinsi Indonesia)
+ */
+function findProvinsiSelect(allSelects = null) {
+    const selects = allSelects || Array.from(document.querySelectorAll('select'));
+    for (const sel of selects) {
+        const opts = Array.from(sel.options || sel.querySelectorAll('option'));
+        if (opts.length < 10) continue; // Provinsi di Indonesia pasti > 30 opsi
+        const texts = opts.map(o => (o.label || o.text || o.innerText || '').toUpperCase());
+        if (texts.includes('ACEH') || texts.includes('KEPULAUAN RIAU') || texts.includes('JAWA BARAT')) {
+            return sel;
+        }
+    }
+    return null;
+}
+
+/**
+ * Mencari elemen dropdown Wilayah: Provinsi, Kabupaten/Kota, Kecamatan, Kelurahan/Desa
+ */
+function findWilayahSelectElements() {
+    const allSelects = Array.from(document.querySelectorAll('select'));
+    console.log(`[TPQ-EMIS Bridge] [Wilayah Scanner] Total elemen <select> di halaman: ${allSelects.length}`);
+
+    const selProvinsi = findProvinsiSelect(allSelects);
+    let selKabupaten = null;
+    let selKecamatan = null;
+    let selDesa = null;
+
+    if (selProvinsi) {
+        const provIdx = allSelects.indexOf(selProvinsi);
+        console.log(`[TPQ-EMIS Bridge] [Wilayah Scanner] ✓ Ditemukan dropdown Provinsi pada index [${provIdx}] dengan ${selProvinsi.options.length} opsi`);
+
+        // Di form alamat EMIS, 3 dropdown tepat setelah Provinsi secara berurutan adalah:
+        // [provIdx + 1] -> Kabupaten/Kota
+        // [provIdx + 2] -> Kecamatan
+        // [provIdx + 3] -> Kelurahan/Desa
+        if (allSelects[provIdx + 1]) selKabupaten = allSelects[provIdx + 1];
+        if (allSelects[provIdx + 2]) selKecamatan = allSelects[provIdx + 2];
+        if (allSelects[provIdx + 3]) selDesa = allSelects[provIdx + 3];
+    } else {
+        console.log('[TPQ-EMIS Bridge] [Wilayah Scanner] ⚠️ Dropdown Provinsi belum terdeteksi dari daftar opsi.');
+    }
+
+    // Sebagai pencocokan cadangan/verifikasi, cek konteks teks label
+    if (!selKabupaten || !selKecamatan || !selDesa) {
+        for (const sel of allSelects) {
+            if (sel === selProvinsi) continue;
+            const lbl = getFieldLabelText(sel);
+            if (!selKabupaten && (lbl.includes('KABUPATEN') || lbl.includes('KAB/KOTA') || lbl.includes('KOTA'))) {
+                selKabupaten = sel;
+            } else if (!selKecamatan && lbl.includes('KECAMATAN')) {
+                selKecamatan = sel;
+            } else if (!selDesa && (lbl.includes('KELURAHAN') || lbl.includes('DESA') || lbl.includes('KEL/DESA'))) {
+                selDesa = sel;
+            }
+        }
+    }
+
+    console.log('[TPQ-EMIS Bridge] [Wilayah Scanner] Hasil deteksi dropdown:', {
+        provinsi: !!selProvinsi,
+        kabupaten: !!selKabupaten,
+        kecamatan: !!selKecamatan,
+        desa: !!selDesa
+    });
+
+    return { selProvinsi, selKabupaten, selKecamatan, selDesa };
+}
+
+/**
+ * Mencari elemen <option> yang cocok pada dropdown wilayah EMIS
+ */
+function findMatchingWilayahOption(selectEl, targetName, isKabupaten = false) {
+    if (!selectEl || !targetName) return null;
+    const cleanTarget = cleanWilayahName(targetName);
+    if (!cleanTarget) return null;
+
+    const rawTargetUpper = String(targetName).trim().toUpperCase();
+    const isTargetKota = rawTargetUpper.includes('KOTA');
+
+    const options = Array.from(selectEl.options || selectEl.querySelectorAll('option'));
+    // Filter opsi kosong / placeholder
+    const validOptions = options.filter(o => {
+        const val = String(o.value ?? '').trim();
+        const lbl = String(o.label || o.text || o.innerText || '').trim();
+        return val !== '' && lbl !== '';
+    });
+
+    if (validOptions.length === 0) return null;
+
+    // 1. Coba exact match pada label/text asli
+    let found = validOptions.find(o => {
+        const lbl = String(o.label || o.text || o.innerText || '').trim().toUpperCase();
+        return lbl === rawTargetUpper;
+    });
+    if (found) return found;
+
+    // 2. Coba exact match pada cleaned name
+    const cleanedMatches = validOptions.filter(o => {
+        const lbl = String(o.label || o.text || o.innerText || '').trim();
+        return cleanWilayahName(lbl) === cleanTarget;
+    });
+
+    if (cleanedMatches.length === 1) {
+        return cleanedMatches[0];
+    } else if (cleanedMatches.length > 1) {
+        // Jika ada KAB. X dan KOTA X
+        if (isKabupaten) {
+            if (isTargetKota) {
+                const kotaMatch = cleanedMatches.find(o => (o.label || o.text || '').toUpperCase().includes('KOTA'));
+                if (kotaMatch) return kotaMatch;
+            } else {
+                const kabMatch = cleanedMatches.find(o => (o.label || o.text || '').toUpperCase().includes('KAB'));
+                if (kabMatch) return kabMatch;
+            }
+        }
+        return cleanedMatches[0];
+    }
+
+    // 3. Coba substring match jika panjang string target minimal 3 karakter
+    if (cleanTarget.length >= 3) {
+        found = validOptions.find(o => {
+            const lbl = String(o.label || o.text || o.innerText || '').trim();
+            const cleanLbl = cleanWilayahName(lbl);
+            return cleanLbl && (cleanLbl.includes(cleanTarget) || cleanTarget.includes(cleanLbl));
+        });
+    }
+
+    return found || null;
+}
+
+/**
+ * Polling menunggu opsi dropdown terisi dari API backend EMIS (menggantikan opsi kosong tunggal)
+ * Mendukung fungsi getter dinamis agar selalu memeriksa elemen live DOM terbaru
+ */
+function waitForSelectOptions(getSelectFn, timeoutMs = 9500, pollIntervalMs = 300) {
+    return new Promise((resolve) => {
+        const startTime = Date.now();
+        let checks = 0;
+        const interval = setInterval(() => {
+            checks++;
+            let selectEl = null;
+            try {
+                selectEl = typeof getSelectFn === 'function' ? getSelectFn() : getSelectFn;
+            } catch (_) {}
+
+            if (selectEl) {
+                const opts = Array.from(selectEl.options || selectEl.querySelectorAll('option'));
+                const validCount = opts.filter(o => {
+                    const val = String(o.value ?? '').trim();
+                    const lbl = String(o.label || o.text || o.innerText || '').trim();
+                    return val !== '' && lbl !== '';
+                }).length;
+
+                if (validCount > 1) {
+                    clearInterval(interval);
+                    console.log(`[TPQ-EMIS Bridge] Opsi dropdown terdeteksi terisi (${validCount} opsi) setelah ${checks * pollIntervalMs}ms`);
+                    return resolve(selectEl);
+                }
+            }
+
+            if (Date.now() - startTime >= timeoutMs) {
+                clearInterval(interval);
+                let finalEl = null;
+                try {
+                    finalEl = typeof getSelectFn === 'function' ? getSelectFn() : getSelectFn;
+                } catch (_) {}
+                console.log(`[TPQ-EMIS Bridge] Timeout menunggu opsi dropdown setelah ${timeoutMs}ms.`);
+                resolve(finalEl || null);
+            }
+        }, pollIntervalMs);
+    });
+}
+
+/**
+ * Memperbarui teks status indikator wilayah di popup Step 3
+ */
+function updateWilayahStatusUI(field, text, color = '#198754') {
+    const el = document.getElementById(`tpq-status-${field}`);
+    if (el) {
+        el.innerText = text;
+        el.style.color = color;
+        el.style.fontWeight = 'bold';
+    }
+}
+
+/**
+ * Otomasi Update Berantai (Cascading) Dropdown Wilayah di EMIS:
+ * Provinsi -> Kabupaten/Kota -> Kecamatan -> Kelurahan/Desa
+ * Dijalankan di akhir setelah field teks dan mobilitas selesai dikunci.
+ */
+async function startCascadingWilayahUpdate(santriData) {
+    if (!santriData) return;
+    if (isWilayahCascadeRunning) {
+        console.log('[TPQ-EMIS Bridge] Cascading Wilayah sedang berlangsung, melewati panggilan ganda.');
+        return;
+    }
+    isWilayahCascadeRunning = true;
+    console.log('[TPQ-EMIS Bridge] Memulai update berantai (cascading) dropdown Wilayah untuk:', santriData.nama_santri);
+
+    try {
+        const targetProvinsi = santriData.ayah_provinsi || 'KEPULAUAN RIAU';
+        const targetKabupaten = santriData.ayah_kabupaten_kota || 'BINTAN';
+        const targetKecamatan = santriData.ayah_kecamatan || '';
+        const targetDesa = santriData.ayah_kelurahan_desa || '';
+
+        console.log('[TPQ-EMIS Bridge] Target Wilayah:', {
+            provinsi: targetProvinsi,
+            kabupaten: targetKabupaten,
+            kecamatan: targetKecamatan,
+            desa: targetDesa
+        });
+
+        const badgeOverall = document.getElementById('tpq-status-wilayah-badge');
+        if (badgeOverall) {
+            badgeOverall.innerText = 'Memproses...';
+            badgeOverall.style.background = '#fef3c7';
+            badgeOverall.style.color = '#92400e';
+        }
+
+        // ==========================================
+        // TAHAP 1: PROVINSI
+        // ==========================================
+        updateWilayahStatusUI('provinsi', '[⏳ Memilih...]', '#0d6efd');
+        let { selProvinsi, selKabupaten, selKecamatan, selDesa } = findWilayahSelectElements();
+
+        if (!selProvinsi) {
+            console.log('[TPQ-EMIS Bridge] Menunggu elemen dropdown Provinsi muncul di DOM...');
+            await new Promise(r => setTimeout(r, 800));
+            ({ selProvinsi, selKabupaten, selKecamatan, selDesa } = findWilayahSelectElements());
+        }
+
+        if (!selProvinsi) {
+            console.log('[TPQ-EMIS Bridge] ⚠️ Elemen dropdown Provinsi tidak ditemukan di layar!');
+            updateWilayahStatusUI('provinsi', '[⚠️ Tak Ditemukan]', '#dc3545');
+            isWilayahCascadeRunning = false;
+            return;
+        }
+
+        const optProvinsi = findMatchingWilayahOption(selProvinsi, targetProvinsi, false);
+        if (optProvinsi) {
+            console.log(`[TPQ-EMIS Bridge] ✓ Memilih Provinsi: "${optProvinsi.label || optProvinsi.text}" (value: ${optProvinsi.value})`);
+            setNativeSelectValue(selProvinsi, optProvinsi.value);
+            updateWilayahStatusUI('provinsi', '[✓ Terpilih]', '#198754');
+        } else {
+            console.log(`[TPQ-EMIS Bridge] ⚠️ Opsi Provinsi tidak cocok untuk: "${targetProvinsi}"`);
+            updateWilayahStatusUI('provinsi', '[⚠️ Pilih manual]', '#dc3545');
+            isWilayahCascadeRunning = false;
+            return;
+        }
+
+        // ==========================================
+        // TAHAP 2: KABUPATEN / KOTA
+        // ==========================================
+        if (!targetKabupaten) {
+            console.log('[TPQ-EMIS Bridge] Data Kabupaten kosong, cascade selesai.');
+            isWilayahCascadeRunning = false;
+            return;
+        }
+
+        updateWilayahStatusUI('kabupaten', '[⏳ Menunggu API...]', '#0d6efd');
+        console.log(`[TPQ-EMIS Bridge] Menunggu opsi Kabupaten dimuat oleh EMIS untuk Provinsi: ${optProvinsi.label || optProvinsi.text}...`);
+
+        // Smart polling dengan dynamic element getter
+        const liveKabSelect = await waitForSelectOptions(() => findWilayahSelectElements().selKabupaten, 9500, 300);
+        if (!liveKabSelect || liveKabSelect.options.length <= 1) {
+            console.log('[TPQ-EMIS Bridge] ⚠️ Timeout menunggu opsi Kabupaten dari EMIS API.');
+            updateWilayahStatusUI('kabupaten', '[⚠️ Timeout API]', '#d97706');
+            isWilayahCascadeRunning = false;
+            return;
+        }
+
+        const optKabupaten = findMatchingWilayahOption(liveKabSelect, targetKabupaten, true);
+        if (optKabupaten) {
+            console.log(`[TPQ-EMIS Bridge] ✓ Memilih Kabupaten: "${optKabupaten.label || optKabupaten.text}" (value: ${optKabupaten.value})`);
+            setNativeSelectValue(liveKabSelect, optKabupaten.value);
+            updateWilayahStatusUI('kabupaten', '[✓ Terpilih]', '#198754');
+        } else {
+            console.log(`[TPQ-EMIS Bridge] ⚠️ Opsi Kabupaten tidak cocok untuk: "${targetKabupaten}"`);
+            updateWilayahStatusUI('kabupaten', '[⚠️ Pilih manual]', '#dc3545');
+            isWilayahCascadeRunning = false;
+            return;
+        }
+
+        // ==========================================
+        // TAHAP 3: KECAMATAN
+        // ==========================================
+        if (!targetKecamatan) {
+            console.log('[TPQ-EMIS Bridge] Data Kecamatan kosong, cascade selesai.');
+            isWilayahCascadeRunning = false;
+            return;
+        }
+
+        updateWilayahStatusUI('kecamatan', '[⏳ Menunggu API...]', '#0d6efd');
+        console.log(`[TPQ-EMIS Bridge] Menunggu opsi Kecamatan dimuat oleh EMIS untuk Kabupaten: ${optKabupaten.label || optKabupaten.text}...`);
+
+        const liveKecSelect = await waitForSelectOptions(() => findWilayahSelectElements().selKecamatan, 9500, 300);
+        if (!liveKecSelect || liveKecSelect.options.length <= 1) {
+            console.log('[TPQ-EMIS Bridge] ⚠️ Timeout menunggu opsi Kecamatan dari EMIS API.');
+            updateWilayahStatusUI('kecamatan', '[⚠️ Timeout API]', '#d97706');
+            isWilayahCascadeRunning = false;
+            return;
+        }
+
+        const optKecamatan = findMatchingWilayahOption(liveKecSelect, targetKecamatan, false);
+        if (optKecamatan) {
+            console.log(`[TPQ-EMIS Bridge] ✓ Memilih Kecamatan: "${optKecamatan.label || optKecamatan.text}" (value: ${optKecamatan.value})`);
+            setNativeSelectValue(liveKecSelect, optKecamatan.value);
+            updateWilayahStatusUI('kecamatan', '[✓ Terpilih]', '#198754');
+        } else {
+            console.log(`[TPQ-EMIS Bridge] ⚠️ Opsi Kecamatan tidak cocok untuk: "${targetKecamatan}"`);
+            updateWilayahStatusUI('kecamatan', '[⚠️ Pilih manual]', '#dc3545');
+            isWilayahCascadeRunning = false;
+            return;
+        }
+
+        // ==========================================
+        // TAHAP 4: KELURAHAN / DESA
+        // ==========================================
+        if (!targetDesa) {
+            console.log('[TPQ-EMIS Bridge] Data Desa kosong, cascade selesai.');
+            isWilayahCascadeRunning = false;
+            return;
+        }
+
+        updateWilayahStatusUI('desa', '[⏳ Menunggu API...]', '#0d6efd');
+        console.log(`[TPQ-EMIS Bridge] Menunggu opsi Desa dimuat oleh EMIS untuk Kecamatan: ${optKecamatan.label || optKecamatan.text}...`);
+
+        const liveDesaSelect = await waitForSelectOptions(() => findWilayahSelectElements().selDesa, 9500, 300);
+        if (!liveDesaSelect || liveDesaSelect.options.length <= 1) {
+            console.log('[TPQ-EMIS Bridge] ⚠️ Timeout menunggu opsi Desa dari EMIS API.');
+            updateWilayahStatusUI('desa', '[⚠️ Timeout API]', '#d97706');
+            isWilayahCascadeRunning = false;
+            return;
+        }
+
+        const optDesa = findMatchingWilayahOption(liveDesaSelect, targetDesa, false);
+        if (optDesa) {
+            console.log(`[TPQ-EMIS Bridge] ✓ Memilih Desa/Kelurahan: "${optDesa.label || optDesa.text}" (value: ${optDesa.value})`);
+            setNativeSelectValue(liveDesaSelect, optDesa.value);
+            updateWilayahStatusUI('desa', '[✓ Terpilih]', '#198754');
+            if (badgeOverall) {
+                badgeOverall.innerText = '✓ Selesai Auto';
+                badgeOverall.style.background = '#dcfce7';
+                badgeOverall.style.color = '#15803d';
+            }
+        } else {
+            console.log(`[TPQ-EMIS Bridge] ⚠️ Opsi Desa tidak cocok untuk: "${targetDesa}"`);
+            updateWilayahStatusUI('desa', '[⚠️ Pilih manual]', '#dc3545');
+        }
+
+    } catch (err) {
+        console.error('[TPQ-EMIS Bridge] Kesalahan saat cascading Wilayah:', err);
+    } finally {
+        isWilayahCascadeRunning = false;
+    }
+}
 
 /**
  * Eksekusi Step 3: Tab DATA ALAMAT (Dengan Interval Retry untuk mengunci dropdown Jarak)
@@ -3811,6 +4202,11 @@ function executeStep3DataAlamat(santriData) {
                     isStep3Executing = false;
                     isStep3Done = true;
                     console.log('[TPQ-EMIS Bridge] Penguncian Mobilitas (Jarak, Transportasi, Waktu, Koordinat) Step 3 selesai. Status stabil:', consecutiveSuccess >= 3);
+
+                    // Jalankan update berantai dropdown wilayah (Provinsi -> Kab -> Kec -> Desa) di akhir
+                    setTimeout(() => {
+                        startCascadingWilayahUpdate(santriData);
+                    }, 300);
                 }
             }, 300);
         }, 400);
@@ -3860,18 +4256,19 @@ function showUpdateAlamatStep3Popup(data) {
             </div>
         </div>
 
-        <!-- Bagian Langsung Muncul: Wilayah Domisili (Pilih Manual di EMIS) & Tombol Selesai (Tanpa Perlu Buka Manual) -->
+        <!-- Bagian Langsung Muncul: Wilayah Domisili (Otomatis & Salin Manual) & Tombol Selesai (Tanpa Perlu Buka Manual) -->
         <div style="padding: 10px 12px; background: #ffffff;">
             <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 8px 10px; font-size: 12px; margin-bottom: 8px;">
                 <div style="font-size: 11px; font-weight: bold; color: #1d4ed8; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.3px; display: flex; justify-content: space-between; align-items: center;">
-                    <span>📍 WILAYAH DOMISILI (PILIH DI EMIS):</span>
-                    <span style="font-size: 9.5px; background: #dbeafe; color: #1e40af; padding: 1px 5px; border-radius: 3px; font-weight: bold;">Manual</span>
+                    <span>📍 WILAYAH DOMISILI (OTOMATIS / SALIN):</span>
+                    <span id="tpq-status-wilayah-badge" style="font-size: 9.5px; background: #dbeafe; color: #1e40af; padding: 1px 5px; border-radius: 3px; font-weight: bold;">Auto-Cascade</span>
                 </div>
                 <div style="display: flex; flex-direction: column; gap: 4px;">
                     <!-- Provinsi -->
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <span style="color: #64748b;">Provinsi:</span>
                         <div style="display: flex; align-items: center; gap: 4px;">
+                            <span id="tpq-status-provinsi" style="font-size: 9.5px; color: #64748b;">[⏳ Tunggu]</span>
                             <strong style="color: #1e293b;">${escapeHtml(data.ayah_provinsi || '-')}</strong>
                             ${data.ayah_provinsi ? `<button class="tpq-copy-btn" data-val="${escapeHtml(data.ayah_provinsi)}" style="border: 1px solid #bfdbfe; background: #fff; padding: 1px 5px; border-radius: 3px; font-size: 10px; cursor: pointer; color: #1d4ed8;" title="Salin Provinsi">📋</button>` : ''}
                         </div>
@@ -3880,6 +4277,7 @@ function showUpdateAlamatStep3Popup(data) {
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <span style="color: #64748b;">Kab/Kota:</span>
                         <div style="display: flex; align-items: center; gap: 4px;">
+                            <span id="tpq-status-kabupaten" style="font-size: 9.5px; color: #64748b;">[⏳ Tunggu]</span>
                             <strong style="color: #1e293b;">${escapeHtml(data.ayah_kabupaten_kota || '-')}</strong>
                             ${data.ayah_kabupaten_kota ? `<button class="tpq-copy-btn" data-val="${escapeHtml(data.ayah_kabupaten_kota)}" style="border: 1px solid #bfdbfe; background: #fff; padding: 1px 5px; border-radius: 3px; font-size: 10px; cursor: pointer; color: #1d4ed8;" title="Salin Kab/Kota">📋</button>` : ''}
                         </div>
@@ -3888,6 +4286,7 @@ function showUpdateAlamatStep3Popup(data) {
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <span style="color: #64748b;">Kecamatan:</span>
                         <div style="display: flex; align-items: center; gap: 4px;">
+                            <span id="tpq-status-kecamatan" style="font-size: 9.5px; color: #64748b;">[⏳ Tunggu]</span>
                             <strong style="color: #1e293b;">${escapeHtml(data.ayah_kecamatan || '-')}</strong>
                             ${data.ayah_kecamatan ? `<button class="tpq-copy-btn" data-val="${escapeHtml(data.ayah_kecamatan)}" style="border: 1px solid #bfdbfe; background: #fff; padding: 1px 5px; border-radius: 3px; font-size: 10px; cursor: pointer; color: #1d4ed8;" title="Salin Kecamatan">📋</button>` : ''}
                         </div>
@@ -3896,6 +4295,7 @@ function showUpdateAlamatStep3Popup(data) {
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <span style="color: #64748b;">Kel/Desa:</span>
                         <div style="display: flex; align-items: center; gap: 4px;">
+                            <span id="tpq-status-desa" style="font-size: 9.5px; color: #64748b;">[⏳ Tunggu]</span>
                             <strong style="color: #1e293b;">${escapeHtml(data.ayah_kelurahan_desa || '-')}</strong>
                             ${data.ayah_kelurahan_desa ? `<button class="tpq-copy-btn" data-val="${escapeHtml(data.ayah_kelurahan_desa)}" style="border: 1px solid #bfdbfe; background: #fff; padding: 1px 5px; border-radius: 3px; font-size: 10px; cursor: pointer; color: #1d4ed8;" title="Salin Kel/Desa">📋</button>` : ''}
                         </div>
@@ -4048,6 +4448,10 @@ function showUpdateAlamatStep3Popup(data) {
         if (data.santri_titik_koordinat) {
             fillTitikKoordinatEmis(data.santri_titik_koordinat);
         }
+        setTimeout(() => {
+            isWilayahCascadeRunning = false;
+            startCascadingWilayahUpdate(data);
+        }, 300);
     });
 
     const handleFinishStep3 = () => {
@@ -4060,6 +4464,7 @@ function showUpdateAlamatStep3Popup(data) {
             isStep2Done = false;
             isStep3Executing = false;
             isStep3Done = true;
+            isWilayahCascadeRunning = false;
             chrome.storage.local.remove(['pendingUpdateAlamatData', 'currentTask', 'waitingForUpdateStep2', 'waitingForUpdateStep3']);
             
             const btnQuick = document.getElementById('tpq-btn-quick-selesai-step3');
