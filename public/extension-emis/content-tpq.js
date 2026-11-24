@@ -25,7 +25,7 @@ function broadcastExtensionReady() {
         window.postMessage({
             type: 'EMIS_EXTENSION_PONG',
             source: 'tpq-emis-extension',
-            version: '1.4.3'
+            version: '1.4.4'
         }, '*');
     } catch (e) {
         // Abaikan
