@@ -2389,13 +2389,19 @@ function showStep2Assistant(data, filledAyah = false, filledIbu = false, filledN
             }
         </style>
 
-        <div id="tpq-step2-header" style="cursor: move; user-select: none; font-weight: bold; font-size: 14px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;">
-            <span>📋 Step 2: Formulir Utama Santri</span>
-            <span style="font-size: 11px; background: rgba(255,255,255,0.25); padding: 2px 7px; border-radius: 4px; display: flex; align-items: center; gap: 4px;">
-                <span>⠿</span> <span>Geser</span>
-            </span>
+        <div id="tpq-step2-header" style="cursor: move; user-select: none; font-weight: bold; font-size: 13px; display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+            <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 250px;">
+                <span>📋 Step 2: <strong>${escapeHtml(data.nama_santri)}</strong></span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px;">
+                <button id="tpq-toggle-step2-asst" style="background: rgba(255,255,255,0.25); border: 1px solid rgba(255,255,255,0.45); color: #fff; border-radius: 4px; padding: 2px 7px; font-size: 11px; font-weight: bold; cursor: pointer;">
+                    ▼ Buka
+                </button>
+                <span id="tpq-close-step2-alert-top" style="cursor: pointer; font-size: 18px; line-height: 1; padding: 0 4px;" title="Tutup">&times;</span>
+            </div>
         </div>
 
+        <div id="tpq-step2-body" style="display: none; margin-top: 10px;">
         <!-- BAGIAN ATAS: DATA YANG TERISI OTOMATIS / BISA DISALIN -->
         <div style="background: rgba(0,0,0,0.2); padding: 9px 12px; border-radius: 6px; margin-bottom: 10px;">
             <div style="font-size: 11px; font-weight: bold; color: rgba(255,255,255,0.85); margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;">
@@ -2505,9 +2511,33 @@ function showStep2Assistant(data, filledAyah = false, filledIbu = false, filledN
                 ">Tutup</button>
             </div>
         </div>
+        </div>
     `;
 
     document.body.appendChild(div);
+
+    let isStep2AsstExpanded = false;
+    const btnToggleStep2Asst = document.getElementById('tpq-toggle-step2-asst');
+    const bodyStep2Asst = document.getElementById('tpq-step2-body');
+    if (btnToggleStep2Asst && bodyStep2Asst) {
+        btnToggleStep2Asst.addEventListener('click', (e) => {
+            e.stopPropagation();
+            isStep2AsstExpanded = !isStep2AsstExpanded;
+            bodyStep2Asst.style.display = isStep2AsstExpanded ? 'block' : 'none';
+            btnToggleStep2Asst.innerHTML = isStep2AsstExpanded ? '▲ Tutup' : '▼ Buka';
+            btnToggleStep2Asst.style.background = isStep2AsstExpanded ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.25)';
+        });
+    }
+
+    const closeTop = document.getElementById('tpq-close-step2-alert-top');
+    if (closeTop) {
+        closeTop.addEventListener('click', () => {
+            chrome.storage.local.remove(['pendingSantriData', 'waitingForStep2']);
+            div.remove();
+            showTemporaryFloatingToast('Antrean pendaftaran santri ditutup.', 'danger');
+        });
+    }
+
     document.getElementById('tpq-close-step2-alert').addEventListener('click', () => {
         chrome.storage.local.remove(['pendingSantriData', 'waitingForStep2']);
         div.remove();
@@ -2881,24 +2911,32 @@ function showUpdateAlamatStep1Popup(data) {
         top: 20px;
         right: 25px;
         z-index: 999999;
-        width: 380px;
+        width: 320px;
         max-width: 95vw;
         background: #ffffff;
         border: 2px solid #0d6efd;
-        border-radius: 10px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+        border-radius: 8px;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.25);
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         font-size: 13px;
         color: #212529;
         overflow: hidden;
+        transition: width 0.25s ease;
     `;
 
     div.innerHTML = `
-        <div id="tpq-update-step1-header" style="background: linear-gradient(135deg, #0d6efd, #0b5ed7); color: #fff; padding: 12px 16px; font-weight: bold; font-size: 14px; display: flex; justify-content: space-between; align-items: center; cursor: move;">
-            <span><i class="fas fa-map-marker-alt"></i> ⚡ TPQ Smart: Cari Santri di EMIS (Step 1/3)</span>
-            <span id="tpq-close-update-step1" style="cursor: pointer; font-size: 18px; line-height: 1; padding: 2px 6px;" title="Tutup dan bersihkan antrean">&times;</span>
+        <div id="tpq-update-step1-header" style="background: linear-gradient(135deg, #0d6efd, #0b5ed7); color: #fff; padding: 10px 14px; font-weight: bold; font-size: 13px; display: flex; justify-content: space-between; align-items: center; cursor: move; user-select: none;">
+            <div style="display: flex; align-items: center; gap: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 190px;" title="${escapeHtml(data.nama_santri)}">
+                <span>⚡ Step 1: <strong>${escapeHtml(data.nama_santri)}</strong></span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px;">
+                <button id="tpq-toggle-step1" style="background: rgba(255,255,255,0.25); border: 1px solid rgba(255,255,255,0.45); color: #fff; border-radius: 4px; padding: 2px 8px; font-size: 11px; font-weight: bold; cursor: pointer; transition: background 0.2s;" title="Klik untuk membuka/menutup panel panduan">
+                    ▼ Buka
+                </button>
+                <span id="tpq-close-update-step1" style="cursor: pointer; font-size: 18px; line-height: 1; padding: 2px 5px;" title="Tutup dan bersihkan antrean">&times;</span>
+            </div>
         </div>
-        <div style="padding: 14px 16px; max-height: 75vh; overflow-y: auto;">
+        <div id="tpq-update-step1-body" style="display: none; padding: 14px 16px; max-height: 75vh; overflow-y: auto;">
             <div style="background: #e7f1ff; border: 1px solid #b6d4fe; border-radius: 6px; padding: 10px 12px; margin-bottom: 12px;">
                 <div style="font-size: 11px; text-transform: uppercase; color: #084298; font-weight: bold; letter-spacing: 0.5px;">Santri yang Dicari:</div>
                 <div style="font-size: 15px; font-weight: bold; color: #0d6efd; margin-top: 2px;">${escapeHtml(data.nama_santri)}</div>
@@ -2937,6 +2975,30 @@ function showUpdateAlamatStep1Popup(data) {
 
     document.body.appendChild(div);
     makeDraggable(div, document.getElementById('tpq-update-step1-header'));
+
+    let isStep1Expanded = false;
+    const btnToggleStep1 = document.getElementById('tpq-toggle-step1');
+    const bodyStep1 = document.getElementById('tpq-update-step1-body');
+
+    function toggleStep1(forceState) {
+        isStep1Expanded = typeof forceState === 'boolean' ? forceState : !isStep1Expanded;
+        if (isStep1Expanded) {
+            div.style.width = '380px';
+            bodyStep1.style.display = 'block';
+            btnToggleStep1.innerHTML = '▲ Tutup';
+            btnToggleStep1.style.background = 'rgba(255,255,255,0.35)';
+        } else {
+            div.style.width = '320px';
+            bodyStep1.style.display = 'none';
+            btnToggleStep1.innerHTML = '▼ Buka';
+            btnToggleStep1.style.background = 'rgba(255,255,255,0.25)';
+        }
+    }
+
+    btnToggleStep1.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleStep1();
+    });
 
     document.getElementById('tpq-close-update-step1').addEventListener('click', () => {
         cancelUpdateAlamatProcess('Proses update data ditutup dan antrean telah dibersihkan.');
@@ -3252,26 +3314,34 @@ function showUpdateSantriStep2Popup(data) {
         top: 20px;
         right: 25px;
         z-index: 999999;
-        width: 430px;
+        width: 320px;
         max-width: 95vw;
         background: #ffffff;
         border: 2px solid #0d6efd;
-        border-radius: 10px;
-        box-shadow: 0 10px 35px rgba(0,0,0,0.3);
+        border-radius: 8px;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.25);
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         font-size: 13px;
         color: #212529;
         overflow: hidden;
+        transition: width 0.25s ease;
     `;
 
     const targetBiaya = data.yang_biaya_sekolah || 'Orang Tua';
 
     div.innerHTML = `
-        <div id="tpq-update-santri-step2-header" style="background: linear-gradient(135deg, #0d6efd, #0b5ed7); color: #fff; padding: 12px 16px; font-weight: bold; font-size: 14px; display: flex; justify-content: space-between; align-items: center; cursor: move;">
-            <span><i class="fas fa-user-edit"></i> ⚡ TPQ Smart: Tab DATA SANTRI (Step 2/3)</span>
-            <span id="tpq-close-update-santri-step2" style="cursor: pointer; font-size: 18px; line-height: 1; padding: 2px 6px;">&times;</span>
+        <div id="tpq-update-santri-step2-header" style="background: linear-gradient(135deg, #0d6efd, #0b5ed7); color: #fff; padding: 10px 14px; font-weight: bold; font-size: 13px; display: flex; justify-content: space-between; align-items: center; cursor: move; user-select: none;">
+            <div style="display: flex; align-items: center; gap: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 190px;" title="${escapeHtml(data.nama_santri)}">
+                <span>⚡ Step 2: <strong>${escapeHtml(data.nama_santri)}</strong></span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px;">
+                <button id="tpq-toggle-step2" style="background: rgba(255,255,255,0.25); border: 1px solid rgba(255,255,255,0.45); color: #fff; border-radius: 4px; padding: 2px 8px; font-size: 11px; font-weight: bold; cursor: pointer; transition: background 0.2s;" title="Klik untuk membuka/menutup panel panduan">
+                    ▼ Buka
+                </button>
+                <span id="tpq-close-update-santri-step2" style="cursor: pointer; font-size: 18px; line-height: 1; padding: 2px 5px;" title="Tutup dan bersihkan antrean">&times;</span>
+            </div>
         </div>
-        <div style="padding: 14px 16px;">
+        <div id="tpq-update-santri-step2-body" style="display: none; padding: 14px 16px; max-height: 75vh; overflow-y: auto;">
             <div style="background: #e7f1ff; border: 1px solid #b6d4fe; border-radius: 6px; padding: 8px 12px; margin-bottom: 12px;">
                 <div style="font-size: 11px; text-transform: uppercase; color: #084298; font-weight: bold;">Santri:</div>
                 <div style="font-size: 15px; font-weight: bold; color: #0d6efd;">${escapeHtml(data.nama_santri)}</div>
@@ -3308,6 +3378,30 @@ function showUpdateSantriStep2Popup(data) {
 
     document.body.appendChild(div);
     makeDraggable(div, document.getElementById('tpq-update-santri-step2-header'));
+
+    let isStep2Expanded = false;
+    const btnToggleStep2 = document.getElementById('tpq-toggle-step2');
+    const bodyStep2 = document.getElementById('tpq-update-santri-step2-body');
+
+    function toggleStep2(forceState) {
+        isStep2Expanded = typeof forceState === 'boolean' ? forceState : !isStep2Expanded;
+        if (isStep2Expanded) {
+            div.style.width = '430px';
+            bodyStep2.style.display = 'block';
+            btnToggleStep2.innerHTML = '▲ Tutup';
+            btnToggleStep2.style.background = 'rgba(255,255,255,0.35)';
+        } else {
+            div.style.width = '320px';
+            bodyStep2.style.display = 'none';
+            btnToggleStep2.innerHTML = '▼ Buka';
+            btnToggleStep2.style.background = 'rgba(255,255,255,0.25)';
+        }
+    }
+
+    btnToggleStep2.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleStep2();
+    });
 
     document.getElementById('tpq-close-update-santri-step2').addEventListener('click', () => {
         cancelUpdateAlamatProcess('Proses update data santri ditutup dan antrean dibersihkan.');
@@ -3422,24 +3516,32 @@ function showUpdateAlamatStep3Popup(data) {
         top: 20px;
         right: 25px;
         z-index: 999999;
-        width: 440px;
+        width: 340px;
         max-width: 95vw;
         background: #ffffff;
         border: 2px solid #0d6efd;
-        border-radius: 10px;
-        box-shadow: 0 10px 35px rgba(0,0,0,0.3);
+        border-radius: 8px;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.25);
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         font-size: 13px;
         color: #212529;
         overflow: hidden;
+        transition: width 0.25s ease;
     `;
 
     div.innerHTML = `
-        <div id="tpq-update-step3-header" style="background: linear-gradient(135deg, #0d6efd, #0b5ed7); color: #fff; padding: 12px 16px; font-weight: bold; font-size: 14px; display: flex; justify-content: space-between; align-items: center; cursor: move;">
-            <span><i class="fas fa-map-marked-alt"></i> ⚡ TPQ Smart: Tab DATA ALAMAT (Step 3/3)</span>
-            <span id="tpq-close-update-step3" style="cursor: pointer; font-size: 18px; line-height: 1; padding: 2px 6px;">&times;</span>
+        <div id="tpq-update-step3-header" style="background: linear-gradient(135deg, #0d6efd, #0b5ed7); color: #fff; padding: 10px 14px; font-weight: bold; font-size: 13px; display: flex; justify-content: space-between; align-items: center; cursor: move; user-select: none;">
+            <div style="display: flex; align-items: center; gap: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 210px;" title="${escapeHtml(data.nama_santri)}">
+                <span>⚡ Step 3: <strong>${escapeHtml(data.nama_santri)}</strong></span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px;">
+                <button id="tpq-toggle-step3" style="background: rgba(255,255,255,0.25); border: 1px solid rgba(255,255,255,0.45); color: #fff; border-radius: 4px; padding: 2px 8px; font-size: 11px; font-weight: bold; cursor: pointer; transition: background 0.2s;" title="Klik untuk membuka/menutup panel salin / panduan manual">
+                    ▼ Buka / Salin
+                </button>
+                <span id="tpq-close-update-step3" style="cursor: pointer; font-size: 18px; line-height: 1; padding: 2px 5px;" title="Tutup dan bersihkan antrean">&times;</span>
+            </div>
         </div>
-        <div style="padding: 14px 16px; max-height: 75vh; overflow-y: auto;">
+        <div id="tpq-update-step3-body" style="display: none; padding: 14px 16px; max-height: 75vh; overflow-y: auto;">
             <div style="background: #e7f1ff; border: 1px solid #b6d4fe; border-radius: 6px; padding: 8px 12px; margin-bottom: 12px;">
                 <div style="font-size: 11px; text-transform: uppercase; color: #084298; font-weight: bold;">Santri:</div>
                 <div style="font-size: 15px; font-weight: bold; color: #0d6efd;">${escapeHtml(data.nama_santri)}</div>
@@ -3590,6 +3692,30 @@ function showUpdateAlamatStep3Popup(data) {
 
     document.body.appendChild(div);
     makeDraggable(div, document.getElementById('tpq-update-step3-header'));
+
+    let isStep3Expanded = false;
+    const btnToggleStep3 = document.getElementById('tpq-toggle-step3');
+    const bodyStep3 = document.getElementById('tpq-update-step3-body');
+
+    function toggleStep3(forceState) {
+        isStep3Expanded = typeof forceState === 'boolean' ? forceState : !isStep3Expanded;
+        if (isStep3Expanded) {
+            div.style.width = '440px';
+            bodyStep3.style.display = 'block';
+            btnToggleStep3.innerHTML = '▲ Tutup';
+            btnToggleStep3.style.background = 'rgba(255,255,255,0.35)';
+        } else {
+            div.style.width = '340px';
+            bodyStep3.style.display = 'none';
+            btnToggleStep3.innerHTML = '▼ Buka / Salin';
+            btnToggleStep3.style.background = 'rgba(255,255,255,0.25)';
+        }
+    }
+
+    btnToggleStep3.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleStep3();
+    });
 
     document.getElementById('tpq-close-update-step3').addEventListener('click', () => {
         cancelUpdateAlamatProcess('Proses update data alamat ditutup dan antrean dibersihkan.');
