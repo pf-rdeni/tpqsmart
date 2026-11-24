@@ -1491,6 +1491,96 @@ function selectJarakTempatTinggalEmis(rawJarak) {
 }
 
 /**
+ * Helper untuk mem-parse format titik koordinat ("lat, lng" atau single string)
+ */
+function parseTitikKoordinat(rawCoord) {
+    if (!rawCoord) return { raw: '', lat: '', lng: '' };
+    const str = String(rawCoord).trim();
+    const parts = str.split(',').map(s => s.trim());
+    if (parts.length >= 2) {
+        return { raw: str, lat: parts[0], lng: parts[1] };
+    }
+    return { raw: str, lat: str, lng: '' };
+}
+
+/**
+ * Mencari dan mengisi input Titik Koordinat di Tab DATA ALAMAT
+ */
+function fillTitikKoordinatEmis(santriCoord) {
+    if (!santriCoord) return false;
+    const coords = parseTitikKoordinat(santriCoord);
+    if (!coords.raw) return false;
+
+    console.log('[TPQ-EMIS Bridge] Mencari dan menyetel field Koordinat di form EMIS:', coords.raw);
+    const inputs = Array.from(document.querySelectorAll('input[type="text"], input[type="number"], input:not([type]), textarea'));
+    let filled = false;
+
+    for (const inp of inputs) {
+        if (inp.disabled || inp.readOnly) continue;
+
+        let labelText = (inp.placeholder || '') + ' ' + (inp.name || '') + ' ' + (inp.id || '');
+        let p = inp.parentElement;
+        for (let i = 0; i < 4 && p; i++) {
+            const txt = (p.innerText || p.textContent || '').trim();
+            if (txt.length < 50) labelText += ' ' + txt;
+            p = p.parentElement;
+        }
+        labelText = labelText.toUpperCase();
+
+        if (labelText.includes('KOORDINAT') || labelText.includes('TITIK KOORDINAT')) {
+            console.log('[TPQ-EMIS Bridge] Field Titik Koordinat ditemukan! Menyetel ke:', coords.raw);
+            setNativeValue(inp, coords.raw);
+            try {
+                inp.style.transition = 'background-color 0.3s ease';
+                inp.style.backgroundColor = '#d1e7dd';
+            } catch (_) {}
+            filled = true;
+        } else if (labelText.includes('LINTANG') || labelText.includes('LATITUDE')) {
+            if (coords.lat) {
+                console.log('[TPQ-EMIS Bridge] Field Lintang/Latitude ditemukan! Menyetel ke:', coords.lat);
+                setNativeValue(inp, coords.lat);
+                filled = true;
+            }
+        } else if (labelText.includes('BUJUR') || labelText.includes('LONGITUDE')) {
+            if (coords.lng) {
+                console.log('[TPQ-EMIS Bridge] Field Bujur/Longitude ditemukan! Menyetel ke:', coords.lng);
+                setNativeValue(inp, coords.lng);
+                filled = true;
+            }
+        }
+    }
+    return filled;
+}
+
+/**
+ * Helper untuk mengecek apakah field Koordinat sudah terisi di DOM
+ */
+function checkIsKoordinatFilled(santriCoord) {
+    if (!santriCoord) return true; // Jika tidak ada koordinat dari database, anggap valid
+    const coords = parseTitikKoordinat(santriCoord);
+    const inputs = Array.from(document.querySelectorAll('input[type="text"], input[type="number"], input:not([type]), textarea'));
+
+    for (const inp of inputs) {
+        let labelText = (inp.placeholder || '') + ' ' + (inp.name || '') + ' ' + (inp.id || '');
+        let p = inp.parentElement;
+        for (let i = 0; i < 4 && p; i++) {
+            const txt = (p.innerText || p.textContent || '').trim();
+            if (txt.length < 50) labelText += ' ' + txt;
+            p = p.parentElement;
+        }
+        labelText = labelText.toUpperCase();
+
+        if (labelText.includes('KOORDINAT') || labelText.includes('TITIK KOORDINAT')) {
+            return (inp.value || '').trim() !== '';
+        }
+        if (labelText.includes('LINTANG') || labelText.includes('LATITUDE')) {
+            if (coords.lat && (inp.value || '').trim() !== '') return true;
+        }
+    }
+    return false;
+}
+
+/**
  * Helper khusus memilih opsi pada elemen <select> (kompatibel React Native for Web / React Synthetic Events)
  */
 function setNativeSelectValue(selectElement, targetValueOrText) {
@@ -2588,34 +2678,119 @@ function findKesiswaanSearchInput() {
 }
 
 /**
- * Eksekusi Step 1 Update Alamat: Pencarian Nama Santri
+ * Mengecek apakah daftar santri pada halaman Kesiswaan EMIS sudah selesai dimuat dari server
+ */
+function isKesiswaanTableReady() {
+    // 1. Cek tombol aksi "Ubah Data" atau "Detail" di baris tabel
+    const allButtons = Array.from(document.querySelectorAll('button, [role="button"], a, div'));
+    const hasRowBtn = allButtons.some(b => {
+        const txt = (b.innerText || b.textContent || '').trim().toUpperCase();
+        return txt === 'UBAH DATA' || txt === 'UBAH' || txt === 'DETAIL';
+    });
+    if (hasRowBtn) return true;
+
+    // 2. Cek apakah ada baris data tabel HTML <tr>
+    const rows = document.querySelectorAll('table tbody tr');
+    if (rows.length > 0) return true;
+
+    // 3. Cek apakah ada elemen cell / row React Native Web yang memuat teks khas data santri
+    const bodyText = (document.body.innerText || document.body.textContent || '').toUpperCase();
+    if (bodyText.includes('UBAH DATA') || (bodyText.includes('LAKI-LAKI') && bodyText.includes('AKTIF'))) {
+        return true;
+    }
+
+    return false;
+}
+
+/**
+ * Menerapkan filter pencarian nama santri ke kolom cari Kesiswaan dengan event lengkap
+ */
+function applyKesiswaanFilter(searchInput, query) {
+    if (!searchInput || !query) return false;
+    try {
+        searchInput.focus();
+        setNativeValue(searchInput, query);
+
+        // Kirim event Keyboard Enter secara lengkap (keydown, keypress, keyup)
+        const keyEvents = ['keydown', 'keypress', 'keyup'];
+        keyEvents.forEach(type => {
+            searchInput.dispatchEvent(new KeyboardEvent(type, {
+                key: 'Enter',
+                code: 'Enter',
+                keyCode: 13,
+                which: 13,
+                bubbles: true,
+                cancelable: true
+            }));
+        });
+
+        // Trigger change dan blur tambahan agar React Native Web memicu onSubmitEditing / onChangeText
+        searchInput.dispatchEvent(new Event('change', { bubbles: true }));
+
+        // Cek jika ada ikon/tombol cari di dalam wrapper input yang sama
+        const wrapper = searchInput.closest('.r-18u37iz') || searchInput.parentElement;
+        if (wrapper) {
+            const btn = wrapper.querySelector('button, [role="button"], svg, i');
+            if (btn && btn !== searchInput) {
+                try { btn.click(); } catch (_) {}
+            }
+        }
+        console.log('[TPQ-EMIS Bridge] Filter nama santri diterapkan:', query);
+        return true;
+    } catch (e) {
+        console.error('[TPQ-EMIS Bridge] Gagal menerapkan filter nama:', e);
+        return false;
+    }
+}
+
+/**
+ * Eksekusi Step 1 Update Alamat: Pencarian Nama Santri dengan Delay & Pengecekan Daftar Siap
  */
 function executeStep1UpdateAlamat(santriData) {
-    console.log('[TPQ-EMIS Bridge] Eksekusi Step 1 Update Alamat: Mencari nama santri...');
+    console.log('[TPQ-EMIS Bridge] Eksekusi Step 1 Update Alamat: Menunggu daftar santri EMIS siap...');
 
-    let attempts = 0;
-    const maxAttempts = 20;
+    // 1. Tampilkan popup panduan langsung agar user mengetahui status proses
+    showUpdateAlamatStep1Popup(santriData);
+
+    const startTime = Date.now();
+    const minDelayMs = 2000; // Jeda minimal 2.0 detik agar request list awal EMIS selesai
+    const maxWaitMs = 6500;  // Batas maksimal tunggu 6.5 detik
 
     const timer = setInterval(() => {
-        attempts++;
+        const elapsed = Date.now() - startTime;
         const searchInput = findKesiswaanSearchInput();
+        const tableReady = isKesiswaanTableReady();
 
-        if (searchInput) {
+        // Terapkan filter jika:
+        // (Input ada DAN sudah lewat minimal delay DAN tabel sudah memuat data)
+        // ATAU sudah lewat batas maksimal tunggu
+        if (searchInput && ((elapsed >= minDelayMs && tableReady) || elapsed >= maxWaitMs)) {
             clearInterval(timer);
-            console.log('[TPQ-EMIS Bridge] Kolom pencarian Kesiswaan ditemukan.');
-            setNativeValue(searchInput, santriData.nama_santri);
+            console.log(`[TPQ-EMIS Bridge] Menerapkan filter nama setelah ${elapsed}ms (tableReady: ${tableReady})`);
+            applyKesiswaanFilter(searchInput, santriData.nama_santri);
 
-            // Trigger Enter event pada input pencarian
-            searchInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, bubbles: true }));
-            searchInput.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter', code: 'Enter', keyCode: 13, bubbles: true }));
+            // Verifikasi sekunder: 1.2 detik kemudian pastikan input tidak terhapus oleh re-render EMIS
+            setTimeout(() => {
+                const curInput = findKesiswaanSearchInput();
+                if (curInput) {
+                    const currentVal = (curInput.value || '').trim();
+                    if (!currentVal || currentVal !== santriData.nama_santri.trim()) {
+                        console.log('[TPQ-EMIS Bridge] Re-triggering filter nama santri setelah verifikasi...');
+                        applyKesiswaanFilter(curInput, santriData.nama_santri);
+                    }
+                }
+            }, 1200);
 
-            showUpdateAlamatStep1Popup(santriData);
-        } else if (attempts >= maxAttempts) {
-            clearInterval(timer);
-            console.warn('[TPQ-EMIS Bridge] Kolom pencarian belum terdeteksi, menampilkan popup panduan.');
-            showUpdateAlamatStep1Popup(santriData);
+            // Perbarui status pada popup
+            const statusBadge = document.getElementById('tpq-step1-filter-status');
+            if (statusBadge) {
+                statusBadge.innerHTML = '<span>✓</span> <span>Nama telah dimasukkan & difilter otomatis</span>';
+                statusBadge.style.color = '#198754';
+                statusBadge.style.background = '#d1e7dd';
+                statusBadge.style.borderColor = '#badbcc';
+            }
         }
-    }, 250);
+    }, 300);
 
     // Listener global: jika tombol Ubah Data diklik, bersiap untuk Step 2
     document.addEventListener('click', (e) => {
@@ -2734,10 +2909,18 @@ function showUpdateAlamatStep1Popup(data) {
                 ${data.nisn ? `<div style="font-size: 12px; color: #495057; margin-top: 2px;">NISN: <strong>${escapeHtml(data.nisn)}</strong> <button class="tpq-copy-badge" data-val="${escapeHtml(data.nisn)}" style="margin-left: 6px; padding: 1px 6px; border: 1px solid #0d6efd; background: #fff; color: #0d6efd; border-radius: 3px; font-size: 10px; cursor: pointer;">Salin</button></div>` : ''}
             </div>
 
+            <div id="tpq-step1-filter-status" style="background: #e8f4fd; border: 1px solid #b6d4fe; border-radius: 6px; padding: 8px 12px; margin-bottom: 12px; font-size: 12px; font-weight: bold; color: #0d6efd; display: flex; align-items: center; gap: 6px;">
+                <span>⏳</span> <span>Menunggu daftar santri EMIS selesai memuat...</span>
+            </div>
+
+            <button id="tpq-btn-refilter-nama" style="width: 100%; margin-bottom: 12px; background: #0d6efd; color: #fff; border: none; padding: 8px 12px; border-radius: 5px; font-weight: bold; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;" title="Klik untuk menerapkan filter pencarian nama langsung ke form EMIS">
+                🔍 <span>Filter Ulang / Tekan Enter</span>
+            </button>
+
             <div style="background: #fff3cd; border: 1px solid #ffe69c; border-radius: 6px; padding: 10px 12px; margin-bottom: 14px; color: #664d03; font-size: 12px; line-height: 1.5;">
                 <strong><i class="fas fa-info-circle"></i> Petunjuk Langkah 1:</strong><br>
-                1. Nama lengkap santri telah diisikan otomatis ke kolom <strong>Cari Nama / NISN</strong>.<br>
-                2. Tekan <strong>Enter</strong> pada kolom cari jika daftar belum memuat.<br>
+                1. Sistem memberi jeda agar tabel EMIS selesai memuat, lalu nama santri difilter otomatis.<br>
+                2. Jika daftar belum tersaring, klik tombol biru <strong>[🔍 Filter Ulang / Tekan Enter]</strong> di atas.<br>
                 3. Klik tombol hijau <strong>[Ubah Data]</strong> pada baris santri untuk masuk ke Tab DATA SANTRI.
             </div>
 
@@ -2774,6 +2957,31 @@ function showUpdateAlamatStep1Popup(data) {
             }
         });
     });
+
+    const btnRefilter = document.getElementById('tpq-btn-refilter-nama');
+    if (btnRefilter) {
+        btnRefilter.addEventListener('click', () => {
+            const inp = findKesiswaanSearchInput();
+            if (inp) {
+                btnRefilter.innerText = '⏳ Memfilter...';
+                applyKesiswaanFilter(inp, data.nama_santri);
+                setTimeout(() => {
+                    btnRefilter.innerText = '✓ Berhasil Difilter!';
+                    setTimeout(() => { btnRefilter.innerText = '🔍 Filter Ulang / Tekan Enter'; }, 1800);
+                }, 400);
+                const statusBadge = document.getElementById('tpq-step1-filter-status');
+                if (statusBadge) {
+                    statusBadge.innerHTML = '<span>✓</span> <span>Nama telah dimasukkan & difilter manual</span>';
+                    statusBadge.style.color = '#198754';
+                    statusBadge.style.background = '#d1e7dd';
+                    statusBadge.style.borderColor = '#badbcc';
+                }
+            } else {
+                btnRefilter.innerText = '⚠️ Kolom Cari Tidak Ditemukan';
+                setTimeout(() => { btnRefilter.innerText = '🔍 Filter Ulang / Tekan Enter'; }, 1800);
+            }
+        });
+    }
 
     document.getElementById('tpq-btn-force-step2').addEventListener('click', () => {
         div.remove();
@@ -2823,9 +3031,6 @@ function fillUpdateAlamatTextFields(santri) {
         }
         labelText = labelText.toUpperCase();
 
-        // Jangan isi otomatis field Koordinat (diisi manual oleh user jika diperlukan)
-        if (labelText.includes('KOORDINAT')) return;
-
         if (!filledRt && labelText.includes('RT') && !labelText.includes('ALAMAT') && !labelText.includes('RUKUN') && !labelText.includes('KOTA')) {
             if (santri.ayah_rt) {
                 setNativeValue(inp, santri.ayah_rt);
@@ -2845,6 +3050,23 @@ function fillUpdateAlamatTextFields(santri) {
             if (santri.ayah_kode_pos) {
                 setNativeValue(inp, santri.ayah_kode_pos);
                 filledKodePos = true;
+            }
+        } else if (labelText.includes('KOORDINAT') || labelText.includes('TITIK KOORDINAT')) {
+            if (santri.santri_titik_koordinat) {
+                console.log('[TPQ-EMIS Bridge] Menyetel Titik Koordinat Santri:', santri.santri_titik_koordinat);
+                setNativeValue(inp, santri.santri_titik_koordinat);
+            }
+        } else if (labelText.includes('LINTANG') || labelText.includes('LATITUDE')) {
+            const coords = parseTitikKoordinat(santri.santri_titik_koordinat);
+            if (coords.lat) {
+                console.log('[TPQ-EMIS Bridge] Menyetel Lintang/Latitude:', coords.lat);
+                setNativeValue(inp, coords.lat);
+            }
+        } else if (labelText.includes('BUJUR') || labelText.includes('LONGITUDE')) {
+            const coords = parseTitikKoordinat(santri.santri_titik_koordinat);
+            if (coords.lng) {
+                console.log('[TPQ-EMIS Bridge] Menyetel Bujur/Longitude:', coords.lng);
+                setNativeValue(inp, coords.lng);
             }
         }
     });
@@ -3151,6 +3373,7 @@ function executeStep3DataAlamat(santriData) {
                 const isJarakOk = checkIsJarakSelected();
                 const isTransportOk = checkIsTransportasiSelected();
                 const isWaktuOk = checkIsWaktuTempuhSelected();
+                const isKoordinatOk = checkIsKoordinatFilled(santriData.santri_titik_koordinat);
 
                 if (!isJarakOk) {
                     selectJarakTempatTinggalEmis(santriData.santri_jarak_tempuh || santriData.santri_jarak);
@@ -3161,13 +3384,16 @@ function executeStep3DataAlamat(santriData) {
                 if (!isWaktuOk) {
                     selectWaktuTempuhEmis(santriData.santri_waktu_tempuh);
                 }
+                if (!isKoordinatOk && santriData.santri_titik_koordinat) {
+                    fillTitikKoordinatEmis(santriData.santri_titik_koordinat);
+                }
 
-                if (isJarakOk && isTransportOk && isWaktuOk) {
+                if (isJarakOk && isTransportOk && isWaktuOk && isKoordinatOk) {
                     consecutiveSuccess++;
-                    console.log(`[TPQ-EMIS Bridge] [Mobilitas Timer #${attempts}] Jarak, Transportasi & Waktu terdeteksi terkunci (stabil ${consecutiveSuccess}/3)`);
+                    console.log(`[TPQ-EMIS Bridge] [Mobilitas Timer #${attempts}] Jarak, Transportasi, Waktu & Koordinat terdeteksi terkunci (stabil ${consecutiveSuccess}/3)`);
                 } else {
                     consecutiveSuccess = 0;
-                    console.log(`[TPQ-EMIS Bridge] [Mobilitas Timer #${attempts}] Status kunci - Jarak: ${isJarakOk}, Transportasi: ${isTransportOk}, Waktu: ${isWaktuOk}`);
+                    console.log(`[TPQ-EMIS Bridge] [Mobilitas Timer #${attempts}] Status kunci - Jarak: ${isJarakOk}, Transportasi: ${isTransportOk}, Waktu: ${isWaktuOk}, Koordinat: ${isKoordinatOk}`);
                 }
 
                 // Berhenti hanya jika sudah stabil terpilih selama 3 siklus berturut-turut ATAU waktu habis
@@ -3175,7 +3401,7 @@ function executeStep3DataAlamat(santriData) {
                     clearInterval(step3Timer);
                     isStep3Executing = false;
                     isStep3Done = true;
-                    console.log('[TPQ-EMIS Bridge] Penguncian Mobilitas (Jarak, Transportasi, Waktu) Step 3 selesai. Status stabil:', consecutiveSuccess >= 3);
+                    console.log('[TPQ-EMIS Bridge] Penguncian Mobilitas (Jarak, Transportasi, Waktu, Koordinat) Step 3 selesai. Status stabil:', consecutiveSuccess >= 3);
                 }
             }, 300);
         }, 400);
@@ -3334,11 +3560,14 @@ function showUpdateAlamatStep3Popup(data) {
                         <button class="tpq-copy-badge" data-val="${escapeHtml(data.santri_waktu_tempuh || '1-10 menit')}" style="padding: 1px 6px; margin-left: 4px; border: 1px solid #198754; background: #fff; color: #198754; border-radius: 3px; font-size: 10px; cursor: pointer;">Salin</button>
                     </td>
                 </tr>
-                ${data.santri_titik_koordinat ? `<tr>
-                    <td style="padding: 4px; color: #495057;">Koordinat:</td>
-                    <td style="padding: 4px; font-weight: bold;">
+                ${data.santri_titik_koordinat ? `<tr style="background: #f8f9fa;">
+                    <td style="padding: 4px; color: #198754; font-weight: bold;">Koordinat (Auto):</td>
+                    <td style="padding: 4px; font-weight: bold; color: #198754;">
                         ${escapeHtml(data.santri_titik_koordinat)}
-                        <button class="tpq-copy-badge" data-val="${escapeHtml(data.santri_titik_koordinat)}" style="padding: 1px 6px; margin-left: 4px; border: 1px solid #0d6efd; background: #fff; color: #0d6efd; border-radius: 3px; font-size: 10px; cursor: pointer;">Salin</button>
+                        <button id="tpq-btn-force-koordinat" style="padding: 2px 8px; margin-left: 6px; border: 1px solid #198754; background: #198754; color: #fff; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: bold;" title="Klik untuk isi Koordinat di form EMIS">
+                            ⚡ Isi di Form
+                        </button>
+                        <button class="tpq-copy-badge" data-val="${escapeHtml(data.santri_titik_koordinat)}" style="padding: 1px 6px; margin-left: 4px; border: 1px solid #198754; background: #fff; color: #198754; border-radius: 3px; font-size: 10px; cursor: pointer;">Salin</button>
                     </td>
                 </tr>` : ''}
             </table>
@@ -3470,12 +3699,44 @@ function showUpdateAlamatStep3Popup(data) {
         });
     }
 
+    // Tombol Isi Koordinat manual di form EMIS
+    const btnForceKoordinat = document.getElementById('tpq-btn-force-koordinat');
+    if (btnForceKoordinat && data.santri_titik_koordinat) {
+        btnForceKoordinat.addEventListener('click', () => {
+            btnForceKoordinat.innerText = '⏳ Mengisi...';
+            btnForceKoordinat.style.background = '#0d6efd';
+
+            fillTitikKoordinatEmis(data.santri_titik_koordinat);
+
+            let manualAttempts = 0;
+            const manualTimer = setInterval(() => {
+                manualAttempts++;
+                const isOk = checkIsKoordinatFilled(data.santri_titik_koordinat);
+                if (!isOk) {
+                    fillTitikKoordinatEmis(data.santri_titik_koordinat);
+                }
+                if (isOk || manualAttempts >= 5) {
+                    clearInterval(manualTimer);
+                    btnForceKoordinat.innerText = isOk ? '✓ Terisi!' : '⚠️ Gagal';
+                    btnForceKoordinat.style.background = isOk ? '#059669' : '#dc3545';
+                    setTimeout(() => {
+                        btnForceKoordinat.innerText = '⚡ Isi di Form';
+                        btnForceKoordinat.style.background = '#198754';
+                    }, 2500);
+                }
+            }, 250);
+        });
+    }
+
     document.getElementById('tpq-btn-refill-alamat').addEventListener('click', () => {
         ensureDataAlamatTabActive();
         fillUpdateAlamatTextFields(data);
         selectJarakTempatTinggalEmis(data.santri_jarak_tempuh || data.santri_jarak);
         selectTransportasiEmis(data.santri_transportasi);
         selectWaktuTempuhEmis(data.santri_waktu_tempuh);
+        if (data.santri_titik_koordinat) {
+            fillTitikKoordinatEmis(data.santri_titik_koordinat);
+        }
     });
 
     const btnSelesai = document.getElementById('tpq-btn-selesai-alamat');
