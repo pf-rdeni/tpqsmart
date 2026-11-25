@@ -1843,6 +1843,8 @@ class Santri extends BaseController
         $rawStatus = strtolower(trim((string)$this->request->getPost('Status')));
         $catatan = $this->request->getPost('Catatan');
 
+        log_message('info', "[EMIS] updateStatusEmisAjax CALLED - IdSantri={$idSantri} rawStatus={$rawStatus}");
+
         if (in_array($rawStatus, ['selesai', 'konflik', 'belum'])) {
             $status = $rawStatus;
         } elseif ($rawStatus === '1' || $rawStatus === 'true') {
@@ -1867,6 +1869,12 @@ class Santri extends BaseController
         $idTpq = session()->get('IdTpq');
 
         $result = $this->DataSantriBaru->updateStatusEmis($idSantri, $status, $user, $idTpq, $catatan);
+
+        // Verifikasi hasil update langsung dari database
+        $db = \Config\Database::connect();
+        $verify = $db->table('tbl_santri_emis')->where('IdSantri', $idSantri)->get()->getRowArray();
+        $savedStatus = $verify['StatusEmis'] ?? 'NOT_FOUND';
+        log_message('info', "[EMIS] updateStatusEmisAjax VERIFY - IdSantri={$idSantri} requested={$status} saved={$savedStatus} result=" . ($result ? 'true' : 'false'));
 
         if ($result) {
             $now = date('Y-m-d H:i:s');

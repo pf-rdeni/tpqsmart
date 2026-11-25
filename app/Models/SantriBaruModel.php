@@ -931,7 +931,6 @@ class SantriBaruModel extends Model
     public function updateStatusEmis($IdSantri, $status = 'selesai', $updatedBy = null, $IdTpq = null, $catatan = null)
     {
         $db = $this->db;
-        $builder = $db->table('tbl_santri_emis');
         $now = date('Y-m-d H:i:s');
 
         // Jika IdTpq belum diberikan, cari dari tbl_santri_baru
@@ -956,12 +955,17 @@ class SantriBaruModel extends Model
             $data['IdTpq'] = $IdTpq;
         }
 
-        $existing = $builder->where('IdSantri', $IdSantri)->get()->getRowArray();
+        // Gunakan builder terpisah untuk cek existing dan update agar tidak ada state tersisa
+        $existing = $db->table('tbl_santri_emis')->where('IdSantri', $IdSantri)->get()->getRowArray();
         if ($existing) {
-            return $builder->where('IdSantri', $IdSantri)->update($data);
+            $result = $db->table('tbl_santri_emis')->where('IdSantri', $IdSantri)->update($data);
+            log_message('info', "[EMIS] updateStatusEmis UPDATE IdSantri={$IdSantri} status={$status} catatan=" . ($catatan ?? 'null') . " result=" . ($result ? 'true' : 'false') . " lastQuery=" . (string)$db->getLastQuery());
+            return $result;
         } else {
             $data['created_at'] = $now;
-            return $builder->insert($data);
+            $result = $db->table('tbl_santri_emis')->insert($data);
+            log_message('info', "[EMIS] updateStatusEmis INSERT IdSantri={$IdSantri} status={$status} catatan=" . ($catatan ?? 'null') . " result=" . ($result ? 'true' : 'false') . " lastQuery=" . (string)$db->getLastQuery());
+            return $result;
         }
     }
 

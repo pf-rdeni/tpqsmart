@@ -83,9 +83,6 @@
                         <button type="button" class="btn btn-warning btn-sm" disabled>
                             <i class="fas fa-clock mr-1"></i> Belum: <strong id="statBelumSantri"><?= $totalBelum; ?></strong>
                         </button>
-                        <button type="button" class="btn btn-outline-danger btn-sm" onclick="resetSemuaStatusEmis()" title="Reset tanda selesai di database">
-                            <i class="fas fa-undo"></i>
-                        </button>
                     </div>
                 </div>
             </div>
@@ -1041,53 +1038,6 @@
         $('#statKonflikSantri').text(konflik);
         $('#statBelumSantri').text(belum);
     }
-
-    function resetSemuaStatusEmis() {
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
-                title: 'Reset Semua Status EMIS?',
-                text: 'Semua status pendaftaran santri dan catatan akan dikembalikan menjadi "Belum" di database.',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#d33',
-                cancelButtonColor: '#6c757d',
-                confirmButtonText: '<i class="fas fa-undo mr-1"></i> Ya, Reset Semua',
-                cancelButtonText: 'Batal'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    $.ajax({
-                        url: '<?= base_url('backend/santri/resetStatusEmisAjax'); ?>',
-                        method: 'POST',
-                        dataType: 'json',
-                        success: function(res) {
-                            if (res.success) {
-                                dataSantriMaster.forEach(s => {
-                                    s.StatusEmis = 'belum';
-                                    s.TglUpdateEmis = null;
-                                    s.CatatanEmis = null;
-                                    updateStatusBadgeUI(s.IdSantri, 'belum', '', '', false);
-                                });
-                                if (dataTableSantri) {
-                                    dataTableSantri.rows().invalidate().draw(false);
-                                }
-                                hitungUlangStatistik();
-                                if (typeof toastr !== 'undefined') {
-                                    toastr.success(res.message || 'Semua status santri berhasil direset di database.', 'Reset Selesai');
-                                }
-                            }
-                        },
-                        error: function() {
-                            if (typeof toastr !== 'undefined') {
-                                toastr.error('Gagal mereset status santri di database.', 'Gagal');
-                            }
-                        }
-                    });
-                }
-            });
-        }
-    }
-
-
 
     // ==============================================================
     // KOMUNIKASI CHROME EXTENSION (Phase 3 & Protocol)
