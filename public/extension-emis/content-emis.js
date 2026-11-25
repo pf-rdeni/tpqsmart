@@ -20,7 +20,7 @@
  *  - Popup Step 2 dapat digeser (draggable) dan memandu checklist isian manual
  */
 
-const EXTENSION_VERSION = '1.5.3';
+const EXTENSION_VERSION = '1.5.4';
 console.log(`[TPQ-EMIS Bridge v${EXTENSION_VERSION}] Content script aktif di EMIS Kemenag.`);
 
 // Flag status pengecekan NIK Step 1
@@ -3316,43 +3316,49 @@ function findSantriSectionContainer() {
  * Helper untuk memvalidasi apakah suatu elemen <select> benar-benar dropdown Status Tempat Tinggal (Santri)
  * dan BUKAN dropdown Provinsi/Wilayah, Status Rumah, Status Mukim, atau Mobilitas!
  */
-function isStatusTempatTinggalSelect(sel) {
-    if (!sel || !sel.options || sel.options.length === 0) return false;
-    // Status Tempat Tinggal memiliki sekitar 10 opsi (placeholder + 9 opsi tinggal)
-    // Jika lebih dari 20 opsi, hampir pasti dropdown Provinsi (39 opsi) atau Kab/Kota!
-    if (sel.options.length < 3 || sel.options.length > 20) return false;
+function isNonTempatTinggalSelect(sel) {
+    if (!sel || !sel.options || sel.options.length === 0) return true;
+    if (sel.options.length > 20) return true;
 
-    const options = Array.from(sel.options);
-    const texts = options.map(o => (o.text || o.label || '').toLowerCase().trim());
+    const texts = Array.from(sel.options).map(o => (o.text || o.label || '').toLowerCase().trim());
 
     // 1. EKSKLUSI MUTLAK: Nama-nama provinsi / wilayah
-    const hasWilayahText = texts.some(t => 
-        t.includes('aceh') || t.includes('lampung') || t.includes('jawa') || 
-        t.includes('bali') || t.includes('sumatera') || t.includes('kalimantan') || 
-        t.includes('sulawesi') || t.includes('papua') || t.includes('banten') || 
-        t.includes('bengkulu') || t.includes('riau') || t.includes('jambi') || 
+    if (texts.some(t =>
+        t.includes('aceh') || t.includes('lampung') || t.includes('jawa') ||
+        t.includes('bali') || t.includes('sumatera') || t.includes('kalimantan') ||
+        t.includes('sulawesi') || t.includes('papua') || t.includes('banten') ||
+        t.includes('bengkulu') || t.includes('riau') || t.includes('jambi') ||
         t.includes('maluku') || t.includes('gorontalo')
-    );
-    if (hasWilayahText) return false;
-
-    // 2. EKSKLUSI MUTLAK: Opsi kepemilikan rumah, mukim, mobilitas
-    if (texts.some(t => 
-        t.includes('milik sendiri') || t.includes('rumah dinas') || 
-        t.includes('tidak mukim') || t === 'mukim' || 
-        t.includes('jalan kaki') || t.includes('sepeda') || 
-        t.includes('km') || (t.includes('menit') && !t.includes('tinggal'))
     )) {
-        return false;
+        return true;
     }
 
-    // 3. KRITERIA WAJIB: Memiliki teks khas Status Tempat Tinggal
-    // Di EMIS 4.0: "Tinggal dengan Ayah Kandung", "Tinggal dengan Ibu Kandung", "Tinggal dengan Wali", dll.
+    // 2. EKSKLUSI MUTLAK: Opsi kepemilikan rumah, mukim, mobilitas
+    if (texts.some(t =>
+        t.includes('milik sendiri') || t.includes('rumah dinas') ||
+        t.includes('tidak mukim') || t === 'mukim' ||
+        t.includes('jalan kaki') || t.includes('sepeda') ||
+        t.includes('km') || (t.includes('menit') && !t.includes('tinggal'))
+    )) {
+        return true;
+    }
+
+    return false;
+}
+
+function isStatusTempatTinggalSelect(sel) {
+    if (!sel || !sel.options || sel.options.length < 3) return false;
+    if (isNonTempatTinggalSelect(sel)) return false;
+
+    const texts = Array.from(sel.options).map(o => (o.text || o.label || '').toLowerCase().trim());
+
+    // Memiliki teks khas Status Tempat Tinggal di EMIS 4.0
     const hasAyah = texts.some(t => t.includes('tinggal dengan ayah') || (t.includes('ayah') && t.includes('kandung')));
     const hasWali = texts.some(t => t.includes('tinggal dengan wali') || t.includes('wali'));
     const hasIbu = texts.some(t => t.includes('tinggal dengan ibu') || (t.includes('ibu') && t.includes('kandung')));
-    const hasKostOrAsrama = texts.some(t => t.includes('kost') || t.includes('kontrak') || t.includes('asrama') || t.includes('panti asuhan') || t.includes('kerabat'));
+    const hasKostOrAsrama = texts.some(t => t.includes('kost') || t.includes('kontrak') || t.includes('asrama') || t.includes('panti') || t.includes('kerabat') || t.includes('orang tua'));
 
-    return hasAyah && (hasWali || hasIbu || hasKostOrAsrama);
+    return hasAyah || (hasWali && (hasIbu || hasKostOrAsrama));
 }
 
 /**
@@ -3423,14 +3429,23 @@ function mapStatusTempatTinggalOption(sel, targetRaw) {
  * Menggunakan validasi ketat isStatusTempatTinggalSelect agar TIDAK PERNAH salah memilih Provinsi!
  */
 function findStatusTempatTinggalSelect() {
-    const allSelects = Array.from(document.querySelectorAll('select'));
-
-    // 1. Prioritas Utama: Cari di semua <select> yang memenuhi kriteria ketat isStatusTempatTinggalSelect
-    for (let i = 0; i < allSelects.length; i++) {
-        const sel = allSelects[i];
-        if (isSelectDisabled(sel)) continue;
-        if (isStatusTempatTinggalSelect(sel)) {
-            return sel;
+    // 1. Prioritas Utama: Label DOM bertuliskan "STATUS TEMPAT TINGGAL", "JENIS TEMPAT TINGGAL", atau "TEMPAT TINGGAL SANTRI"
+    const allLabels = Array.from(document.querySelectorAll('div, label, span, p, h1, h2, h3, h4'));
+    for (const el of allLabels) {
+        if (el.closest && el.closest('[id^="tpq-"]')) continue;
+        if (el.children.length > 2) continue;
+        const txt = (el.innerText || el.textContent || '').replace(/\*/g, '').trim().toUpperCase();
+        if ((txt.includes('STATUS TEMPAT TINGGAL') || txt.includes('JENIS TEMPAT TINGGAL') || (txt.includes('TEMPAT TINGGAL') && !txt.includes('JARAK') && !txt.includes('DOMISILI') && !txt.includes('KEPEMILIKAN'))) && txt.length <= 50) {
+            let p = el.parentElement;
+            for (let i = 0; i < 6 && p && p !== document.body; i++) {
+                const selects = Array.from(p.querySelectorAll('select'));
+                // Ambil hanya jika container sempit (maksimal 2 select agar tidak melompat ke seluruh form)
+                if (selects.length > 0 && selects.length <= 2) {
+                    const sel = selects.find(s => !isSelectDisabled(s) && !isNonTempatTinggalSelect(s) && s.options.length >= 2);
+                    if (sel) return sel;
+                }
+                p = p.parentElement;
+            }
         }
     }
 
@@ -3445,20 +3460,12 @@ function findStatusTempatTinggalSelect() {
         }
     }
 
-    // 3. Prioritas Ketiga: Label DOM bertuliskan "STATUS TEMPAT TINGGAL" atau "TEMPAT TINGGAL SANTRI"
-    const allLabels = Array.from(document.querySelectorAll('div, label, span, p, h1, h2, h3, h4'));
-    for (const el of allLabels) {
-        if (el.children.length > 2) continue;
-        const txt = (el.innerText || el.textContent || '').trim().toUpperCase();
-        if ((txt.includes('STATUS TEMPAT TINGGAL') || (txt.includes('TEMPAT TINGGAL') && !txt.includes('JARAK') && !txt.includes('DOMISILI'))) && txt.length <= 50) {
-            let p = el.parentElement;
-            for (let i = 0; i < 6 && p && p !== document.body; i++) {
-                const sel = p.querySelector('select');
-                if (sel && !isSelectDisabled(sel) && isStatusTempatTinggalSelect(sel)) {
-                    return sel;
-                }
-                p = p.parentElement;
-            }
+    // 3. Prioritas Ketiga: Cari di semua <select> yang memenuhi kriteria isStatusTempatTinggalSelect
+    const allSelects = Array.from(document.querySelectorAll('select'));
+    for (let i = 0; i < allSelects.length; i++) {
+        const sel = allSelects[i];
+        if (!isSelectDisabled(sel) && isStatusTempatTinggalSelect(sel)) {
+            return sel;
         }
     }
 
@@ -3551,6 +3558,8 @@ function waitAndSelectStatusTempatTinggal(targetRaw, timeoutMs = 8000) {
 
         const startTime = Date.now();
         let lastLoggedSel = false;
+        let lastAttemptAt = 0;
+        let stableCount = 0;
 
         const timer = setInterval(() => {
             const sel = findStatusTempatTinggalSelect();
@@ -3562,31 +3571,41 @@ function waitAndSelectStatusTempatTinggal(targetRaw, timeoutMs = 8000) {
                     console.log(`[TPQ-EMIS Bridge] [Status Tempat Tinggal] Daftar Opsi (${sel.options.length}):`, optList);
                 }
 
-                // Cek apakah sudah terverifikasi terpilih sesuai target
+                // Cek apakah sudah terpilih sesuai target; wajib bertahan 2x cek berturut-turut agar kebal terhadap reset re-render React
                 if (isStatusTempatTinggalTargetSelected(sel, target)) {
-                    clearInterval(timer);
-                    const curOpt = sel.options[sel.selectedIndex];
-                    console.log(`%c[TPQ-EMIS Bridge] [Status Tempat Tinggal] ✓ BERHASIL TERVERIFIKASI TERPILIH! [val="${sel.value}"] "${curOpt?.text}"`, 'background: #16a34a; color: #fff; font-weight: bold; padding: 2px 6px; border-radius: 3px;');
-                    updateWilayahStatusUI('tempat-tinggal', '[✓ Terpilih]', '#198754');
-                    return resolve(true);
+                    stableCount++;
+                    if (stableCount >= 2) {
+                        clearInterval(timer);
+                        const curOpt = sel.options[sel.selectedIndex];
+                        console.log(`%c[TPQ-EMIS Bridge] [Status Tempat Tinggal] ✓ BERHASIL TERVERIFIKASI STABIL! [val="${sel.value}"] "${curOpt?.text}"`, 'background: #16a34a; color: #fff; font-weight: bold; padding: 2px 6px; border-radius: 3px;');
+                        updateWilayahStatusUI('tempat-tinggal', '[✓ Terpilih]', '#198754');
+                        return resolve(true);
+                    }
+                    return;
                 }
 
-                // Tentukan opsi yang harus dipilih dari pemetaan
-                const targetOpt = mapStatusTempatTinggalOption(sel, target);
-                if (targetOpt) {
-                    console.log(`[TPQ-EMIS Bridge] [Status Tempat Tinggal] Mencoba menyetel ke opsi: [val="${targetOpt.value}"] "${targetOpt.text}"`);
-                    updateWilayahStatusUI('tempat-tinggal', '[⏳ Mengisi...]', '#0d6efd');
-                    const ok = setNativeSelectValue(sel, targetOpt.value);
-                    if (!ok) {
-                        console.warn('[TPQ-EMIS Bridge] [Status Tempat Tinggal] setNativeSelectValue mengembalikan false, mencoba direct value setter');
-                        sel.value = targetOpt.value;
-                        sel.dispatchEvent(new Event('input', { bubbles: true }));
-                        sel.dispatchEvent(new Event('change', { bubbles: true }));
+                stableCount = 0;
+
+                // Debounce 350ms antar percobaan set agar tidak men-spam React onChange berulang kali
+                if (Date.now() - lastAttemptAt >= 350) {
+                    lastAttemptAt = Date.now();
+                    const targetOpt = mapStatusTempatTinggalOption(sel, target);
+                    if (targetOpt) {
+                        console.log(`[TPQ-EMIS Bridge] [Status Tempat Tinggal] Mencoba menyetel ke opsi: [val="${targetOpt.value}"] "${targetOpt.text}"`);
+                        updateWilayahStatusUI('tempat-tinggal', '[⏳ Mengisi...]', '#0d6efd');
+                        const ok = setNativeSelectValue(sel, targetOpt.value);
+                        if (!ok) {
+                            console.warn('[TPQ-EMIS Bridge] [Status Tempat Tinggal] setNativeSelectValue mengembalikan false, mencoba direct value setter');
+                            sel.value = targetOpt.value;
+                            sel.dispatchEvent(new Event('input', { bubbles: true }));
+                            sel.dispatchEvent(new Event('change', { bubbles: true }));
+                        }
+                    } else {
+                        console.warn(`[TPQ-EMIS Bridge] [Status Tempat Tinggal] Tidak menemukan opsi yang cocok dengan target "${target}"`);
                     }
-                } else {
-                    console.warn(`[TPQ-EMIS Bridge] [Status Tempat Tinggal] Tidak menemukan opsi yang cocok dengan target "${target}"`);
                 }
             } else {
+                stableCount = 0;
                 updateWilayahStatusUI('tempat-tinggal', '[⏳ Mencari dropdown...]', '#0d6efd');
             }
 
@@ -3597,14 +3616,12 @@ function waitAndSelectStatusTempatTinggal(targetRaw, timeoutMs = 8000) {
                 console.error('Target yang diminta:', target);
                 if (!finalSel) {
                     console.error('Penyebab Gagal: Elemen <select> Status Tempat Tinggal yang valid TIDAK DITEMUKAN di DOM halaman!');
-                    console.error('Daftar semua <select> yang ada di halaman saat ini:');
                     document.querySelectorAll('select').forEach((s, idx) => {
                         console.error(`Select #${idx} (Total ${s.options.length} opsi):`, s, 'Contoh Opsi:', Array.from(s.options).slice(0, 5).map(o => `[${o.value}] ${o.text}`).join(', '));
                     });
                 } else {
                     const curOpt = finalSel.options[finalSel.selectedIndex];
                     console.error('Penyebab Gagal: Dropdown ditemukan tetapi nilai belum cocok atau gagal disimpan ke React state.');
-                    console.error('Elemen select:', finalSel);
                     console.error('Nilai saat ini:', finalSel.value, `(Teks: "${curOpt?.text}")`);
                     console.error('Status Disabled:', finalSel.disabled, 'aria-disabled:', finalSel.getAttribute('aria-disabled'));
                     console.error('Daftar opsi tersedia:', Array.from(finalSel.options).map(o => `[${o.value}] ${o.text}`));
@@ -3614,7 +3631,7 @@ function waitAndSelectStatusTempatTinggal(targetRaw, timeoutMs = 8000) {
                 updateWilayahStatusUI('tempat-tinggal', '[⚠️ Gagal / Pilih Manual]', '#dc3545');
                 resolve(false);
             }
-        }, 300);
+        }, 200);
     });
 }
 
@@ -3839,7 +3856,7 @@ function showStep0StartPopup(data) {
         <div id="tpq-step0-header" style="background: linear-gradient(135deg, #0d6efd, #0b5ed7); color: #fff; padding: 8px 12px; font-weight: bold; font-size: 13px; display: flex; justify-content: space-between; align-items: center; cursor: move; user-select: none;">
             <div style="display: flex; align-items: center; gap: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 195px;" title="${escapeHtml(data.nama_santri)} - ${escapeHtml(tglLahirLabel)}">
                 <span style="font-size: 12px;">⚡ <strong>${escapeHtml(data.nama_santri)}</strong></span>
-                <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 4px; border-radius: 3px; font-weight: normal;">v1.5.3</span>
+                <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 4px; border-radius: 3px; font-weight: normal;">v1.5.4</span>
                 <span style="font-size: 10.5px; background: rgba(255,255,255,0.25); border-radius: 3px; padding: 1px 5px; font-weight: 500;" title="Tanggal Lahir Santri">📅 ${escapeHtml(tglLahirLabel)}</span>
             </div>
             <div style="display: flex; align-items: center; gap: 5px;">
@@ -4143,7 +4160,7 @@ function showStep1Assistant(data) {
         <div id="tpq-step1-header" style="background: linear-gradient(135deg, #0d6efd, #0b5ed7); color: #fff; padding: 8px 12px; font-weight: bold; font-size: 13px; display: flex; justify-content: space-between; align-items: center; cursor: move; user-select: none;">
             <div style="display: flex; align-items: center; gap: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 170px;" title="${escapeHtml(data.nama_santri)}">
                 <span style="font-size: 12px;">⚡ <strong>${escapeHtml(data.nama_santri)}</strong></span>
-                <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 4px; border-radius: 3px; font-weight: normal; margin-left: 2px;">v1.5.3</span>
+                <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 4px; border-radius: 3px; font-weight: normal; margin-left: 2px;">v1.5.4</span>
             </div>
             <div style="display: flex; align-items: center; gap: 5px;">
                 <button id="tpq-btn-quick-copy-tgl-step1" style="background: #198754; color: #fff; border: 1px solid rgba(255,255,255,0.4); border-radius: 4px; padding: 3px 8px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.15);" title="Salin Tanggal Lahir">
@@ -4373,7 +4390,7 @@ function showStep2Assistant(data, filledAyah = false, filledIbu = false, filledN
         <div id="tpq-step2-header" style="background: linear-gradient(135deg, #0d6efd, #0b5ed7); color: #fff; padding: 8px 12px; font-weight: bold; font-size: 13px; display: flex; justify-content: space-between; align-items: center; cursor: move; user-select: none;">
             <div style="display: flex; align-items: center; gap: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 160px;" title="${escapeHtml(data.nama_santri)}">
                 <span style="font-size: 12px;">⚡ <strong>${escapeHtml(data.nama_santri)}</strong></span>
-                <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 4px; border-radius: 3px; font-weight: normal; margin-left: 2px;">v1.5.3</span>
+                <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 4px; border-radius: 3px; font-weight: normal; margin-left: 2px;">v1.5.4</span>
             </div>
             <div style="display: flex; align-items: center; gap: 5px;">
                 <button id="tpq-btn-quick-selesai-step2" style="background: #198754; color: #fff; border: 1px solid rgba(255,255,255,0.4); border-radius: 4px; padding: 3px 8px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.15);" title="Selesaikan pendaftaran & tandai selesai">
@@ -5696,7 +5713,7 @@ function showUpdateAlamatStep1Popup(data) {
         <div id="tpq-update-step1-header" style="background: linear-gradient(135deg, #0d6efd, #0b5ed7); color: #fff; padding: 8px 12px; font-weight: bold; font-size: 13px; display: flex; justify-content: space-between; align-items: center; cursor: move; user-select: none;">
             <div style="display: flex; align-items: center; gap: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 170px;" title="${escapeHtml(data.nama_santri)}">
                 <span style="font-size: 12px;">⚡ <strong>${escapeHtml(data.nama_santri)}</strong></span>
-                <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 4px; border-radius: 3px; font-weight: normal; margin-left: 2px;">v1.5.3</span>
+                <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 4px; border-radius: 3px; font-weight: normal; margin-left: 2px;">v1.5.4</span>
             </div>
             <div style="display: flex; align-items: center; gap: 5px;">
                 <button id="tpq-btn-mode-step1" style="background: ${currentAutoMode === 'FULL' ? '#059669' : '#d97706'}; color: #fff; border: 1px solid rgba(255,255,255,0.4); border-radius: 4px; padding: 3px 8px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.15);" title="${currentAutoMode === 'FULL' ? 'Mode Full Otomatis aktif (klik untuk ganti ke Semi-Otomatis)' : 'Mode Semi-Otomatis aktif (klik untuk ganti ke Full Otomatis)'}">
@@ -6190,7 +6207,7 @@ function showUpdateSantriStep2Popup(data) {
         <div id="tpq-update-santri-step2-header" style="background: linear-gradient(135deg, #0d6efd, #0b5ed7); color: #fff; padding: 8px 12px; font-weight: bold; font-size: 13px; display: flex; justify-content: space-between; align-items: center; cursor: move; user-select: none;">
             <div style="display: flex; align-items: center; gap: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 150px;" title="${escapeHtml(data.nama_santri)}">
                 <span style="font-size: 12px;">⚡ <strong>${escapeHtml(data.nama_santri)}</strong></span>
-                <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 4px; border-radius: 3px; font-weight: normal; margin-left: 2px;">v1.5.3</span>
+                <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 4px; border-radius: 3px; font-weight: normal; margin-left: 2px;">v1.5.4</span>
             </div>
             <div style="display: flex; align-items: center; gap: 5px;">
                 <button id="tpq-btn-mode-step2" style="background: ${currentAutoMode === 'FULL' ? '#059669' : '#d97706'}; color: #fff; border: 1px solid rgba(255,255,255,0.4); border-radius: 4px; padding: 3px 8px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.15);" title="${currentAutoMode === 'FULL' ? 'Mode Full Otomatis aktif (klik untuk ganti ke Semi-Otomatis)' : 'Mode Semi-Otomatis aktif (klik untuk ganti ke Full Otomatis)'}">
@@ -6895,7 +6912,7 @@ async function executeStep3DataAlamat(santriData) {
     // ========================================================
     updateProgress('4/5: Status Santri...', '#fef3c7', '#92400e');
     await waitAndSelectStatusMukim(santriData.santri_status_mukim || 'Tidak Mukim', 5000);
-    await new Promise(r => setTimeout(r, 200));
+    await new Promise(r => setTimeout(r, 450));
     const isTempatOk = await waitAndSelectStatusTempatTinggal(santriData.santri_status_tempat_tinggal || 'Tinggal dengan Ayah Kandung', 8000);
     if (!isTempatOk) {
         console.warn('[TPQ-EMIS Bridge] ⛔ Status Tempat Tinggal belum terisi! Menghentikan alur otomatis sesuai instruksi.');
@@ -6921,7 +6938,7 @@ async function executeStep3DataAlamat(santriData) {
     const finalSelTempat = findStatusTempatTinggalSelect();
     if (finalSelTempat && !isStatusTempatTinggalTargetSelected(finalSelTempat, santriData.santri_status_tempat_tinggal || 'Tinggal dengan Ayah Kandung')) {
         console.log('[TPQ-EMIS Bridge] Verifikasi akhir: Menyetel ulang Status Tempat Tinggal...');
-        selectStatusTempatTinggalEmis(santriData.santri_status_tempat_tinggal || 'Tinggal dengan Ayah Kandung');
+        await waitAndSelectStatusTempatTinggal(santriData.santri_status_tempat_tinggal || 'Tinggal dengan Ayah Kandung', 3000);
     }
     await new Promise(r => setTimeout(r, 200));
 
@@ -6974,7 +6991,7 @@ function showUpdateAlamatStep3Popup(data) {
         <div id="tpq-update-step3-header" style="background: linear-gradient(135deg, #0d6efd, #0b5ed7); color: #fff; padding: 8px 12px; font-weight: bold; font-size: 13px; display: flex; justify-content: space-between; align-items: center; cursor: move; user-select: none;">
             <div style="display: flex; align-items: center; gap: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 160px;" title="${escapeHtml(data.nama_santri)}">
                 <span style="font-size: 12px;">⚡ <strong>${escapeHtml(data.nama_santri)}</strong></span>
-                <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 4px; border-radius: 3px; font-weight: normal; margin-left: 2px;">v1.5.3</span>
+                <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 4px; border-radius: 3px; font-weight: normal; margin-left: 2px;">v1.5.4</span>
             </div>
             <div style="display: flex; align-items: center; gap: 5px;">
                 <button id="tpq-btn-mode-step3" style="background: ${currentAutoMode === 'FULL' ? '#059669' : '#d97706'}; color: #fff; border: 1px solid rgba(255,255,255,0.4); border-radius: 4px; padding: 3px 8px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.15);" title="${currentAutoMode === 'FULL' ? 'Mode Full Otomatis aktif (klik untuk ganti ke Semi-Otomatis)' : 'Mode Semi-Otomatis aktif (klik untuk ganti ke Full Otomatis)'}">
