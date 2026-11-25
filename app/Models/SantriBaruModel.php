@@ -830,6 +830,72 @@ class SantriBaruModel extends Model
      * @param string|null $IdTahunAjaran Tahun Ajaran (null untuk otomatis tahun ajaran saat ini)
      * @return array
      */
+    /**
+     * Menormalisasi StatusTempatTinggalSantri untuk kebutuhan tampilan & pengiriman EMIS:
+     * jika tercatat "Lainnya" padahal alamat Ayah kosong atau identik/mirip (>=80%) dengan alamat Santri,
+     * kembalikan "Tinggal dengan Ayah Kandung" (atau Ibu Kandung bila Ayah tidak masih hidup).
+     */
+    public function resolveStatusTempatTinggalEmis(array $santri): string
+    {
+        $rawStatus = !empty($santri['StatusTempatTinggalSantri'])
+            ? trim((string) $santri['StatusTempatTinggalSantri'])
+            : 'Tinggal dengan Ayah Kandung';
+
+        if (stripos($rawStatus, 'lain') === false) {
+            return $rawStatus;
+        }
+
+        $normAlnum = static function ($val): string {
+            return preg_replace('/[^a-z0-9]/', '', strtolower(trim((string) $val)));
+        };
+        $normRtRw = static function ($val): string {
+            $clean = preg_replace('/[^0-9]/', '', trim((string) $val));
+            if ($clean === '' || (int) $clean === 0) {
+                return '';
+            }
+            return (string) ((int) $clean);
+        };
+
+        $alamatSantri = $normAlnum($santri['AlamatSantri'] ?? '');
+        $alamatAyah   = $normAlnum($santri['AlamatAyah'] ?? '');
+        $rtSantri     = $normRtRw($santri['RtSantri'] ?? '');
+        $rtAyah       = $normRtRw($santri['RtAyah'] ?? '');
+        $rwSantri     = $normRtRw($santri['RwSantri'] ?? '');
+        $rwAyah       = $normRtRw($santri['RwAyah'] ?? '');
+        $desaSantri   = $normAlnum($santri['KelurahanDesaSantri'] ?? '');
+        $desaAyah     = $normAlnum($santri['KelurahanDesaAyah'] ?? '');
+
+        $alamatMatch = false;
+        if ($alamatAyah === '' && $alamatSantri !== '') {
+            $alamatMatch = true;
+        } elseif ($alamatAyah !== '' && $alamatSantri !== '') {
+            if ($alamatAyah === $alamatSantri) {
+                $alamatMatch = true;
+            } else {
+                similar_text($alamatAyah, $alamatSantri, $pct);
+                $alamatMatch = ($pct >= 80.0);
+            }
+        }
+
+        $rtMatch   = ($rtAyah === '' || $rtSantri === '' || $rtAyah === $rtSantri);
+        $rwMatch   = ($rwAyah === '' || $rwSantri === '' || $rwAyah === $rwSantri);
+        $desaMatch = ($desaAyah === '' || $desaSantri === '' || $desaAyah === $desaSantri);
+
+        if ($alamatMatch && $rtMatch && $rwMatch && $desaMatch) {
+            $statusAyah = trim((string) ($santri['StatusAyah'] ?? ''));
+            $statusIbu  = trim((string) ($santri['StatusIbu'] ?? ''));
+            if (strcasecmp($statusAyah, 'Masih Hidup') === 0) {
+                return 'Tinggal dengan Ayah Kandung';
+            }
+            if (strcasecmp($statusIbu, 'Masih Hidup') === 0) {
+                return 'Tinggal dengan Ibu Kandung';
+            }
+            return 'Tinggal dengan Ayah Kandung';
+        }
+
+        return $rawStatus;
+    }
+
     public function getListSantriEmis($IdTpq = null, $IdKelas = null, $IdTahunAjaran = null)
     {
         if (empty($IdTahunAjaran)) {
@@ -886,7 +952,11 @@ class SantriBaruModel extends Model
         $builder->orderBy('ks.IdKelas', 'ASC')
             ->orderBy('tbl_santri_baru.NamaSantri', 'ASC');
 
-        return $builder->get()->getResultArray();
+        $rows = $builder->get()->getResultArray();
+        foreach ($rows as &$row) {
+            $row['StatusTempatTinggalSantri'] = $this->resolveStatusTempatTinggalEmis($row);
+        }
+        return $rows;
     }
 
     /**

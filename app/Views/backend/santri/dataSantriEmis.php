@@ -572,16 +572,33 @@
 
                     <!-- Tab Data Alamat -->
                     <div class="tab-pane fade" id="data-alamatUpdate" role="tabpanel">
-                        <table class="table table-borderless table-sm">
-                            <tr><td width="25%">Alamat</td><td width="5%">:</td><td id="modalAlamatUpdate" class="font-weight-bold"></td></tr>
+                        <h6 class="font-weight-bold text-primary mb-2"><i class="fas fa-home mr-1"></i> Domisili & Alamat Santri</h6>
+                        <table class="table table-borderless table-sm mb-3">
+                            <tr><td width="30%">Status Tempat Tinggal</td><td width="5%">:</td><td id="modalStatusTempatTinggalUpdate" class="font-weight-bold"></td></tr>
+                            <tr><td>Status Mukim</td><td>:</td><td id="modalStatusMukimUpdate" class="font-weight-bold"></td></tr>
+                            <tr><td>Alamat Santri</td><td>:</td><td id="modalAlamatUpdate" class="font-weight-bold"></td></tr>
                             <tr><td>RT / RW</td><td>:</td><td><span id="modalRTUpdate" class="font-weight-bold"></span> / <span id="modalRWUpdate" class="font-weight-bold"></span></td></tr>
                             <tr><td>Kelurahan / Desa</td><td>:</td><td id="modalKelurahanDesaUpdate" class="font-weight-bold"></td></tr>
                             <tr><td>Kecamatan</td><td>:</td><td id="modalKecamatanUpdate" class="font-weight-bold"></td></tr>
                             <tr><td>Kabupaten / Kota</td><td>:</td><td id="modalKabupatenKotaUpdate" class="font-weight-bold"></td></tr>
                             <tr><td>Provinsi</td><td>:</td><td id="modalProvinsiUpdate" class="font-weight-bold"></td></tr>
+                            <tr><td>Kode Pos</td><td>:</td><td id="modalKodePosUpdate" class="font-weight-bold"></td></tr>
                             <tr><td>Jarak & Waktu</td><td>:</td><td><span id="modalJarakTempuhUpdate" class="font-weight-bold"></span> (<span id="modalWaktuTempuhUpdate"></span>)</td></tr>
                             <tr><td>Transportasi</td><td>:</td><td id="modalTransportasiUpdate" class="font-weight-bold"></td></tr>
                             <tr><td>Titik Koordinat</td><td>:</td><td id="modalTitikKoordinatUpdate"></td></tr>
+                        </table>
+
+                        <hr class="my-2">
+                        <h6 class="font-weight-bold text-success mb-2"><i class="fas fa-users mr-1"></i> Alamat Orang Tua / Ayah (Sumber EMIS)</h6>
+                        <table class="table table-borderless table-sm mb-0">
+                            <tr><td width="30%">Status Kepemilikan Rumah</td><td width="5%">:</td><td id="modalStatusRumahAyahUpdate" class="font-weight-bold"></td></tr>
+                            <tr><td>Alamat Orang Tua</td><td>:</td><td id="modalAlamatAyahUpdate" class="font-weight-bold"></td></tr>
+                            <tr><td>RT / RW</td><td>:</td><td><span id="modalRTAyahUpdate" class="font-weight-bold"></span> / <span id="modalRWAyahUpdate" class="font-weight-bold"></span></td></tr>
+                            <tr><td>Kelurahan / Desa</td><td>:</td><td id="modalKelurahanDesaAyahUpdate" class="font-weight-bold"></td></tr>
+                            <tr><td>Kecamatan</td><td>:</td><td id="modalKecamatanAyahUpdate" class="font-weight-bold"></td></tr>
+                            <tr><td>Kabupaten / Kota</td><td>:</td><td id="modalKabupatenKotaAyahUpdate" class="font-weight-bold"></td></tr>
+                            <tr><td>Provinsi</td><td>:</td><td id="modalProvinsiAyahUpdate" class="font-weight-bold"></td></tr>
+                            <tr><td>Kode Pos</td><td>:</td><td id="modalKodePosAyahUpdate" class="font-weight-bold"></td></tr>
                         </table>
                     </div>
 
@@ -1707,7 +1724,9 @@
             document.querySelectorAll('.data-ibu-hidup').forEach(el => el.style.display = 'none');
         }
 
-        // Alamat
+        // Alamat & Domisili Santri
+        document.getElementById('modalStatusTempatTinggalUpdate').textContent = santri.StatusTempatTinggalSantri || '-';
+        document.getElementById('modalStatusMukimUpdate').textContent = santri.StatusMukim || '-';
         document.getElementById('modalAlamatUpdate').textContent = santri.AlamatSantri || '-';
         document.getElementById('modalRTUpdate').textContent = santri.RtSantri || '-';
         document.getElementById('modalRWUpdate').textContent = santri.RwSantri || '-';
@@ -1715,9 +1734,21 @@
         document.getElementById('modalKecamatanUpdate').textContent = santri.KecamatanSantri || '-';
         document.getElementById('modalKabupatenKotaUpdate').textContent = santri.KabupatenKotaSantri || '-';
         document.getElementById('modalProvinsiUpdate').textContent = santri.ProvinsiSantri || '-';
+        document.getElementById('modalKodePosUpdate').textContent = santri.KodePosSantri || '-';
         document.getElementById('modalJarakTempuhUpdate').textContent = santri.JarakTempuhSantri || '-';
         document.getElementById('modalTransportasiUpdate').textContent = santri.TransportasiSantri || '-';
         document.getElementById('modalWaktuTempuhUpdate').textContent = santri.WaktuTempuhSantri || '-';
+
+        // Alamat Orang Tua / Ayah (beserta fallback ke alamat santri seperti pengiriman EMIS)
+        document.getElementById('modalStatusRumahAyahUpdate').textContent = santri.StatusKepemilikanRumahAyah || '-';
+        document.getElementById('modalAlamatAyahUpdate').textContent = santri.AlamatAyah || santri.AlamatSantri || '-';
+        document.getElementById('modalRTAyahUpdate').textContent = santri.RtAyah || santri.RtSantri || '-';
+        document.getElementById('modalRWAyahUpdate').textContent = santri.RwAyah || santri.RwSantri || '-';
+        document.getElementById('modalKelurahanDesaAyahUpdate').textContent = santri.KelurahanDesaAyah || santri.KelurahanDesaSantri || '-';
+        document.getElementById('modalKecamatanAyahUpdate').textContent = santri.KecamatanAyah || santri.KecamatanSantri || '-';
+        document.getElementById('modalKabupatenKotaAyahUpdate').textContent = santri.KabupatenKotaAyah || santri.KabupatenKotaSantri || '-';
+        document.getElementById('modalProvinsiAyahUpdate').textContent = santri.ProvinsiAyah || santri.ProvinsiSantri || '-';
+        document.getElementById('modalKodePosAyahUpdate').textContent = santri.KodePosAyah || santri.KodePosSantri || '-';
 
         if (santri.TitikKoordinatSantri) {
             const coords = santri.TitikKoordinatSantri.split(',');

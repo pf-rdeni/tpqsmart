@@ -1732,6 +1732,9 @@ class Santri extends BaseController
             $statusWali = 'Lainnya';
         }
 
+        // Normalisasi Status Tempat Tinggal menggunakan helper model yang sama dengan tampilan daftar
+        $statusTempatTinggal = $this->DataSantriBaru->resolveStatusTempatTinggalEmis($santri);
+
         $formatted = [
             'id_santri'           => $santri['IdSantri'],
             'tanggal_masuk'       => $tanggalMasuk,
@@ -1781,7 +1784,7 @@ class Santri extends BaseController
             'ayah_kode_pos'       => !empty($santri['KodePosAyah']) ? trim($santri['KodePosAyah']) : trim($santri['KodePosSantri'] ?? ''),
             // Bagian Santri & Mobilitas ke Lembaga
             'santri_status_mukim'          => !empty($santri['StatusMukim']) ? trim($santri['StatusMukim']) : 'Tidak Mukim',
-            'santri_status_tempat_tinggal' => !empty($santri['StatusTempatTinggalSantri']) ? trim($santri['StatusTempatTinggalSantri']) : 'Tinggal dengan Ayah Kandung',
+            'santri_status_tempat_tinggal' => $statusTempatTinggal,
             'santri_jarak_tempuh'          => (!empty($santri['JarakTempuhSantri']) && (stripos($santri['JarakTempuhSantri'], '5') !== false || stripos($santri['JarakTempuhSantri'], 'kurang') !== false)) ? 'Kurang dari 5 km' : (!empty($santri['JarakTempuhSantri']) ? trim($santri['JarakTempuhSantri']) : 'Kurang dari 5 km'),
             'santri_transportasi'          => !empty($santri['TransportasiSantri']) ? trim($santri['TransportasiSantri']) : 'Jalan Kaki',
             'santri_waktu_tempuh'          => !empty($santri['WaktuTempuhSantri']) ? trim($santri['WaktuTempuhSantri']) : '1-10 menit',
