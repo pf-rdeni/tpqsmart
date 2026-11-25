@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <title>TPQ Smart - EMIS Bridge</title>
@@ -13,6 +14,7 @@
             color: #333;
             background: #f8f9fa;
         }
+
         .header {
             display: flex;
             align-items: center;
@@ -21,20 +23,24 @@
             padding-bottom: 12px;
             margin-bottom: 12px;
         }
+
         .header img {
             width: 32px;
             height: 32px;
             border-radius: 6px;
         }
+
         .title {
             font-weight: bold;
             font-size: 14px;
             color: #0d6efd;
         }
+
         .subtitle {
             font-size: 11px;
             color: #6c757d;
         }
+
         .status-box {
             background: #fff;
             border: 1px solid #dee2e6;
@@ -42,23 +48,35 @@
             padding: 10px 12px;
             margin-bottom: 12px;
         }
+
         .status-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 6px;
         }
+
         .status-row:last-child {
             margin-bottom: 0;
         }
+
         .badge {
             font-size: 11px;
             padding: 2px 8px;
             border-radius: 12px;
             font-weight: bold;
         }
-        .badge-success { background: #d1e7dd; color: #0f5132; }
-        .badge-warning { background: #fff3cd; color: #664d03; }
+
+        .badge-success {
+            background: #d1e7dd;
+            color: #0f5132;
+        }
+
+        .badge-warning {
+            background: #fff3cd;
+            color: #664d03;
+        }
+
         .btn-block {
             display: block;
             width: 100%;
@@ -73,10 +91,26 @@
             border: none;
             cursor: pointer;
         }
-        .btn-primary { background: #0d6efd; color: white; }
-        .btn-primary:hover { background: #0b5ed7; }
-        .btn-outline { background: white; color: #495057; border: 1px solid #ced4da; }
-        .btn-outline:hover { background: #e9ecef; }
+
+        .btn-primary {
+            background: #0d6efd;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0b5ed7;
+        }
+
+        .btn-outline {
+            background: white;
+            color: #495057;
+            border: 1px solid #ced4da;
+        }
+
+        .btn-outline:hover {
+            background: #e9ecef;
+        }
+
         .footer {
             font-size: 11px;
             text-align: center;
@@ -85,11 +119,14 @@
         }
     </style>
 </head>
+
 <body>
     <div class="header">
         <img src="icons/icon48.png" alt="Logo">
         <div>
-            <div class="title">TPQ Smart - EMIS Bridge <span style="font-size: 10px; background: #e0e7ff; color: #3730a3; padding: 1px 5px; border-radius: 8px; font-weight: normal; vertical-align: middle;">v1.5.4</span></div>
+            <div class="title">TPQ Smart - EMIS Bridge <span
+                    style="font-size: 10px; background: #e0e7ff; color: #3730a3; padding: 1px 5px; border-radius: 8px; font-weight: normal; vertical-align: middle;">v1.6.1</span>
+            </div>
             <div class="subtitle">Asisten Pengisian Data Santri EMIS 4.0</div>
         </div>
     </div>
@@ -101,7 +138,9 @@
         </div>
         <div class="status-row">
             <span>Mode Kerja:</span>
-            <button id="btnToggleMode" style="cursor: pointer; border: 1px solid #198754; background: #d1e7dd; color: #0f5132; padding: 3px 8px; border-radius: 12px; font-weight: bold; font-size: 11px;" title="Klik untuk ganti mode">
+            <button id="btnToggleMode"
+                style="cursor: pointer; border: 1px solid #198754; background: #d1e7dd; color: #0f5132; padding: 3px 8px; border-radius: 12px; font-weight: bold; font-size: 11px;"
+                title="Klik untuk ganti mode">
                 ⚡ Full Otomatis
             </button>
         </div>
@@ -116,8 +155,9 @@
     </a>
 
     <div class="footer">
-        TPQ Smart Automation v1.5.4 © 2026
+        TPQ Smart Automation v1.6.1 © 2026
     </div>
     <script src="popup.js"></script>
 </body>
+
 </html>
