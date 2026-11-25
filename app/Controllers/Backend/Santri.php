@@ -1732,8 +1732,11 @@ class Santri extends BaseController
             $statusWali = 'Lainnya';
         }
 
-        // Normalisasi Status Tempat Tinggal menggunakan helper model yang sama dengan tampilan daftar
+        // Normalisasi Status Tempat Tinggal & RT/RW Ayah menggunakan helper model
         $statusTempatTinggal = $this->DataSantriBaru->resolveStatusTempatTinggalEmis($santri);
+        $resolvedRtRwAyah    = $this->DataSantriBaru->resolveRtRwAyahEmis($santri);
+        $rtSantriClean       = $this->DataSantriBaru->cleanRtRwEmis($santri['RtSantri'] ?? '') ?: '001';
+        $rwSantriClean       = $this->DataSantriBaru->cleanRtRwEmis($santri['RwSantri'] ?? '') ?: '001';
 
         $formatted = [
             'id_santri'           => $santri['IdSantri'],
@@ -1763,8 +1766,8 @@ class Santri extends BaseController
             'status_wali'         => $statusWali,
             // Alamat jika dibutuhkan
             'alamat'              => trim($santri['AlamatSantri'] ?? ''),
-            'rt'                  => trim($santri['RtSantri'] ?? ''),
-            'rw'                  => trim($santri['RwSantri'] ?? ''),
+            'rt'                  => $rtSantriClean,
+            'rw'                  => $rwSantriClean,
             'kelurahan_desa'      => trim($santri['KelurahanDesaSantri'] ?? ''),
             'kecamatan'           => trim($santri['KecamatanSantri'] ?? ''),
             'kabupaten_kota'      => trim($santri['KabupatenKotaSantri'] ?? ''),
@@ -1778,8 +1781,8 @@ class Santri extends BaseController
             'ayah_kabupaten_kota' => !empty($santri['KabupatenKotaAyah']) ? trim($santri['KabupatenKotaAyah']) : trim($santri['KabupatenKotaSantri'] ?? ''),
             'ayah_kecamatan'      => !empty($santri['KecamatanAyah']) ? trim($santri['KecamatanAyah']) : trim($santri['KecamatanSantri'] ?? ''),
             'ayah_kelurahan_desa' => !empty($santri['KelurahanDesaAyah']) ? trim($santri['KelurahanDesaAyah']) : trim($santri['KelurahanDesaSantri'] ?? ''),
-            'ayah_rt'             => !empty($santri['RtAyah']) ? trim($santri['RtAyah']) : trim($santri['RtSantri'] ?? ''),
-            'ayah_rw'             => !empty($santri['RwAyah']) ? trim($santri['RwAyah']) : trim($santri['RwSantri'] ?? ''),
+            'ayah_rt'             => $resolvedRtRwAyah['rt'],
+            'ayah_rw'             => $resolvedRtRwAyah['rw'],
             'ayah_alamat'         => !empty($santri['AlamatAyah']) ? trim($santri['AlamatAyah']) : trim($santri['AlamatSantri'] ?? ''),
             'ayah_kode_pos'       => !empty($santri['KodePosAyah']) ? trim($santri['KodePosAyah']) : trim($santri['KodePosSantri'] ?? ''),
             // Bagian Santri & Mobilitas ke Lembaga

@@ -831,8 +831,99 @@ class SantriBaruModel extends Model
      * @return array
      */
     /**
+     * Membersihkan nilai RT/RW agar '0', '00', '000' dianggap kosong (tidak valid untuk EMIS).
+     */
+    public function cleanRtRwEmis($val): string
+    {
+        $trimmed = trim((string) $val);
+        $digits = preg_replace('/[^0-9]/', '', $trimmed);
+        if ($digits === '' || (int) $digits === 0) {
+            return '';
+        }
+        return $digits;
+    }
+
+    /**
+     * Mengecek apakah Alamat Ayah kosong atau memiliki kemiripan wajar dengan Alamat Santri
+     * (menangani variasi tanda baca, spasi, maupun typo seperti N01 vs No1 / Bloka vs Blok A).
+     */
+    public function isAlamatAyahSimilarToSantri(array $santri): bool
+    {
+        $normText = static function ($val): string {
+            $s = strtolower(trim((string) $val));
+            // Samakan pola "n01" -> "no1" (angka 0 setelah huruf 'n' sebelum digit)
+            $s = preg_replace('/\bn0+(\d+)/', 'no$1', $s);
+            return preg_replace('/[^a-z0-9]/', '', $s);
+        };
+
+        $alamatSantri = $normText($santri['AlamatSantri'] ?? '');
+        $alamatAyah   = $normText($santri['AlamatAyah'] ?? '');
+
+        if ($alamatAyah === '' && $alamatSantri !== '') {
+            return true;
+        }
+        if ($alamatAyah === '' || $alamatSantri === '') {
+            return false;
+        }
+        if ($alamatAyah === $alamatSantri) {
+            return true;
+        }
+
+        similar_text($alamatAyah, $alamatSantri, $pct);
+        if ($pct >= 75.0) {
+            return true;
+        }
+
+        // Cek kemiripan jika nomor rumah/jalan utama sama dan kemiripan teks >= 65%
+        preg_match_all('/\d+/', $alamatSantri, $mSantri);
+        preg_match_all('/\d+/', $alamatAyah, $mAyah);
+        $numsSantri = $mSantri[0] ?? [];
+        $numsAyah   = $mAyah[0] ?? [];
+        if (!empty($numsSantri) && !empty($numsAyah)) {
+            $commonNums = array_intersect($numsSantri, $numsAyah);
+            if (!empty($commonNums) && $pct >= 65.0) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Menyelesaikan nilai RT dan RW Ayah untuk EMIS:
+     * tidak pernah mengembalikan '000'/'00'/'0'; jika RT/RW Ayah tidak valid/kosong dan alamat mirip Santri,
+     * ambil RT/RW milik Santri.
+     */
+    public function resolveRtRwAyahEmis(array $santri): array
+    {
+        $rtAyah = $this->cleanRtRwEmis($santri['RtAyah'] ?? '');
+        $rwAyah = $this->cleanRtRwEmis($santri['RwAyah'] ?? '');
+        $rtSantri = $this->cleanRtRwEmis($santri['RtSantri'] ?? '');
+        $rwSantri = $this->cleanRtRwEmis($santri['RwSantri'] ?? '');
+
+        $isSimilar = $this->isAlamatAyahSimilarToSantri($santri);
+
+        if ($rtAyah === '' && $isSimilar) {
+            $rtAyah = $rtSantri;
+        }
+        if ($rwAyah === '' && $isSimilar) {
+            $rwAyah = $rwSantri;
+        }
+
+        // Jika masih kosong / 000 (baik di Ayah maupun Santri), fallback ke '001'
+        if ($rtAyah === '') {
+            $rtAyah = '001';
+        }
+        if ($rwAyah === '') {
+            $rwAyah = '001';
+        }
+
+        return ['rt' => $rtAyah, 'rw' => $rwAyah];
+    }
+
+    /**
      * Menormalisasi StatusTempatTinggalSantri untuk kebutuhan tampilan & pengiriman EMIS:
-     * jika tercatat "Lainnya" padahal alamat Ayah kosong atau identik/mirip (>=80%) dengan alamat Santri,
+     * jika tercatat "Lainnya" padahal alamat Ayah kosong atau identik/mirip dengan alamat Santri,
      * kembalikan "Tinggal dengan Ayah Kandung" (atau Ibu Kandung bila Ayah tidak masih hidup).
      */
     public function resolveStatusTempatTinggalEmis(array $santri): string
@@ -848,34 +939,14 @@ class SantriBaruModel extends Model
         $normAlnum = static function ($val): string {
             return preg_replace('/[^a-z0-9]/', '', strtolower(trim((string) $val)));
         };
-        $normRtRw = static function ($val): string {
-            $clean = preg_replace('/[^0-9]/', '', trim((string) $val));
-            if ($clean === '' || (int) $clean === 0) {
-                return '';
-            }
-            return (string) ((int) $clean);
-        };
 
-        $alamatSantri = $normAlnum($santri['AlamatSantri'] ?? '');
-        $alamatAyah   = $normAlnum($santri['AlamatAyah'] ?? '');
-        $rtSantri     = $normRtRw($santri['RtSantri'] ?? '');
-        $rtAyah       = $normRtRw($santri['RtAyah'] ?? '');
-        $rwSantri     = $normRtRw($santri['RwSantri'] ?? '');
-        $rwAyah       = $normRtRw($santri['RwAyah'] ?? '');
-        $desaSantri   = $normAlnum($santri['KelurahanDesaSantri'] ?? '');
-        $desaAyah     = $normAlnum($santri['KelurahanDesaAyah'] ?? '');
-
-        $alamatMatch = false;
-        if ($alamatAyah === '' && $alamatSantri !== '') {
-            $alamatMatch = true;
-        } elseif ($alamatAyah !== '' && $alamatSantri !== '') {
-            if ($alamatAyah === $alamatSantri) {
-                $alamatMatch = true;
-            } else {
-                similar_text($alamatAyah, $alamatSantri, $pct);
-                $alamatMatch = ($pct >= 80.0);
-            }
-        }
+        $alamatMatch = $this->isAlamatAyahSimilarToSantri($santri);
+        $rtSantri    = $this->cleanRtRwEmis($santri['RtSantri'] ?? '');
+        $rtAyah      = $this->cleanRtRwEmis($santri['RtAyah'] ?? '');
+        $rwSantri    = $this->cleanRtRwEmis($santri['RwSantri'] ?? '');
+        $rwAyah      = $this->cleanRtRwEmis($santri['RwAyah'] ?? '');
+        $desaSantri  = $normAlnum($santri['KelurahanDesaSantri'] ?? '');
+        $desaAyah    = $normAlnum($santri['KelurahanDesaAyah'] ?? '');
 
         $rtMatch   = ($rtAyah === '' || $rtSantri === '' || $rtAyah === $rtSantri);
         $rwMatch   = ($rwAyah === '' || $rwSantri === '' || $rwAyah === $rwSantri);
@@ -955,6 +1026,9 @@ class SantriBaruModel extends Model
         $rows = $builder->get()->getResultArray();
         foreach ($rows as &$row) {
             $row['StatusTempatTinggalSantri'] = $this->resolveStatusTempatTinggalEmis($row);
+            $resolvedRtRw = $this->resolveRtRwAyahEmis($row);
+            $row['RtAyah'] = $resolvedRtRw['rt'];
+            $row['RwAyah'] = $resolvedRtRw['rw'];
         }
         return $rows;
     }
