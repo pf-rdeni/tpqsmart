@@ -20,7 +20,7 @@
  *  - Popup Step 2 dapat digeser (draggable) dan memandu checklist isian manual
  */
 
-const EXTENSION_VERSION = '1.6.3';
+const EXTENSION_VERSION = '1.7.1';
 console.log(`[TPQ-EMIS Bridge v${EXTENSION_VERSION}] Content script aktif di EMIS Kemenag.`);
 
 // Flag status pengecekan NIK Step 1
@@ -460,6 +460,88 @@ function findNikTidakDitemukanModal() {
 }
 
 /**
+ * Mendeteksi modal popup EMIS ketika santri sudah terdaftar AKTIF di lembaga lain
+ * ("Santri saat ini terdaftar AKTIF di ... Tidak bisa didaftarkan menjadi santri di lembaga baru.")
+ */
+function findSantriTerdaftarAktifModal() {
+    const allEls = Array.from(document.querySelectorAll('div, [role="dialog"], [role="alertdialog"], section, p, span'));
+    for (const el of allEls) {
+        if (el.closest && el.closest('[id^="tpq-"]')) continue;
+        const rawText = (el.innerText || el.textContent || '').trim();
+        const upper = rawText.toUpperCase();
+        if (
+            upper.includes('TERDAFTAR AKTIF') ||
+            upper.includes('TIDAK BISA DIDAFTARKAN MENJADI SANTRI DI LEMBAGA BARU')
+        ) {
+            if (rawText.length > 350) continue;
+            let modalContainer = el.closest('[role="dialog"], [role="alertdialog"]') || el;
+            for (let i = 0; i < 6 && modalContainer && modalContainer !== document.body; i++) {
+                const hasBtn = modalContainer.querySelector('button, [role="button"], div[tabindex="0"]');
+                if (hasBtn) break;
+                modalContainer = modalContainer.parentElement;
+            }
+
+            const btns = Array.from((modalContainer || document).querySelectorAll('button, [role="button"], div[tabindex="0"], div, a, span'))
+                .filter(b => {
+                    if (b.closest && b.closest('[id^="tpq-"]')) return false;
+                    const rect = b.getBoundingClientRect();
+                    if (rect.width <= 0 || rect.height <= 0) return false;
+                    const bt = (b.innerText || b.textContent || b.value || '').trim().toUpperCase();
+                    return bt === 'TUTUP' || bt === 'CLOSE' || bt === 'OK';
+                });
+
+            const tutupBtn = btns.find(b => b.tagName === 'BUTTON' || b.getAttribute('role') === 'button') || btns[0] || null;
+            const cleanMsg = rawText.replace(/\bTUTUP\b/gi, '').replace(/\s+/g, ' ').trim();
+            return { modal: modalContainer, tutupBtn, message: cleanMsg };
+        }
+    }
+    return null;
+}
+
+/**
+ * Menangani kondisi ketika santri terdeteksi terdaftar AKTIF di lembaga lain:
+ * menutup modal EMIS, membersihkan antrean, kembali ke TPQ Smart, dan menandai status Konflik.
+ */
+function handleSantriTerdaftarAktifConflict(santriData, modalInfo) {
+    const reasonMsg = (modalInfo && modalInfo.message)
+        ? modalInfo.message
+        : 'Santri saat ini terdaftar AKTIF di lembaga lain di EMIS';
+    console.warn('%c[TPQ-EMIS Bridge] [Step 0] ⚠️ KONFLIK TERDETEKSI:', 'background: #dc2626; color: #fff; font-weight: bold; padding: 2px 6px;', reasonMsg);
+
+    window.__tpqNikFoundInEmis = true;
+    window.__tpqStep1CheckingNik = false;
+
+    if (modalInfo && modalInfo.tutupBtn) {
+        try {
+            triggerNativeClick(modalInfo.tutupBtn);
+            modalInfo.tutupBtn.click();
+        } catch (_) {}
+    }
+
+    chrome.storage.local.remove([
+        'pendingSantriData', 'waitingForStep2',
+        'pendingUpdateAlamatData', 'currentTask',
+        'waitingForUpdateStep2', 'waitingForUpdateStep3',
+        'isBatchMode'
+    ], () => {
+        ['tpq-step0-alert', 'tpq-step1-alert', 'tpq-step2-alert', 'tpq-reopen-step0-pill', 'tpq-pending-banner'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.remove();
+        });
+        if (santriData && santriData.id_santri) {
+            try {
+                chrome.runtime.sendMessage({
+                    action: 'BATCH_ITEM_FAILED_NOTIFY',
+                    id_santri: santriData.id_santri,
+                    status: 'konflik',
+                    catatan: reasonMsg
+                });
+            } catch (_) {}
+        }
+    });
+}
+
+/**
  * Mengecek apakah respons validasi NIK menandakan santri ditemukan di EMIS
  */
 function isNikFoundResponsePresent() {
@@ -481,10 +563,12 @@ function isNikFoundResponsePresent() {
             txt.includes('NIK SUDAH TERDAFTAR') ||
             txt.includes('SUDAH PERNAH TERDAFTAR') ||
             txt.includes('SUDAH TERDAFTAR DI') ||
+            txt.includes('TERDAFTAR AKTIF') ||
+            txt.includes('TIDAK BISA DIDAFTARKAN MENJADI SANTRI') ||
             txt.includes('SUDAH AKTIF') ||
             txt.includes('SANTRI TELAH TERDAFTAR')
         ) {
-            return { type: 'modal', message: txt.substring(0, 80) };
+            return { type: 'modal', message: txt.substring(0, 150) };
         }
     }
 
@@ -494,11 +578,47 @@ function isNikFoundResponsePresent() {
 /**
  * Menangani kondisi ketika NIK ditemukan di EMIS: Menghentikan proses dan TIDAK melanjutkan.
  */
+/**
+ * Helper terpusat untuk mode Batch: jika isBatchMode aktif di storage,
+ * bersihkan state antrean EMIS, tutup popup, dan laporkan kegagalan/konflik ke TPQ Smart
+ * agar status diperbarui dan antrean langsung lanjut ke santri berikutnya.
+ */
+function notifyBatchFailureIfActive(santriData, status = 'belum', catatan = '') {
+    if (!santriData || !santriData.id_santri) return;
+    chrome.storage.local.get(['isBatchMode'], (res) => {
+        if (!res.isBatchMode) return;
+        console.warn('[TPQ-EMIS Bridge] [Batch] Melaporkan kegagalan/konflik ke TPQ Smart:', santriData.id_santri, status, catatan);
+        chrome.storage.local.remove([
+            'pendingSantriData', 'waitingForStep2',
+            'pendingUpdateAlamatData', 'currentTask',
+            'waitingForUpdateStep2', 'waitingForUpdateStep3',
+            'isBatchMode'
+        ], () => {
+            ['tpq-step0-alert', 'tpq-step1-alert', 'tpq-step2-alert',
+             'tpq-update-alamat-step1-popup', 'tpq-update-santri-step2-popup', 'tpq-update-alamat-step3-popup'
+            ].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.remove();
+            });
+            try {
+                chrome.runtime.sendMessage({
+                    action: 'BATCH_ITEM_FAILED_NOTIFY',
+                    id_santri: santriData.id_santri,
+                    status: status,
+                    catatan: catatan
+                });
+            } catch (_) {}
+        });
+    });
+}
+
 function handleNikFoundInEmis(santriData, reason) {
     console.log(`%c[TPQ-EMIS Bridge] [Step 1] ⚠️ NIK DITEMUKAN DI EMIS! (${reason || ''}) Sesuai instruksi, proses pengisian dihentikan dan TIDAK dilanjutkan.`, 'background: #dc2626; color: #fff; font-weight: bold; font-size: 13px; padding: 4px 8px; border-radius: 4px;');
     
     window.__tpqNikFoundInEmis = true;
     window.__tpqStep1CheckingNik = false;
+
+    notifyBatchFailureIfActive(santriData, 'konflik', `NIK sudah terdaftar di EMIS (${reason || 'konflik lembaga lain'})`);
 
     chrome.storage.local.remove(['pendingSantriData', 'waitingForStep2']);
 
@@ -1372,6 +1492,7 @@ function eksekusiIsiStep1(fields, data) {
                     if (typeof window.__tpqToggleInputStep1Popup === 'function') {
                         window.__tpqToggleInputStep1Popup(true);
                     }
+                    notifyBatchFailureIfActive(data, 'belum', 'Tunda: Gagal memilih Tanggal Lahir Step 1');
                 }
             });
         }, 300);
@@ -1654,7 +1775,15 @@ function monitorStep1NikValidationResult(santriData) {
             return;
         }
 
-        // 2. Prioritas Kedua: Cek jika NIK Ditemukan (Halaman berpindah ke Step 2 atau muncul notifikasi data ditemukan)
+        // 2. Prioritas Kedua: Cek Modal "Santri saat ini terdaftar AKTIF di ... Tidak bisa didaftarkan"
+        const activeConflictModal = findSantriTerdaftarAktifModal();
+        if (activeConflictModal) {
+            clearInterval(monitorTimer);
+            handleSantriTerdaftarAktifConflict(santriData, activeConflictModal);
+            return;
+        }
+
+        // 3. Prioritas Ketiga: Cek jika NIK Ditemukan (Halaman berpindah ke Step 2 atau muncul notifikasi data ditemukan)
         const foundResponse = isNikFoundResponsePresent();
         if (foundResponse) {
             clearInterval(monitorTimer);
@@ -4031,7 +4160,7 @@ function showStep0StartPopup(data) {
             <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px;">
                 <div style="display: flex; align-items: center; gap: 5px; flex: 1; min-width: 0;" title="${escapeHtml(data.nama_santri)} - ${escapeHtml(tglLahirLabel)}">
                     <span style="font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">⚡ <strong>${escapeHtml(data.nama_santri)}</strong></span>
-                    <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 5px; border-radius: 3px; font-weight: normal; flex-shrink: 0;">v1.6.3</span>
+                    <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 5px; border-radius: 3px; font-weight: normal; flex-shrink: 0;">v1.7.1</span>
                 </div>
                 <span id="tpq-close-step0-alert" style="cursor: pointer; font-size: 18px; line-height: 1; padding: 0 4px; opacity: 0.9; flex-shrink: 0;" title="Tutup">&times;</span>
             </div>
@@ -4348,7 +4477,7 @@ function showStep1Assistant(data) {
             <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px;">
                 <div style="display: flex; align-items: center; gap: 5px; flex: 1; min-width: 0;" title="${escapeHtml(data.nama_santri)}">
                     <span style="font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">⚡ <strong>${escapeHtml(data.nama_santri)}</strong></span>
-                    <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 5px; border-radius: 3px; font-weight: normal; flex-shrink: 0;">v1.6.3</span>
+                    <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 5px; border-radius: 3px; font-weight: normal; flex-shrink: 0;">v1.7.1</span>
                 </div>
                 <span id="tpq-close-step1-alert" style="cursor: pointer; font-size: 18px; line-height: 1; padding: 0 4px; opacity: 0.9; flex-shrink: 0;" title="Tutup">&times;</span>
             </div>
@@ -4583,7 +4712,7 @@ function showStep2Assistant(data, filledAyah = false, filledIbu = false, filledN
             <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px;">
                 <div style="display: flex; align-items: center; gap: 5px; flex: 1; min-width: 0;" title="${escapeHtml(data.nama_santri)}">
                     <span style="font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">⚡ <strong>${escapeHtml(data.nama_santri)}</strong></span>
-                    <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 5px; border-radius: 3px; font-weight: normal; flex-shrink: 0;">v1.6.3</span>
+                    <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 5px; border-radius: 3px; font-weight: normal; flex-shrink: 0;">v1.7.1</span>
                 </div>
                 <span id="tpq-close-step2-alert-top" style="cursor: pointer; font-size: 18px; line-height: 1; padding: 0 4px; opacity: 0.9; flex-shrink: 0;" title="Tutup">&times;</span>
             </div>
@@ -4782,6 +4911,7 @@ function showStep2Assistant(data, filledAyah = false, filledIbu = false, filledN
                                 }, 500);
                             } else {
                                 toggleStep2Asst(true);
+                                notifyBatchFailureIfActive(data, 'belum', 'Tunda: Gagal Simpan / Konfirmasi Step 2');
                             }
                         });
                     }, 400);
@@ -4791,6 +4921,7 @@ function showStep2Assistant(data, filledAyah = false, filledIbu = false, filledN
             } else {
                 updateTglMasukBadge(`Gagal Tgl Masuk: ${tglMasukLabel} — pilih manual!`, '#fee2e2', '#b91c1c');
                 toggleStep2Asst(true);
+                notifyBatchFailureIfActive(data, 'belum', 'Tunda: Gagal memilih Tanggal Masuk Step 2');
             }
         });
     };
@@ -5939,7 +6070,7 @@ function showUpdateAlamatStep1Popup(data) {
             <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px;">
                 <div style="display: flex; align-items: center; gap: 5px; flex: 1; min-width: 0;" title="${escapeHtml(data.nama_santri)}">
                     <span style="font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">⚡ <strong>${escapeHtml(data.nama_santri)}</strong></span>
-                    <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 5px; border-radius: 3px; font-weight: normal; flex-shrink: 0;">v1.6.3</span>
+                    <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 5px; border-radius: 3px; font-weight: normal; flex-shrink: 0;">v1.7.1</span>
                 </div>
                 <span id="tpq-close-update-step1" style="cursor: pointer; font-size: 18px; line-height: 1; padding: 0 4px; opacity: 0.9; flex-shrink: 0;" title="Tutup & batalkan antrean">&times;</span>
             </div>
@@ -6443,7 +6574,7 @@ function showUpdateSantriStep2Popup(data) {
             <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px;">
                 <div style="display: flex; align-items: center; gap: 5px; flex: 1; min-width: 0;" title="${escapeHtml(data.nama_santri)}">
                     <span style="font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">⚡ <strong>${escapeHtml(data.nama_santri)}</strong></span>
-                    <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 5px; border-radius: 3px; font-weight: normal; flex-shrink: 0;">v1.6.3</span>
+                    <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 5px; border-radius: 3px; font-weight: normal; flex-shrink: 0;">v1.7.1</span>
                 </div>
                 <span id="tpq-close-update-santri-step2" style="cursor: pointer; font-size: 18px; line-height: 1; padding: 0 4px; opacity: 0.9; flex-shrink: 0;" title="Tutup & batalkan antrean">&times;</span>
             </div>
@@ -7084,6 +7215,7 @@ function triggerAutoSimpanStep3(santriData, onFinishCallback) {
                         console.warn('[TPQ-EMIS Bridge] Timeout menunggu dialog konfirmasi/sukses Step 3.');
                         updateStatus('⚠️ Simpan Manual (Popup Tutup tidak terdeteksi)', '#fee2e2', '#b91c1c');
                         if (typeof window.__tpqToggleStep3Popup === 'function') window.__tpqToggleStep3Popup(true);
+                        notifyBatchFailureIfActive(santriData, 'belum', 'Tunda Step 3: Timeout popup Tutup setelah Simpan');
                     }
                 });
             }, 700);
@@ -7092,6 +7224,7 @@ function triggerAutoSimpanStep3(santriData, onFinishCallback) {
             console.warn('[TPQ-EMIS Bridge] Tombol Simpan Step 3 belum aktif (masih abu-abu) atau tidak ditemukan.');
             updateStatus('⚠️ Tombol Simpan belum aktif — cek kolom di bawah lalu simpan manual', '#fee2e2', '#b91c1c');
             if (typeof window.__tpqToggleStep3Popup === 'function') window.__tpqToggleStep3Popup(true);
+            notifyBatchFailureIfActive(santriData, 'belum', 'Tunda Step 3: Tombol Simpan tidak aktif');
             // JANGAN panggil onFinishCallback jika tombol belum aktif!
         }
     }, 300);
@@ -7187,6 +7320,7 @@ async function executeStep3DataAlamat(santriData) {
         updateProgress(`(1/${totalFields}) Gagal: Isi Status Rumah manual!`, '#fee2e2', '#b91c1c', true);
         isStep3Executing = false;
         window.__tpqStep3FieldTracker = null;
+        notifyBatchFailureIfActive(santriData, 'belum', 'Tunda Step 3: Gagal mengisi Status Rumah');
         return; // BERHENTI! JANGAN LANJUTKAN KE STEP BERIKUTNYA!
     }
     await new Promise(r => setTimeout(r, 150));
@@ -7222,6 +7356,7 @@ async function executeStep3DataAlamat(santriData) {
         updateProgress(`(${mukimIdx}/${totalFields}) Gagal: Isi Status Mukim manual!`, '#fee2e2', '#b91c1c', true);
         isStep3Executing = false;
         window.__tpqStep3FieldTracker = null;
+        notifyBatchFailureIfActive(santriData, 'belum', 'Tunda Step 3: Gagal mengisi Status Mukim');
         return; // BERHENTI! JANGAN LANJUTKAN KE STATUS TEMPAT TINGGAL!
     }
     await new Promise(r => setTimeout(r, 150));
@@ -7238,6 +7373,7 @@ async function executeStep3DataAlamat(santriData) {
         updateProgress(`(${tempatIdx}/${totalFields}) Gagal: Isi Tempat Tinggal manual!`, '#fee2e2', '#b91c1c', true);
         isStep3Executing = false;
         window.__tpqStep3FieldTracker = null;
+        notifyBatchFailureIfActive(santriData, 'belum', 'Tunda Step 3: Gagal mengisi Tempat Tinggal');
         return; // BERHENTI! JANGAN LANJUTKAN KE STEP BERIKUTNYA!
     }
     await new Promise(r => setTimeout(r, 150));
@@ -7253,6 +7389,7 @@ async function executeStep3DataAlamat(santriData) {
         updateProgress(`(${jarakIdx}/${totalFields}) Cek Mobilitas / Koordinat manual!`, '#fee2e2', '#b91c1c', true);
         isStep3Executing = false;
         window.__tpqStep3FieldTracker = null;
+        notifyBatchFailureIfActive(santriData, 'belum', 'Tunda Step 3: Mobilitas / Koordinat belum lengkap');
         return;
     }
     await new Promise(r => setTimeout(r, 150));
@@ -7323,7 +7460,7 @@ function showUpdateAlamatStep3Popup(data) {
             <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px;">
                 <div style="display: flex; align-items: center; gap: 5px; flex: 1; min-width: 0;" title="${escapeHtml(data.nama_santri)}">
                     <span style="font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">⚡ <strong>${escapeHtml(data.nama_santri)}</strong></span>
-                    <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 5px; border-radius: 3px; font-weight: normal; flex-shrink: 0;">v1.6.3</span>
+                    <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 5px; border-radius: 3px; font-weight: normal; flex-shrink: 0;">v1.7.1</span>
                 </div>
                 <span id="tpq-close-update-step3" style="cursor: pointer; font-size: 18px; line-height: 1; padding: 0 4px; opacity: 0.9; flex-shrink: 0;" title="Tutup & batalkan antrean">&times;</span>
             </div>

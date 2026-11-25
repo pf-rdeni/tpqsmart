@@ -25,7 +25,7 @@ function broadcastExtensionReady() {
         window.postMessage({
             type: 'EMIS_EXTENSION_PONG',
             source: 'tpq-emis-extension',
-            version: '1.6.3'
+            version: '1.7.1'
         }, '*');
     } catch (e) {
         // Abaikan
@@ -70,7 +70,8 @@ window.addEventListener('message', (event) => {
         try {
             chrome.runtime.sendMessage({
                 action: 'SEND_SANTRI_TO_EMIS',
-                data: santriData
+                data: santriData,
+                isBatch: Boolean(event.data.isBatch)
             }, (response) => {
                 if (chrome.runtime.lastError) {
                     console.warn('[TPQ-EMIS Bridge] Runtime warning:', chrome.runtime.lastError.message);
@@ -130,7 +131,8 @@ try {
                 console.log('[TPQ-EMIS Bridge] Mendapat konfirmasi form pendaftaran terisi:', request.id_santri);
                 window.postMessage({
                     type: 'EMIS_EXTENSION_FILLED_SUCCESS',
-                    id_santri: request.id_santri
+                    id_santri: request.id_santri,
+                    returnToTpq: Boolean(request.returnToTpq)
                 }, '*');
                 sendResponse({ ok: true });
             } else if (request && request.action === 'NOTIFY_TPQ_UPDATE_ALAMAT_SUCCESS') {
@@ -138,6 +140,15 @@ try {
                 window.postMessage({
                     type: 'EMIS_EXTENSION_UPDATE_ALAMAT_SUCCESS',
                     id_santri: request.id_santri
+                }, '*');
+                sendResponse({ ok: true });
+            } else if (request && request.action === 'NOTIFY_TPQ_BATCH_ITEM_FAILED') {
+                console.log('[TPQ-EMIS Bridge] Mendapat laporan gagal/konflik batch:', request.id_santri, request.status, request.catatan);
+                window.postMessage({
+                    type: 'EMIS_EXTENSION_BATCH_ITEM_FAILED',
+                    id_santri: request.id_santri,
+                    status: request.status,
+                    catatan: request.catatan
                 }, '*');
                 sendResponse({ ok: true });
             }

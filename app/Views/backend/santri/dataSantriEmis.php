@@ -87,24 +87,63 @@
                 </div>
             </div>
 
+            <!-- Toolbar Aksi Masal & Panel Progress Antrean -->
+            <div class="d-flex flex-wrap align-items-center justify-content-between bg-light border rounded p-2 mb-3" style="gap: 8px;">
+                <div class="d-flex flex-wrap align-items-center" style="gap: 8px;">
+                    <button type="button" id="btnInputMasalEmis" class="btn btn-success btn-sm font-weight-bold" onclick="mulaiInputMasalEmis()" disabled>
+                        <i class="fas fa-rocket mr-1"></i> Input Masal ke EMIS (<span id="countCheckedSantri">0</span>)
+                    </button>
+                    <button type="button" id="btnClearCheckedSantri" class="btn btn-outline-secondary btn-sm" onclick="clearCheckedSantriEmis()" style="display: none;">
+                        <i class="fas fa-times mr-1"></i> Batal Pilih
+                    </button>
+                    <span class="small text-muted d-none d-md-inline">Centang santri pada tabel untuk memproses input data ke EMIS secara otomatis berurutan.</span>
+                </div>
+            </div>
+
+            <div id="batchProgressPanel" class="alert alert-info border border-info shadow-sm mb-3" style="display: none;">
+                <div class="d-flex flex-wrap justify-content-between align-items-center mb-2" style="gap: 8px;">
+                    <div>
+                        <strong id="batchProgressTitle"><i class="fas fa-spinner fa-spin mr-1"></i> Mempersiapkan antrean masal...</strong>
+                        <div class="small mt-1" id="batchProgressStats">Selesai: 0 | Konflik: 0 | Tunda: 0</div>
+                    </div>
+                    <div class="d-flex" style="gap: 6px;">
+                        <button type="button" id="btnPauseBatchEmis" class="btn btn-warning btn-sm font-weight-bold" onclick="togglePauseBatchEmis()">
+                            <i class="fas fa-pause mr-1"></i> Jeda
+                        </button>
+                        <button type="button" id="btnStopBatchEmis" class="btn btn-danger btn-sm font-weight-bold" onclick="hentikanBatchEmis()">
+                            <i class="fas fa-stop mr-1"></i> Hentikan Antrean
+                        </button>
+                    </div>
+                </div>
+                <div class="progress" style="height: 10px;">
+                    <div id="batchProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 0%;"></div>
+                </div>
+            </div>
+
             <!-- Tabel Data Santri -->
             <div class="table-responsive">
                 <table id="tblSantriEmis" class="table table-bordered table-hover table-striped">
                     <thead class="bg-light">
                         <tr class="text-center">
+                            <th width="4%" class="text-center">
+                                <input type="checkbox" id="checkAllSantriEmis" title="Pilih semua santri yang tampil" style="width: 16px; height: 16px; cursor: pointer;">
+                            </th>
                             <th width="5%">No</th>
-                            <th width="15%">Aksi EMIS</th>
+                            <th width="14%">Aksi EMIS</th>
                             <th width="12%">Status EMIS</th>
-                            <th width="15%">NIK</th>
-                            <th width="20%">Nama Santri</th>
+                            <th width="14%">NIK</th>
+                            <th width="19%">Nama Santri</th>
                             <th width="10%">Kelas</th>
                             <th width="13%">TTL</th>
-                            <th width="10%">Detail</th>
+                            <th width="9%">Detail</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php $no = 1; foreach ($dataSantri as $index => $santri) : ?>
                             <tr id="row-santri-<?= $santri['IdSantri']; ?>" data-id="<?= $santri['IdSantri']; ?>" data-kelas="<?= htmlspecialchars($santri['NamaKelas'] ?? ''); ?>" data-kelas-raw="<?= htmlspecialchars($santri['NamaKelasRaw'] ?? ($santri['NamaKelas'] ?? '')); ?>" data-idkelas="<?= $santri['IdKelas'] ?? ''; ?>">
+                                <td class="text-center align-middle">
+                                    <input type="checkbox" class="cb-santri-emis" value="<?= $santri['IdSantri']; ?>" data-nama="<?= htmlspecialchars($santri['NamaSantri']); ?>" style="width: 16px; height: 16px; cursor: pointer;">
+                                </td>
                                 <td class="text-center align-middle font-weight-bold"><?= $no++; ?></td>
                                 <td class="align-middle text-center">
                                     <div class="d-flex flex-column" style="gap: 5px;">
@@ -583,6 +622,9 @@
             "lengthChange": true,
             "autoWidth": false,
             "pageLength": 25,
+            "columnDefs": [
+                { "orderable": false, "targets": [0, 2, 8] }
+            ],
             "language": {
                 "search": "Cari Santri:",
                 "lengthMenu": "Tampilkan _MENU_ data per halaman",
@@ -597,6 +639,8 @@
                 }
             }
         });
+
+        initChecklistBatchHandlers();
 
         // 3. Filter Event Listener dengan penyimpanan ke localStorage
         $('#filterKelasEmis').on('change', function() {
@@ -640,7 +684,7 @@
     function terapkanFilterKelas(val) {
         if (!dataTableSantri) return;
         if (!val) {
-            dataTableSantri.column(5).search('').draw();
+            dataTableSantri.column(6).search('').draw();
             return;
         }
         const selectedOpt = $('#filterKelasEmis').find('option:selected');
@@ -651,19 +695,19 @@
         } else {
             searchPattern = $.fn.dataTable.util.escapeRegex(val);
         }
-        dataTableSantri.column(5).search(searchPattern, true, false).draw();
+        dataTableSantri.column(6).search(searchPattern, true, false).draw();
     }
 
     function terapkanFilterStatus(val) {
         if (!dataTableSantri) return;
         if (val === 'selesai') {
-            dataTableSantri.column(2).search('Daftar:\\s*Selesai', true, false).draw();
+            dataTableSantri.column(3).search('Daftar:\\s*Selesai', true, false).draw();
         } else if (val === 'belum') {
-            dataTableSantri.column(2).search('Daftar:\\s*Belum', true, false).draw();
+            dataTableSantri.column(3).search('Daftar:\\s*Belum', true, false).draw();
         } else if (val === 'konflik') {
-            dataTableSantri.column(2).search('Daftar:\\s*Konflik', true, false).draw();
+            dataTableSantri.column(3).search('Daftar:\\s*Konflik', true, false).draw();
         } else {
-            dataTableSantri.column(2).search('').draw();
+            dataTableSantri.column(3).search('').draw();
         }
     }
 
@@ -695,7 +739,7 @@
                     } else {
                         searchPattern = $.fn.dataTable.util.escapeRegex(matchedVal);
                     }
-                    dataTableSantri.column(5).search(searchPattern, true, false);
+                    dataTableSantri.column(6).search(searchPattern, true, false);
                     needsDraw = true;
                 }
             }
@@ -704,11 +748,11 @@
             if (filterState.status !== undefined && filterState.status !== null && filterState.status !== '') {
                 $('#filterStatusEmis').val(filterState.status);
                 if (filterState.status === 'selesai') {
-                    dataTableSantri.column(2).search('Daftar:\\s*Selesai', true, false);
+                    dataTableSantri.column(3).search('Daftar:\\s*Selesai', true, false);
                 } else if (filterState.status === 'belum') {
-                    dataTableSantri.column(2).search('Daftar:\\s*Belum', true, false);
+                    dataTableSantri.column(3).search('Daftar:\\s*Belum', true, false);
                 } else if (filterState.status === 'konflik') {
-                    dataTableSantri.column(2).search('Daftar:\\s*Konflik', true, false);
+                    dataTableSantri.column(3).search('Daftar:\\s*Konflik', true, false);
                 }
                 needsDraw = true;
             }
@@ -1081,8 +1125,17 @@
 
         if (event.data.type === 'EMIS_EXTENSION_FILLED_SUCCESS') {
             const santriId = event.data.id_santri;
+            const isReturnToTpq = Boolean(event.data.returnToTpq);
             if (santriId) {
                 setStatusSantriEmis(santriId, true, function(res) {
+                    const isCurrentBatch = batchState.active && String(santriId) === String(batchState.currentId);
+                    if (isCurrentBatch) {
+                        if (isReturnToTpq) {
+                            onBatchItemCompleted(santriId, 'selesai');
+                        }
+                        return;
+                    }
+
                     let namaSantri = '';
                     const santriObj = dataSantriMaster.find(s => String(s.IdSantri) === String(santriId));
                     if (santriObj && santriObj.NamaSantri) {
@@ -1112,6 +1165,11 @@
             const santriId = event.data.id_santri;
             if (santriId) {
                 setStatusAlamatSantriEmis(santriId, true, function(res) {
+                    if (batchState.active && String(santriId) === String(batchState.currentId)) {
+                        onBatchItemCompleted(santriId, 'selesai');
+                        return;
+                    }
+
                     let namaSantri = '';
                     const santriObj = dataSantriMaster.find(s => String(s.IdSantri) === String(santriId));
                     if (santriObj && santriObj.NamaSantri) {
@@ -1132,6 +1190,33 @@
                         });
                     } else if (typeof toastr !== 'undefined') {
                         toastr.success('Data alamat santri berhasil ditandai Selesai di database!', 'Status Alamat EMIS');
+                    }
+                });
+            }
+        }
+
+        if (event.data.type === 'EMIS_EXTENSION_BATCH_ITEM_FAILED') {
+            const santriId = event.data.id_santri;
+            const failStatus = (event.data.status === 'konflik') ? 'konflik' : 'belum';
+            const failCatatan = event.data.catatan || (failStatus === 'konflik' ? 'Konflik di EMIS' : 'Tunda: Gagal proses di EMIS');
+            if (santriId) {
+                simpanStatusGagalDariEmis(santriId, failStatus, failCatatan, function() {
+                    if (batchState.active && String(santriId) === String(batchState.currentId)) {
+                        onBatchItemCompleted(santriId, failStatus === 'konflik' ? 'konflik' : 'tunda', failCatatan);
+                    } else if (failStatus === 'konflik') {
+                        const santriObj = dataSantriMaster.find(s => String(s.IdSantri) === String(santriId));
+                        const namaSantri = santriObj && santriObj.NamaSantri ? santriObj.NamaSantri : 'Santri';
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Konflik Lembaga Lain di EMIS',
+                                html: `Santri <strong>${escapeHtml(namaSantri)}</strong> otomatis ditandai <span class="badge badge-danger">Konflik</span>.<br><small class="text-muted mt-1 d-block">${escapeHtml(failCatatan)}</small>`,
+                                confirmButtonColor: '#dc3545',
+                                confirmButtonText: 'OK'
+                            });
+                        } else if (typeof toastr !== 'undefined') {
+                            toastr.warning(`${namaSantri} ditandai Konflik: ${failCatatan}`, 'Konflik EMIS');
+                        }
                     }
                 });
             }
@@ -1167,7 +1252,314 @@
         }, 1200);
     }
 
-    function kirimKeEmisExtension(idSantri) {
+    // ==============================================================
+    // KONTROL ANTREAN & CHECKLIST INPUT MASAL EMIS
+    // ==============================================================
+    const selectedSantriSet = new Set();
+    let batchState = {
+        active: false,
+        paused: false,
+        queue: [],
+        index: 0,
+        currentId: null,
+        selesai: 0,
+        konflik: 0,
+        tunda: 0,
+        watchdogTimer: null
+    };
+
+    function initChecklistBatchHandlers() {
+        // Handler checkbox individual (delegasi agar tetap jalan di semua halaman DataTable)
+        $('#tblSantriEmis tbody').on('change', '.cb-santri-emis', function() {
+            const id = String($(this).val());
+            if ($(this).is(':checked')) {
+                selectedSantriSet.add(id);
+            } else {
+                selectedSantriSet.delete(id);
+            }
+            updateBatchToolbarUI();
+        });
+
+        // Handler Select All (hanya untuk baris yang tampil/lolos filter saat ini)
+        $('#checkAllSantriEmis').on('change', function() {
+            const isChecked = $(this).is(':checked');
+            if (dataTableSantri) {
+                const visibleNodes = dataTableSantri.rows({ search: 'applied' }).nodes();
+                $(visibleNodes).find('.cb-santri-emis').each(function() {
+                    const id = String($(this).val());
+                    $(this).prop('checked', isChecked);
+                    if (isChecked) {
+                        selectedSantriSet.add(id);
+                    } else {
+                        selectedSantriSet.delete(id);
+                    }
+                });
+            }
+            updateBatchToolbarUI();
+        });
+
+        // Sinkronkan status checkbox setiap DataTable berpindah halaman / filter
+        if (dataTableSantri) {
+            dataTableSantri.on('draw', function() {
+                syncCheckboxesOnDraw();
+            });
+        }
+    }
+
+    function syncCheckboxesOnDraw() {
+        if (!dataTableSantri) return;
+        let visibleCount = 0;
+        let visibleCheckedCount = 0;
+        const visibleNodes = dataTableSantri.rows({ search: 'applied' }).nodes();
+        $(visibleNodes).find('.cb-santri-emis').each(function() {
+            visibleCount++;
+            const id = String($(this).val());
+            const checked = selectedSantriSet.has(id);
+            $(this).prop('checked', checked);
+            if (checked) visibleCheckedCount++;
+        });
+        $('#checkAllSantriEmis').prop('checked', visibleCount > 0 && visibleCount === visibleCheckedCount);
+    }
+
+    function updateBatchToolbarUI() {
+        const count = selectedSantriSet.size;
+        $('#countCheckedSantri').text(count);
+        $('#btnInputMasalEmis').prop('disabled', count === 0 || batchState.active);
+        if (count > 0 && !batchState.active) {
+            $('#btnClearCheckedSantri').show();
+        } else {
+            $('#btnClearCheckedSantri').hide();
+        }
+        syncCheckboxesOnDraw();
+    }
+
+    function clearCheckedSantriEmis() {
+        selectedSantriSet.clear();
+        $('#checkAllSantriEmis').prop('checked', false);
+        $('.cb-santri-emis').prop('checked', false);
+        updateBatchToolbarUI();
+    }
+
+    function mulaiInputMasalEmis() {
+        if (selectedSantriSet.size === 0) return;
+        if (!isExtensionConnected) {
+            $('#modalPanduanExtension').modal('show');
+            return;
+        }
+
+        const selectedIds = Array.from(selectedSantriSet);
+        const alreadySelesai = selectedIds.filter(id => {
+            const s = dataSantriMaster.find(item => String(item.IdSantri) === String(id));
+            return s && (s.StatusEmis || '').toLowerCase() === 'selesai';
+        });
+
+        const startQueue = (idsToProcess) => {
+            if (!idsToProcess || idsToProcess.length === 0) {
+                if (typeof toastr !== 'undefined') toastr.info('Tidak ada santri yang perlu diproses.', 'Input Masal');
+                return;
+            }
+            batchState = {
+                active: true,
+                paused: false,
+                queue: idsToProcess,
+                index: 0,
+                currentId: null,
+                selesai: 0,
+                konflik: 0,
+                tunda: 0,
+                watchdogTimer: null
+            };
+            $('#batchProgressPanel').show();
+            $('#btnPauseBatchEmis').html('<i class="fas fa-pause mr-1"></i> Jeda').removeClass('btn-success').addClass('btn-warning');
+            updateBatchToolbarUI();
+            prosesBatchItemBerikutnya();
+        };
+
+        if (alreadySelesai.length > 0 && typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'question',
+                title: 'Sebagian Santri Sudah Selesai',
+                html: `Dari <strong>${selectedIds.length}</strong> santri yang dipilih, terdapat <strong>${alreadySelesai.length}</strong> santri yang statusnya sudah <strong>Selesai</strong>.<br>Apakah ingin melewati santri yang sudah selesai?`,
+                showDenyButton: true,
+                showCancelButton: true,
+                confirmButtonText: 'Lewati yang Selesai',
+                denyButtonText: 'Proses Semua',
+                cancelButtonText: 'Batal',
+                confirmButtonColor: '#198754',
+                denyButtonColor: '#0d6efd'
+            }).then((res) => {
+                if (res.isConfirmed) {
+                    const filtered = selectedIds.filter(id => !alreadySelesai.includes(id));
+                    startQueue(filtered);
+                } else if (res.isDenied) {
+                    startQueue(selectedIds);
+                }
+            });
+        } else {
+            startQueue(selectedIds);
+        }
+    }
+
+    function updateBatchProgressUI(namaSantri = '') {
+        const total = batchState.queue.length;
+        const done = batchState.selesai + batchState.konflik + batchState.tunda;
+        const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+        const currentNo = Math.min(batchState.index + 1, total);
+
+        if (batchState.paused) {
+            $('#batchProgressTitle').html(`<i class="fas fa-pause-circle text-warning mr-1"></i> Dijeda pada Santri ${currentNo}/${total} — ${escapeHtml(namaSantri)}`);
+        } else {
+            $('#batchProgressTitle').html(`<i class="fas fa-spinner fa-spin mr-1"></i> Memproses Santri ${currentNo}/${total}: <strong>${escapeHtml(namaSantri)}</strong>`);
+        }
+        $('#batchProgressStats').html(`Selesai: <strong class="text-success">${batchState.selesai}</strong> | Konflik: <strong class="text-danger">${batchState.konflik}</strong> | Tunda: <strong class="text-warning">${batchState.tunda}</strong>`);
+        $('#batchProgressBar').css('width', pct + '%');
+    }
+
+    function prosesBatchItemBerikutnya() {
+        if (!batchState.active || batchState.paused) return;
+        if (batchState.watchdogTimer) {
+            clearTimeout(batchState.watchdogTimer);
+            batchState.watchdogTimer = null;
+        }
+
+        if (batchState.index >= batchState.queue.length) {
+            selesaikanBatchEmis();
+            return;
+        }
+
+        const idSantri = batchState.queue[batchState.index];
+        batchState.currentId = idSantri;
+        const santriObj = dataSantriMaster.find(s => String(s.IdSantri) === String(idSantri));
+        const namaSantri = santriObj ? santriObj.NamaSantri : idSantri;
+
+        updateBatchProgressUI(namaSantri);
+
+        // Watchdog 120 detik jika tidak ada balasan dari tab EMIS
+        batchState.watchdogTimer = setTimeout(() => {
+            if (!batchState.active || String(batchState.currentId) !== String(idSantri)) return;
+            simpanStatusGagalDariEmis(idSantri, 'belum', 'Tunda: Timeout proses EMIS (>120 detik)', function() {
+                onBatchItemCompleted(idSantri, 'tunda', 'Timeout (>120 detik)');
+            });
+        }, 120000);
+
+        kirimKeEmisExtension(idSantri, true);
+    }
+
+    function onBatchItemCompleted(idSantri, outcome, noteText = '') {
+        if (batchState.watchdogTimer) {
+            clearTimeout(batchState.watchdogTimer);
+            batchState.watchdogTimer = null;
+        }
+        if (!batchState.active) return;
+
+        if (outcome === 'selesai') batchState.selesai++;
+        else if (outcome === 'konflik') batchState.konflik++;
+        else batchState.tunda++;
+
+        selectedSantriSet.delete(String(idSantri));
+        updateBatchToolbarUI();
+
+        const santriObj = dataSantriMaster.find(s => String(s.IdSantri) === String(idSantri));
+        const namaSantri = santriObj ? santriObj.NamaSantri : idSantri;
+        if (typeof toastr !== 'undefined') {
+            if (outcome === 'selesai') toastr.success(`(${batchState.index + 1}/${batchState.queue.length}) ${namaSantri}: Selesai`, 'Input Masal');
+            else if (outcome === 'konflik') toastr.warning(`(${batchState.index + 1}/${batchState.queue.length}) ${namaSantri}: Konflik`, 'Input Masal');
+            else toastr.info(`(${batchState.index + 1}/${batchState.queue.length}) ${namaSantri}: Tunda (${noteText})`, 'Input Masal');
+        }
+
+        batchState.index++;
+        updateBatchProgressUI(namaSantri);
+
+        setTimeout(() => {
+            prosesBatchItemBerikutnya();
+        }, 1500);
+    }
+
+    function simpanStatusGagalDariEmis(idSantri, status, catatan, callback = null) {
+        $.ajax({
+            url: '<?= base_url('backend/santri/updateStatusEmisAjax'); ?>',
+            method: 'POST',
+            data: {
+                IdSantri: idSantri,
+                Status: status,
+                Catatan: catatan
+            },
+            dataType: 'json',
+            success: function(res) {
+                if (res.success) {
+                    updateStatusBadgeUI(idSantri, res.status, res.tgl_update_label || '', res.catatan);
+                    hitungUlangStatistik();
+                }
+                if (typeof callback === 'function') callback(res);
+            },
+            error: function() {
+                if (typeof callback === 'function') callback({ success: false });
+            }
+        });
+    }
+
+    function togglePauseBatchEmis() {
+        if (!batchState.active) return;
+        batchState.paused = !batchState.paused;
+        const santriObj = dataSantriMaster.find(s => String(s.IdSantri) === String(batchState.currentId));
+        const namaSantri = santriObj ? santriObj.NamaSantri : '';
+        if (batchState.paused) {
+            if (batchState.watchdogTimer) {
+                clearTimeout(batchState.watchdogTimer);
+                batchState.watchdogTimer = null;
+            }
+            $('#btnPauseBatchEmis').html('<i class="fas fa-play mr-1"></i> Lanjutkan').removeClass('btn-warning').addClass('btn-success');
+            updateBatchProgressUI(namaSantri);
+        } else {
+            $('#btnPauseBatchEmis').html('<i class="fas fa-pause mr-1"></i> Jeda').removeClass('btn-success').addClass('btn-warning');
+            prosesBatchItemBerikutnya();
+        }
+    }
+
+    function hentikanBatchEmis() {
+        if (!batchState.active) return;
+        if (batchState.watchdogTimer) {
+            clearTimeout(batchState.watchdogTimer);
+            batchState.watchdogTimer = null;
+        }
+        batchState.active = false;
+        batchState.paused = false;
+        batchState.currentId = null;
+        $('#batchProgressPanel').hide();
+        updateBatchToolbarUI();
+        if (typeof toastr !== 'undefined') {
+            toastr.warning(`Antrean dihentikan. Selesai: ${batchState.selesai}, Konflik: ${batchState.konflik}, Tunda: ${batchState.tunda}`, 'Input Masal');
+        }
+    }
+
+    function selesaikanBatchEmis() {
+        if (batchState.watchdogTimer) {
+            clearTimeout(batchState.watchdogTimer);
+            batchState.watchdogTimer = null;
+        }
+        const summary = { ...batchState };
+        batchState.active = false;
+        batchState.paused = false;
+        batchState.currentId = null;
+        $('#batchProgressBar').css('width', '100%');
+        setTimeout(() => { $('#batchProgressPanel').hide(); }, 1500);
+        updateBatchToolbarUI();
+
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'success',
+                title: 'Input Masal EMIS Selesai!',
+                html: `Total diproses: <strong>${summary.queue.length}</strong> santri<br>
+                       <span class="text-success font-weight-bold">Selesai: ${summary.selesai}</span> | 
+                       <span class="text-danger font-weight-bold">Konflik: ${summary.konflik}</span> | 
+                       <span class="text-warning font-weight-bold">Tunda: ${summary.tunda}</span>`,
+                confirmButtonColor: '#198754',
+                confirmButtonText: 'OK'
+            });
+        }
+    }
+
+    function kirimKeEmisExtension(idSantri, isBatch = false) {
         // Ambil data santri via API endpoint
         $.ajax({
             url: '<?= base_url('backend/santri/getSantriEmisJson'); ?>/' + idSantri,
@@ -1176,21 +1568,28 @@
             success: function(res) {
                 if (res.success && res.data) {
                     if (isExtensionConnected) {
-                        if (typeof toastr !== 'undefined') {
+                        if (!isBatch && typeof toastr !== 'undefined') {
                             toastr.info('Membuka halaman PPDB EMIS 4.0 dan mentransfer data santri...', 'Transfer EMIS');
                         }
                         // Kirim data ke background / content script extension
                         window.postMessage({
                             type: 'TPQ_SEND_TO_EMIS',
-                            data: res.data
+                            data: res.data,
+                            isBatch: Boolean(isBatch)
                         }, '*');
                     } else {
                         // Jika extension belum terpasang, buka panduan pemasangan ekstensi
                         $('#modalPanduanExtension').modal('show');
                     }
+                } else if (isBatch) {
+                    onBatchItemCompleted(idSantri, 'tunda', 'Data santri tidak ditemukan');
                 }
             },
             error: function() {
+                if (isBatch) {
+                    onBatchItemCompleted(idSantri, 'tunda', 'Gagal mengambil data dari server');
+                    return;
+                }
                 if (typeof Swal !== 'undefined') {
                     Swal.fire({
                         icon: 'error',
