@@ -20,7 +20,7 @@
  *  - Popup Step 2 dapat digeser (draggable) dan memandu checklist isian manual
  */
 
-const EXTENSION_VERSION = '1.4.9';
+const EXTENSION_VERSION = '1.5.0';
 console.log(`[TPQ-EMIS Bridge v${EXTENSION_VERSION}] Content script aktif di EMIS Kemenag.`);
 
 // Flag status pengecekan NIK Step 1
@@ -317,7 +317,7 @@ function findStep1SelanjutnyaButton() {
         if (el.closest && el.closest('[id^="tpq-"]')) continue;
         const t = (el.innerText || el.textContent || '').trim().toUpperCase();
         if (t === 'SELANJUTNYA') {
-            const btnParent = el.closest('button, [role="button"], a');
+            const btnParent = el.closest('button, [role="button"], [tabindex="0"], .css-18t94o4, a');
             if (btnParent) {
                 const rect = btnParent.getBoundingClientRect();
                 if (rect.width > 0 && rect.height > 0) return btnParent;
@@ -328,6 +328,63 @@ function findStep1SelanjutnyaButton() {
     }
 
     return null;
+}
+
+/**
+ * Menekan tombol hijau 'SELANJUTNYA' di Step 1 untuk beralih ke Step 2
+ */
+function clickStep1SelanjutnyaButton() {
+    let attempts = 0;
+    const maxAttempts = 12;
+
+    function tryClick() {
+        attempts++;
+        const btn = findStep1SelanjutnyaButton();
+        if (btn) {
+            console.log('%c[TPQ-EMIS Bridge] [Step 1] ✓ Tombol SELANJUTNYA ditemukan. Menekan otomatis menuju Step 2...', 'background: #16a34a; color: #fff; font-weight: bold; padding: 2px 6px;', btn);
+            try { btn.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (_) {}
+
+            setTimeout(() => {
+                invokeReactHandlers(btn);
+                triggerNativeClick(btn);
+                try { btn.click(); } catch (_) {}
+
+                setTimeout(() => {
+                    const alert1 = document.getElementById('tpq-step1-alert');
+                    if (alert1) alert1.remove();
+                }, 500);
+            }, 150);
+            return;
+        }
+
+        if (attempts < maxAttempts) {
+            setTimeout(tryClick, 250);
+        } else {
+            console.warn('[TPQ-EMIS Bridge] [Step 1] Tombol SELANJUTNYA tidak ditemukan/belum aktif setelah 3 detik.');
+        }
+    }
+
+    tryClick();
+}
+
+/**
+ * Helper terpusat setelah tanggal lahir Step 1 berhasil dipilih di kalender:
+ * memperbarui status UI popup Step 1 lalu menekan tombol SELANJUTNYA ke Step 2.
+ */
+function onStep1CalendarPickedSuccess() {
+    const sEl = document.getElementById('tpq-step1-tgl-status');
+    const dEl = document.getElementById('tpq-step1-tgl-desc');
+    if (sEl) {
+        sEl.innerText = '✓ Berhasil';
+        sEl.style.background = '#dcfce7';
+        sEl.style.color = '#15803d';
+    }
+    if (dEl) {
+        dEl.innerHTML = '<span style="color: #16a34a; font-weight: bold;">✓ Tanggal lahir berhasil dipilih!</span> Menekan <strong>SELANJUTNYA</strong> ke Step 2...';
+    }
+    setTimeout(() => {
+        clickStep1SelanjutnyaButton();
+    }, 600);
 }
 
 /**
@@ -1285,14 +1342,7 @@ function eksekusiIsiStep1(fields, data) {
                 const sEl = document.getElementById('tpq-step1-tgl-status');
                 const dEl = document.getElementById('tpq-step1-tgl-desc');
                 if (success) {
-                    if (sEl) {
-                        sEl.innerText = '✓ Berhasil';
-                        sEl.style.background = '#dcfce7';
-                        sEl.style.color = '#15803d';
-                    }
-                    if (dEl) {
-                        dEl.innerHTML = '<span style="color: #16a34a; font-weight: bold;">✓ Tanggal lahir telah berhasil dipilih di kalender EMIS!</span><br>Silakan klik <strong>SELANJUTNYA</strong>.';
-                    }
+                    onStep1CalendarPickedSuccess();
                 } else {
                     if (sEl) {
                         sEl.innerText = 'Manual';
@@ -3794,7 +3844,7 @@ function showStep0StartPopup(data) {
         <div id="tpq-step0-header" style="background: linear-gradient(135deg, #0d6efd, #0b5ed7); color: #fff; padding: 8px 12px; font-weight: bold; font-size: 13px; display: flex; justify-content: space-between; align-items: center; cursor: move; user-select: none;">
             <div style="display: flex; align-items: center; gap: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 195px;" title="${escapeHtml(data.nama_santri)} - ${escapeHtml(tglLahirLabel)}">
                 <span style="font-size: 12px;">⚡ <strong>${escapeHtml(data.nama_santri)}</strong></span>
-                <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 4px; border-radius: 3px; font-weight: normal;">v1.4.9</span>
+                <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 4px; border-radius: 3px; font-weight: normal;">v1.5.0</span>
                 <span style="font-size: 10.5px; background: rgba(255,255,255,0.25); border-radius: 3px; padding: 1px 5px; font-weight: 500;" title="Tanggal Lahir Santri">📅 ${escapeHtml(tglLahirLabel)}</span>
             </div>
             <div style="display: flex; align-items: center; gap: 5px;">
@@ -4098,7 +4148,7 @@ function showStep1Assistant(data) {
         <div id="tpq-step1-header" style="background: linear-gradient(135deg, #0d6efd, #0b5ed7); color: #fff; padding: 8px 12px; font-weight: bold; font-size: 13px; display: flex; justify-content: space-between; align-items: center; cursor: move; user-select: none;">
             <div style="display: flex; align-items: center; gap: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 170px;" title="${escapeHtml(data.nama_santri)}">
                 <span style="font-size: 12px;">⚡ <strong>${escapeHtml(data.nama_santri)}</strong></span>
-                <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 4px; border-radius: 3px; font-weight: normal; margin-left: 2px;">v1.4.9</span>
+                <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 4px; border-radius: 3px; font-weight: normal; margin-left: 2px;">v1.5.0</span>
             </div>
             <div style="display: flex; align-items: center; gap: 5px;">
                 <button id="tpq-btn-quick-copy-tgl-step1" style="background: #198754; color: #fff; border: 1px solid rgba(255,255,255,0.4); border-radius: 4px; padding: 3px 8px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.15);" title="Salin Tanggal Lahir">
@@ -4241,16 +4291,7 @@ function showStep1Assistant(data) {
                 btnRetryPick.disabled = false;
                 btnRetryPick.innerText = success ? '✓ Selesai' : '⚡ Pilihkan';
                 if (success) {
-                    const sEl = document.getElementById('tpq-step1-tgl-status');
-                    const dEl = document.getElementById('tpq-step1-tgl-desc');
-                    if (sEl) {
-                        sEl.innerText = '✓ Berhasil';
-                        sEl.style.background = '#dcfce7';
-                        sEl.style.color = '#15803d';
-                    }
-                    if (dEl) {
-                        dEl.innerHTML = '<span style="color: #16a34a; font-weight: bold;">✓ Tanggal lahir telah berhasil dipilih di kalender EMIS!</span><br>Silakan klik <strong>SELANJUTNYA</strong>.';
-                    }
+                    onStep1CalendarPickedSuccess();
                 }
             });
         });
@@ -4337,7 +4378,7 @@ function showStep2Assistant(data, filledAyah = false, filledIbu = false, filledN
         <div id="tpq-step2-header" style="background: linear-gradient(135deg, #0d6efd, #0b5ed7); color: #fff; padding: 8px 12px; font-weight: bold; font-size: 13px; display: flex; justify-content: space-between; align-items: center; cursor: move; user-select: none;">
             <div style="display: flex; align-items: center; gap: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 160px;" title="${escapeHtml(data.nama_santri)}">
                 <span style="font-size: 12px;">⚡ <strong>${escapeHtml(data.nama_santri)}</strong></span>
-                <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 4px; border-radius: 3px; font-weight: normal; margin-left: 2px;">v1.4.9</span>
+                <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 4px; border-radius: 3px; font-weight: normal; margin-left: 2px;">v1.5.0</span>
             </div>
             <div style="display: flex; align-items: center; gap: 5px;">
                 <button id="tpq-btn-quick-selesai-step2" style="background: #198754; color: #fff; border: 1px solid rgba(255,255,255,0.4); border-radius: 4px; padding: 3px 8px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.15);" title="Selesaikan pendaftaran & tandai selesai">
@@ -5523,7 +5564,7 @@ function showUpdateAlamatStep1Popup(data) {
         <div id="tpq-update-step1-header" style="background: linear-gradient(135deg, #0d6efd, #0b5ed7); color: #fff; padding: 8px 12px; font-weight: bold; font-size: 13px; display: flex; justify-content: space-between; align-items: center; cursor: move; user-select: none;">
             <div style="display: flex; align-items: center; gap: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 170px;" title="${escapeHtml(data.nama_santri)}">
                 <span style="font-size: 12px;">⚡ <strong>${escapeHtml(data.nama_santri)}</strong></span>
-                <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 4px; border-radius: 3px; font-weight: normal; margin-left: 2px;">v1.4.9</span>
+                <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 4px; border-radius: 3px; font-weight: normal; margin-left: 2px;">v1.5.0</span>
             </div>
             <div style="display: flex; align-items: center; gap: 5px;">
                 <button id="tpq-btn-mode-step1" style="background: ${currentAutoMode === 'FULL' ? '#059669' : '#d97706'}; color: #fff; border: 1px solid rgba(255,255,255,0.4); border-radius: 4px; padding: 3px 8px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.15);" title="${currentAutoMode === 'FULL' ? 'Mode Full Otomatis aktif (klik untuk ganti ke Semi-Otomatis)' : 'Mode Semi-Otomatis aktif (klik untuk ganti ke Full Otomatis)'}">
@@ -6017,7 +6058,7 @@ function showUpdateSantriStep2Popup(data) {
         <div id="tpq-update-santri-step2-header" style="background: linear-gradient(135deg, #0d6efd, #0b5ed7); color: #fff; padding: 8px 12px; font-weight: bold; font-size: 13px; display: flex; justify-content: space-between; align-items: center; cursor: move; user-select: none;">
             <div style="display: flex; align-items: center; gap: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 150px;" title="${escapeHtml(data.nama_santri)}">
                 <span style="font-size: 12px;">⚡ <strong>${escapeHtml(data.nama_santri)}</strong></span>
-                <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 4px; border-radius: 3px; font-weight: normal; margin-left: 2px;">v1.4.9</span>
+                <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 4px; border-radius: 3px; font-weight: normal; margin-left: 2px;">v1.5.0</span>
             </div>
             <div style="display: flex; align-items: center; gap: 5px;">
                 <button id="tpq-btn-mode-step2" style="background: ${currentAutoMode === 'FULL' ? '#059669' : '#d97706'}; color: #fff; border: 1px solid rgba(255,255,255,0.4); border-radius: 4px; padding: 3px 8px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.15);" title="${currentAutoMode === 'FULL' ? 'Mode Full Otomatis aktif (klik untuk ganti ke Semi-Otomatis)' : 'Mode Semi-Otomatis aktif (klik untuk ganti ke Full Otomatis)'}">
@@ -6801,7 +6842,7 @@ function showUpdateAlamatStep3Popup(data) {
         <div id="tpq-update-step3-header" style="background: linear-gradient(135deg, #0d6efd, #0b5ed7); color: #fff; padding: 8px 12px; font-weight: bold; font-size: 13px; display: flex; justify-content: space-between; align-items: center; cursor: move; user-select: none;">
             <div style="display: flex; align-items: center; gap: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 160px;" title="${escapeHtml(data.nama_santri)}">
                 <span style="font-size: 12px;">⚡ <strong>${escapeHtml(data.nama_santri)}</strong></span>
-                <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 4px; border-radius: 3px; font-weight: normal; margin-left: 2px;">v1.4.9</span>
+                <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 4px; border-radius: 3px; font-weight: normal; margin-left: 2px;">v1.5.0</span>
             </div>
             <div style="display: flex; align-items: center; gap: 5px;">
                 <button id="tpq-btn-mode-step3" style="background: ${currentAutoMode === 'FULL' ? '#059669' : '#d97706'}; color: #fff; border: 1px solid rgba(255,255,255,0.4); border-radius: 4px; padding: 3px 8px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.15);" title="${currentAutoMode === 'FULL' ? 'Mode Full Otomatis aktif (klik untuk ganti ke Semi-Otomatis)' : 'Mode Semi-Otomatis aktif (klik untuk ganti ke Full Otomatis)'}">

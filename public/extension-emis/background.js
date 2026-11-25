@@ -10,7 +10,7 @@ chrome.runtime.onInstalled.addListener(() => {
 // Listener komunikasi dari content script
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'PING') {
-        sendResponse({ status: 'PONG', version: '1.4.9' });
+        sendResponse({ status: 'PONG', version: '1.5.0' });
         return true;
     }
 
