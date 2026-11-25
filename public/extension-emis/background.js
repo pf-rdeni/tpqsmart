@@ -10,7 +10,7 @@ chrome.runtime.onInstalled.addListener(() => {
 // Listener komunikasi dari content script
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'PING') {
-        sendResponse({ status: 'PONG', version: '1.6.1' });
+        sendResponse({ status: 'PONG', version: '1.6.3' });
         return true;
     }
 
@@ -140,9 +140,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         return true;
     }
 
-    if (request.action === 'UPDATE_ALAMAT_SUCCESS_NOTIFY') {
-        console.log('[TPQ-EMIS] Update alamat EMIS berhasil untuk santri:', request.id_santri);
-
+    const notifyTpqAndOptionallyFocusOrigin = (actionName, idSantri, focusOrigin) => {
         const activateTabAndWindow = (tab) => {
             if (!tab) return;
             if (tab.windowId) {
@@ -162,7 +160,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         chrome.storage.local.get(['originTpqTabId'], (res) => {
             const originTabId = res.originTpqTabId || null;
 
-            // Teruskan kabar sukses ke tab TPQ Smart agar UI & database terupdate
             chrome.tabs.query({}, (tabs) => {
                 const tpqTabs = tabs.filter(tab =>
                     tab.url && (tab.url.includes('tpqsmart') || tab.url.includes('localhost') || tab.url.includes('127.0.0.1'))
@@ -170,49 +167,41 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
                 tpqTabs.forEach(tab => {
                     chrome.tabs.sendMessage(tab.id, {
-                        action: 'NOTIFY_TPQ_UPDATE_ALAMAT_SUCCESS',
-                        id_santri: request.id_santri
+                        action: actionName,
+                        id_santri: idSantri
                     }).catch(() => {});
                 });
 
-                // Pindahkan tab aktif kembali ke tab asal tempat tombol ditekan
-                if (originTabId) {
-                    chrome.tabs.get(originTabId, (originTab) => {
-                        if (!chrome.runtime.lastError && originTab) {
-                            activateTabAndWindow(originTab);
-                        } else if (tpqTabs.length > 0) {
-                            const fallbackTab = tpqTabs.find(t => t.url.includes('showSantriEmis')) || tpqTabs[0];
-                            activateTabAndWindow(fallbackTab);
-                        }
-                    });
-                } else if (tpqTabs.length > 0) {
-                    const fallbackTab = tpqTabs.find(t => t.url.includes('showSantriEmis')) || tpqTabs[0];
-                    activateTabAndWindow(fallbackTab);
+                if (focusOrigin) {
+                    if (originTabId) {
+                        chrome.tabs.get(originTabId, (originTab) => {
+                            if (!chrome.runtime.lastError && originTab) {
+                                activateTabAndWindow(originTab);
+                            } else if (tpqTabs.length > 0) {
+                                const fallbackTab = tpqTabs.find(t => t.url.includes('showSantriEmis')) || tpqTabs[0];
+                                activateTabAndWindow(fallbackTab);
+                            }
+                        });
+                    } else if (tpqTabs.length > 0) {
+                        const fallbackTab = tpqTabs.find(t => t.url.includes('showSantriEmis')) || tpqTabs[0];
+                        activateTabAndWindow(fallbackTab);
+                    }
+                    chrome.storage.local.remove(['originTpqTabId', 'originTpqWindowId']);
                 }
             });
-
-            chrome.storage.local.remove(['originTpqTabId', 'originTpqWindowId']);
         });
+    };
 
+    if (request.action === 'UPDATE_ALAMAT_SUCCESS_NOTIFY') {
+        console.log('[TPQ-EMIS] Update alamat EMIS berhasil untuk santri:', request.id_santri);
+        notifyTpqAndOptionallyFocusOrigin('NOTIFY_TPQ_UPDATE_ALAMAT_SUCCESS', request.id_santri, true);
         sendResponse({ received: true });
         return true;
     }
 
     if (request.action === 'FORM_FILLED_NOTIFY') {
-        console.log('[TPQ-EMIS] Formulir EMIS berhasil diisi untuk santri:', request.id_santri);
-        
-        // Teruskan kabar sukses ke tab TPQ Smart agar UI terupdate
-        chrome.tabs.query({}, (tabs) => {
-            tabs.forEach(tab => {
-                if (tab.url && (tab.url.includes('tpqsmart') || tab.url.includes('localhost') || tab.url.includes('127.0.0.1'))) {
-                    chrome.tabs.sendMessage(tab.id, {
-                        action: 'NOTIFY_TPQ_SUCCESS',
-                        id_santri: request.id_santri
-                    }).catch(() => {});
-                }
-            });
-        });
-
+        console.log('[TPQ-EMIS] Formulir EMIS berhasil diisi untuk santri:', request.id_santri, 'returnToTpq:', Boolean(request.returnToTpq));
+        notifyTpqAndOptionallyFocusOrigin('NOTIFY_TPQ_SUCCESS', request.id_santri, Boolean(request.returnToTpq));
         sendResponse({ received: true });
         return true;
     }
