@@ -20,7 +20,7 @@
  *  - Popup Step 2 dapat digeser (draggable) dan memandu checklist isian manual
  */
 
-const EXTENSION_VERSION = '1.4.5';
+const EXTENSION_VERSION = '1.4.9';
 console.log(`[TPQ-EMIS Bridge v${EXTENSION_VERSION}] Content script aktif di EMIS Kemenag.`);
 
 // Flag status pengecekan NIK Step 1
@@ -508,11 +508,633 @@ function showNikFoundAlert(santriData, reason) {
 }
 
 /**
- * Mencari input Nama Lengkap dan Tempat Lahir di Step 1
+ * ============================================================================
+ * OTOMASI SELEKSI KALENDER EMIS 4.0 (FLICKER DATEPICKER)
+ * ============================================================================
+ */
+
+const NAMA_BULAN_INDO = [
+    '', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+];
+const NAMA_BULAN_INDO_SHORT = [
+    '', 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+    'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'
+];
+const NAMA_BULAN_EN = [
+    '', 'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+];
+const NAMA_BULAN_EN_SHORT = [
+    '', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+];
+
+/**
+ * Parsing nomor bulan (1-12) dari teks label kalender (misal: "November 2026" -> 11)
+ */
+function parseBulanFromText(rawText) {
+    if (!rawText) return null;
+    const upper = String(rawText).trim().toUpperCase();
+    for (let m = 1; m <= 12; m++) {
+        const fullId = NAMA_BULAN_INDO[m].toUpperCase();
+        const shortId = NAMA_BULAN_INDO_SHORT[m].toUpperCase();
+        const fullEn = NAMA_BULAN_EN[m].toUpperCase();
+        const shortEn = NAMA_BULAN_EN_SHORT[m].toUpperCase();
+
+        const regex = new RegExp(`\\b(${fullId}|${shortId}|${fullEn}|${shortEn})\\b`, 'i');
+        if (regex.test(upper) || upper.includes(fullId) || upper.includes(fullEn)) {
+            return m;
+        }
+    }
+    return null;
+}
+
+/**
+ * Helper untuk memanggil handler React internal (onPress / onClick) jika tersedia
+ */
+function invokeReactHandlers(el) {
+    if (!el) return;
+    try {
+        const propKey = Object.keys(el).find(k => k.startsWith('__reactProps$') || k.startsWith('__reactFiber$') || k.startsWith('__reactInternalInstance$'));
+        if (propKey) {
+            const node = el[propKey];
+            const props = node?.memoizedProps || node;
+            if (props) {
+                if (typeof props.onPress === 'function') {
+                    console.log('[TPQ-EMIS Bridge] [Otomasi Kalender] Menjalankan React props.onPress()...');
+                    props.onPress({
+                        nativeEvent: {},
+                        preventDefault: () => {},
+                        stopPropagation: () => {},
+                        persist: () => {}
+                    });
+                }
+                if (typeof props.onClick === 'function') {
+                    console.log('[TPQ-EMIS Bridge] [Otomasi Kalender] Menjalankan React props.onClick()...');
+                    props.onClick({
+                        nativeEvent: {},
+                        preventDefault: () => {},
+                        stopPropagation: () => {},
+                        persist: () => {}
+                    });
+                }
+            }
+        }
+    } catch (e) {
+        console.warn('[TPQ-EMIS Bridge] Error invoke React handlers:', e);
+    }
+}
+
+/**
+ * Mencari elemen field Tanggal Lahir (React Native for Web) di Step 1
+ * Berdasarkan struktur DOM persis dari EMIS:
+ * - Wrapper memuat teks 'TANGGAL LAHIR'
+ * - Tombol [role="button"][tabindex="0"]
+ * - Icon font 'material-community'
+ * - Focusable container [tabindex="0"]
+ */
+function findTanggalLahirElements() {
+    // Strategi 1: Cari elemen yang berisi teks persis "TANGGAL LAHIR"
+    const allEls = Array.from(document.querySelectorAll('div, span, p, label')).filter(el => {
+        if (el.closest && el.closest('[id^="tpq-"]')) return false;
+        if (el.children.length > 2) return false;
+        const txt = (el.innerText || el.textContent || '').trim().toUpperCase();
+        return txt === 'TANGGAL LAHIR';
+    });
+
+    for (const textEl of allEls) {
+        let parent = textEl.parentElement;
+        for (let i = 0; i < 6 && parent && parent !== document.body; i++) {
+            const btn = parent.querySelector('[role="button"]') || parent.querySelector('.css-18t94o4');
+            const icon = parent.querySelector('[style*="material-community"]') || parent.querySelector('.r-1niwhzg');
+            const focusable = parent.querySelector('[tabindex="0"]') || (parent.getAttribute('tabindex') === '0' ? parent : null);
+
+            if (btn || icon || focusable) {
+                return {
+                    root: parent,
+                    button: btn,
+                    icon: icon,
+                    focusable: focusable
+                };
+            }
+            parent = parent.parentElement;
+        }
+    }
+
+    // Strategi 2: Cari icon dengan font-family 'material-community'
+    const iconCandidates = Array.from(document.querySelectorAll('[style*="material-community"], .r-1niwhzg, .css-18t94o4')).filter(el => {
+        if (el.closest && el.closest('[id^="tpq-"]')) return false;
+        const rect = el.getBoundingClientRect();
+        return rect.width > 0 && rect.height > 0;
+    });
+
+    for (const el of iconCandidates) {
+        const root = el.closest('.css-1dbjc4n') || el.parentElement?.parentElement;
+        const txt = (root?.innerText || root?.textContent || '').toUpperCase();
+        if (txt.includes('TANGGAL') && (txt.includes('LAHIR') || !txt.includes('MASUK'))) {
+            const btn = el.closest('[role="button"]') || el.closest('[tabindex="0"]') || el;
+            const focusable = root?.querySelector('[tabindex="0"]') || btn;
+            return {
+                root: root,
+                button: btn,
+                icon: el,
+                focusable: focusable
+            };
+        }
+    }
+
+    // Strategi 3: Cari container yang memiliki pesan error "Tanggal lahir wajib diisi"
+    const errorEls = Array.from(document.querySelectorAll('div, span')).filter(el => {
+        if (el.closest && el.closest('[id^="tpq-"]')) return false;
+        const txt = (el.innerText || el.textContent || '').trim().toUpperCase();
+        return txt.includes('TANGGAL LAHIR WAJIB DIISI');
+    });
+
+    for (const errEl of errorEls) {
+        const root = errEl.parentElement;
+        if (root) {
+            const btn = root.querySelector('[role="button"]') || root.querySelector('.css-18t94o4');
+            const icon = root.querySelector('[style*="material-community"]');
+            const focusable = root.querySelector('[tabindex="0"]');
+            if (btn || focusable) {
+                return {
+                    root: root,
+                    button: btn,
+                    icon: icon,
+                    focusable: focusable
+                };
+            }
+        }
+    }
+
+    return null;
+}
+
+/**
+ * Mencari elemen modal dialog kalender picker EMIS
+ */
+function findCalendarModal() {
+    const dialogs = Array.from(document.querySelectorAll('[role="dialog"], [role="alertdialog"], [aria-modal="true"], .MuiDialog-paper, .MuiPickersModal-dialogRoot, .MuiModal-root, .css-1dbjc4n, div'));
+    for (const d of dialogs) {
+        if (d.closest && d.closest('[id^="tpq-"]')) continue;
+        const rect = d.getBoundingClientRect();
+        if (rect.width < 150 || rect.height < 150) continue;
+
+        const txt = (d.innerText || d.textContent || '').toUpperCase();
+        // Ciri khas modal picker: memiliki tombol CANCEL dan OK serta memuat tahun atau tanggal
+        if (txt.includes('CANCEL') && txt.includes('OK')) {
+            if (/\b(19\d\d|20\d\d)\b/.test(txt) || txt.includes('SEL') || txt.includes('RAB') || txt.includes('NOV') || txt.includes('MIN') || txt.includes('SEN')) {
+                return d;
+            }
+        }
+    }
+    return null;
+}
+
+/**
+ * Trigger untuk membuka modal kalender picker EMIS
+ */
+function triggerOpenCalendarPicker(inputTanggal) {
+    const tglInfo = findTanggalLahirElements();
+    if (!tglInfo) {
+        console.warn('[TPQ-EMIS Bridge] [Otomasi Kalender] Komponen Tanggal Lahir belum terdeteksi di DOM.');
+        return false;
+    }
+
+    console.log('[TPQ-EMIS Bridge] [Otomasi Kalender] Komponen Tanggal Lahir EMIS ditemukan:', tglInfo);
+
+    const { button, icon, focusable } = tglInfo;
+
+    // 1. Prioritas Utama: Button kalender (div[role="button"][tabindex="0"])
+    if (button) {
+        console.log('[TPQ-EMIS Bridge] [Otomasi Kalender] Memicu klik pada button kalender...');
+        invokeReactHandlers(button);
+        triggerNativeClick(button);
+        try { button.click(); } catch (_) {}
+        try {
+            button.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true }));
+            button.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true }));
+        } catch (_) {}
+    }
+
+    // 2. Icon di dalam button
+    if (icon && icon !== button) {
+        console.log('[TPQ-EMIS Bridge] [Otomasi Kalender] Memicu klik pada icon kalender...');
+        invokeReactHandlers(icon);
+        triggerNativeClick(icon);
+        try { icon.click(); } catch (_) {}
+    }
+
+    // 3. Focusable container (div[tabindex="0"])
+    if (focusable && focusable !== button) {
+        console.log('[TPQ-EMIS Bridge] [Otomasi Kalender] Memicu fokus & klik pada focusable container...');
+        invokeReactHandlers(focusable);
+        triggerNativeClick(focusable);
+        try { focusable.focus(); } catch (_) {}
+        try { focusable.click(); } catch (_) {}
+        try {
+            focusable.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true }));
+            focusable.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true }));
+        } catch (_) {}
+    }
+
+    return true;
+}
+
+/**
+ * Mencari elemen header tahun pada banner biru modal kalender (misal: "2026")
+ */
+function findModalYearHeader(modal) {
+    const modalRect = modal.getBoundingClientRect();
+    const candidates = Array.from(modal.querySelectorAll('button, div, span, h6, h5, h4, p, a')).filter(el => {
+        if (el.children.length > 1) return false;
+        const txt = (el.innerText || el.textContent || '').trim();
+        if (!/^(19|20)\d{2}$/.test(txt)) return false;
+
+        const rect = el.getBoundingClientRect();
+        if (rect.width <= 0 || rect.height <= 0) return false;
+        // Posisinya di bagian atas banner modal (top 40%)
+        if (rect.top - modalRect.top > modalRect.height * 0.4) return false;
+        return true;
+    });
+
+    if (candidates.length > 0) {
+        candidates.sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top);
+        return candidates[0];
+    }
+    return null;
+}
+
+/**
+ * Memilih tahun target dari daftar tahun (Gambar 3)
+ */
+function selectYearFromList(modal, targetYearStr, onYearSelected) {
+    let attempts = 0;
+    const maxAttempts = 30; // 3 detik
+
+    const yearTimer = setInterval(() => {
+        attempts++;
+
+        // Cari elemen dengan teks tahun persis di dalam modal
+        const allYearEls = Array.from(modal.querySelectorAll('button, div, li, span, p')).filter(el => {
+            if (el.children.length > 0) return false;
+            return (el.innerText || el.textContent || '').trim() === targetYearStr;
+        });
+
+        if (allYearEls.length > 0) {
+            clearInterval(yearTimer);
+            const targetEl = allYearEls[0];
+            console.log(`[TPQ-EMIS Bridge] [Otomasi Kalender] Tahun ${targetYearStr} ditemukan di DOM! Melakukan auto-scroll & klik...`);
+
+            try {
+                targetEl.scrollIntoView({ behavior: 'instant', block: 'center' });
+            } catch (_) {
+                try { targetEl.scrollIntoView(true); } catch (_) {}
+            }
+
+            setTimeout(() => {
+                invokeReactHandlers(targetEl);
+                triggerNativeClick(targetEl);
+                try { targetEl.click(); } catch (_) {}
+                console.log(`[TPQ-EMIS Bridge] [Otomasi Kalender] ✓ Tahun ${targetYearStr} berhasil diklik.`);
+                if (typeof onYearSelected === 'function') onYearSelected(true);
+            }, 120);
+            return;
+        }
+
+        // Jika belum ada di viewport DOM (misal virtualized list), cari container scroll
+        const scrollContainers = Array.from(modal.querySelectorAll('div, ul')).filter(c => {
+            return c.scrollHeight > c.clientHeight + 40;
+        });
+        if (scrollContainers.length > 0) {
+            const sc = scrollContainers[0];
+            const curYear = new Date().getFullYear();
+            const targetNum = parseInt(targetYearStr, 10);
+            if (targetNum < curYear) {
+                sc.scrollTop -= 150;
+            } else {
+                sc.scrollTop += 150;
+            }
+        }
+
+        if (attempts >= maxAttempts) {
+            clearInterval(yearTimer);
+            console.warn(`[TPQ-EMIS Bridge] [Otomasi Kalender] Gagal menemukan tahun ${targetYearStr} di daftar tahun.`);
+            if (typeof onYearSelected === 'function') onYearSelected(false);
+        }
+    }, 100);
+}
+
+/**
+ * Mengambil komponen navigasi bulan di modal kalender
+ * Menjamin hanya mengambil tombol panah di header (bukan tombol sel hari pada grid)
+ */
+function getMonthNavigation(modal) {
+    // 1. Cari container header navigasi bulan Material-UI (.MuiPickersCalendarHeader-switchHeader)
+    let headerContainer = modal.querySelector('.MuiPickersCalendarHeader-switchHeader, [class*="switchHeader"]');
+    if (!headerContainer) {
+        headerContainer = modal.querySelector('.MuiPickersCalendarHeader-root, [class*="PickersCalendarHeader-root"]');
+    }
+
+    // Fallback: cari container yang memuat 2 tombol dan teks nama bulan
+    if (!headerContainer) {
+        const allDivs = Array.from(modal.querySelectorAll('div'));
+        for (const d of allDivs) {
+            const btns = Array.from(d.querySelectorAll(':scope > button, :scope > [role="button"]'));
+            if (btns.length === 2) {
+                const txt = (d.innerText || d.textContent || '').trim();
+                if (parseBulanFromText(txt) !== null) {
+                    headerContainer = d;
+                    break;
+                }
+            }
+        }
+    }
+
+    if (headerContainer) {
+        // Tombol panah bulan HANYA yang ada di dalam headerContainer (pasti hanya 2 tombol: kiri & kanan)
+        const buttons = Array.from(headerContainer.querySelectorAll('button, [role="button"]')).filter(b => {
+            const rect = b.getBoundingClientRect();
+            return rect.width > 0 && rect.height > 0;
+        });
+        buttons.sort((a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left);
+        const prevBtn = buttons[0];
+        const nextBtn = buttons[buttons.length - 1];
+
+        // Teks bulan diambil dari transitionContainer atau elemen teks di dalam headerContainer
+        const labelContainer = headerContainer.querySelector('.MuiPickersCalendarHeader-transitionContainer, [class*="transitionContainer"]') || headerContainer;
+        const textNodes = Array.from(labelContainer.querySelectorAll('p, h6, h5, span, div')).filter(el => {
+            if (el.children.length > 0) return false;
+            const cls = String(el.className || '').toLowerCase();
+            if (cls.includes('exit')) return false; // Abaikan teks bulan yang sedang slide exit
+            const txt = (el.innerText || el.textContent || '').trim();
+            return parseBulanFromText(txt) !== null;
+        });
+
+        let monthTextEl = textNodes[0] || null;
+        let displayedMonth = null;
+        let rawMonthText = '';
+        if (monthTextEl) {
+            rawMonthText = (monthTextEl.innerText || monthTextEl.textContent || '').trim();
+            displayedMonth = parseBulanFromText(rawMonthText);
+        } else {
+            rawMonthText = (labelContainer.innerText || labelContainer.textContent || headerContainer.innerText || '').trim();
+            displayedMonth = parseBulanFromText(rawMonthText);
+        }
+
+        return { monthTextEl, displayedMonth, rawMonthText, prevBtn, nextBtn };
+    }
+
+    // Fallback global jika class berbeda: cari 2 tombol ikon yang memiliki SVG panah di bagian atas modal
+    const modalRect = modal.getBoundingClientRect();
+    const iconButtons = Array.from(modal.querySelectorAll('button, [role="button"]')).filter(b => {
+        const r = b.getBoundingClientRect();
+        if (r.width <= 0 || r.height <= 0) return false;
+        const txt = (b.innerText || b.textContent || '').trim().toUpperCase();
+        if (txt === 'OK' || txt === 'CANCEL') return false;
+        if (b.querySelector('svg') === null && !txt.includes('<') && !txt.includes('>')) return false;
+        // Ukuran tombol panah navigasi kecil (< 55x55) dan berada di bagian atas kalender (< 45% tinggi modal)
+        return r.width < 55 && r.height < 55 && (r.top - modalRect.top < modalRect.height * 0.45);
+    });
+
+    if (iconButtons.length >= 2) {
+        iconButtons.sort((a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left);
+        const prevBtn = iconButtons[0];
+        const nextBtn = iconButtons[iconButtons.length - 1];
+
+        const textEls = Array.from(modal.querySelectorAll('p, h6, h5, span, div')).filter(el => {
+            if (el.children.length > 0) return false;
+            const r = el.getBoundingClientRect();
+            if (r.top - modalRect.top > modalRect.height * 0.45) return false;
+            const txt = (el.innerText || el.textContent || '').trim();
+            return parseBulanFromText(txt) !== null;
+        });
+
+        const monthTextEl = textEls[0] || null;
+        const rawMonthText = monthTextEl ? (monthTextEl.innerText || monthTextEl.textContent || '').trim() : '';
+        const displayedMonth = monthTextEl ? parseBulanFromText(rawMonthText) : null;
+        return { monthTextEl, displayedMonth, rawMonthText, prevBtn, nextBtn };
+    }
+
+    return { monthTextEl: null, displayedMonth: null, rawMonthText: '', prevBtn: null, nextBtn: null };
+}
+
+/**
+ * Navigasi bulan menggunakan tombol panah (< / >) hingga bulan target tercapai
+ */
+function navigateToTargetMonth(modal, targetMonthNum, onMonthReached) {
+    let steps = 0;
+    const maxSteps = 20;
+
+    function step() {
+        steps++;
+        const nav = getMonthNavigation(modal);
+        console.log(`[TPQ-EMIS Bridge] [Otomasi Kalender] Cek navigasi bulan (Langkah ${steps}):`, {
+            rawTeks: nav.rawMonthText || '(kosong)',
+            bulanTampil: nav.displayedMonth ? NAMA_BULAN_INDO[nav.displayedMonth] : 'tidak terdeteksi',
+            bulanTarget: NAMA_BULAN_INDO[targetMonthNum]
+        });
+
+        if (nav.displayedMonth === targetMonthNum) {
+            console.log(`[TPQ-EMIS Bridge] [Otomasi Kalender] ✓ Bulan target (${NAMA_BULAN_INDO[targetMonthNum]}) telah tampil.`);
+            if (typeof onMonthReached === 'function') onMonthReached(true);
+            return;
+        }
+
+        if (steps >= maxSteps || !nav.prevBtn || !nav.nextBtn || nav.displayedMonth === null) {
+            console.warn('[TPQ-EMIS Bridge] [Otomasi Kalender] Navigasi bulan selesai/fallback.');
+            if (typeof onMonthReached === 'function') onMonthReached(false);
+            return;
+        }
+
+        const btnToClick = nav.displayedMonth > targetMonthNum ? nav.prevBtn : nav.nextBtn;
+        console.log(`[TPQ-EMIS Bridge] [Otomasi Kalender] Klik tombol navigasi bulan (${nav.displayedMonth > targetMonthNum ? 'MUNDUR' : 'MAJU'}):`, btnToClick);
+        
+        // HANYA 1 KALI KLIK NATIVE!
+        // Jangan panggil invokeReactHandlers() atau triggerNativeClick() di sini!
+        // Tombol navigasi bulan di modal EMIS adalah HTML <button> Material-UI standar.
+        // Memanggil invokeReactHandlers + triggerNativeClick + .click() memicu 5x event click berturut-turut,
+        // yang menyebabkan kalender melompat 5 bulan sekaligus per langkah (misal Juni loncat langsung ke Januari).
+        try {
+            btnToClick.click();
+        } catch (_) {
+            btnToClick.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+        }
+
+        // Jeda 450ms agar animasi CSS slide transition Material-UI selesai sebelum langkah berikutnya
+        setTimeout(step, 450);
+    }
+
+    setTimeout(step, 100);
+}
+
+/**
+ * Memilih tanggal target (misal: 13) pada grid kalender Material-UI
+ */
+function selectTargetDay(modal, targetDayNum, onDaySelected) {
+    const targetDayStr = String(targetDayNum);
+
+    // Cari semua tombol hari di kalender (Material-UI menggunakan .MuiPickersDay-day)
+    const dayButtons = Array.from(modal.querySelectorAll('.MuiPickersDay-day, [class*="PickersDay-day"], .MuiPickersCalendar-week button, button')).filter(btn => {
+        const rect = btn.getBoundingClientRect();
+        if (rect.width <= 0 || rect.height <= 0) return false;
+        if (btn.disabled || btn.getAttribute('aria-disabled') === 'true') return false;
+        
+        // Pastikan teks angka hari cocok
+        const txt = (btn.innerText || btn.textContent || '').trim();
+        if (txt !== targetDayStr) return false;
+        
+        // Pastikan bukan tombol navigasi atau footer (tombol navigasi memiliki SVG)
+        if (btn.querySelector('svg')) return false;
+        
+        // Jangan ambil hari yang didisable / disembunyikan dari bulan lain
+        const cls = String(btn.className || '');
+        if (cls.includes('hidden') || cls.includes('dayDisabled')) return false;
+
+        return true;
+    });
+
+    if (dayButtons.length > 0) {
+        const targetBtn = dayButtons[0];
+        console.log(`[TPQ-EMIS Bridge] [Otomasi Kalender] Memilih tanggal ${targetDayStr}:`, targetBtn);
+        invokeReactHandlers(targetBtn);
+        triggerNativeClick(targetBtn);
+        try { targetBtn.click(); } catch (_) {}
+        setTimeout(() => {
+            if (typeof onDaySelected === 'function') onDaySelected(true);
+        }, 200);
+    } else {
+        console.warn(`[TPQ-EMIS Bridge] [Otomasi Kalender] Tanggal ${targetDayStr} tidak ditemukan pada grid.`);
+        if (typeof onDaySelected === 'function') onDaySelected(false);
+    }
+}
+
+/**
+ * Menekan tombol "OK" pada footer modal kalender
+ */
+function clickModalOkButton(modal, onDone) {
+    const btns = Array.from(modal.querySelectorAll('button, [role="button"], div[role="button"], a')).filter(b => {
+        const txt = (b.innerText || b.textContent || b.value || '').trim().toUpperCase();
+        return txt === 'OK';
+    });
+
+    if (btns.length > 0) {
+        const okBtn = btns.find(b => b.tagName === 'BUTTON') || btns[0];
+        console.log('[TPQ-EMIS Bridge] [Otomasi Kalender] Menekan tombol OK di modal:', okBtn);
+        invokeReactHandlers(okBtn);
+        triggerNativeClick(okBtn);
+        try { okBtn.click(); } catch (_) {}
+    } else {
+        console.warn('[TPQ-EMIS Bridge] [Otomasi Kalender] Tombol OK tidak ditemukan di footer.');
+    }
+
+    setTimeout(() => {
+        // Cek apakah nilai tanggal lahir di form sudah terisi
+        const tglInfo = findTanggalLahirElements();
+        const displayVal = tglInfo?.root ? (tglInfo.root.innerText || tglInfo.root.textContent || '') : '';
+        console.log('[TPQ-EMIS Bridge] [Otomasi Kalender] Nilai form setelah tombol OK:', displayVal.trim());
+
+        if (typeof onDone === 'function') onDone(true);
+    }, 300);
+}
+
+/**
+ * Alur Utama: Otomatisasi Pemilihan Tanggal Lahir di Step 1
+ * Format tanggalStr: "YYYY-MM-DD" (contoh: "2016-05-13")
+ */
+function autoPickTanggalLahirStep1(tanggalStr, callback) {
+    if (!tanggalStr) {
+        if (typeof callback === 'function') callback(false);
+        return;
+    }
+
+    const parts = String(tanggalStr).trim().split('-');
+    if (parts.length !== 3) {
+        console.warn('[TPQ-EMIS Bridge] [Otomasi Kalender] Format tanggal tidak valid:', tanggalStr);
+        if (typeof callback === 'function') callback(false);
+        return;
+    }
+
+    const targetYear = parseInt(parts[0], 10);
+    const targetMonth = parseInt(parts[1], 10);
+    const targetDay = parseInt(parts[2], 10);
+
+    console.log(`%c[TPQ-EMIS Bridge] [Otomasi Kalender] Memulai pemilihan otomatis: ${targetDay} ${NAMA_BULAN_INDO[targetMonth]} ${targetYear}`, 'background: #0284c7; color: #fff; font-weight: bold; padding: 2px 6px;');
+
+    // Trigger buka kalender
+    triggerOpenCalendarPicker();
+
+    let openAttempts = 0;
+    const maxOpenAttempts = 35;
+
+    const openTimer = setInterval(() => {
+        openAttempts++;
+        const modal = findCalendarModal();
+
+        if (modal) {
+            clearInterval(openTimer);
+            console.log('%c[TPQ-EMIS Bridge] [Otomasi Kalender] ✓ Modal kalender terdeteksi di layar!', 'background: #16a34a; color: #fff; font-weight: bold; padding: 2px 6px;');
+
+            // Tahap 1: Klik header tahun di banner modal (Gambar 2)
+            setTimeout(() => {
+                const yearHeader = findModalYearHeader(modal);
+                if (yearHeader) {
+                    console.log('[TPQ-EMIS Bridge] [Otomasi Kalender] Mengklik header tahun:', yearHeader.innerText.trim());
+                    invokeReactHandlers(yearHeader);
+                    triggerNativeClick(yearHeader);
+                    try { yearHeader.click(); } catch (_) {}
+
+                    // Tahap 2: Pilih tahun target di daftar tahun (Gambar 3)
+                    setTimeout(() => {
+                        selectYearFromList(modal, String(targetYear), (yearOk) => {
+                            // Beri jeda 400ms agar kalender selesai merender bulan setelah klik tahun
+                            setTimeout(() => {
+                                // Tahap 3: Navigasi ke bulan target (Gambar 2)
+                                navigateToTargetMonth(modal, targetMonth, (monthOk) => {
+                                    setTimeout(() => {
+                                        // Tahap 4: Pilih tanggal target pada grid
+                                        selectTargetDay(modal, targetDay, (dayOk) => {
+                                            setTimeout(() => {
+                                                // Tahap 5: Tekan tombol OK
+                                                clickModalOkButton(modal, () => {
+                                                    console.log(`%c[TPQ-EMIS Bridge] [Otomasi Kalender] ✓ Selesai! Target: ${tanggalStr}`, 'background: #16a34a; color: #fff; font-weight: bold; padding: 2px 6px;');
+                                                    if (typeof callback === 'function') callback(true);
+                                                });
+                                            }, 200);
+                                        });
+                                    }, 200);
+                                });
+                            }, 400);
+                        });
+                    }, 200);
+                } else {
+                    console.warn('[TPQ-EMIS Bridge] [Otomasi Kalender] Header tahun tidak ditemukan.');
+                    if (typeof callback === 'function') callback(false);
+                }
+            }, 200);
+        } else {
+            if (openAttempts % 5 === 0) {
+                console.log('[TPQ-EMIS Bridge] [Otomasi Kalender] Mencoba trigger buka kalender kembali...');
+                triggerOpenCalendarPicker();
+            }
+
+            if (openAttempts >= maxOpenAttempts) {
+                clearInterval(openTimer);
+                console.warn('[TPQ-EMIS Bridge] [Otomasi Kalender] Modal kalender tidak muncul setelah 3.5 detik.');
+                if (typeof callback === 'function') callback(false);
+            }
+        }
+    }, 100);
+}
+
+/**
+ * Mencari input Nama Lengkap, Tempat Lahir, dan Tanggal Lahir di Step 1
  */
 function findStep1Fields() {
     let inputNama = null;
     let inputTempat = null;
+    let inputTanggal = null;
 
     const allInputs = Array.from(document.querySelectorAll('input:not([type="hidden"]):not([type="radio"]):not([type="checkbox"])'))
         .filter(inp => {
@@ -541,8 +1163,6 @@ function findStep1Fields() {
 
         if (combined.includes('TEMPAT') && !inputTempat) {
             inputTempat = inp;
-        } else if (combined.includes('TANGGAL') || combined.includes('DATE')) {
-            // Lewati field tanggal lahir
         } else if (combined.includes('NAMA') && !combined.includes('TEMPAT') && !inputNama) {
             inputNama = inp;
         }
@@ -580,7 +1200,13 @@ function findStep1Fields() {
         }
     }
 
-    return { inputNama, inputTempat };
+    // Tanggal Lahir di EMIS 4.0 adalah komponen React Native Web, bukan elemen <input> biasa
+    const tglInfo = findTanggalLahirElements();
+    if (tglInfo) {
+        inputTanggal = tglInfo.button || tglInfo.focusable || tglInfo.root;
+    }
+
+    return { inputNama, inputTempat, inputTanggal };
 }
 
 function fillEmisStep1(data) {
@@ -608,7 +1234,7 @@ function fillEmisStep1(data) {
 }
 
 function eksekusiIsiStep1(fields, data) {
-    const { inputNama, inputTempat } = fields;
+    const { inputNama, inputTempat, inputTanggal } = fields;
 
     // 1. Isi NAMA LENGKAP
     if (inputNama) {
@@ -641,7 +1267,47 @@ function eksekusiIsiStep1(fields, data) {
     // 4. Tampilkan floating notification Step 1 (dengan fitur salin NIK, Nama, TTL & draggable)
     showStep1Assistant(data);
 
-    // 5. Simpan state antrean untuk Step 2
+    // 5. Otomatis pilih Tanggal Lahir pada Kalender EMIS (Flicker Calendar Picker)
+    if (data.tanggal_lahir) {
+        const statusEl = document.getElementById('tpq-step1-tgl-status');
+        const descEl = document.getElementById('tpq-step1-tgl-desc');
+        if (statusEl) {
+            statusEl.innerText = '⚡ Memilih...';
+            statusEl.style.background = '#e0f2fe';
+            statusEl.style.color = '#0369a1';
+        }
+        if (descEl) {
+            descEl.innerHTML = '⚡ Sedang memilih tanggal lahir otomatis di kalender EMIS...';
+        }
+
+        setTimeout(() => {
+            autoPickTanggalLahirStep1(data.tanggal_lahir, (success) => {
+                const sEl = document.getElementById('tpq-step1-tgl-status');
+                const dEl = document.getElementById('tpq-step1-tgl-desc');
+                if (success) {
+                    if (sEl) {
+                        sEl.innerText = '✓ Berhasil';
+                        sEl.style.background = '#dcfce7';
+                        sEl.style.color = '#15803d';
+                    }
+                    if (dEl) {
+                        dEl.innerHTML = '<span style="color: #16a34a; font-weight: bold;">✓ Tanggal lahir telah berhasil dipilih di kalender EMIS!</span><br>Silakan klik <strong>SELANJUTNYA</strong>.';
+                    }
+                } else {
+                    if (sEl) {
+                        sEl.innerText = 'Manual';
+                        sEl.style.background = '#fef3c7';
+                        sEl.style.color = '#b45309';
+                    }
+                    if (dEl) {
+                        dEl.innerHTML = 'Pilih tanggal di atas pada kalender EMIS, lalu klik tombol <strong>SELANJUTNYA</strong>.';
+                    }
+                }
+            });
+        }, 300);
+    }
+
+    // 6. Simpan state antrean untuk Step 2
     chrome.storage.local.set({
         pendingSantriData: data,
         waitingForStep2: true
@@ -3128,7 +3794,7 @@ function showStep0StartPopup(data) {
         <div id="tpq-step0-header" style="background: linear-gradient(135deg, #0d6efd, #0b5ed7); color: #fff; padding: 8px 12px; font-weight: bold; font-size: 13px; display: flex; justify-content: space-between; align-items: center; cursor: move; user-select: none;">
             <div style="display: flex; align-items: center; gap: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 195px;" title="${escapeHtml(data.nama_santri)} - ${escapeHtml(tglLahirLabel)}">
                 <span style="font-size: 12px;">⚡ <strong>${escapeHtml(data.nama_santri)}</strong></span>
-                <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 4px; border-radius: 3px; font-weight: normal;">v1.4.5</span>
+                <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 4px; border-radius: 3px; font-weight: normal;">v1.4.9</span>
                 <span style="font-size: 10.5px; background: rgba(255,255,255,0.25); border-radius: 3px; padding: 1px 5px; font-weight: 500;" title="Tanggal Lahir Santri">📅 ${escapeHtml(tglLahirLabel)}</span>
             </div>
             <div style="display: flex; align-items: center; gap: 5px;">
@@ -3432,7 +4098,7 @@ function showStep1Assistant(data) {
         <div id="tpq-step1-header" style="background: linear-gradient(135deg, #0d6efd, #0b5ed7); color: #fff; padding: 8px 12px; font-weight: bold; font-size: 13px; display: flex; justify-content: space-between; align-items: center; cursor: move; user-select: none;">
             <div style="display: flex; align-items: center; gap: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 170px;" title="${escapeHtml(data.nama_santri)}">
                 <span style="font-size: 12px;">⚡ <strong>${escapeHtml(data.nama_santri)}</strong></span>
-                <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 4px; border-radius: 3px; font-weight: normal; margin-left: 2px;">v1.4.5</span>
+                <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 4px; border-radius: 3px; font-weight: normal; margin-left: 2px;">v1.4.9</span>
             </div>
             <div style="display: flex; align-items: center; gap: 5px;">
                 <button id="tpq-btn-quick-copy-tgl-step1" style="background: #198754; color: #fff; border: 1px solid rgba(255,255,255,0.4); border-radius: 4px; padding: 3px 8px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.15);" title="Salin Tanggal Lahir">
@@ -3450,17 +4116,23 @@ function showStep1Assistant(data) {
             <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 8px 10px; font-size: 12px;">
                 <div style="font-size: 11px; font-weight: bold; color: #166534; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
                     <span>📅 TANGGAL LAHIR (PILIH DI EMIS):</span>
-                    <span style="font-size: 9.5px; background: #dcfce7; color: #15803d; padding: 1px 5px; border-radius: 3px; font-weight: bold;">Manual</span>
+                    <span id="tpq-step1-tgl-status" style="font-size: 9.5px; background: #dcfce7; color: #15803d; padding: 1px 5px; border-radius: 3px; font-weight: bold;">⚡ Otomatis</span>
                 </div>
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 3px;">
                     <span style="font-size: 15px; font-weight: bold; color: #15803d;">📅 ${escapeHtml(tglLahirLabel)}</span>
-                    <button id="tpq-btn-copy-tgl-step1" class="tpq-copy-btn" data-val="${escapeHtml(data.tanggal_lahir || '')}" style="
-                        background: #198754; color: #fff; border: none; padding: 3px 8px;
-                        border-radius: 4px; font-size: 11px; font-weight: bold; cursor: pointer;
-                    ">📋 Salin</button>
+                    <div style="display: flex; gap: 4px;">
+                        <button id="tpq-btn-retry-pick-tgl" style="
+                            background: #0d6efd; color: #fff; border: none; padding: 3px 8px;
+                            border-radius: 4px; font-size: 11px; font-weight: bold; cursor: pointer;
+                        " title="Pilihkan otomatis di kalender EMIS">⚡ Pilihkan</button>
+                        <button id="tpq-btn-copy-tgl-step1" class="tpq-copy-btn" data-val="${escapeHtml(data.tanggal_lahir || '')}" style="
+                            background: #198754; color: #fff; border: none; padding: 3px 8px;
+                            border-radius: 4px; font-size: 11px; font-weight: bold; cursor: pointer;
+                        ">📋 Salin</button>
+                    </div>
                 </div>
-                <div style="font-size: 11px; color: #64748b; margin-top: 5px; line-height: 1.35;">
-                    Pilih tanggal di atas pada kalender EMIS, lalu klik tombol <strong>SELANJUTNYA</strong>.
+                <div id="tpq-step1-tgl-desc" style="font-size: 11px; color: #64748b; margin-top: 5px; line-height: 1.35;">
+                    ⚡ Memilih tanggal lahir otomatis pada kalender EMIS...
                 </div>
             </div>
         </div>
@@ -3558,6 +4230,32 @@ function showStep1Assistant(data) {
         });
     }
 
+    // Tombol Pilihkan Kalender Ulang
+    const btnRetryPick = div.querySelector('#tpq-btn-retry-pick-tgl');
+    if (btnRetryPick && data.tanggal_lahir) {
+        btnRetryPick.addEventListener('click', (e) => {
+            e.stopPropagation();
+            btnRetryPick.disabled = true;
+            btnRetryPick.innerText = '⏳ Memproses...';
+            autoPickTanggalLahirStep1(data.tanggal_lahir, (success) => {
+                btnRetryPick.disabled = false;
+                btnRetryPick.innerText = success ? '✓ Selesai' : '⚡ Pilihkan';
+                if (success) {
+                    const sEl = document.getElementById('tpq-step1-tgl-status');
+                    const dEl = document.getElementById('tpq-step1-tgl-desc');
+                    if (sEl) {
+                        sEl.innerText = '✓ Berhasil';
+                        sEl.style.background = '#dcfce7';
+                        sEl.style.color = '#15803d';
+                    }
+                    if (dEl) {
+                        dEl.innerHTML = '<span style="color: #16a34a; font-weight: bold;">✓ Tanggal lahir telah berhasil dipilih di kalender EMIS!</span><br>Silakan klik <strong>SELANJUTNYA</strong>.';
+                    }
+                }
+            });
+        });
+    }
+
     // Close handlers
     document.getElementById('tpq-close-step1-alert').addEventListener('click', () => div.remove());
     const btnCloseBody = document.getElementById('tpq-btn-close-step1-body');
@@ -3639,7 +4337,7 @@ function showStep2Assistant(data, filledAyah = false, filledIbu = false, filledN
         <div id="tpq-step2-header" style="background: linear-gradient(135deg, #0d6efd, #0b5ed7); color: #fff; padding: 8px 12px; font-weight: bold; font-size: 13px; display: flex; justify-content: space-between; align-items: center; cursor: move; user-select: none;">
             <div style="display: flex; align-items: center; gap: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 160px;" title="${escapeHtml(data.nama_santri)}">
                 <span style="font-size: 12px;">⚡ <strong>${escapeHtml(data.nama_santri)}</strong></span>
-                <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 4px; border-radius: 3px; font-weight: normal; margin-left: 2px;">v1.4.5</span>
+                <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 4px; border-radius: 3px; font-weight: normal; margin-left: 2px;">v1.4.9</span>
             </div>
             <div style="display: flex; align-items: center; gap: 5px;">
                 <button id="tpq-btn-quick-selesai-step2" style="background: #198754; color: #fff; border: 1px solid rgba(255,255,255,0.4); border-radius: 4px; padding: 3px 8px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.15);" title="Selesaikan pendaftaran & tandai selesai">
@@ -4825,7 +5523,7 @@ function showUpdateAlamatStep1Popup(data) {
         <div id="tpq-update-step1-header" style="background: linear-gradient(135deg, #0d6efd, #0b5ed7); color: #fff; padding: 8px 12px; font-weight: bold; font-size: 13px; display: flex; justify-content: space-between; align-items: center; cursor: move; user-select: none;">
             <div style="display: flex; align-items: center; gap: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 170px;" title="${escapeHtml(data.nama_santri)}">
                 <span style="font-size: 12px;">⚡ <strong>${escapeHtml(data.nama_santri)}</strong></span>
-                <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 4px; border-radius: 3px; font-weight: normal; margin-left: 2px;">v1.4.5</span>
+                <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 4px; border-radius: 3px; font-weight: normal; margin-left: 2px;">v1.4.9</span>
             </div>
             <div style="display: flex; align-items: center; gap: 5px;">
                 <button id="tpq-btn-mode-step1" style="background: ${currentAutoMode === 'FULL' ? '#059669' : '#d97706'}; color: #fff; border: 1px solid rgba(255,255,255,0.4); border-radius: 4px; padding: 3px 8px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.15);" title="${currentAutoMode === 'FULL' ? 'Mode Full Otomatis aktif (klik untuk ganti ke Semi-Otomatis)' : 'Mode Semi-Otomatis aktif (klik untuk ganti ke Full Otomatis)'}">
@@ -5319,7 +6017,7 @@ function showUpdateSantriStep2Popup(data) {
         <div id="tpq-update-santri-step2-header" style="background: linear-gradient(135deg, #0d6efd, #0b5ed7); color: #fff; padding: 8px 12px; font-weight: bold; font-size: 13px; display: flex; justify-content: space-between; align-items: center; cursor: move; user-select: none;">
             <div style="display: flex; align-items: center; gap: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 150px;" title="${escapeHtml(data.nama_santri)}">
                 <span style="font-size: 12px;">⚡ <strong>${escapeHtml(data.nama_santri)}</strong></span>
-                <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 4px; border-radius: 3px; font-weight: normal; margin-left: 2px;">v1.4.5</span>
+                <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 4px; border-radius: 3px; font-weight: normal; margin-left: 2px;">v1.4.9</span>
             </div>
             <div style="display: flex; align-items: center; gap: 5px;">
                 <button id="tpq-btn-mode-step2" style="background: ${currentAutoMode === 'FULL' ? '#059669' : '#d97706'}; color: #fff; border: 1px solid rgba(255,255,255,0.4); border-radius: 4px; padding: 3px 8px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.15);" title="${currentAutoMode === 'FULL' ? 'Mode Full Otomatis aktif (klik untuk ganti ke Semi-Otomatis)' : 'Mode Semi-Otomatis aktif (klik untuk ganti ke Full Otomatis)'}">
@@ -6103,7 +6801,7 @@ function showUpdateAlamatStep3Popup(data) {
         <div id="tpq-update-step3-header" style="background: linear-gradient(135deg, #0d6efd, #0b5ed7); color: #fff; padding: 8px 12px; font-weight: bold; font-size: 13px; display: flex; justify-content: space-between; align-items: center; cursor: move; user-select: none;">
             <div style="display: flex; align-items: center; gap: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 160px;" title="${escapeHtml(data.nama_santri)}">
                 <span style="font-size: 12px;">⚡ <strong>${escapeHtml(data.nama_santri)}</strong></span>
-                <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 4px; border-radius: 3px; font-weight: normal; margin-left: 2px;">v1.4.5</span>
+                <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 4px; border-radius: 3px; font-weight: normal; margin-left: 2px;">v1.4.9</span>
             </div>
             <div style="display: flex; align-items: center; gap: 5px;">
                 <button id="tpq-btn-mode-step3" style="background: ${currentAutoMode === 'FULL' ? '#059669' : '#d97706'}; color: #fff; border: 1px solid rgba(255,255,255,0.4); border-radius: 4px; padding: 3px 8px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.15);" title="${currentAutoMode === 'FULL' ? 'Mode Full Otomatis aktif (klik untuk ganti ke Semi-Otomatis)' : 'Mode Semi-Otomatis aktif (klik untuk ganti ke Full Otomatis)'}">
