@@ -3840,17 +3840,97 @@ class Santri extends BaseController
     }
 
     /**
-     * Render daftar item Name Plate ke PDF Dompdf ukuran A4 atau F4 (multiple label per halaman).
+     * Ambil parameter ukuran kertas dan ukuran label dari request (GET/POST).
      */
-    private function renderNamePlatePdf(array $items, string $filename, string $paper = 'a4')
+    private function getNamePlatePrintOptions(): array
     {
-        $paperKey = strtolower($paper) === 'folio' ? 'folio' : 'a4';
-        $rowsPerPage = ($paperKey === 'folio') ? 6 : 5;
+        $paper = strtolower((string) ($this->request->getVar('paper') ?? 'a4'));
+        if (!in_array($paper, ['a4', 'folio', 'letter', 'custom'], true)) {
+            $paper = 'a4';
+        }
+
+        $orientation = strtolower((string) ($this->request->getVar('orientation') ?? 'portrait'));
+        if (!in_array($orientation, ['portrait', 'landscape'], true)) {
+            $orientation = 'portrait';
+        }
+
+        $labelWidth = (float) ($this->request->getVar('label_width') ?? 10.0);
+        $labelHeight = (float) ($this->request->getVar('label_height') ?? 4.8);
+        $labelWidth = max(5.0, min(25.0, $labelWidth));
+        $labelHeight = max(3.0, min(15.0, $labelHeight));
+
+        $paperWidth = (float) ($this->request->getVar('paper_width') ?? 21.0);
+        $paperHeight = (float) ($this->request->getVar('paper_height') ?? 29.7);
+        $paperWidth = max(10.0, min(50.0, $paperWidth));
+        $paperHeight = max(10.0, min(50.0, $paperHeight));
+
+        $variant = (int) ($this->request->getVar('variant') ?? 1);
+        if ($variant < 1 || $variant > 5) {
+            $variant = 1;
+        }
+
+        // Hitung rekomendasi foto rasio 3:4 berdasarkan ukuran label
+        $recFotoH = min(5.6, max(1.6, $labelHeight - 0.8), max(1.6, ($labelWidth * 0.36) / 0.75));
+        $recFotoW = $recFotoH * 0.75;
+
+        $fotoWidth = $this->request->getVar('foto_width');
+        $fotoHeight = $this->request->getVar('foto_height');
+        $fotoWidth = ($fotoWidth !== null && $fotoWidth !== '') ? (float) $fotoWidth : round($recFotoW, 2);
+        $fotoHeight = ($fotoHeight !== null && $fotoHeight !== '') ? (float) $fotoHeight : round($recFotoH, 2);
+        $fotoWidth = max(1.2, min($labelWidth * 0.45, $fotoWidth));
+        $fotoHeight = max(1.6, min($labelHeight - 0.4, $fotoHeight));
+
+        return [
+            'paper' => $paper,
+            'orientation' => $orientation,
+            'paper_width' => $paperWidth,
+            'paper_height' => $paperHeight,
+            'label_width' => $labelWidth,
+            'label_height' => $labelHeight,
+            'foto_width' => round($fotoWidth, 2),
+            'foto_height' => round($fotoHeight, 2),
+            'variant' => $variant,
+        ];
+    }
+
+    /**
+     * Render daftar item Name Plate ke PDF Dompdf sesuai ukuran kertas dan label kustom.
+     */
+    private function renderNamePlatePdf(array $items, string $filename, array $printOptions = [])
+    {
+        $paper = $printOptions['paper'] ?? 'a4';
+        $orientation = $printOptions['orientation'] ?? 'portrait';
+        $labelWidth = (float) ($printOptions['label_width'] ?? 10.0);
+        $labelHeight = (float) ($printOptions['label_height'] ?? 4.8);
+
+        $paperSizesCm = [
+            'a4' => [21.0, 29.7],
+            'folio' => [21.5, 33.0],
+            'letter' => [21.59, 27.94],
+            'custom' => [
+                (float) ($printOptions['paper_width'] ?? 21.0),
+                (float) ($printOptions['paper_height'] ?? 29.7),
+            ],
+        ];
+        [$baseW, $baseH] = $paperSizesCm[$paper] ?? $paperSizesCm['a4'];
+        $effectiveW = ($orientation === 'landscape') ? $baseH : $baseW;
+        $effectiveH = ($orientation === 'landscape') ? $baseW : $baseH;
+
+        $printableW = max(1.0, $effectiveW - 0.8);
+        $printableH = max(1.0, $effectiveH - 1.0);
+
+        $colsPerPage = max(1, (int) floor(($printableW + 0.2) / ($labelWidth + 0.2)));
+        $rowsPerPage = max(1, (int) floor(($printableH + 0.25) / ($labelHeight + 0.25)));
 
         $html = view('backend/santri/pdftemplatenameplate', [
             'items' => $items,
-            'paper' => $paperKey,
+            'labelWidth' => $labelWidth,
+            'labelHeight' => $labelHeight,
+            'fotoWidth' => (float) ($printOptions['foto_width'] ?? 3.0),
+            'fotoHeight' => (float) ($printOptions['foto_height'] ?? 4.0),
+            'colsPerPage' => $colsPerPage,
             'rowsPerPage' => $rowsPerPage,
+            'variant' => (int) ($printOptions['variant'] ?? 1),
         ]);
 
         $options = new Options();
@@ -3860,7 +3940,12 @@ class Santri extends BaseController
 
         $dompdf = new Dompdf($options);
         $dompdf->loadHtml($html);
-        $dompdf->setPaper($paperKey, 'portrait');
+        if ($paper === 'custom') {
+            $ptPerCm = 28.3464567;
+            $dompdf->setPaper([0, 0, $baseW * $ptPerCm, $baseH * $ptPerCm], $orientation);
+        } else {
+            $dompdf->setPaper($paper, $orientation);
+        }
         $dompdf->render();
 
         return $this->response
@@ -3950,11 +4035,11 @@ class Santri extends BaseController
                 throw new \Exception('Data santri tidak ditemukan');
             }
 
-            $paper = $this->request->getGet('paper') ?? 'a4';
+            $printOptions = $this->getNamePlatePrintOptions();
             $item = $this->buildNamePlateItem($dataSantri);
             $filename = 'Name_Plate_' . str_replace(' ', '_', $dataSantri['NamaSantri']) . '.pdf';
 
-            return $this->renderNamePlatePdf([$item], $filename, $paper);
+            return $this->renderNamePlatePdf([$item], $filename, $printOptions);
         } catch (\Exception $e) {
             log_message('error', 'Santri: generatePDFNamePlate - Error: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Gagal membuat PDF Name Plate: ' . $e->getMessage());
@@ -3991,10 +4076,10 @@ class Santri extends BaseController
                 return redirect()->back()->with('error', 'Tidak ada data santri yang dapat dicetak');
             }
 
-            $paper = $this->request->getGet('paper') ?? 'a4';
+            $printOptions = $this->getNamePlatePrintOptions();
             $filename = 'Name_Plate_All_' . date('YmdHis') . '.pdf';
 
-            return $this->renderNamePlatePdf($items, $filename, $paper);
+            return $this->renderNamePlatePdf($items, $filename, $printOptions);
         } catch (\Exception $e) {
             log_message('error', 'Santri: generatePDFAllNamePlate - Error: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Gagal membuat PDF Name Plate: ' . $e->getMessage());
@@ -4028,10 +4113,10 @@ class Santri extends BaseController
                 return redirect()->back()->with('error', 'Data santri tidak ditemukan');
             }
 
-            $paper = $this->request->getPost('paper') ?? 'a4';
+            $printOptions = $this->getNamePlatePrintOptions();
             $filename = 'Name_Plate_Terpilih_' . date('YmdHis') . '.pdf';
 
-            return $this->renderNamePlatePdf($items, $filename, $paper);
+            return $this->renderNamePlatePdf($items, $filename, $printOptions);
         } catch (\Exception $e) {
             log_message('error', 'Santri: generatePDFSelectedNamePlate - Error: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Gagal membuat PDF Name Plate: ' . $e->getMessage());
