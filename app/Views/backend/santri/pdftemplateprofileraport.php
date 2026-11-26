@@ -280,8 +280,8 @@
                             <td>: <?= htmlspecialchars($d['printNamaSantri']); ?></td>
                         </tr>
                         <tr>
-                            <td class="k">NIK</td>
-                            <td>: <?= htmlspecialchars($d['printNikSantri']); ?></td>
+                            <td class="k">ID Santri / NIK</td>
+                            <td>: <?= htmlspecialchars(($d['printIdSantri'] ?? '-') . ' / ' . ($d['printNikSantri'] ?? '-')); ?></td>
                         </tr>
                         <tr>
                             <td class="k">Jenis Kelamin</td>

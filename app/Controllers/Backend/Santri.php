@@ -3086,6 +3086,7 @@ class Santri extends BaseController
                 'printNamaKelas' => $printNamaKelas,  // Menggunakan NamaKelas yang sudah dikonversi
                 //data santri
                 'printNamaSantri' => $dataSantri['NamaSantri'],
+                'printIdSantri' => $dataSantri['IdSantri'],
                 'printNikSantri' => $dataSantri['NikSantri'],
                 'printTempatTTL' => $dataSantri['TempatLahirSantri'] . ', ' . $dataSantri['TanggalLahirSantri'],
                 'printJenisKelamin' => $dataSantri['JenisKelamin'],
@@ -3245,6 +3246,7 @@ class Santri extends BaseController
                 'printNamaTpq' => $namaLembaga,
                 'printNamaKelas' => $printNamaKelas,
                 'printNamaSantri' => $dataSantri['NamaSantri'],
+                'printIdSantri' => $dataSantri['IdSantri'],
                 'printNikSantri' => $dataSantri['NikSantri'],
                 'printTempatTTL' => $dataSantri['TempatLahirSantri'] . ', ' . formatTanggalIndonesia($dataSantri['TanggalLahirSantri'], 'd F Y'),
                 'printJenisKelamin' => $dataSantri['JenisKelamin'],
@@ -3507,6 +3509,7 @@ class Santri extends BaseController
                 'printNamaTpq' => $namaLembaga,
                 'printNamaKelas' => $printNamaKelas,
                 'printNamaSantri' => $firstDataSantri['NamaSantri'],
+                'printIdSantri' => $firstDataSantri['IdSantri'],
                 'printNikSantri' => $firstDataSantri['NikSantri'],
                 'printTempatTTL' => $firstDataSantri['TempatLahirSantri'] . ', ' . formatTanggalIndonesia($firstDataSantri['TanggalLahirSantri'], 'd F Y'),
                 'printJenisKelamin' => $firstDataSantri['JenisKelamin'],
@@ -3621,6 +3624,7 @@ class Santri extends BaseController
                     'printNamaTpq' => $namaLembaga,
                     'printNamaKelas' => $printNamaKelas,
                     'printNamaSantri' => $dataSantri['NamaSantri'],
+                    'printIdSantri' => $dataSantri['IdSantri'],
                     'printNikSantri' => $dataSantri['NikSantri'],
                     'printTempatTTL' => $dataSantri['TempatLahirSantri'] . ', ' . formatTanggalIndonesia($dataSantri['TanggalLahirSantri'], 'd F Y'),
                     'printJenisKelamin' => $dataSantri['JenisKelamin'],
