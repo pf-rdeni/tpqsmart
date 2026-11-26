@@ -1908,21 +1908,41 @@ class Absensi extends BaseController
     public function linkIndex()
     {
         $linkModel = new AbsensiSantriLinkModel();
+        $helpFunctionModel = new HelpFunctionModel();
         $idTpq = session()->get('IdTpq'); // Filter for Operator/Guru
-        
+        $tahunAjaranSaatIni = $helpFunctionModel->getTahunAjaranSaatIni();
+
         // Build Query
         $builder = $linkModel->builder();
         $builder->select('tbl_absensi_santri_link.*, tbl_tpq.NamaTpq, tbl_tpq.KelurahanDesa');
         $builder->join('tbl_tpq', 'tbl_tpq.IdTpq = tbl_absensi_santri_link.IdTpq', 'left');
-        
+
         if (!empty($idTpq)) {
             $builder->where('tbl_absensi_santri_link.IdTpq', $idTpq);
         }
-        
-        $data['links'] = $builder->get()->getResultArray();
+
+        $builder->orderBy('tbl_absensi_santri_link.IdTahunAjaran', 'DESC');
+        $builder->orderBy('tbl_absensi_santri_link.CreatedAt', 'DESC');
+
+        $allLinks = $builder->get()->getResultArray();
+        $activeLinks = [];
+        $archiveLinks = [];
+
+        foreach ($allLinks as $row) {
+            if ((int) ($row['IdTahunAjaran'] ?? 0) < (int) $tahunAjaranSaatIni) {
+                $archiveLinks[] = $row;
+            } else {
+                $activeLinks[] = $row;
+            }
+        }
+
+        $data['links'] = $allLinks;
+        $data['activeLinks'] = $activeLinks;
+        $data['archiveLinks'] = $archiveLinks;
+        $data['tahunAjaranSaatIni'] = $tahunAjaranSaatIni;
         $data['page_title'] = 'Manajemen Link Absensi Public';
         $data['isAdmin'] = empty($idTpq); // Admin if no IdTpq in session
-        
+
         // Use renamed view
         return view('backend/absensi/linkIndex', $data);
     }
