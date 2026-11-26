@@ -323,7 +323,7 @@
                                         </div>
                                         <div class="info-row">
                                             <div class="info-label">Tahun Ajaran</div>
-                                            <div class="info-value"><strong><?= convertTahunAjaran(esc($kelas['IdTahunAjaran'])) ?></strong></div>
+                                            <div class="info-value"><strong><?= convertTahunAjaran(esc($signature['IdTahunAjaran'] ?? $kelas['IdTahunAjaran'])) ?></strong></div>
                                         </div>
                                         <div class="info-row">
                                             <div class="info-label">Semester</div>
