@@ -406,6 +406,12 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->get('santri/generatePDFAllProfilSantri', 'Santri::generatePDFAllProfilSantri');
     $routes->post('santri/ttdBulkKepsekProfil', 'Santri::ttdBulkKepsekProfil');
     $routes->post('santri/cancelBulkKepsekProfil', 'Santri::cancelBulkKepsekProfil');
+
+    // Name Plate Santri
+    $routes->get('santri/showNamePlate', 'Santri::showNamePlate');
+    $routes->get('santri/generatePDFNamePlate/(:segment)', 'Santri::generatePDFNamePlate/$1');
+    $routes->get('santri/generatePDFAllNamePlate', 'Santri::generatePDFAllNamePlate');
+    $routes->post('santri/generatePDFSelectedNamePlate', 'Santri::generatePDFSelectedNamePlate');
     $routes->get('santri/verifikasiDataSantri', 'Santri::verifikasiDataSantri');
     $routes->get('santri/perbandinganDataSantri/(:segment)', 'Santri::perbandinganDataSantri/$1');
     $routes->post('santri/processVerifikasi', 'Santri::processVerifikasi');

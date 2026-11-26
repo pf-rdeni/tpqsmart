@@ -3698,6 +3698,346 @@ class Santri extends BaseController
         }
     }
 
+    /**
+     * Resolve filter TPQ, Kelas, dan role untuk halaman Profil & Name Plate Santri.
+     */
+    private function resolveProfilSantriFilter(): array
+    {
+        $filterIdTpq = $this->request->getGet('filterIdTpq');
+        $filterIdKelas = $this->request->getGet('filterIdKelas');
+
+        $sessionIdTpq = session()->get('IdTpq');
+        $sessionIdKelas = session()->get('IdKelas');
+        $IdTahunAjaran = session()->get('IdTahunAjaran');
+        $activeRole = session()->get('active_role');
+
+        $hasAdminGroup = in_groups('Admin');
+        $hasOperatorGroup = in_groups('Operator') || in_groups('Sekretaris');
+        $hasGuruGroup = in_groups('Guru');
+        $hasKepalaTpqGroup = in_groups('Kepala TPQ');
+
+        $isUsingGuruRole = in_array($activeRole, ['guru', 'wali_kelas']);
+        $isUsingAdminRole = ($activeRole === 'admin' && $hasAdminGroup);
+        $isUsingOperatorRole = ($activeRole === 'operator' && $hasOperatorGroup);
+        $isUsingKepalaTpqRole = ($activeRole === 'kepala_tpq' && $hasKepalaTpqGroup);
+
+        if (empty($activeRole) || (!in_array($activeRole, ['admin', 'operator', 'kepala_tpq', 'guru', 'wali_kelas']))) {
+            if ($hasGuruGroup) {
+                $isUsingGuruRole = true;
+            } elseif ($hasAdminGroup) {
+                $isUsingAdminRole = true;
+            } elseif ($hasOperatorGroup) {
+                $isUsingOperatorRole = true;
+            } elseif ($hasKepalaTpqGroup) {
+                $isUsingKepalaTpqRole = true;
+            }
+        }
+
+        $IdTpq = $isUsingAdminRole ? ($filterIdTpq ?: $sessionIdTpq) : $sessionIdTpq;
+        $IdKelas = null;
+        $idKelasArray = null;
+
+        if ($isUsingOperatorRole && $IdTpq !== null) {
+            $idKelasArray = $this->kelasModel->getAllKelasAktifByTpq($IdTpq, $IdTahunAjaran);
+
+            if ($filterIdKelas && $filterIdKelas !== '') {
+                if (is_string($filterIdKelas) && strpos($filterIdKelas, ',') !== false) {
+                    $filterArray = array_filter(explode(',', $filterIdKelas));
+                    $IdKelas = array_intersect($filterArray, $idKelasArray);
+                } elseif (in_array($filterIdKelas, $idKelasArray)) {
+                    $IdKelas = $filterIdKelas;
+                }
+            }
+        } else {
+            if ($filterIdKelas && $filterIdKelas !== '') {
+                $IdKelas = (is_string($filterIdKelas) && strpos($filterIdKelas, ',') !== false)
+                    ? array_filter(explode(',', $filterIdKelas))
+                    : $filterIdKelas;
+            } else {
+                $IdKelas = $sessionIdKelas;
+            }
+        }
+
+        if ($IdKelas !== null) {
+            $idKelasArray = null;
+        }
+
+        return [
+            'IdTpq' => $IdTpq,
+            'IdKelas' => $IdKelas,
+            'idKelasArray' => $idKelasArray,
+            'IdTahunAjaran' => $IdTahunAjaran,
+            'sessionIdKelas' => $sessionIdKelas,
+            'isAdmin' => $isUsingAdminRole,
+            'isOperator' => $isUsingOperatorRole,
+            'isGuru' => $isUsingGuruRole,
+            'isKepalaTpq' => $isUsingKepalaTpqRole,
+        ];
+    }
+
+    /**
+     * Siapkan satu item data Name Plate santri beserta foto base64 dan nama lembaga (TPQ/MDA).
+     */
+    private function buildNamePlateItem(array $dataSantri): array
+    {
+        $idTpq = $dataSantri['IdTpq'] ?? null;
+        $namaKelasSantri = $dataSantri['NamaKelas'] ?? '';
+
+        $mdaCheckResult = $this->helpFunction->checkMdaKelasMapping($idTpq, $namaKelasSantri);
+        $useMdaData = $mdaCheckResult['useMdaData'];
+        $mdaRow = null;
+
+        if ($useMdaData) {
+            $mdaData = $this->mdaModel->GetData($idTpq);
+            if (!empty($mdaData) && !empty($mdaData[0])) {
+                $mdaRow = $mdaData[0];
+            } else {
+                $useMdaData = false;
+            }
+        }
+
+        $namaLembaga = ($useMdaData && $mdaRow)
+            ? ($mdaRow['NamaTpq'] ?? ($dataSantri['NamaTpq'] ?? ''))
+            : ($dataSantri['NamaTpq'] ?? '');
+
+        $fotoBase64 = null;
+        if (!empty($dataSantri['PhotoProfil'])) {
+            $uploadPath = (ENVIRONMENT === 'production')
+                ? '/home/u1525344/public_html/tpqsmart/uploads/santri/'
+                : ROOTPATH . 'public/uploads/santri/';
+            $fotoPath = $uploadPath . $dataSantri['PhotoProfil'];
+            if (file_exists($fotoPath)) {
+                $fotoData = file_get_contents($fotoPath);
+                if ($fotoData !== false) {
+                    $ext = strtolower(pathinfo($fotoPath, PATHINFO_EXTENSION));
+                    $mime = ($ext === 'png') ? 'image/png' : 'image/jpeg';
+                    $fotoBase64 = 'data:' . $mime . ';base64,' . base64_encode($fotoData);
+                }
+            }
+        }
+
+        $orangTuaParts = array_filter([
+            trim((string) ($dataSantri['NamaAyah'] ?? '')),
+            trim((string) ($dataSantri['NamaIbu'] ?? '')),
+        ], static fn($v) => $v !== '' && $v !== '-');
+
+        $noHpParts = array_filter([
+            trim((string) ($dataSantri['NoHpSantri'] ?? '')),
+            trim((string) ($dataSantri['NoHpAyah'] ?? '')),
+            trim((string) ($dataSantri['NoHpIbu'] ?? '')),
+        ], static fn($v) => $v !== '' && $v !== '-');
+        $noHpParts = array_values(array_unique($noHpParts));
+
+        return [
+            'idSantri' => $dataSantri['IdSantri'] ?? '-',
+            'namaSantri' => $dataSantri['NamaSantri'] ?? '-',
+            'namaLembaga' => $namaLembaga ?: '-',
+            'alamat' => $dataSantri['AlamatSantri'] ?? '-',
+            'orangTua' => !empty($orangTuaParts) ? implode(' | ', $orangTuaParts) : '-',
+            'noHp' => !empty($noHpParts) ? implode(' | ', $noHpParts) : '-',
+            'fotoBase64' => $fotoBase64,
+        ];
+    }
+
+    /**
+     * Render daftar item Name Plate ke PDF Dompdf ukuran A4 atau F4 (multiple label per halaman).
+     */
+    private function renderNamePlatePdf(array $items, string $filename, string $paper = 'a4')
+    {
+        $paperKey = strtolower($paper) === 'folio' ? 'folio' : 'a4';
+        $rowsPerPage = ($paperKey === 'folio') ? 6 : 5;
+
+        $html = view('backend/santri/pdftemplatenameplate', [
+            'items' => $items,
+            'paper' => $paperKey,
+            'rowsPerPage' => $rowsPerPage,
+        ]);
+
+        $options = new Options();
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isRemoteEnabled', true);
+        $options->set('isPhpEnabled', true);
+
+        $dompdf = new Dompdf($options);
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper($paperKey, 'portrait');
+        $dompdf->render();
+
+        return $this->response
+            ->setHeader('Content-Type', 'application/pdf')
+            ->setHeader('Content-Disposition', 'inline; filename="' . $filename . '"')
+            ->setBody($dompdf->output());
+    }
+
+    /**
+     * Halaman daftar santri untuk Cetak Name Plate (label depan raport 10 x 4.8 cm).
+     */
+    public function showNamePlate()
+    {
+        helper('nilai');
+        $filter = $this->resolveProfilSantriFilter();
+        $IdTpq = $filter['IdTpq'];
+        $IdKelas = $filter['IdKelas'];
+        $idKelasArray = $filter['idKelasArray'];
+        $IdTahunAjaran = $filter['IdTahunAjaran'];
+
+        $santri = $this->DataSantriBaru->getProfilSantri($IdTpq, $IdKelas, $idKelasArray, $IdTahunAjaran);
+
+        if (!empty($santri) && !empty($IdTpq)) {
+            foreach ($santri as $key => $santriItem) {
+                if (!empty($santriItem['NamaKelas'])) {
+                    $namaKelasOriginal = $santriItem['NamaKelas'];
+                    $mdaCheckResult = $this->helpFunction->checkMdaKelasMapping($IdTpq, $namaKelasOriginal);
+                    $santri[$key]['NamaKelas'] = $this->helpFunction->convertKelasToMda(
+                        $namaKelasOriginal,
+                        $mdaCheckResult['mappedMdaKelas']
+                    );
+                }
+            }
+        }
+
+        $santriPerKelas = [];
+        $listIdKelas = [];
+        if (!empty($santri)) {
+            foreach ($santri as $santriItem) {
+                $idKelasSantri = $santriItem['IdKelas'] ?? null;
+                if ($idKelasSantri) {
+                    if (!isset($santriPerKelas[$idKelasSantri])) {
+                        $santriPerKelas[$idKelasSantri] = [];
+                        $listIdKelas[] = $idKelasSantri;
+                    }
+                    $santriPerKelas[$idKelasSantri][] = $santriItem;
+                }
+            }
+        }
+
+        $IdGuru = session()->get('IdGuru');
+        $guruIdForKelas = ($filter['isOperator'] && empty($IdGuru)) ? null : $IdGuru;
+        $dataKelasObject = [];
+        if (!empty($listIdKelas)) {
+            $dataKelasObject = $this->helpFunction->getListKelas($IdTpq, $IdTahunAjaran, $listIdKelas, $guruIdForKelas, $filter['isOperator']);
+            foreach ($dataKelasObject as $kelas) {
+                $namaKelasOriginal = $kelas->NamaKelas;
+                $mdaCheckResult = $this->helpFunction->checkMdaKelasMapping($IdTpq, $namaKelasOriginal);
+                $kelas->NamaKelas = $this->helpFunction->convertKelasToMda(
+                    $namaKelasOriginal,
+                    $mdaCheckResult['mappedMdaKelas']
+                );
+            }
+        }
+
+        return view('backend/santri/listDataNamePlate', [
+            'page_title' => 'Cetak Name Plate Santri',
+            'dataSantri' => $santri,
+            'dataKelasObject' => $dataKelasObject,
+            'santriPerKelas' => $santriPerKelas,
+            'currentIdTpq' => $IdTpq,
+        ]);
+    }
+
+    /**
+     * Generate PDF Name Plate untuk satu santri.
+     */
+    public function generatePDFNamePlate($IdSantri = null)
+    {
+        try {
+            if (!$IdSantri) {
+                throw new \Exception('ID Santri tidak ditemukan');
+            }
+
+            $dataSantri = $this->getDataSantri($IdSantri);
+            if (empty($dataSantri)) {
+                throw new \Exception('Data santri tidak ditemukan');
+            }
+
+            $paper = $this->request->getGet('paper') ?? 'a4';
+            $item = $this->buildNamePlateItem($dataSantri);
+            $filename = 'Name_Plate_' . str_replace(' ', '_', $dataSantri['NamaSantri']) . '.pdf';
+
+            return $this->renderNamePlatePdf([$item], $filename, $paper);
+        } catch (\Exception $e) {
+            log_message('error', 'Santri: generatePDFNamePlate - Error: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal membuat PDF Name Plate: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Generate PDF Name Plate untuk semua santri berdasarkan filter kelas/TPQ.
+     */
+    public function generatePDFAllNamePlate()
+    {
+        try {
+            $filter = $this->resolveProfilSantriFilter();
+            $santriList = $this->DataSantriBaru->getProfilSantri(
+                $filter['IdTpq'],
+                $filter['IdKelas'],
+                $filter['idKelasArray'],
+                $filter['IdTahunAjaran']
+            );
+
+            if (empty($santriList)) {
+                return redirect()->back()->with('error', 'Tidak ada data santri yang ditemukan');
+            }
+
+            $items = [];
+            foreach ($santriList as $santriItem) {
+                $dataSantri = $this->getDataSantri($santriItem['IdSantri']);
+                if (!empty($dataSantri)) {
+                    $items[] = $this->buildNamePlateItem($dataSantri);
+                }
+            }
+
+            if (empty($items)) {
+                return redirect()->back()->with('error', 'Tidak ada data santri yang dapat dicetak');
+            }
+
+            $paper = $this->request->getGet('paper') ?? 'a4';
+            $filename = 'Name_Plate_All_' . date('YmdHis') . '.pdf';
+
+            return $this->renderNamePlatePdf($items, $filename, $paper);
+        } catch (\Exception $e) {
+            log_message('error', 'Santri: generatePDFAllNamePlate - Error: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal membuat PDF Name Plate: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Generate PDF Name Plate untuk santri terpilih (multi-select).
+     */
+    public function generatePDFSelectedNamePlate()
+    {
+        try {
+            $santriIds = $this->request->getPost('santri_ids');
+            if (is_string($santriIds)) {
+                $santriIds = array_filter(array_map('trim', explode(',', $santriIds)));
+            }
+
+            if (empty($santriIds) || !is_array($santriIds)) {
+                return redirect()->back()->with('error', 'Pilih minimal satu santri untuk dicetak');
+            }
+
+            $items = [];
+            foreach ($santriIds as $idSantri) {
+                $dataSantri = $this->getDataSantri($idSantri);
+                if (!empty($dataSantri)) {
+                    $items[] = $this->buildNamePlateItem($dataSantri);
+                }
+            }
+
+            if (empty($items)) {
+                return redirect()->back()->with('error', 'Data santri tidak ditemukan');
+            }
+
+            $paper = $this->request->getPost('paper') ?? 'a4';
+            $filename = 'Name_Plate_Terpilih_' . date('YmdHis') . '.pdf';
+
+            return $this->renderNamePlatePdf($items, $filename, $paper);
+        } catch (\Exception $e) {
+            log_message('error', 'Santri: generatePDFSelectedNamePlate - Error: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal membuat PDF Name Plate: ' . $e->getMessage());
+        }
+    }
+
     // fungsi baru untuk showSuccessEmisStep
     public function showSuccessEmisStep($IdSantri = null)
     {

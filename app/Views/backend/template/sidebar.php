@@ -880,12 +880,6 @@
                             </li>
                             <?php endif; ?>
                             <li class="nav-item">
-                                <a href=<?php echo base_url('backend/santri/showProfilSantri') ?> class="nav-link">
-                                    <i class="fas fa-address-card nav-icon text-warning"></i>
-                                    <p>Profil Santri</p>
-                                </a>
-                            </li>
-                            <li class="nav-item">
                                 <a href=<?php echo base_url('backend/santri/showAturSantriBaru') ?> class="nav-link">
                                     <i class="fas fa-user-edit nav-icon text-warning"></i>
                                     <p>Ubah Santri</p>
@@ -1013,6 +1007,18 @@
                                         </a>
                                     </li>
                                 </ul>
+                            </li>
+                            <li class="nav-item">
+                                <a href=<?php echo base_url('backend/santri/showProfilSantri') ?> class="nav-link">
+                                    <i class="fas fa-address-card nav-icon text-warning"></i>
+                                    <p>Cetak Profil</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href=<?php echo base_url('backend/santri/showNamePlate') ?> class="nav-link">
+                                    <i class="fas fa-id-badge nav-icon text-warning"></i>
+                                    <p>Cetak Name Plate</p>
+                                </a>
                             </li>
                             <li class="nav-item">
                                 <a href="#" class="nav-link no-hover">
