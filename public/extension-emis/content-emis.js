@@ -1023,19 +1023,26 @@ function findModalYearHeader(modal) {
 }
 
 /**
- * Memilih tahun target dari daftar tahun (Gambar 3)
+ * Memilih tahun target dari daftar tahun (Gambar 3) dan memverifikasi header tahun berubah ke target
  */
 function selectYearFromList(modal, targetYearStr, onYearSelected) {
     let attempts = 0;
-    const maxAttempts = 30; // 3 detik
+    const maxAttempts = 35; // 3.5 detik
+    const modalRect = modal.getBoundingClientRect();
 
     const yearTimer = setInterval(() => {
         attempts++;
 
-        // Cari elemen dengan teks tahun persis di dalam modal
+        // Cari elemen dengan teks tahun persis yang visible & berada di daftar tahun (bukan header atas)
         const allYearEls = Array.from(modal.querySelectorAll('button, div, li, span, p')).filter(el => {
             if (el.children.length > 0) return false;
-            return (el.innerText || el.textContent || '').trim() === targetYearStr;
+            const txt = (el.innerText || el.textContent || '').trim();
+            if (txt !== targetYearStr) return false;
+            const rect = el.getBoundingClientRect();
+            if (rect.width <= 0 || rect.height <= 0) return false;
+            // Pastikan berada di body daftar tahun (di bawah area header banner)
+            if (rect.top - modalRect.top < modalRect.height * 0.18) return false;
+            return true;
         });
 
         if (allYearEls.length > 0) {
@@ -1050,27 +1057,62 @@ function selectYearFromList(modal, targetYearStr, onYearSelected) {
             }
 
             setTimeout(() => {
-                invokeReactHandlers(targetEl);
-                triggerNativeClick(targetEl);
-                try { targetEl.click(); } catch (_) {}
-                console.log(`[TPQ-EMIS Bridge] [Otomasi Kalender] ✓ Tahun ${targetYearStr} berhasil diklik.`);
-                if (typeof onYearSelected === 'function') onYearSelected(true);
-            }, 120);
+                // Gunakan 1x klik bersih agar Material-UI tidak memicu double/triple select
+                try {
+                    targetEl.click();
+                } catch (_) {
+                    targetEl.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+                }
+                console.log(`[TPQ-EMIS Bridge] [Otomasi Kalender] Tahun ${targetYearStr} diklik, memverifikasi header tahun...`);
+
+                // Tunggu & verifikasi hingga daftar tahun menutup dan header tahun benar-benar = targetYearStr
+                let verifyAttempts = 0;
+                const verifyTimer = setInterval(() => {
+                    verifyAttempts++;
+                    const hdr = findModalYearHeader(modal);
+                    const hdrTxt = hdr ? (hdr.innerText || hdr.textContent || '').trim() : '';
+                    const nav = getMonthNavigation(modal);
+                    const calendarVisible = !!(nav && nav.displayedMonth !== null);
+
+                    if (hdrTxt === targetYearStr && calendarVisible) {
+                        clearInterval(verifyTimer);
+                        console.log(`[TPQ-EMIS Bridge] [Otomasi Kalender] ✓ Terverifikasi header tahun = ${hdrTxt} & kalender bulan aktif.`);
+                        if (typeof onYearSelected === 'function') onYearSelected(true);
+                        return;
+                    }
+
+                    if (verifyAttempts >= 15) { // ~1.5 detik
+                        clearInterval(verifyTimer);
+                        console.warn(`[TPQ-EMIS Bridge] [Otomasi Kalender] Verifikasi tahun gagal! Header saat ini: "${hdrTxt}", target: "${targetYearStr}", calendarVisible: ${calendarVisible}`);
+                        if (typeof onYearSelected === 'function') onYearSelected(false);
+                    }
+                }, 100);
+            }, 150);
             return;
         }
 
-        // Jika belum ada di viewport DOM (misal virtualized list), cari container scroll
+        // Jika belum ada di viewport DOM (virtualized list), scroll terarah berdasarkan tahun yang terlihat
         const scrollContainers = Array.from(modal.querySelectorAll('div, ul')).filter(c => {
             return c.scrollHeight > c.clientHeight + 40;
         });
         if (scrollContainers.length > 0) {
             const sc = scrollContainers[0];
-            const curYear = new Date().getFullYear();
             const targetNum = parseInt(targetYearStr, 10);
-            if (targetNum < curYear) {
-                sc.scrollTop -= 150;
+            const visibleYears = Array.from(sc.querySelectorAll('button, div, li, span, p'))
+                .map(el => parseInt((el.innerText || el.textContent || '').trim(), 10))
+                .filter(n => !isNaN(n) && n >= 1900 && n <= 2100);
+
+            if (visibleYears.length > 0) {
+                const minVis = Math.min(...visibleYears);
+                const maxVis = Math.max(...visibleYears);
+                if (targetNum < minVis) {
+                    sc.scrollTop = Math.max(0, sc.scrollTop - 180);
+                } else if (targetNum > maxVis) {
+                    sc.scrollTop = Math.min(sc.scrollHeight, sc.scrollTop + 180);
+                }
             } else {
-                sc.scrollTop += 150;
+                const curYear = new Date().getFullYear();
+                sc.scrollTop += (targetNum < curYear ? -150 : 150);
             }
         }
 
@@ -1267,9 +1309,9 @@ function selectTargetDay(modal, targetDayNum, onDaySelected) {
 }
 
 /**
- * Menekan tombol "OK" pada footer modal kalender
+ * Menekan tombol "OK" pada footer modal kalender dan memverifikasi tahun yang tersimpan di input
  */
-function clickModalOkButton(modal, getElementsFn, onDone) {
+function clickModalOkButton(modal, getElementsFn, expectedYearStr, onDone) {
     const btns = Array.from(modal.querySelectorAll('button, [role="button"], div[role="button"], a')).filter(b => {
         const txt = (b.innerText || b.textContent || b.value || '').trim().toUpperCase();
         return txt === 'OK';
@@ -1283,15 +1325,31 @@ function clickModalOkButton(modal, getElementsFn, onDone) {
         try { okBtn.click(); } catch (_) {}
     } else {
         console.warn('[TPQ-EMIS Bridge] [Otomasi Kalender] Tombol OK tidak ditemukan di footer.');
+        if (typeof onDone === 'function') onDone(false);
+        return;
     }
 
     setTimeout(() => {
         const tglInfo = typeof getElementsFn === 'function' ? getElementsFn() : findTanggalLahirElements();
-        const displayVal = tglInfo?.root ? (tglInfo.root.innerText || tglInfo.root.textContent || '') : '';
-        console.log('[TPQ-EMIS Bridge] [Otomasi Kalender] Nilai form setelah tombol OK:', displayVal.trim());
+        const inputVal = tglInfo?.input ? (tglInfo.input.value || '') : '';
+        const focusVal = tglInfo?.focusable ? (tglInfo.focusable.value || '') : '';
+        const rootText = tglInfo?.root ? (tglInfo.root.innerText || tglInfo.root.textContent || '') : '';
+        const combinedVal = `${inputVal} ${focusVal} ${rootText}`.trim();
+
+        console.log('[TPQ-EMIS Bridge] [Otomasi Kalender] Nilai form setelah tombol OK:', combinedVal);
+
+        // Verifikasi ketat: tahun yang tersimpan harus cocok dengan expectedYearStr (cegah tahun nyasar misal 1900)
+        if (expectedYearStr) {
+            const yearMatches = combinedVal.match(/\b(19|20)\d{2}\b/g) || [];
+            if (!yearMatches.includes(String(expectedYearStr))) {
+                console.error(`[TPQ-EMIS Bridge] [Otomasi Kalender] ✗ Tahun hasil input (${yearMatches.join(', ') || 'kosong'}) tidak sesuai target ${expectedYearStr}!`);
+                if (typeof onDone === 'function') onDone(false);
+                return;
+            }
+        }
 
         if (typeof onDone === 'function') onDone(true);
-    }, 300);
+    }, 350);
 }
 
 /**
@@ -1339,23 +1397,43 @@ function autoPickDateFromCalendar(triggerOpenerFn, getElementsFn, tanggalStr, fi
                     try { yearHeader.click(); } catch (_) {}
 
                     setTimeout(() => {
-                        selectYearFromList(modal, String(targetYear), () => {
+                        selectYearFromList(modal, String(targetYear), (yearOk) => {
+                            if (!yearOk) {
+                                console.error(`[TPQ-EMIS Bridge] [Otomasi Kalender] Pemilihan tahun ${targetYear} gagal diverifikasi. Membatalkan agar tidak tersimpan tahun salah (misal 1900).`);
+                                if (typeof callback === 'function') callback(false);
+                                return;
+                            }
                             setTimeout(() => {
-                                navigateToTargetMonth(modal, targetMonth, () => {
+                                navigateToTargetMonth(modal, targetMonth, (monthOk) => {
+                                    if (!monthOk) {
+                                        console.warn(`[TPQ-EMIS Bridge] [Otomasi Kalender] Pemilihan bulan ${NAMA_BULAN_INDO[targetMonth]} gagal.`);
+                                        if (typeof callback === 'function') callback(false);
+                                        return;
+                                    }
                                     setTimeout(() => {
-                                        selectTargetDay(modal, targetDay, () => {
+                                        selectTargetDay(modal, targetDay, (dayOk) => {
+                                            if (!dayOk) {
+                                                console.warn(`[TPQ-EMIS Bridge] [Otomasi Kalender] Pemilihan tanggal ${targetDay} gagal.`);
+                                                if (typeof callback === 'function') callback(false);
+                                                return;
+                                            }
                                             setTimeout(() => {
-                                                clickModalOkButton(modal, getElementsFn, () => {
+                                                clickModalOkButton(modal, getElementsFn, String(targetYear), (okVerified) => {
+                                                    if (!okVerified) {
+                                                        console.error(`[TPQ-EMIS Bridge] [Otomasi Kalender] ✗ Verifikasi akhir ${fieldLabel} gagal! Target tahun: ${targetYear}`);
+                                                        if (typeof callback === 'function') callback(false);
+                                                        return;
+                                                    }
                                                     console.log(`%c[TPQ-EMIS Bridge] [Otomasi Kalender] ✓ Selesai ${fieldLabel}! Target: ${tanggalStr}`, 'background: #16a34a; color: #fff; font-weight: bold; padding: 2px 6px;');
                                                     if (typeof callback === 'function') callback(true);
                                                 });
                                             }, 200);
                                         });
-                                    }, 200);
+                                    }, 250);
                                 });
-                            }, 400);
+                            }, 450);
                         });
-                    }, 200);
+                    }, 300);
                 } else {
                     console.warn(`[TPQ-EMIS Bridge] [Otomasi Kalender] Header tahun (${fieldLabel}) tidak ditemukan.`);
                     if (typeof callback === 'function') callback(false);
