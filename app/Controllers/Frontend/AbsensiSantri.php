@@ -257,7 +257,7 @@ class AbsensiSantri extends BaseController
             }
         }
         
-        $periodeDipilih = $this->request->getGet('periode') ?: 'bulan';
+        $periodeDipilih = $this->request->getGet('periode') ?: 'semester';
         $tanggalBelumAbsenInfo = $this->absensiModel->getTanggalBelumAbsenPerKelasPeriode($IdTpq, $periodeDipilih, $tanggal, $IdTahunAjaran);
 
         // Hitung statistik kehadiran santri pada tanggal & kelas yang dipilih
@@ -513,7 +513,7 @@ class AbsensiSantri extends BaseController
             $IdTpq = $this->request->getGet('IdTpq');
             $IdTahunAjaran = $this->request->getGet('IdTahunAjaran');
             $tanggal = $this->request->getGet('tanggal') ?: date('Y-m-d');
-            $periode = $this->request->getGet('periode') ?: 'bulan';
+            $periode = $this->request->getGet('periode') ?: 'semester';
 
             $info = $this->absensiModel->getTanggalBelumAbsenPerKelasPeriode($IdTpq, $periode, $tanggal, $IdTahunAjaran);
 

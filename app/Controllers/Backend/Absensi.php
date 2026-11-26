@@ -244,7 +244,7 @@ class Absensi extends BaseController
         }
 
         // Ambil info tanggal aktif TPQ yang belum diabsen per kelas berdasarkan periode (Konsep Opsi B)
-        $periodeDipilih = $this->request->getGet('periode') ?: 'bulan';
+        $periodeDipilih = $this->request->getGet('periode') ?: 'semester';
         $tanggalBelumAbsenInfo = $absensiModel->getTanggalBelumAbsenPerKelasPeriode($IdTpq, $periodeDipilih, $tanggal, $IdTahunAjaran);
 
         // Data yang akan dikirim ke view
@@ -1220,7 +1220,7 @@ class Absensi extends BaseController
 
         $IdTpq = session()->get('IdTpq');
         $IdTahunAjaran = session()->get('IdTahunAjaran');
-        $periode = $this->request->getGet('periode') ?: 'bulan';
+        $periode = $this->request->getGet('periode') ?: 'semester';
         $tanggalRef = $this->request->getGet('tanggal') ?: date('Y-m-d');
         $hariLiburParam = $this->request->getGet('hari_libur'); // array angka hari: 0 (Minggu) s/d 6 (Sabtu)
 
@@ -1363,7 +1363,7 @@ class Absensi extends BaseController
             $IdTahunAjaran = session()->get('IdTahunAjaran');
 
             $tanggal = $this->request->getGet('tanggal') ?: date('Y-m-d');
-            $periode = $this->request->getGet('periode') ?: 'bulan';
+            $periode = $this->request->getGet('periode') ?: 'semester';
 
             $info = $absensiModel->getTanggalBelumAbsenPerKelasPeriode($IdTpq, $periode, $tanggal, $IdTahunAjaran);
 

@@ -292,7 +292,7 @@
                                             'belum_absen_list' => [],
                                             'grouped_by_month' => []
                                         ];
-                                        $periodeStr = $tanggal_belum_absen_info['periode'] ?? 'bulan';
+                                        $periodeStr = $tanggal_belum_absen_info['periode'] ?? 'semester';
                                         $periodeLabelStr = $tanggal_belum_absen_info['periode_label'] ?? ('Bulan ' . date('F Y', strtotime($tanggalDipilih)));
                                         $isSemesterView = ($periodeStr === 'semester');
                                         ?>
@@ -1469,12 +1469,12 @@
         }
 
         // Variabel global untuk menyimpan filter periode kelengkapan yang aktif ('minggu_ini', 'minggu_kemarin', 'bulan', 'semester')
-        var currentPeriodeFilter = '<?= $tanggal_belum_absen_info['periode'] ?? 'bulan' ?>';
+        var currentPeriodeFilter = '<?= $tanggal_belum_absen_info['periode'] ?? 'semester' ?>';
 
         // Fungsi untuk memperbarui card kelengkapan tanggal belum diabsen (Baseline Opsi B)
         function updateTanggalBelumAbsenCards(tanggal, periode) {
             if (!tanggal) return;
-            periode = periode || currentPeriodeFilter || 'bulan';
+            periode = periode || currentPeriodeFilter || 'semester';
 
             $.ajax({
                 url: '<?= base_url("backend/absensi/getTanggalBelumAbsenPerKelas") ?>',

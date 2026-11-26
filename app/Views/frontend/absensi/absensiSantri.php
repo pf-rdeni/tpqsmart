@@ -402,7 +402,7 @@
                     'belum_absen_list' => [],
                     'grouped_by_month' => []
                 ];
-                $periodeStr = $tanggal_belum_absen_info['periode'] ?? 'bulan';
+                $periodeStr = $tanggal_belum_absen_info['periode'] ?? 'semester';
                 $periodeLabelStr = $tanggal_belum_absen_info['periode_label'] ?? ('Bulan ' . date('F Y', strtotime($tanggal_dipilih)));
                 $isSemesterView = ($periodeStr === 'semester');
                 ?>
