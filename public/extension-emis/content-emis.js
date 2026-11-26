@@ -20,7 +20,7 @@
  *  - Popup Step 2 dapat digeser (draggable) dan memandu checklist isian manual
  */
 
-const EXTENSION_VERSION = '1.7.1';
+const EXTENSION_VERSION = '1.7.2';
 console.log(`[TPQ-EMIS Bridge v${EXTENSION_VERSION}] Content script aktif di EMIS Kemenag.`);
 
 // Flag status pengecekan NIK Step 1
@@ -4160,7 +4160,7 @@ function showStep0StartPopup(data) {
             <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px;">
                 <div style="display: flex; align-items: center; gap: 5px; flex: 1; min-width: 0;" title="${escapeHtml(data.nama_santri)} - ${escapeHtml(tglLahirLabel)}">
                     <span style="font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">⚡ <strong>${escapeHtml(data.nama_santri)}</strong></span>
-                    <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 5px; border-radius: 3px; font-weight: normal; flex-shrink: 0;">v1.7.1</span>
+                    <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 5px; border-radius: 3px; font-weight: normal; flex-shrink: 0;">v1.7.2</span>
                 </div>
                 <span id="tpq-close-step0-alert" style="cursor: pointer; font-size: 18px; line-height: 1; padding: 0 4px; opacity: 0.9; flex-shrink: 0;" title="Tutup">&times;</span>
             </div>
@@ -4477,7 +4477,7 @@ function showStep1Assistant(data) {
             <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px;">
                 <div style="display: flex; align-items: center; gap: 5px; flex: 1; min-width: 0;" title="${escapeHtml(data.nama_santri)}">
                     <span style="font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">⚡ <strong>${escapeHtml(data.nama_santri)}</strong></span>
-                    <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 5px; border-radius: 3px; font-weight: normal; flex-shrink: 0;">v1.7.1</span>
+                    <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 5px; border-radius: 3px; font-weight: normal; flex-shrink: 0;">v1.7.2</span>
                 </div>
                 <span id="tpq-close-step1-alert" style="cursor: pointer; font-size: 18px; line-height: 1; padding: 0 4px; opacity: 0.9; flex-shrink: 0;" title="Tutup">&times;</span>
             </div>
@@ -4712,7 +4712,7 @@ function showStep2Assistant(data, filledAyah = false, filledIbu = false, filledN
             <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px;">
                 <div style="display: flex; align-items: center; gap: 5px; flex: 1; min-width: 0;" title="${escapeHtml(data.nama_santri)}">
                     <span style="font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">⚡ <strong>${escapeHtml(data.nama_santri)}</strong></span>
-                    <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 5px; border-radius: 3px; font-weight: normal; flex-shrink: 0;">v1.7.1</span>
+                    <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 5px; border-radius: 3px; font-weight: normal; flex-shrink: 0;">v1.7.2</span>
                 </div>
                 <span id="tpq-close-step2-alert-top" style="cursor: pointer; font-size: 18px; line-height: 1; padding: 0 4px; opacity: 0.9; flex-shrink: 0;" title="Tutup">&times;</span>
             </div>
@@ -4903,12 +4903,34 @@ function showStep2Assistant(data, filledAyah = false, filledIbu = false, filledN
                             } else {
                                 updateTglMasukBadge(statusText, '#e0f2fe', '#0369a1');
                             }
-                        }, (savedOk) => {
+                        }, (savedOk, errInfo = null) => {
                             if (savedOk) {
                                 console.log('%c[TPQ-EMIS Bridge] [Step 2] ✓ Simpan berhasil! Melanjutkan otomatis ke Update Alamat Kesiswaan...', 'background: #0d6efd; color: #fff; font-weight: bold; padding: 2px 6px;');
                                 setTimeout(() => {
                                     lanjutUpdateAlamatKesiswaan();
                                 }, 500);
+                            } else if (errInfo && errInfo.errorMessage) {
+                                const errStatus = errInfo.isConflict ? 'konflik' : 'belum';
+                                updateTglMasukBadge(`❌ ${errInfo.errorMessage}`, '#fee2e2', '#b91c1c');
+                                toggleStep2Asst(true);
+                                chrome.storage.local.remove([
+                                    'pendingSantriData', 'waitingForStep2',
+                                    'pendingUpdateAlamatData', 'currentTask',
+                                    'waitingForUpdateStep2', 'waitingForUpdateStep3',
+                                    'isBatchMode'
+                                ], () => {
+                                    setTimeout(() => {
+                                        div.remove();
+                                        try {
+                                            chrome.runtime.sendMessage({
+                                                action: 'BATCH_ITEM_FAILED_NOTIFY',
+                                                id_santri: data.id_santri,
+                                                status: errStatus,
+                                                catatan: errInfo.errorMessage
+                                            });
+                                        } catch (_) {}
+                                    }, 700);
+                                });
                             } else {
                                 toggleStep2Asst(true);
                                 notifyBatchFailureIfActive(data, 'belum', 'Tunda: Gagal Simpan / Konfirmasi Step 2');
@@ -5214,6 +5236,7 @@ function isElementInsideModal(el) {
 function handleEmisConfirmAndSuccessModal(options = {}) {
     const {
         onSuccess,
+        onError,
         onTimeout,
         onStatusUpdate,
         stepName = 'Formulir',
@@ -5269,7 +5292,7 @@ function handleEmisConfirmAndSuccessModal(options = {}) {
             }
         }
 
-        // TAHAP 2: Dialog Sukses ("Tutup" / "OK" / "Selesai")
+        // TAHAP 2: Dialog Hasil ("Tutup" / "OK" / "Selesai") — cek apakah SUKSES atau GAGAL/KONFLIK!
         if (confirmClicked && !successHandled) {
             const allElements = Array.from(document.querySelectorAll('button, [role="button"], div[tabindex="0"], a'));
             for (const el of allElements) {
@@ -5280,15 +5303,56 @@ function handleEmisConfirmAndSuccessModal(options = {}) {
                 if (txt === 'TUTUP' || txt === 'OK' || txt === 'SELESAI') {
                     const rect = el.getBoundingClientRect();
                     if (rect.width > 0 && rect.height > 0) {
-                        console.log(`[TPQ-EMIS Bridge] ✓ Dialog sukses terdeteksi! Menekan '${txt}'...`);
-                        reportStatus(`Berhasil disimpan! Menutup notifikasi...`, 'success');
+                        // Ambil teks container modal untuk mendeteksi apakah ini pesan GAGAL atau BERHASIL
+                        let modalBox = el.closest('[role="dialog"], .modal, .swal2-modal, [aria-modal="true"]');
+                        if (!modalBox) {
+                            let p = el.parentElement;
+                            for (let i = 0; i < 6 && p && p !== document.body; i++) {
+                                const pTxt = (p.innerText || p.textContent || '').trim();
+                                if (pTxt.length > txt.length + 10 && pTxt.length <= 600) {
+                                    modalBox = p;
+                                }
+                                p = p.parentElement;
+                            }
+                        }
+                        const rawModalText = ((modalBox && (modalBox.innerText || modalBox.textContent)) || '').trim();
+                        const upperModal = rawModalText.toUpperCase();
+                        const isFailure = (
+                            upperModal.includes('GAGAL') ||
+                            upperModal.includes('SUDAH TERDAFTAR') ||
+                            upperModal.includes('TERDAFTAR AKTIF') ||
+                            upperModal.includes('TIDAK BISA') ||
+                            upperModal.includes('SILAKAN CEK KEMBALI') ||
+                            upperModal.includes('DUPLIKAT') ||
+                            upperModal.includes('BENTROK') ||
+                            upperModal.includes('ERROR')
+                        );
+
                         triggerNativeClick(el);
                         successHandled = true;
                         clearInterval(pollTimer);
 
-                        setTimeout(() => {
-                            if (typeof onSuccess === 'function') onSuccess();
-                        }, 600);
+                        if (isFailure) {
+                            const cleanErr = rawModalText.replace(/\b(TUTUP|OK|SELESAI)\b/gi, '').replace(/\s+/g, ' ').trim();
+                            const isConflict = (
+                                upperModal.includes('SUDAH TERDAFTAR') ||
+                                upperModal.includes('TERDAFTAR AKTIF') ||
+                                upperModal.includes('DUPLIKAT') ||
+                                upperModal.includes('BENTROK')
+                            );
+                            console.warn(`[TPQ-EMIS Bridge] ❌ Dialog GAGAL terdeteksi! (${cleanErr})`);
+                            reportStatus(`Gagal: ${cleanErr}`, 'warn');
+                            setTimeout(() => {
+                                if (typeof onError === 'function') onError(cleanErr, isConflict);
+                                else if (typeof onTimeout === 'function') onTimeout();
+                            }, 500);
+                        } else {
+                            console.log(`[TPQ-EMIS Bridge] ✓ Dialog sukses terdeteksi! Menekan '${txt}'...`);
+                            reportStatus(`Berhasil disimpan! Menutup notifikasi...`, 'success');
+                            setTimeout(() => {
+                                if (typeof onSuccess === 'function') onSuccess();
+                            }, 600);
+                        }
                         break;
                     }
                 }
@@ -5341,6 +5405,11 @@ function triggerAutoSimpanPendaftaranStep2(onStatusUpdate, onDone) {
                         console.log('%c[TPQ-EMIS Bridge] [Step 2] ✓ Data Pendaftaran Step 2 berhasil disimpan!', 'background: #16a34a; color: #fff; font-weight: bold; padding: 2px 6px;');
                         report('✓ Tersimpan!', 'success');
                         if (typeof onDone === 'function') onDone(true);
+                    },
+                    onError: (errMsg, isConflict) => {
+                        console.error('[TPQ-EMIS Bridge] [Step 2] ❌ Gagal menyimpan pendaftaran Step 2:', errMsg);
+                        report(isConflict ? '❌ Konflik Terdaftar!' : '❌ Gagal Simpan!', 'warn');
+                        if (typeof onDone === 'function') onDone(false, { errorMessage: errMsg, isConflict });
                     },
                     onTimeout: () => {
                         console.warn('[TPQ-EMIS Bridge] [Step 2] Timeout menunggu dialog konfirmasi/sukses SIMPAN.');
@@ -6070,7 +6139,7 @@ function showUpdateAlamatStep1Popup(data) {
             <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px;">
                 <div style="display: flex; align-items: center; gap: 5px; flex: 1; min-width: 0;" title="${escapeHtml(data.nama_santri)}">
                     <span style="font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">⚡ <strong>${escapeHtml(data.nama_santri)}</strong></span>
-                    <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 5px; border-radius: 3px; font-weight: normal; flex-shrink: 0;">v1.7.1</span>
+                    <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 5px; border-radius: 3px; font-weight: normal; flex-shrink: 0;">v1.7.2</span>
                 </div>
                 <span id="tpq-close-update-step1" style="cursor: pointer; font-size: 18px; line-height: 1; padding: 0 4px; opacity: 0.9; flex-shrink: 0;" title="Tutup & batalkan antrean">&times;</span>
             </div>
@@ -6574,7 +6643,7 @@ function showUpdateSantriStep2Popup(data) {
             <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px;">
                 <div style="display: flex; align-items: center; gap: 5px; flex: 1; min-width: 0;" title="${escapeHtml(data.nama_santri)}">
                     <span style="font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">⚡ <strong>${escapeHtml(data.nama_santri)}</strong></span>
-                    <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 5px; border-radius: 3px; font-weight: normal; flex-shrink: 0;">v1.7.1</span>
+                    <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 5px; border-radius: 3px; font-weight: normal; flex-shrink: 0;">v1.7.2</span>
                 </div>
                 <span id="tpq-close-update-santri-step2" style="cursor: pointer; font-size: 18px; line-height: 1; padding: 0 4px; opacity: 0.9; flex-shrink: 0;" title="Tutup & batalkan antrean">&times;</span>
             </div>
@@ -7460,7 +7529,7 @@ function showUpdateAlamatStep3Popup(data) {
             <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px;">
                 <div style="display: flex; align-items: center; gap: 5px; flex: 1; min-width: 0;" title="${escapeHtml(data.nama_santri)}">
                     <span style="font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">⚡ <strong>${escapeHtml(data.nama_santri)}</strong></span>
-                    <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 5px; border-radius: 3px; font-weight: normal; flex-shrink: 0;">v1.7.1</span>
+                    <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 5px; border-radius: 3px; font-weight: normal; flex-shrink: 0;">v1.7.2</span>
                 </div>
                 <span id="tpq-close-update-step3" style="cursor: pointer; font-size: 18px; line-height: 1; padding: 0 4px; opacity: 0.9; flex-shrink: 0;" title="Tutup & batalkan antrean">&times;</span>
             </div>

@@ -1109,14 +1109,16 @@
 
         if (event.data.type === 'EMIS_EXTENSION_PONG') {
             isExtensionConnected = true;
+            const extVer = event.data.version ? escapeHtml(String(event.data.version)) : '';
+            const verBadgeHtml = extVer ? ` <span class="badge badge-light text-success ml-1">v${extVer}</span>` : '';
             $('#extStatusBadge')
                 .removeClass('badge-secondary badge-danger')
                 .addClass('badge-success')
-                .html('<i class="fas fa-check-circle mr-1"></i> Ekstensi EMIS Aktif');
+                .html(`<i class="fas fa-check-circle mr-1"></i> Ekstensi EMIS Aktif${verBadgeHtml}`);
             $('#guideExtStatus')
                 .removeClass('badge-secondary')
                 .addClass('badge-success')
-                .text('Terhubung! Ekstensi siap digunakan.');
+                .text(extVer ? `Terhubung (v${extVer})! Ekstensi siap digunakan.` : 'Terhubung! Ekstensi siap digunakan.');
         }
 
         if (event.data.type === 'EMIS_EXTENSION_NEED_REFRESH') {
