@@ -373,6 +373,8 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->post('raporGroupKategori/saveSetting', 'RaporGroupKategori::saveSetting');
 
     // Routes untuk Rapor (route umum harus setelah route spesifik)
+    $routes->get('rapor', 'Rapor::index');
+    $routes->get('rapor/index', 'Rapor::index');
     // Route untuk semester Ganjil dan Genap
     $routes->get('rapor/Ganjil', 'Rapor::index/Ganjil');
     $routes->get('rapor/Genap', 'Rapor::index/Genap');

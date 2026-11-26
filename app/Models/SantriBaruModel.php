@@ -442,6 +442,8 @@ class SantriBaruModel extends Model
         
         // Filter santri aktif (Active = 1) agar sinkron dengan absensi
         $builder->where('tbl_santri_baru.Active', 1);
+        $builder->where('tbl_kelas.IdKelas !=', 10);
+        $builder->where('UPPER(tbl_kelas.NamaKelas) !=', 'ALUMNI');
 
         if (!empty($IdTahunAjaran)) {
             $builder->where('ks.Status', 1);

@@ -733,16 +733,22 @@ class Rapor extends BaseController
         ];
     }
 
-    public function index($semester = 'Ganjil')
+    public function index($semester = null)
     {
-        // Debug: Log jika method index dipanggil dengan parameter yang tidak diharapkan
-        if ($semester !== 'Ganjil' && $semester !== 'Genap' && $semester !== 'kriteriaCatatanRapor') {
-            log_message('debug', 'Rapor::index called with semester: ' . $semester);
-        }
-
         // Jika parameter adalah kriteriaCatatanRapor, redirect ke method yang benar
         if ($semester === 'kriteriaCatatanRapor') {
             return $this->kriteriaCatatanRapor();
+        }
+
+        // Cek query parameter ?semester=Ganjil|Genap jika ada
+        $querySemester = $this->request->getGet('semester');
+        if (in_array($querySemester, ['Ganjil', 'Genap'], true)) {
+            $semester = $querySemester;
+        }
+
+        // Default ke semester saat ini sesuai rentang tanggal jika tidak dipilih manual
+        if (!in_array($semester, ['Ganjil', 'Genap'], true)) {
+            $semester = $this->helpFunctionModel->getSemesterSaatIni();
         }
 
         // Ambil data permission guru kelas untuk semua kelas
@@ -787,6 +793,13 @@ class Rapor extends BaseController
 
         // Ambil object data kelas - kirim flag isOperator agar diperlakukan seperti kepala sekolah
         $dataKelas = $this->helpFunctionModel->getListKelas($IdTpq, $IdTahunAjaran, $listIdKelas, $guruIdForKelas, $isOperator);
+
+        // Jangan tampilkan kelas Alumni (IdKelas = 10 / NamaKelas mengandung 'alumni')
+        $dataKelas = array_values(array_filter($dataKelas, static function ($kelas) {
+            $namaLower = strtolower(trim((string) ($kelas->NamaKelas ?? '')));
+            return (int) ($kelas->IdKelas ?? 0) !== 10 && $namaLower !== 'alumni' && strpos($namaLower, 'alumni') === false;
+        }));
+        $listIdKelas = array_map(static fn($kelas) => $kelas->IdKelas, $dataKelas);
 
         // Konversi nama kelas menjadi MDA jika sesuai dengan mapping
         foreach ($dataKelas as $kelas) {

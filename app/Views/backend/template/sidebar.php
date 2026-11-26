@@ -1788,23 +1788,27 @@
                                 <li class="nav-item">
                                     <a href="#" class="nav-link no-hover">
                                         <i class="fas fa-file-invoice nav-icon text-warning"></i>
-                                        <p>Rapor Nilai</p>
-                                        <i class="right fas fa-angle-left"></i>
+                                        <p>Rapor
+                                            <i class="right fas fa-angle-left"></i>
                                         </p>
                                     </a>
                                     <ul class="nav nav-treeview" style="display: none;">
                                         <li class="nav-item">
-                                            <a href=<?php
-                                                    echo base_url('backend/rapor/index' . '/' . 'Ganjil') ?> class="nav-link">
-                                                <i class="far fa-dot-circle nav-icon text-warning"></i>
-                                                <p>Semester Ganjil</p>
+                                            <a href=<?php echo base_url('backend/rapor/index') ?> class="nav-link">
+                                                <i class="fas fa-print nav-icon text-warning"></i>
+                                                <p>Cetak Nilai</p>
                                             </a>
                                         </li>
                                         <li class="nav-item">
-                                            <a href=<?php
-                                                    echo base_url('backend/rapor/index' . '/' . 'Genap') ?> class="nav-link">
-                                                <i class="far fa-dot-circle nav-icon text-info"></i>
-                                                <p>Semester Genap</p>
+                                            <a href=<?php echo base_url('backend/santri/showProfilSantri') ?> class="nav-link">
+                                                <i class="fas fa-address-card nav-icon text-warning"></i>
+                                                <p>Cetak Profil Rapor</p>
+                                            </a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a href=<?php echo base_url('backend/santri/showNamePlate') ?> class="nav-link">
+                                                <i class="fas fa-id-badge nav-icon text-warning"></i>
+                                                <p>Cetak Name Plate</p>
                                             </a>
                                         </li>
                                     </ul>
