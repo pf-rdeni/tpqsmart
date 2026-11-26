@@ -1465,11 +1465,14 @@
     }
 
     function onBatchItemCompleted(idSantri, outcome, noteText = '') {
+        if (!batchState.active || String(idSantri) !== String(batchState.currentId)) {
+            return;
+        }
+        batchState.currentId = null; // Kunci agar satu santri tidak pernah dihitung ganda
         if (batchState.watchdogTimer) {
             clearTimeout(batchState.watchdogTimer);
             batchState.watchdogTimer = null;
         }
-        if (!batchState.active) return;
 
         if (outcome === 'selesai') batchState.selesai++;
         else if (outcome === 'konflik') batchState.konflik++;

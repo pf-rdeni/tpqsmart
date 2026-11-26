@@ -20,7 +20,7 @@
  *  - Popup Step 2 dapat digeser (draggable) dan memandu checklist isian manual
  */
 
-const EXTENSION_VERSION = '1.7.2';
+const EXTENSION_VERSION = '1.7.3';
 console.log(`[TPQ-EMIS Bridge v${EXTENSION_VERSION}] Content script aktif di EMIS Kemenag.`);
 
 // Flag status pengecekan NIK Step 1
@@ -88,6 +88,23 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request && request.action === 'EXECUTE_FILL_FORM') {
         const santriData = request.data;
         console.log('[TPQ-EMIS Bridge] Menerima instruksi pengisian untuk:', santriData.nama_santri);
+
+        // Reset flag guard per santri baru agar antrean berikutnya bersih
+        window.__tpqActiveConflictHandlingForId = null;
+        window.__tpqNikFoundInEmis = false;
+        window.__tpqStep1CheckingNik = false;
+        step1FilledSantriKey = null;
+        isStep1AutoPollActive = false;
+
+        // Jika masih ada modal konflik/error lama tersisa di DOM, reload halaman PPDB dulu
+        if (findSantriTerdaftarAktifModal()) {
+            console.warn('[TPQ-EMIS Bridge] Modal konflik lama masih tersisa, me-reload halaman PPDB untuk santri baru...');
+            chrome.storage.local.set({ pendingSantriData: santriData, waitingForStep2: false }, () => {
+                window.location.href = "https://emis.kemenag.go.id/search-data-ppdb/baru";
+            });
+            sendResponse({ success: true, action: 'reloading_clear_modal' });
+            return true;
+        }
         
         const currentStep = detectCurrentEmisStep();
         console.log('[TPQ-EMIS Bridge] Langkah halaman EMIS saat ini: Step', currentStep);
@@ -467,6 +484,9 @@ function findSantriTerdaftarAktifModal() {
     const allEls = Array.from(document.querySelectorAll('div, [role="dialog"], [role="alertdialog"], section, p, span'));
     for (const el of allEls) {
         if (el.closest && el.closest('[id^="tpq-"]')) continue;
+        const rect = el.getBoundingClientRect();
+        if (rect.width <= 0 || rect.height <= 0) continue;
+
         const rawText = (el.innerText || el.textContent || '').trim();
         const upper = rawText.toUpperCase();
         if (
@@ -481,16 +501,31 @@ function findSantriTerdaftarAktifModal() {
                 modalContainer = modalContainer.parentElement;
             }
 
-            const btns = Array.from((modalContainer || document).querySelectorAll('button, [role="button"], div[tabindex="0"], div, a, span'))
+            const searchRoot = modalContainer || document;
+            const clickableCandidates = Array.from(searchRoot.querySelectorAll('button, [role="button"], div[tabindex="0"], a'))
                 .filter(b => {
                     if (b.closest && b.closest('[id^="tpq-"]')) return false;
-                    const rect = b.getBoundingClientRect();
-                    if (rect.width <= 0 || rect.height <= 0) return false;
+                    const br = b.getBoundingClientRect();
+                    if (br.width <= 0 || br.height <= 0) return false;
                     const bt = (b.innerText || b.textContent || b.value || '').trim().toUpperCase();
                     return bt === 'TUTUP' || bt === 'CLOSE' || bt === 'OK';
                 });
 
-            const tutupBtn = btns.find(b => b.tagName === 'BUTTON' || b.getAttribute('role') === 'button') || btns[0] || null;
+            let tutupBtn = clickableCandidates[0] || null;
+            if (!tutupBtn) {
+                const leaf = Array.from(document.querySelectorAll('div, span, button'))
+                    .find(b => {
+                        if (b.closest && b.closest('[id^="tpq-"]')) return false;
+                        const br = b.getBoundingClientRect();
+                        if (br.width <= 0 || br.height <= 0) return false;
+                        const bt = (b.innerText || b.textContent || '').trim().toUpperCase();
+                        return bt === 'TUTUP' || bt === 'CLOSE' || bt === 'OK';
+                    });
+                if (leaf) {
+                    tutupBtn = leaf.closest('button, [role="button"], div[tabindex="0"]') || leaf;
+                }
+            }
+
             const cleanMsg = rawText.replace(/\bTUTUP\b/gi, '').replace(/\s+/g, ' ').trim();
             return { modal: modalContainer, tutupBtn, message: cleanMsg };
         }
@@ -500,9 +535,15 @@ function findSantriTerdaftarAktifModal() {
 
 /**
  * Menangani kondisi ketika santri terdeteksi terdaftar AKTIF di lembaga lain:
- * menutup modal EMIS, membersihkan antrean, kembali ke TPQ Smart, dan menandai status Konflik.
+ * menutup modal EMIS sampai benar-benar hilang, membersihkan antrean, kembali ke TPQ Smart, dan menandai status Konflik.
  */
 function handleSantriTerdaftarAktifConflict(santriData, modalInfo) {
+    const santriIdKey = String(santriData?.id_santri || 'unknown');
+    if (window.__tpqActiveConflictHandlingForId === santriIdKey) {
+        return;
+    }
+    window.__tpqActiveConflictHandlingForId = santriIdKey;
+
     const reasonMsg = (modalInfo && modalInfo.message)
         ? modalInfo.message
         : 'Santri saat ini terdaftar AKTIF di lembaga lain di EMIS';
@@ -511,34 +552,61 @@ function handleSantriTerdaftarAktifConflict(santriData, modalInfo) {
     window.__tpqNikFoundInEmis = true;
     window.__tpqStep1CheckingNik = false;
 
-    if (modalInfo && modalInfo.tutupBtn) {
-        try {
-            triggerNativeClick(modalInfo.tutupBtn);
-            modalInfo.tutupBtn.click();
-        } catch (_) {}
-    }
+    const clickCloseBtn = (btn) => {
+        if (!btn) return;
+        try { triggerNativeClick(btn); } catch (_) {}
+        try { btn.click(); } catch (_) {}
+    };
 
-    chrome.storage.local.remove([
-        'pendingSantriData', 'waitingForStep2',
-        'pendingUpdateAlamatData', 'currentTask',
-        'waitingForUpdateStep2', 'waitingForUpdateStep3',
-        'isBatchMode'
-    ], () => {
-        ['tpq-step0-alert', 'tpq-step1-alert', 'tpq-step2-alert', 'tpq-reopen-step0-pill', 'tpq-pending-banner'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.remove();
+    clickCloseBtn(modalInfo && modalInfo.tutupBtn);
+
+    const finishConflictNotify = (shouldReloadEmis = false) => {
+        chrome.storage.local.remove([
+            'pendingSantriData', 'waitingForStep2',
+            'pendingUpdateAlamatData', 'currentTask',
+            'waitingForUpdateStep2', 'waitingForUpdateStep3',
+            'isBatchMode'
+        ], () => {
+            ['tpq-step0-alert', 'tpq-step1-alert', 'tpq-step2-alert', 'tpq-reopen-step0-pill', 'tpq-pending-banner'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.remove();
+            });
+            if (santriData && santriData.id_santri) {
+                try {
+                    chrome.runtime.sendMessage({
+                        action: 'BATCH_ITEM_FAILED_NOTIFY',
+                        id_santri: santriData.id_santri,
+                        status: 'konflik',
+                        catatan: reasonMsg
+                    });
+                } catch (_) {}
+            }
+            if (shouldReloadEmis) {
+                setTimeout(() => {
+                    window.location.href = "https://emis.kemenag.go.id/search-data-ppdb/baru";
+                }, 150);
+            }
         });
-        if (santriData && santriData.id_santri) {
-            try {
-                chrome.runtime.sendMessage({
-                    action: 'BATCH_ITEM_FAILED_NOTIFY',
-                    id_santri: santriData.id_santri,
-                    status: 'konflik',
-                    catatan: reasonMsg
-                });
-            } catch (_) {}
+    };
+
+    // Tunggu sampai modal konflik benar-benar hilang dari DOM sebelum lapor ke TPQ Smart
+    let closeChecks = 0;
+    const waitCloseTimer = setInterval(() => {
+        closeChecks++;
+        const stillOpen = findSantriTerdaftarAktifModal();
+        if (!stillOpen) {
+            clearInterval(waitCloseTimer);
+            finishConflictNotify(false);
+            return;
         }
-    });
+        if (closeChecks % 3 === 0 && stillOpen.tutupBtn) {
+            clickCloseBtn(stillOpen.tutupBtn);
+        }
+        if (closeChecks >= 14) { // ~2.1 detik
+            clearInterval(waitCloseTimer);
+            finishConflictNotify(true);
+        }
+    }, 150);
 }
 
 /**
@@ -4160,7 +4228,7 @@ function showStep0StartPopup(data) {
             <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px;">
                 <div style="display: flex; align-items: center; gap: 5px; flex: 1; min-width: 0;" title="${escapeHtml(data.nama_santri)} - ${escapeHtml(tglLahirLabel)}">
                     <span style="font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">⚡ <strong>${escapeHtml(data.nama_santri)}</strong></span>
-                    <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 5px; border-radius: 3px; font-weight: normal; flex-shrink: 0;">v1.7.2</span>
+                    <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 5px; border-radius: 3px; font-weight: normal; flex-shrink: 0;">v1.7.3</span>
                 </div>
                 <span id="tpq-close-step0-alert" style="cursor: pointer; font-size: 18px; line-height: 1; padding: 0 4px; opacity: 0.9; flex-shrink: 0;" title="Tutup">&times;</span>
             </div>
@@ -4477,7 +4545,7 @@ function showStep1Assistant(data) {
             <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px;">
                 <div style="display: flex; align-items: center; gap: 5px; flex: 1; min-width: 0;" title="${escapeHtml(data.nama_santri)}">
                     <span style="font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">⚡ <strong>${escapeHtml(data.nama_santri)}</strong></span>
-                    <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 5px; border-radius: 3px; font-weight: normal; flex-shrink: 0;">v1.7.2</span>
+                    <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 5px; border-radius: 3px; font-weight: normal; flex-shrink: 0;">v1.7.3</span>
                 </div>
                 <span id="tpq-close-step1-alert" style="cursor: pointer; font-size: 18px; line-height: 1; padding: 0 4px; opacity: 0.9; flex-shrink: 0;" title="Tutup">&times;</span>
             </div>
@@ -4712,7 +4780,7 @@ function showStep2Assistant(data, filledAyah = false, filledIbu = false, filledN
             <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px;">
                 <div style="display: flex; align-items: center; gap: 5px; flex: 1; min-width: 0;" title="${escapeHtml(data.nama_santri)}">
                     <span style="font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">⚡ <strong>${escapeHtml(data.nama_santri)}</strong></span>
-                    <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 5px; border-radius: 3px; font-weight: normal; flex-shrink: 0;">v1.7.2</span>
+                    <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 5px; border-radius: 3px; font-weight: normal; flex-shrink: 0;">v1.7.3</span>
                 </div>
                 <span id="tpq-close-step2-alert-top" style="cursor: pointer; font-size: 18px; line-height: 1; padding: 0 4px; opacity: 0.9; flex-shrink: 0;" title="Tutup">&times;</span>
             </div>
@@ -6139,7 +6207,7 @@ function showUpdateAlamatStep1Popup(data) {
             <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px;">
                 <div style="display: flex; align-items: center; gap: 5px; flex: 1; min-width: 0;" title="${escapeHtml(data.nama_santri)}">
                     <span style="font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">⚡ <strong>${escapeHtml(data.nama_santri)}</strong></span>
-                    <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 5px; border-radius: 3px; font-weight: normal; flex-shrink: 0;">v1.7.2</span>
+                    <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 5px; border-radius: 3px; font-weight: normal; flex-shrink: 0;">v1.7.3</span>
                 </div>
                 <span id="tpq-close-update-step1" style="cursor: pointer; font-size: 18px; line-height: 1; padding: 0 4px; opacity: 0.9; flex-shrink: 0;" title="Tutup & batalkan antrean">&times;</span>
             </div>
@@ -6643,7 +6711,7 @@ function showUpdateSantriStep2Popup(data) {
             <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px;">
                 <div style="display: flex; align-items: center; gap: 5px; flex: 1; min-width: 0;" title="${escapeHtml(data.nama_santri)}">
                     <span style="font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">⚡ <strong>${escapeHtml(data.nama_santri)}</strong></span>
-                    <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 5px; border-radius: 3px; font-weight: normal; flex-shrink: 0;">v1.7.2</span>
+                    <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 5px; border-radius: 3px; font-weight: normal; flex-shrink: 0;">v1.7.3</span>
                 </div>
                 <span id="tpq-close-update-santri-step2" style="cursor: pointer; font-size: 18px; line-height: 1; padding: 0 4px; opacity: 0.9; flex-shrink: 0;" title="Tutup & batalkan antrean">&times;</span>
             </div>
@@ -7529,7 +7597,7 @@ function showUpdateAlamatStep3Popup(data) {
             <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px;">
                 <div style="display: flex; align-items: center; gap: 5px; flex: 1; min-width: 0;" title="${escapeHtml(data.nama_santri)}">
                     <span style="font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">⚡ <strong>${escapeHtml(data.nama_santri)}</strong></span>
-                    <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 5px; border-radius: 3px; font-weight: normal; flex-shrink: 0;">v1.7.2</span>
+                    <span style="font-size: 9.5px; background: rgba(255,255,255,0.25); padding: 1px 5px; border-radius: 3px; font-weight: normal; flex-shrink: 0;">v1.7.3</span>
                 </div>
                 <span id="tpq-close-update-step3" style="cursor: pointer; font-size: 18px; line-height: 1; padding: 0 4px; opacity: 0.9; flex-shrink: 0;" title="Tutup & batalkan antrean">&times;</span>
             </div>
