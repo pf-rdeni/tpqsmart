@@ -608,6 +608,16 @@ class HelpFunctionModel extends Model
     }
 
     /**
+     * Mendapatkan semester aktif saat ini ('Ganjil' atau 'Genap')
+     * @return string
+     */
+    public function getSemesterSaatIni()
+    {
+        $currentMonth = (int) date('n');
+        return ($currentMonth >= 7) ? 'Ganjil' : 'Genap';
+    }
+
+    /**
      * Mendapatkan tahun ajaran sebelumnya
      * @return string
      */

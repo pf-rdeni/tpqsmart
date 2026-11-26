@@ -1528,10 +1528,11 @@ class Santri extends BaseController
     {
         // ambil IdTpq dari request atau session
         $IdTpq = $this->request->getGet('IdTpq') ?: session()->get('IdTpq');
-        $IdTahunAjaran = $this->helpFunction->getTahunAjaranSaatIni();
+        $IdTahunAjaran = session()->get('IdTahunAjaran') ?: $this->helpFunction->getTahunAjaranSaatIni();
+        $Semester = session()->get('Semester') ?: $this->helpFunction->getSemesterSaatIni();
 
-        // Ambil data santri menggunakan method dari model selaras dengan tahun ajaran aktif saat ini
-        $santri = $this->DataSantriBaru->getListSantriEmis($IdTpq, null, $IdTahunAjaran);
+        // Ambil data santri menggunakan method dari model selaras dengan tahun ajaran & semester aktif
+        $santri = $this->DataSantriBaru->getListSantriEmis($IdTpq, null, $IdTahunAjaran, $Semester);
 
         $tpq = $this->helpFunction->getDataTpq();
         usort($tpq, function ($a, $b) {
@@ -1593,7 +1594,8 @@ class Santri extends BaseController
             'dataSantri' => $santri,
             'dataTpq' => $tpq,
             'dataKelas' => $dataKelas,
-            'IdTahunAjaran' => $IdTahunAjaran
+            'IdTahunAjaran' => $IdTahunAjaran,
+            'Semester' => $Semester
         ];
         return view('backend/santri/dataSantriEmis', $data);
     }
@@ -1873,14 +1875,20 @@ class Santri extends BaseController
             ?: 'Operator';
 
         $idTpq = session()->get('IdTpq');
+        $idTahunAjaran = session()->get('IdTahunAjaran') ?: $this->helpFunction->getTahunAjaranSaatIni();
+        $semester = session()->get('Semester') ?: $this->helpFunction->getSemesterSaatIni();
 
-        $result = $this->DataSantriBaru->updateStatusEmis($idSantri, $status, $user, $idTpq, $catatan);
+        $result = $this->DataSantriBaru->updateStatusEmis($idSantri, $status, $user, $idTpq, $catatan, $idTahunAjaran, $semester);
 
         // Verifikasi hasil update langsung dari database
         $db = \Config\Database::connect();
-        $verify = $db->table('tbl_santri_emis')->where('IdSantri', $idSantri)->get()->getRowArray();
+        $verify = $db->table('tbl_santri_emis')->where([
+            'IdSantri'      => $idSantri,
+            'IdTahunAjaran' => $idTahunAjaran,
+            'Semester'      => $semester
+        ])->get()->getRowArray();
         $savedStatus = $verify['StatusEmis'] ?? 'NOT_FOUND';
-        log_message('info', "[EMIS] updateStatusEmisAjax VERIFY - IdSantri={$idSantri} requested={$status} saved={$savedStatus} result=" . ($result ? 'true' : 'false'));
+        log_message('info', "[EMIS] updateStatusEmisAjax VERIFY - IdSantri={$idSantri} TA={$idTahunAjaran} Sem={$semester} requested={$status} saved={$savedStatus} result=" . ($result ? 'true' : 'false'));
 
         if ($result) {
             $now = date('Y-m-d H:i:s');
@@ -1896,6 +1904,8 @@ class Santri extends BaseController
             return $this->response->setJSON([
                 'success'          => true,
                 'id_santri'        => $idSantri,
+                'id_tahun_ajaran'  => $idTahunAjaran,
+                'semester'         => $semester,
                 'status'           => $status,
                 'status_text'      => $statusText,
                 'catatan'          => $catatan !== null ? trim($catatan) : '',
@@ -1935,8 +1945,10 @@ class Santri extends BaseController
             ?: 'Operator';
 
         $idTpq = session()->get('IdTpq');
+        $idTahunAjaran = session()->get('IdTahunAjaran') ?: $this->helpFunction->getTahunAjaranSaatIni();
+        $semester = session()->get('Semester') ?: $this->helpFunction->getSemesterSaatIni();
 
-        $result = $this->DataSantriBaru->updateStatusAlamatEmis($idSantri, $status, $user, $idTpq);
+        $result = $this->DataSantriBaru->updateStatusAlamatEmis($idSantri, $status, $user, $idTpq, $idTahunAjaran, $semester);
 
         if ($result) {
             $now = date('Y-m-d H:i:s');
@@ -1945,6 +1957,8 @@ class Santri extends BaseController
             return $this->response->setJSON([
                 'success'          => true,
                 'id_santri'        => $idSantri,
+                'id_tahun_ajaran'  => $idTahunAjaran,
+                'semester'         => $semester,
                 'status'           => $status,
                 'tgl_update'       => ($status === 'selesai') ? $now : null,
                 'tgl_update_label' => $tglLabel,

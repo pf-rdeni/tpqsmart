@@ -967,13 +967,14 @@ class SantriBaruModel extends Model
         return $rawStatus;
     }
 
-    public function getListSantriEmis($IdTpq = null, $IdKelas = null, $IdTahunAjaran = null)
+    public function getListSantriEmis($IdTpq = null, $IdKelas = null, $IdTahunAjaran = null, $Semester = null)
     {
+        $helpFunc = new \App\Models\HelpFunctionModel();
         if (empty($IdTahunAjaran)) {
-            $IdTahunAjaran = session()->get('IdTahunAjaran');
+            $IdTahunAjaran = session()->get('IdTahunAjaran') ?: $helpFunc->getTahunAjaranSaatIni();
         }
-        if (empty($IdTahunAjaran)) {
-            $IdTahunAjaran = (new \App\Models\HelpFunctionModel())->getTahunAjaranSaatIni();
+        if (empty($Semester)) {
+            $Semester = session()->get('Semester') ?: $helpFunc->getSemesterSaatIni();
         }
 
         $builder = $this->db->table('tbl_santri_baru');
@@ -991,14 +992,20 @@ class SantriBaruModel extends Model
             COALESCE(se.StatusAlamatEmis, "belum") as StatusAlamatEmis,
             se.TglUpdateAlamatEmis,
             se.UpdatedBy as EmisUpdatedBy,
-            se.Catatan as CatatanEmis
+            se.Catatan as CatatanEmis,
+            se.IdTahunAjaran as EmisIdTahunAjaran,
+            se.Semester as EmisSemester
         ')
         // Inner join ke tbl_kelas_santri persis seperti GetDataPerKelasTpq
         ->join('tbl_kelas_santri ks', 'ks.IdSantri = tbl_santri_baru.IdSantri AND ks.IdTahunAjaran = "' . $IdTahunAjaran . '"', 'inner')
         ->join('tbl_kelas', 'tbl_kelas.IdKelas = ks.IdKelas', 'left')
         ->join('tbl_kelas k_pendaftaran', 'k_pendaftaran.IdKelas = tbl_santri_baru.IdKelas', 'left')
         ->join('tbl_tpq', 'tbl_tpq.IdTpq = ks.IdTpq', 'left')
-        ->join('tbl_santri_emis se', 'se.IdSantri = tbl_santri_baru.IdSantri', 'left');
+        ->join(
+            'tbl_santri_emis se',
+            'se.IdSantri = tbl_santri_baru.IdSantri AND se.IdTahunAjaran = ' . $this->db->escape($IdTahunAjaran) . ' AND se.Semester = ' . $this->db->escape($Semester),
+            'left'
+        );
 
         if (!empty($IdTpq)) {
             $builder->where('ks.IdTpq', $IdTpq);
@@ -1064,20 +1071,20 @@ class SantriBaruModel extends Model
     }
 
     /**
-     * Memperbarui / mencatat status sinkronisasi EMIS santri ke tbl_santri_emis
-     * @param string $IdSantri
-     * @param string $status 'selesai', 'konflik', atau 'belum'
-     * @param string|null $updatedBy Nama/ID user operator
-     * @param string|null $IdTpq
-     * @param string|null $catatan Keterangan / alasan jika ada konflik dll
-     * @return bool
+     * Helper internal untuk upsert baris tbl_santri_emis berdasarkan (IdSantri, IdTahunAjaran, Semester)
      */
-    public function updateStatusEmis($IdSantri, $status = 'selesai', $updatedBy = null, $IdTpq = null, $catatan = null)
+    private function upsertStatusEmisRow(string $IdSantri, array $data, ?string $IdTpq = null, ?string $IdTahunAjaran = null, ?string $Semester = null): bool
     {
         $db = $this->db;
         $now = date('Y-m-d H:i:s');
+        $helpFunc = new \App\Models\HelpFunctionModel();
 
-        // Jika IdTpq belum diberikan, cari dari tbl_santri_baru
+        if (empty($IdTahunAjaran)) {
+            $IdTahunAjaran = session()->get('IdTahunAjaran') ?: $helpFunc->getTahunAjaranSaatIni();
+        }
+        if (empty($Semester)) {
+            $Semester = session()->get('Semester') ?: $helpFunc->getSemesterSaatIni();
+        }
         if (empty($IdTpq)) {
             $rowSantri = $db->table('tbl_santri_baru')->select('IdTpq')->where('IdSantri', $IdSantri)->get()->getRowArray();
             if ($rowSantri && !empty($rowSantri['IdTpq'])) {
@@ -1085,32 +1092,57 @@ class SantriBaruModel extends Model
             }
         }
 
-        $data = [
-            'IdSantri'      => $IdSantri,
-            'StatusEmis'    => $status,
-            'TglUpdateEmis' => ($status === 'selesai' || $status === 'konflik') ? $now : null,
-            'UpdatedBy'     => $updatedBy,
-            'updated_at'    => $now
-        ];
-        if ($catatan !== null) {
-            $data['Catatan'] = trim($catatan);
-        }
+        $data['IdSantri']      = $IdSantri;
+        $data['IdTahunAjaran'] = $IdTahunAjaran;
+        $data['Semester']      = $Semester;
+        $data['updated_at']    = $now;
         if (!empty($IdTpq)) {
             $data['IdTpq'] = $IdTpq;
         }
 
-        // Gunakan builder terpisah untuk cek existing dan update agar tidak ada state tersisa
-        $existing = $db->table('tbl_santri_emis')->where('IdSantri', $IdSantri)->get()->getRowArray();
+        $whereKey = [
+            'IdSantri'      => $IdSantri,
+            'IdTahunAjaran' => $IdTahunAjaran,
+            'Semester'      => $Semester,
+        ];
+
+        $existing = $db->table('tbl_santri_emis')->where($whereKey)->get()->getRowArray();
         if ($existing) {
-            $result = $db->table('tbl_santri_emis')->where('IdSantri', $IdSantri)->update($data);
-            log_message('info', "[EMIS] updateStatusEmis UPDATE IdSantri={$IdSantri} status={$status} catatan=" . ($catatan ?? 'null') . " result=" . ($result ? 'true' : 'false') . " lastQuery=" . (string)$db->getLastQuery());
-            return $result;
-        } else {
-            $data['created_at'] = $now;
-            $result = $db->table('tbl_santri_emis')->insert($data);
-            log_message('info', "[EMIS] updateStatusEmis INSERT IdSantri={$IdSantri} status={$status} catatan=" . ($catatan ?? 'null') . " result=" . ($result ? 'true' : 'false') . " lastQuery=" . (string)$db->getLastQuery());
+            $result = $db->table('tbl_santri_emis')->where('id', $existing['id'])->update($data);
+            log_message('info', "[EMIS] upsertStatusEmisRow UPDATE id={$existing['id']} IdSantri={$IdSantri} TA={$IdTahunAjaran} Sem={$Semester} result=" . ($result ? 'true' : 'false'));
             return $result;
         }
+
+        $data['created_at'] = $now;
+        $result = $db->table('tbl_santri_emis')->insert($data);
+        log_message('info', "[EMIS] upsertStatusEmisRow INSERT IdSantri={$IdSantri} TA={$IdTahunAjaran} Sem={$Semester} result=" . ($result ? 'true' : 'false'));
+        return $result;
+    }
+
+    /**
+     * Memperbarui / mencatat status sinkronisasi EMIS santri ke tbl_santri_emis
+     * @param string $IdSantri
+     * @param string $status 'selesai', 'konflik', atau 'belum'
+     * @param string|null $updatedBy Nama/ID user operator
+     * @param string|null $IdTpq
+     * @param string|null $catatan Keterangan / alasan jika ada konflik dll
+     * @param string|null $IdTahunAjaran
+     * @param string|null $Semester
+     * @return bool
+     */
+    public function updateStatusEmis($IdSantri, $status = 'selesai', $updatedBy = null, $IdTpq = null, $catatan = null, $IdTahunAjaran = null, $Semester = null)
+    {
+        $now = date('Y-m-d H:i:s');
+        $data = [
+            'StatusEmis'    => $status,
+            'TglUpdateEmis' => ($status === 'selesai' || $status === 'konflik') ? $now : null,
+            'UpdatedBy'     => $updatedBy,
+        ];
+        if ($catatan !== null) {
+            $data['Catatan'] = trim($catatan);
+        }
+
+        return $this->upsertStatusEmisRow((string) $IdSantri, $data, $IdTpq, $IdTahunAjaran, $Semester);
     }
 
     /**
@@ -1119,40 +1151,20 @@ class SantriBaruModel extends Model
      * @param string $status 'selesai' atau 'belum'
      * @param string|null $updatedBy
      * @param string|null $IdTpq
+     * @param string|null $IdTahunAjaran
+     * @param string|null $Semester
      * @return bool
      */
-    public function updateStatusAlamatEmis($IdSantri, $status = 'selesai', $updatedBy = null, $IdTpq = null)
+    public function updateStatusAlamatEmis($IdSantri, $status = 'selesai', $updatedBy = null, $IdTpq = null, $IdTahunAjaran = null, $Semester = null)
     {
-        $db = $this->db;
-        $builder = $db->table('tbl_santri_emis');
         $now = date('Y-m-d H:i:s');
-
-        if (empty($IdTpq)) {
-            $rowSantri = $db->table('tbl_santri_baru')->select('IdTpq')->where('IdSantri', $IdSantri)->get()->getRowArray();
-            if ($rowSantri && !empty($rowSantri['IdTpq'])) {
-                $IdTpq = $rowSantri['IdTpq'];
-            }
-        }
-
         $data = [
-            'IdSantri'            => $IdSantri,
             'StatusAlamatEmis'    => $status,
             'TglUpdateAlamatEmis' => ($status === 'selesai') ? $now : null,
             'UpdatedBy'           => $updatedBy,
-            'updated_at'          => $now
         ];
-        if (!empty($IdTpq)) {
-            $data['IdTpq'] = $IdTpq;
-        }
 
-        $existing = $builder->where('IdSantri', $IdSantri)->get()->getRowArray();
-        if ($existing) {
-            return $builder->where('IdSantri', $IdSantri)->update($data);
-        } else {
-            $data['created_at'] = $now;
-            $data['StatusEmis'] = 'belum';
-            return $builder->insert($data);
-        }
+        return $this->upsertStatusEmisRow((string) $IdSantri, $data, $IdTpq, $IdTahunAjaran, $Semester);
     }
 
     /**

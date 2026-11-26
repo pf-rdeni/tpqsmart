@@ -7,6 +7,15 @@
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <h3 class="card-title font-weight-bold my-1">
                     <i class="fas fa-sync-alt text-primary mr-1"></i> Transfer Data Santri ke EMIS 4.0 Kemenag
+                    <?php
+                        $taLabel = !empty($IdTahunAjaran) && strlen($IdTahunAjaran) === 8
+                            ? substr($IdTahunAjaran, 0, 4) . '/' . substr($IdTahunAjaran, 4, 4)
+                            : ($IdTahunAjaran ?? '-');
+                        $semLabel = $Semester ?? '-';
+                    ?>
+                    <span class="badge badge-info ml-2" title="Periode aktif pencatatan status EMIS">
+                        <i class="fas fa-calendar-alt mr-1"></i> TA <?= htmlspecialchars($taLabel); ?> · Semester <?= htmlspecialchars($semLabel); ?>
+                    </span>
                 </h3>
                 <div class="card-tools d-flex align-items-center flex-wrap gap-2">
                     <span id="extStatusBadge" class="badge badge-secondary p-2 mr-2">
