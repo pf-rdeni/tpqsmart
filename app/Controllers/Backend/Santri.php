@@ -1590,7 +1590,7 @@ class Santri extends BaseController
         $dataKelas = !empty($uniqueKelas) ? array_values($uniqueKelas) : $this->helpFunction->getDataKelas();
 
         $data = [
-            'page_title' => 'Data Santri Update Emis',
+            'page_title' => 'Update Emis',
             'dataSantri' => $santri,
             'dataTpq' => $tpq,
             'dataKelas' => $dataKelas,
@@ -1598,6 +1598,187 @@ class Santri extends BaseController
             'Semester' => $Semester
         ];
         return view('backend/santri/dataSantriEmis', $data);
+    }
+
+    /**
+     * Helper internal untuk menyusun payload Dashboard Informasi Data EMIS
+     * sesuai hak akses (Admin melihat semua TPQ; Operator/Kepala TPQ terkunci ke IdTpq session).
+     */
+    private function buildEmisDashboardPayload(
+        ?string $reqTahunAjaran = null,
+        ?string $reqSemester = null,
+        ?string $reqIdTpq = null,
+        ?string $reqIdKelas = null,
+        ?string $reqKategori = null
+    ): array {
+        $isAdmin = in_groups('Admin');
+        $sessionIdTpq = session()->get('IdTpq');
+        $IdTpq = $isAdmin ? (!empty($reqIdTpq) ? $reqIdTpq : null) : $sessionIdTpq;
+
+        $IdTahunAjaran = !empty($reqTahunAjaran)
+            ? $reqTahunAjaran
+            : (session()->get('IdTahunAjaran') ?: $this->helpFunction->getTahunAjaranSaatIni());
+        $Semester = in_array($reqSemester, ['Ganjil', 'Genap'], true)
+            ? $reqSemester
+            : (session()->get('Semester') ?: $this->helpFunction->getSemesterSaatIni());
+
+        $IdKelas = !empty($reqIdKelas) ? $reqIdKelas : null;
+        $kategori = !empty($reqKategori) ? $reqKategori : null;
+
+        $summary = $this->DataSantriBaru->getEmisDashboardSummary($IdTahunAjaran, $Semester, $IdTpq, $IdKelas);
+        $rekapTpq = $isAdmin ? $this->DataSantriBaru->getEmisRekapPerTpq($IdTahunAjaran, $Semester, $IdTpq) : [];
+        $rekapKelas = $this->DataSantriBaru->getEmisRekapPerKelas($IdTahunAjaran, $Semester, $IdTpq);
+        $konflikList = $this->DataSantriBaru->getEmisKonflikList($IdTahunAjaran, $Semester, $IdTpq, $IdKelas, $kategori);
+
+        // Konversi NamaKelas ke MDA jika TPQ memiliki mapping MDA
+        if (!empty($rekapKelas) && !empty($IdTpq)) {
+            foreach ($rekapKelas as &$rk) {
+                if (!empty($rk['NamaKelas']) && $rk['NamaKelas'] !== '-') {
+                    $mdaCheck = $this->helpFunction->checkMdaKelasMapping($IdTpq, $rk['NamaKelas']);
+                    $rk['NamaKelas'] = $this->helpFunction->convertKelasToMda($rk['NamaKelas'], $mdaCheck['mappedMdaKelas']);
+                }
+            }
+            unset($rk);
+        }
+
+        if (!empty($konflikList)) {
+            $mdaCache = [];
+            foreach ($konflikList as &$kl) {
+                $tpqIdRow = $kl['IdTpq'] ?? '';
+                $kelasOrig = $kl['NamaKelas'] ?? '';
+                if ($tpqIdRow !== '' && $kelasOrig !== '' && $kelasOrig !== '-') {
+                    $cacheKey = $tpqIdRow . '|' . $kelasOrig;
+                    if (!isset($mdaCache[$cacheKey])) {
+                        $mdaCheck = $this->helpFunction->checkMdaKelasMapping($tpqIdRow, $kelasOrig);
+                        $mdaCache[$cacheKey] = $this->helpFunction->convertKelasToMda($kelasOrig, $mdaCheck['mappedMdaKelas']);
+                    }
+                    $kl['NamaKelas'] = $mdaCache[$cacheKey];
+                }
+            }
+            unset($kl);
+        }
+
+        return [
+            'isAdmin' => $isAdmin,
+            'IdTpq' => $IdTpq,
+            'IdTahunAjaran' => $IdTahunAjaran,
+            'Semester' => $Semester,
+            'IdKelas' => $IdKelas,
+            'kategori' => $kategori,
+            'summary' => $summary,
+            'rekapTpq' => $rekapTpq,
+            'rekapKelas' => $rekapKelas,
+            'konflikList' => $konflikList,
+        ];
+    }
+
+    /**
+     * Halaman Dashboard Informasi Data EMIS
+     */
+    public function dashboardEmis()
+    {
+        $payload = $this->buildEmisDashboardPayload(
+            $this->request->getGet('IdTahunAjaran'),
+            $this->request->getGet('Semester'),
+            $this->request->getGet('IdTpq'),
+            $this->request->getGet('IdKelas'),
+            $this->request->getGet('kategori')
+        );
+
+        $tpq = $this->helpFunction->getDataTpq();
+        usort($tpq, function ($a, $b) {
+            return strcmp($a['NamaTpq'], $b['NamaTpq']);
+        });
+
+        $namaTpqAktif = null;
+        if (!empty($payload['IdTpq'])) {
+            foreach ($tpq as $t) {
+                if ((string) $t['IdTpq'] === (string) $payload['IdTpq']) {
+                    $namaTpqAktif = $t['NamaTpq'];
+                    break;
+                }
+            }
+        }
+
+        $data = array_merge($payload, [
+            'page_title' => 'Dashboard EMIS',
+            'dataTpq' => $tpq,
+            'namaTpqAktif' => $namaTpqAktif,
+            'availableTahunAjaran' => $this->DataSantriBaru->getAvailableTahunAjaranEmis(),
+        ]);
+
+        return view('backend/santri/dashboardEmis', $data);
+    }
+
+    /**
+     * Endpoint AJAX untuk memperbarui data Dashboard EMIS berdasarkan filter
+     */
+    public function getDashboardEmisAjax()
+    {
+        $payload = $this->buildEmisDashboardPayload(
+            $this->request->getVar('IdTahunAjaran'),
+            $this->request->getVar('Semester'),
+            $this->request->getVar('IdTpq'),
+            $this->request->getVar('IdKelas'),
+            $this->request->getVar('kategori')
+        );
+
+        return $this->response->setJSON(array_merge(['success' => true], $payload));
+    }
+
+    /**
+     * Endpoint AJAX untuk tindak lanjut / resolusi status konflik EMIS dari Dashboard
+     */
+    public function resolveKonflikEmisAjax()
+    {
+        $idSantri = trim((string) $this->request->getPost('id_santri'));
+        $status = trim((string) $this->request->getPost('status'));
+        $catatan = $this->request->getPost('catatan');
+        $idTahunAjaran = trim((string) $this->request->getPost('id_tahun_ajaran'))
+            ?: (session()->get('IdTahunAjaran') ?: $this->helpFunction->getTahunAjaranSaatIni());
+        $semester = trim((string) $this->request->getPost('semester'))
+            ?: (session()->get('Semester') ?: $this->helpFunction->getSemesterSaatIni());
+
+        if ($idSantri === '' || !in_array($status, ['belum', 'selesai'], true)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Parameter tidak valid. Status resolusi harus belum atau selesai.'
+            ])->setStatusCode(400);
+        }
+
+        $isAdmin = in_groups('Admin');
+        $sessionIdTpq = session()->get('IdTpq');
+        $idTpq = $isAdmin ? ($this->request->getPost('id_tpq') ?: $sessionIdTpq) : $sessionIdTpq;
+
+        if (!$isAdmin && !empty($sessionIdTpq)) {
+            $db = \Config\Database::connect();
+            $own = $db->table('tbl_kelas_santri')
+                ->where('IdSantri', $idSantri)
+                ->where('IdTpq', $sessionIdTpq)
+                ->where('IdTahunAjaran', $idTahunAjaran)
+                ->countAllResults();
+            if ($own === 0) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Anda tidak memiliki akses untuk mengubah status santri lembaga lain.'
+                ])->setStatusCode(403);
+            }
+        }
+
+        $user = session()->get('username')
+            ?: session()->get('NamaUser')
+            ?: session()->get('Nama')
+            ?: session()->get('user_id')
+            ?: 'Operator';
+
+        $ok = $this->DataSantriBaru->updateStatusEmis($idSantri, $status, $user, $idTpq, $catatan, $idTahunAjaran, $semester);
+
+        return $this->response->setJSON([
+            'success' => (bool) $ok,
+            'message' => $ok
+                ? ($status === 'selesai' ? 'Konflik ditandai Selesai.' : 'Status direset ke Belum untuk dicoba ulang.')
+                : 'Gagal memperbarui status konflik.'
+        ]);
     }
 
     /**

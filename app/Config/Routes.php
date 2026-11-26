@@ -187,6 +187,9 @@ $routes->post('backend/santri/checkNormalisasiNilai', 'Backend\Santri::checkNorm
 $routes->post('backend/santri/normalisasiNilai', 'Backend\Santri::normalisasiNilai');
 
 // EMIS 4.0 Auto-Fill API & Transfer Routes
+$routes->get('backend/santri/dashboardEmis', 'Backend\Santri::dashboardEmis');
+$routes->match(['get', 'post'], 'backend/santri/getDashboardEmisAjax', 'Backend\Santri::getDashboardEmisAjax');
+$routes->post('backend/santri/resolveKonflikEmisAjax', 'Backend\Santri::resolveKonflikEmisAjax');
 $routes->get('backend/santri/showSantriEmis', 'Backend\Santri::showSantriEmis');
 $routes->get('backend/santri/getSantriEmisJson/(:segment)', 'Backend\Santri::getSantriEmisJson/$1');
 $routes->match(['get', 'post'], 'backend/santri/getListSantriEmisAjax', 'Backend\Santri::getListSantriEmisAjax');

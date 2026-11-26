@@ -1334,4 +1334,261 @@ class SantriBaruModel extends Model
         $query = $db->query($sql, $params);
         return $query ? $query->getResultArray() : [];
     }
+
+    /**
+     * Base query builder untuk Dashboard EMIS agar angka KPI, rekap, dan daftar konflik konsisten
+     * dengan getListSantriEmis().
+     */
+    private function buildEmisDashboardBaseQuery(string $IdTahunAjaran, string $Semester, ?string $IdTpq = null, $IdKelas = null)
+    {
+        $builder = $this->db->table('tbl_santri_baru')
+            ->join('tbl_kelas_santri ks', 'ks.IdSantri = tbl_santri_baru.IdSantri AND ks.IdTahunAjaran = ' . $this->db->escape($IdTahunAjaran), 'inner')
+            ->join('tbl_kelas', 'tbl_kelas.IdKelas = ks.IdKelas', 'left')
+            ->join('tbl_tpq', 'tbl_tpq.IdTpq = ks.IdTpq', 'left')
+            ->join(
+                'tbl_santri_emis se',
+                'se.IdSantri = tbl_santri_baru.IdSantri AND se.IdTahunAjaran = ' . $this->db->escape($IdTahunAjaran) . ' AND se.Semester = ' . $this->db->escape($Semester),
+                'left'
+            )
+            ->where('tbl_santri_baru.Active', 1)
+            ->where('ks.IdKelas !=', 10)
+            ->where('tbl_santri_baru.IdKelas !=', 10)
+            ->whereNotIn('tbl_kelas.NamaKelas', ['ALUMNI', 'Alumni', 'alumni']);
+
+        if (!empty($IdTpq)) {
+            $builder->where('ks.IdTpq', $IdTpq);
+        }
+
+        if (!empty($IdKelas)) {
+            if (is_array($IdKelas)) {
+                $builder->whereIn('ks.IdKelas', $IdKelas);
+            } else {
+                $builder->where('ks.IdKelas', $IdKelas);
+            }
+        }
+
+        return $builder;
+    }
+
+    /**
+     * Klasifikasikan pesan konflik EMIS dari kolom Catatan untuk memudahkan filter & eskalasi.
+     */
+    public function classifyEmisConflict(?string $catatan): array
+    {
+        $text = strtolower(trim((string) $catatan));
+        if ($text !== '' && (strpos($text, 'terdaftar aktif') !== false || strpos($text, 'aktif di') !== false)) {
+            return [
+                'kode' => 'aktif_lembaga_sendiri',
+                'label' => 'Sudah Aktif di Lembaga',
+                'badge' => 'warning'
+            ];
+        }
+        if ($text !== '' && (strpos($text, 'sudah terdaftar di') !== false || strpos($text, 'nisn') !== false || strpos($text, 'nik') !== false)) {
+            return [
+                'kode' => 'terdaftar_lembaga_lain',
+                'label' => 'Terdaftar di Lembaga Lain',
+                'badge' => 'danger'
+            ];
+        }
+        return [
+            'kode' => 'lainnya',
+            'label' => 'Error Validasi / Lainnya',
+            'badge' => 'secondary'
+        ];
+    }
+
+    /**
+     * Ambil ringkasan KPI Dashboard EMIS untuk periode Tahun Ajaran & Semester tertentu.
+     */
+    public function getEmisDashboardSummary(string $IdTahunAjaran, string $Semester, ?string $IdTpq = null, $IdKelas = null): array
+    {
+        $row = $this->buildEmisDashboardBaseQuery($IdTahunAjaran, $Semester, $IdTpq, $IdKelas)
+            ->select("
+                COUNT(DISTINCT tbl_santri_baru.IdSantri) AS total_santri,
+                COUNT(DISTINCT CASE WHEN se.StatusEmis = 'selesai' THEN tbl_santri_baru.IdSantri END) AS emis_selesai,
+                COUNT(DISTINCT CASE WHEN se.StatusEmis = 'konflik' THEN tbl_santri_baru.IdSantri END) AS emis_konflik,
+                COUNT(DISTINCT CASE WHEN COALESCE(se.StatusEmis, 'belum') = 'belum' THEN tbl_santri_baru.IdSantri END) AS emis_belum,
+                COUNT(DISTINCT CASE WHEN se.StatusAlamatEmis = 'selesai' THEN tbl_santri_baru.IdSantri END) AS alamat_selesai,
+                COUNT(DISTINCT CASE WHEN COALESCE(se.StatusAlamatEmis, 'belum') = 'belum' THEN tbl_santri_baru.IdSantri END) AS alamat_belum,
+                MAX(se.TglUpdateEmis) AS last_update_emis,
+                MAX(se.TglUpdateAlamatEmis) AS last_update_alamat
+            ", false)
+            ->get()
+            ->getRowArray();
+
+        $total = (int) ($row['total_santri'] ?? 0);
+        $selesai = (int) ($row['emis_selesai'] ?? 0);
+        $konflik = (int) ($row['emis_konflik'] ?? 0);
+        $belum = (int) ($row['emis_belum'] ?? 0);
+        $alamatSelesai = (int) ($row['alamat_selesai'] ?? 0);
+        $alamatBelum = (int) ($row['alamat_belum'] ?? 0);
+
+        $latestOperatorRow = $this->buildEmisDashboardBaseQuery($IdTahunAjaran, $Semester, $IdTpq, $IdKelas)
+            ->select('se.UpdatedBy, se.TglUpdateEmis, se.TglUpdateAlamatEmis')
+            ->where('se.UpdatedBy IS NOT NULL', null, false)
+            ->orderBy('GREATEST(COALESCE(se.TglUpdateEmis, "1970-01-01"), COALESCE(se.TglUpdateAlamatEmis, "1970-01-01"))', 'DESC', false)
+            ->limit(1)
+            ->get()
+            ->getRowArray();
+
+        $pct = static function (int $num, int $den): float {
+            return $den > 0 ? round(($num / $den) * 100, 1) : 0.0;
+        };
+
+        return [
+            'total_santri' => $total,
+            'emis_selesai' => $selesai,
+            'emis_belum' => $belum,
+            'emis_konflik' => $konflik,
+            'alamat_selesai' => $alamatSelesai,
+            'alamat_belum' => $alamatBelum,
+            'pct_emis_selesai' => $pct($selesai, $total),
+            'pct_emis_belum' => $pct($belum, $total),
+            'pct_emis_konflik' => $pct($konflik, $total),
+            'pct_alamat_selesai' => $pct($alamatSelesai, $total),
+            'last_update_emis' => $row['last_update_emis'] ?? null,
+            'last_update_alamat' => $row['last_update_alamat'] ?? null,
+            'last_updated_by' => $latestOperatorRow['UpdatedBy'] ?? null,
+        ];
+    }
+
+    /**
+     * Rekap progres EMIS per Lembaga/TPQ (untuk hak akses Admin).
+     */
+    public function getEmisRekapPerTpq(string $IdTahunAjaran, string $Semester, ?string $IdTpq = null): array
+    {
+        $rows = $this->buildEmisDashboardBaseQuery($IdTahunAjaran, $Semester, $IdTpq)
+            ->select("
+                ks.IdTpq,
+                COALESCE(tbl_tpq.NamaTpq, ks.IdTpq) AS NamaTpq,
+                COUNT(DISTINCT tbl_santri_baru.IdSantri) AS total_santri,
+                COUNT(DISTINCT CASE WHEN se.StatusEmis = 'selesai' THEN tbl_santri_baru.IdSantri END) AS emis_selesai,
+                COUNT(DISTINCT CASE WHEN COALESCE(se.StatusEmis, 'belum') = 'belum' THEN tbl_santri_baru.IdSantri END) AS emis_belum,
+                COUNT(DISTINCT CASE WHEN se.StatusEmis = 'konflik' THEN tbl_santri_baru.IdSantri END) AS emis_konflik,
+                COUNT(DISTINCT CASE WHEN se.StatusAlamatEmis = 'selesai' THEN tbl_santri_baru.IdSantri END) AS alamat_selesai,
+                MAX(se.TglUpdateEmis) AS last_update_emis
+            ", false)
+            ->groupBy(['ks.IdTpq', 'tbl_tpq.NamaTpq'])
+            ->orderBy('emis_konflik', 'DESC')
+            ->orderBy('emis_belum', 'DESC')
+            ->orderBy('NamaTpq', 'ASC')
+            ->get()
+            ->getResultArray();
+
+        foreach ($rows as &$r) {
+            $total = (int) ($r['total_santri'] ?? 0);
+            $selesai = (int) ($r['emis_selesai'] ?? 0);
+            $r['pct_selesai'] = $total > 0 ? round(($selesai / $total) * 100, 1) : 0.0;
+        }
+        return $rows;
+    }
+
+    /**
+     * Rekap progres EMIS per Kelas (untuk Operator/Kepala TPQ atau filter 1 TPQ).
+     */
+    public function getEmisRekapPerKelas(string $IdTahunAjaran, string $Semester, ?string $IdTpq = null): array
+    {
+        $rows = $this->buildEmisDashboardBaseQuery($IdTahunAjaran, $Semester, $IdTpq)
+            ->select("
+                ks.IdKelas,
+                COALESCE(tbl_kelas.NamaKelas, '-') AS NamaKelas,
+                COUNT(DISTINCT tbl_santri_baru.IdSantri) AS total_santri,
+                COUNT(DISTINCT CASE WHEN se.StatusEmis = 'selesai' THEN tbl_santri_baru.IdSantri END) AS emis_selesai,
+                COUNT(DISTINCT CASE WHEN COALESCE(se.StatusEmis, 'belum') = 'belum' THEN tbl_santri_baru.IdSantri END) AS emis_belum,
+                COUNT(DISTINCT CASE WHEN se.StatusEmis = 'konflik' THEN tbl_santri_baru.IdSantri END) AS emis_konflik,
+                COUNT(DISTINCT CASE WHEN se.StatusAlamatEmis = 'selesai' THEN tbl_santri_baru.IdSantri END) AS alamat_selesai
+            ", false)
+            ->groupBy(['ks.IdKelas', 'tbl_kelas.NamaKelas'])
+            ->orderBy('ks.IdKelas', 'ASC')
+            ->get()
+            ->getResultArray();
+
+        foreach ($rows as &$r) {
+            $total = (int) ($r['total_santri'] ?? 0);
+            $selesai = (int) ($r['emis_selesai'] ?? 0);
+            $r['pct_selesai'] = $total > 0 ? round(($selesai / $total) * 100, 1) : 0.0;
+        }
+        return $rows;
+    }
+
+    /**
+     * Daftar santri berstatus konflik di tbl_santri_emis untuk kebutuhan laporan & eskalasi.
+     */
+    public function getEmisKonflikList(string $IdTahunAjaran, string $Semester, ?string $IdTpq = null, $IdKelas = null, ?string $kategori = null): array
+    {
+        $rows = $this->buildEmisDashboardBaseQuery($IdTahunAjaran, $Semester, $IdTpq, $IdKelas)
+            ->select('
+                tbl_santri_baru.IdSantri,
+                tbl_santri_baru.NamaSantri,
+                tbl_santri_baru.NikSantri,
+                tbl_santri_baru.NISN,
+                tbl_santri_baru.TempatLahirSantri,
+                tbl_santri_baru.TanggalLahirSantri,
+                ks.IdTpq,
+                COALESCE(tbl_tpq.NamaTpq, ks.IdTpq) AS NamaTpq,
+                ks.IdKelas,
+                COALESCE(tbl_kelas.NamaKelas, "-") AS NamaKelas,
+                se.IdTahunAjaran,
+                se.Semester,
+                se.StatusEmis,
+                se.Catatan,
+                se.TglUpdateEmis,
+                se.UpdatedBy
+            ')
+            ->where('se.StatusEmis', 'konflik')
+            ->orderBy('se.TglUpdateEmis', 'DESC')
+            ->orderBy('tbl_tpq.NamaTpq', 'ASC')
+            ->orderBy('tbl_santri_baru.NamaSantri', 'ASC')
+            ->get()
+            ->getResultArray();
+
+        $result = [];
+        foreach ($rows as $row) {
+            $meta = $this->classifyEmisConflict($row['Catatan'] ?? '');
+            if (!empty($kategori) && $meta['kode'] !== $kategori) {
+                continue;
+            }
+            $row['KategoriKode'] = $meta['kode'];
+            $row['KategoriLabel'] = $meta['label'];
+            $row['KategoriBadge'] = $meta['badge'];
+            $result[] = $row;
+        }
+
+        return $result;
+    }
+
+    /**
+     * Daftar Tahun Ajaran yang tersedia untuk filter Dashboard EMIS.
+     */
+    public function getAvailableTahunAjaranEmis(): array
+    {
+        $helpFunc = new \App\Models\HelpFunctionModel();
+        $currentTa = $helpFunc->getTahunAjaranSaatIni();
+
+        $ksRows = $this->db->table('tbl_kelas_santri')
+            ->select('IdTahunAjaran')
+            ->distinct()
+            ->where('IdTahunAjaran IS NOT NULL', null, false)
+            ->where('IdTahunAjaran !=', '')
+            ->get()
+            ->getResultArray();
+
+        $emisRows = $this->db->table('tbl_santri_emis')
+            ->select('IdTahunAjaran')
+            ->distinct()
+            ->where('IdTahunAjaran IS NOT NULL', null, false)
+            ->where('IdTahunAjaran !=', '')
+            ->get()
+            ->getResultArray();
+
+        $list = [$currentTa];
+        foreach (array_merge($ksRows, $emisRows) as $r) {
+            $ta = trim((string) ($r['IdTahunAjaran'] ?? ''));
+            if ($ta !== '' && !in_array($ta, $list, true)) {
+                $list[] = $ta;
+            }
+        }
+        rsort($list);
+        return $list;
+    }
 }

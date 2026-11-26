@@ -18,6 +18,9 @@
                     </span>
                 </h3>
                 <div class="card-tools d-flex align-items-center flex-wrap gap-2">
+                    <a href="<?= base_url('backend/santri/dashboardEmis') ?>" class="btn btn-outline-primary btn-sm mr-2" title="Kembali ke Dashboard Informasi EMIS">
+                        <i class="fas fa-chart-pie mr-1"></i> Dashboard EMIS
+                    </a>
                     <span id="extStatusBadge" class="badge badge-secondary p-2 mr-2">
                         <i class="fas fa-circle-notch fa-spin mr-1"></i> Cek Ekstensi EMIS...
                     </span>

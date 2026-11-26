@@ -892,9 +892,9 @@
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a href=<?php echo base_url('backend/santri/showSantriEmis') ?> class="nav-link">
+                                <a href=<?php echo base_url('backend/santri/dashboardEmis') ?> class="nav-link">
                                     <i class="fas fa-file-alt nav-icon text-warning"></i>
-                                    <p>Data Emis</p>
+                                    <p>Data EMIS</p>
                                 </a>
                             </li>
                             <li class="nav-item">
