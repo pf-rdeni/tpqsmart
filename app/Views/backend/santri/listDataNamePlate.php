@@ -38,7 +38,7 @@ if (!empty($santriPerKelas)) {
         </div>
         <div class="card-body">
             <ul class="mb-0">
-                <li>Pilih salah satu dari <strong>5 Varian Desain</strong>, atur <strong>Ukuran Label (cm)</strong> (default <code>10 &times; 4.8 cm</code>), dan pilih <strong>Ukuran Kertas</strong> (A4, F4/Folio, Letter, atau Custom).</li>
+                <li>Pilih salah satu dari <strong>5 Varian Desain</strong>, atur <strong>Ukuran Label (cm)</strong> (default <code>10 &times; 3.8 cm</code>), dan pilih <strong>Ukuran Kertas</strong> (A4, F4/Folio, Letter, atau Custom).</li>
                 <li><strong>Live Preview</strong> di sebelah kanan menampilkan desain dan data santri asli dari kelas tab yang aktif. Gunakan tombol <strong>&lsaquo; / &rsaquo;</strong> atau geser (*swipe*) untuk melihat santri lainnya.</li>
                 <li>Jika santri belum memiliki foto profil, akan ditampilkan kotak kosong bertuliskan <strong>Foto 3x4</strong> untuk tempel foto fisik.</li>
             </ul>
@@ -53,7 +53,7 @@ if (!empty($santriPerKelas)) {
             </h3>
             <div class="card-tools ml-auto">
                 <button type="button" id="btnResetNamePlateSetting" class="btn btn-primary btn-xs">
-                    <i class="fas fa-undo"></i> Set ke Default (10 &times; 4.8 cm | A4)
+                    <i class="fas fa-undo"></i> Set ke Default (10 &times; 3.8 cm | A4)
                 </button>
             </div>
         </div>
@@ -104,20 +104,20 @@ if (!empty($santriPerKelas)) {
                         </div>
                         <div class="col-md-3 col-sm-6 mb-2">
                             <label for="labelHeightInput" class="mb-1 text-xs font-weight-bold">Tinggi Label (cm)</label>
-                            <input type="number" id="labelHeightInput" class="form-control form-control-sm np-setting-input np-label-dim" value="4.8" min="3" max="15" step="0.1">
+                            <input type="number" id="labelHeightInput" class="form-control form-control-sm np-setting-input np-label-dim" value="3.8" min="3" max="15" step="0.1">
                         </div>
                         <div class="col-md-3 col-sm-6 mb-2">
                             <label for="fotoWidthInput" class="mb-1 text-xs font-weight-bold">Lebar Foto (cm)</label>
-                            <input type="number" id="fotoWidthInput" class="form-control form-control-sm np-setting-input" value="3.0" min="1.2" max="8" step="0.1">
+                            <input type="number" id="fotoWidthInput" class="form-control form-control-sm np-setting-input" value="2.3" min="1.2" max="8" step="0.1">
                         </div>
                         <div class="col-md-3 col-sm-6 mb-2">
                             <label for="fotoHeightInput" class="mb-1 text-xs font-weight-bold">Tinggi Foto (cm)</label>
-                            <input type="number" id="fotoHeightInput" class="form-control form-control-sm np-setting-input" value="4.0" min="1.6" max="10" step="0.1">
+                            <input type="number" id="fotoHeightInput" class="form-control form-control-sm np-setting-input" value="3.0" min="1.6" max="10" step="0.1">
                         </div>
                         <div class="col-md-12 mb-1">
                             <div class="alert alert-light border mb-0 py-1 px-2 d-flex flex-wrap justify-content-between align-items-center text-xs">
-                                <span id="layoutEstimateInfo">Estimasi: <strong>2 kolom &times; 5 baris = 10 label</strong> / lembar</span>
-                                <span class="text-success font-weight-bold" id="fotoRecommendInfo">Rekomendasi Foto (3:4): 3.0 &times; 4.0 cm</span>
+                                <span id="layoutEstimateInfo">Estimasi: <strong>2 kolom &times; 7 baris = 14 label</strong> / lembar</span>
+                                <span class="text-success font-weight-bold" id="fotoRecommendInfo">Rekomendasi Foto (3:4): 2.3 &times; 3.0 cm</span>
                             </div>
                         </div>
                     </div>
@@ -128,7 +128,7 @@ if (!empty($santriPerKelas)) {
                     <div class="border rounded bg-light p-2">
                         <div class="d-flex align-items-center justify-content-between mb-2">
                             <span class="text-xs font-weight-bold text-secondary">
-                                <i class="fas fa-eye"></i> Live Preview (<span id="previewDimText">10.0 &times; 4.8 cm</span>)
+                                <i class="fas fa-eye"></i> Live Preview (<span id="previewDimText">10.0 &times; 3.8 cm</span>)
                             </span>
                             <div class="btn-group btn-group-xs">
                                 <button type="button" id="btnPreviewPrev" class="btn btn-outline-secondary btn-xs" title="Santri Sebelumnya">
@@ -289,9 +289,9 @@ if (!empty($santriPerKelas)) {
     <input type="hidden" name="paper_width" id="selectedPaperWidth" value="21.0">
     <input type="hidden" name="paper_height" id="selectedPaperHeight" value="29.7">
     <input type="hidden" name="label_width" id="selectedLabelWidth" value="10.0">
-    <input type="hidden" name="label_height" id="selectedLabelHeight" value="4.8">
-    <input type="hidden" name="foto_width" id="selectedFotoWidth" value="3.0">
-    <input type="hidden" name="foto_height" id="selectedFotoHeight" value="4.0">
+    <input type="hidden" name="label_height" id="selectedLabelHeight" value="3.8">
+    <input type="hidden" name="foto_width" id="selectedFotoWidth" value="2.3">
+    <input type="hidden" name="foto_height" id="selectedFotoHeight" value="3.0">
     <input type="hidden" name="variant" id="selectedVariant" value="1">
 </form>
 <?= $this->endSection(); ?>
@@ -328,7 +328,7 @@ if (!empty($santriPerKelas)) {
         activeKelasId = $('#kelasTabNamePlate a[href="' + savedNpTab + '"]').data('kelas-id');
     }
 
-    const npSettingKey = 'nameplate_print_settings';
+    const npSettingKey = 'nameplate_print_settings_v2';
     const paperDimensionsCm = {
         a4: [21.0, 29.7],
         folio: [21.5, 33.0],
@@ -348,7 +348,7 @@ if (!empty($santriPerKelas)) {
 
     function getPrintSettings() {
         const labelWidth = parseFloat($('#labelWidthInput').val()) || 10.0;
-        const labelHeight = parseFloat($('#labelHeightInput').val()) || 4.8;
+        const labelHeight = parseFloat($('#labelHeightInput').val()) || 3.8;
         const rec = computeRecommendedPhoto(labelWidth, labelHeight);
         return {
             variant: parseInt($('#variantSelect').val(), 10) || 1,
@@ -517,7 +517,7 @@ if (!empty($santriPerKelas)) {
 
     $(document).on('change input', '.np-label-dim', function() {
         const lw = parseFloat($('#labelWidthInput').val()) || 10.0;
-        const lh = parseFloat($('#labelHeightInput').val()) || 4.8;
+        const lh = parseFloat($('#labelHeightInput').val()) || 3.8;
         const rec = computeRecommendedPhoto(lw, lh);
         $('#fotoWidthInput').val(rec.w.toFixed(1));
         $('#fotoHeightInput').val(rec.h.toFixed(1));
@@ -561,9 +561,9 @@ if (!empty($santriPerKelas)) {
         $('#paperWidthInput').val('21.0');
         $('#paperHeightInput').val('29.7');
         $('#labelWidthInput').val('10.0');
-        $('#labelHeightInput').val('4.8');
-        $('#fotoWidthInput').val('3.0');
-        $('#fotoHeightInput').val('4.0');
+        $('#labelHeightInput').val('3.8');
+        $('#fotoWidthInput').val('2.3');
+        $('#fotoHeightInput').val('3.0');
         updateSettingsUI();
     });
 

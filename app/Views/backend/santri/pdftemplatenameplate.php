@@ -1,6 +1,6 @@
 <?php
 $labelWidth = isset($labelWidth) ? (float) $labelWidth : 10.0;
-$labelHeight = isset($labelHeight) ? (float) $labelHeight : 4.8;
+$labelHeight = isset($labelHeight) ? (float) $labelHeight : 3.8;
 $colsPerPage = isset($colsPerPage) ? max(1, (int) $colsPerPage) : 2;
 $rowsPerPage = isset($rowsPerPage) ? max(1, (int) $rowsPerPage) : 5;
 $variant = isset($variant) ? max(1, min(5, (int) $variant)) : 1;

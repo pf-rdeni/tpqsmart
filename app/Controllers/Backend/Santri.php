@@ -3859,7 +3859,7 @@ class Santri extends BaseController
         }
 
         $labelWidth = (float) ($this->request->getVar('label_width') ?? 10.0);
-        $labelHeight = (float) ($this->request->getVar('label_height') ?? 4.8);
+        $labelHeight = (float) ($this->request->getVar('label_height') ?? 3.8);
         $labelWidth = max(5.0, min(25.0, $labelWidth));
         $labelHeight = max(3.0, min(15.0, $labelHeight));
 
@@ -3905,7 +3905,7 @@ class Santri extends BaseController
         $paper = $printOptions['paper'] ?? 'a4';
         $orientation = $printOptions['orientation'] ?? 'portrait';
         $labelWidth = (float) ($printOptions['label_width'] ?? 10.0);
-        $labelHeight = (float) ($printOptions['label_height'] ?? 4.8);
+        $labelHeight = (float) ($printOptions['label_height'] ?? 3.8);
 
         $paperSizesCm = [
             'a4' => [21.0, 29.7],
