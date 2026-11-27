@@ -3781,10 +3781,13 @@ class Rapor extends BaseController
         $IdTahunAjaran = session()->get('IdTahunAjaran');
         $IdGuru = session()->get('IdGuru');
 
-        // Default semester jika tidak ada
-        if (empty($semester)) {
-            $currentMonth = (int)date('m');
-            $semester = ($currentMonth >= 7) ? 'Ganjil' : 'Genap';
+        // Default semester ke semester saat ini sesuai rentang tanggal jika tidak dipilih manual
+        $querySemester = $this->request->getGet('semester');
+        if (in_array($querySemester, ['Ganjil', 'Genap'], true)) {
+            $semester = $querySemester;
+        }
+        if (!in_array($semester, ['Ganjil', 'Genap'], true)) {
+            $semester = $this->helpFunctionModel->getSemesterSaatIni();
         }
 
         // Cek apakah user adalah Admin atau Operator

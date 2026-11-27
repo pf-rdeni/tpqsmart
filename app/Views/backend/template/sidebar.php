@@ -1003,26 +1003,10 @@
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a href="#" class="nav-link no-hover">
+                                <a href=<?php echo base_url('backend/rapor/serah-terima') ?> class="nav-link">
                                     <i class="fas fa-handshake nav-icon text-warning"></i>
                                     <p>Serah Terima</p>
-                                    <i class="right fas fa-angle-left"></i>
-                                    </p>
                                 </a>
-                                <ul class="nav nav-treeview" style="display: none;">
-                                    <li class="nav-item">
-                                        <a href=<?php echo base_url('backend/rapor/serah-terima/Ganjil') ?> class="nav-link">
-                                            <i class="far fa-dot-circle nav-icon text-warning"></i>
-                                            <p>Semester Ganjil</p>
-                                        </a>
-                                    </li>
-                                    <li class="nav-item">
-                                        <a href=<?php echo base_url('backend/rapor/serah-terima/Genap') ?> class="nav-link">
-                                            <i class="far fa-dot-circle nav-icon text-info"></i>
-                                            <p>Semester Genap</p>
-                                        </a>
-                                    </li>
-                                </ul>
                             </li>
                             <li class="nav-item">
                                 <a href=<?php echo base_url('backend/rapor/kriteriaCatatanRapor') ?> class="nav-link">
@@ -1796,26 +1780,10 @@
                                     </ul>
                                 </li>
                                 <li class="nav-item">
-                                    <a href="#" class="nav-link no-hover">
+                                    <a href=<?php echo base_url('backend/rapor/serah-terima') ?> class="nav-link">
                                         <i class="fas fa-handshake nav-icon text-warning"></i>
                                         <p>Serah Terima</p>
-                                        <i class="right fas fa-angle-left"></i>
-                                        </p>
                                     </a>
-                                    <ul class="nav nav-treeview" style="display: none;">
-                                        <li class="nav-item">
-                                            <a href=<?php echo base_url('backend/rapor/serah-terima/Ganjil') ?> class="nav-link">
-                                                <i class="far fa-dot-circle nav-icon text-warning"></i>
-                                                <p>Semester Ganjil</p>
-                                            </a>
-                                        </li>
-                                        <li class="nav-item">
-                                            <a href=<?php echo base_url('backend/rapor/serah-terima/Genap') ?> class="nav-link">
-                                                <i class="far fa-dot-circle nav-icon text-info"></i>
-                                                <p>Semester Genap</p>
-                                            </a>
-                                        </li>
-                                    </ul>
                                 </li>
                                 <li class="nav-item">
                                     <a href=<?php echo base_url('backend/rapor/kriteriaCatatanRapor') ?> class="nav-link">

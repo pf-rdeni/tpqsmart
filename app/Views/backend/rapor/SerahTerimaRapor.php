@@ -3,16 +3,15 @@
 <?= $this->section('content') ?>
 <div class="col-12">
     <div class="card">
-        <div class="card-header">
-            <h3 class="card-title"><?= $page_title ?> - Semester <?= $semester ?></h3>
-            <div class="card-tools">
-                <a href="<?= base_url('backend/rapor/serah-terima/Ganjil') ?>" class="btn btn-warning btn-sm <?= $semester === 'Ganjil' ? 'active' : '' ?>">
-                    Semester Ganjil
-                </a>
-                <a href="<?= base_url('backend/rapor/serah-terima/Genap') ?>" class="btn btn-info btn-sm <?= $semester === 'Genap' ? 'active' : '' ?>">
-                    Semester Genap
-                </a>
-                <a href="<?= base_url('backend/rapor/Ganjil') ?>" class="btn btn-sm btn-secondary ml-2">
+        <div class="card-header d-flex flex-wrap justify-content-between align-items-center">
+            <h3 class="card-title mb-2 mb-md-0"><?= $page_title ?> - Semester <?= $semester ?></h3>
+            <div class="d-flex align-items-center ml-auto">
+                <label for="filterSemesterSerahTerima" class="mb-0 mr-2 font-weight-normal text-sm">Pilih Semester:</label>
+                <select id="filterSemesterSerahTerima" class="form-control form-control-sm" style="width: auto;" onchange="window.location.href='<?= base_url('backend/rapor/serah-terima') ?>/' + this.value;">
+                    <option value="Ganjil" <?= ($semester === 'Ganjil') ? 'selected' : '' ?>>Semester Ganjil</option>
+                    <option value="Genap" <?= ($semester === 'Genap') ? 'selected' : '' ?>>Semester Genap</option>
+                </select>
+                <a href="<?= base_url('backend/rapor/index') ?>" class="btn btn-sm btn-secondary ml-2">
                     <i class="fas fa-arrow-left"></i> Kembali ke Rapor
                 </a>
             </div>
