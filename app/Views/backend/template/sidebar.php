@@ -991,6 +991,12 @@
                                 </a>
                             </li>
                             <li class="nav-item">
+                                <a href=<?php echo base_url('backend/rapor/serah-terima') ?> class="nav-link">
+                                    <i class="fas fa-handshake nav-icon text-warning"></i>
+                                    <p>Serah Terima</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
                                 <a href=<?php echo base_url('backend/santri/showProfilSantri') ?> class="nav-link">
                                     <i class="fas fa-address-card nav-icon text-warning"></i>
                                     <p>Cetak Profil</p>
@@ -1000,12 +1006,6 @@
                                 <a href=<?php echo base_url('backend/santri/showNamePlate') ?> class="nav-link">
                                     <i class="fas fa-id-badge nav-icon text-warning"></i>
                                     <p>Cetak Name Plate</p>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a href=<?php echo base_url('backend/rapor/serah-terima') ?> class="nav-link">
-                                    <i class="fas fa-handshake nav-icon text-warning"></i>
-                                    <p>Serah Terima</p>
                                 </a>
                             </li>
                             <li class="nav-item">
