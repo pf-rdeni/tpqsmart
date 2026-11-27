@@ -350,6 +350,8 @@ $routes->group('backend', ['namespace' => 'App\Controllers\Backend'], function (
     $routes->post('rapor/saveCatatan', 'Rapor::saveCatatan');
     $routes->post('rapor/getCatatanDefaultByNilai', 'Rapor::getCatatanDefaultByNilai');
     $routes->post('rapor/getAbsensiFromTable', 'Rapor::getAbsensiFromTable');
+    $routes->post('rapor/bulkSaveAbsensi', 'Rapor::bulkSaveAbsensi');
+    $routes->post('rapor/bulkSaveCatatan', 'Rapor::bulkSaveCatatan');
 
     // Routes untuk Mapping Wali Kelas
     $routes->get('rapor/settingMappingWaliKelas', 'Rapor::settingMappingWaliKelas');

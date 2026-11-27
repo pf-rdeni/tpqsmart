@@ -2290,6 +2290,263 @@ class Rapor extends BaseController
     }
 
     /**
+     * Tentukan rentang tanggal mulai & akhir berdasarkan IdTahunAjaran dan Semester.
+     */
+    private function getSemesterDateRange($IdTahunAjaran, $semester): array
+    {
+        $tahunAjaranParts = preg_split('/[\/\-]/', (string)$IdTahunAjaran);
+
+        if (count($tahunAjaranParts) < 2) {
+            if (strlen((string)$IdTahunAjaran) == 8 && is_numeric($IdTahunAjaran)) {
+                $tahunAwal = (int)substr((string)$IdTahunAjaran, 0, 4);
+                $tahunAkhir = (int)substr((string)$IdTahunAjaran, 4, 4);
+            } else {
+                $tahunAwal = (int)date('Y');
+                $tahunAkhir = $tahunAwal + 1;
+            }
+        } else {
+            $tahunAwal = isset($tahunAjaranParts[0]) ? (int)trim($tahunAjaranParts[0]) : (int)date('Y');
+            $tahunAkhir = isset($tahunAjaranParts[1]) ? (int)trim($tahunAjaranParts[1]) : ($tahunAwal + 1);
+        }
+
+        if ($semester === 'Ganjil') {
+            return [$tahunAwal . '-07-01', $tahunAwal . '-12-31'];
+        }
+
+        return [$tahunAkhir . '-01-01', $tahunAkhir . '-06-30'];
+    }
+
+    /**
+     * Ambil catatan default dan selectedCatatanId berdasarkan nilai rata-rata santri.
+     */
+    private function resolveDefaultCatatanForSantri($IdSantri, $IdTpq, $IdTahunAjaran, $semester): array
+    {
+        $santriData = $this->getSantriDataWithNilai($IdSantri, $IdTpq, $IdTahunAjaran, $semester);
+        if (!$santriData) {
+            return ['catatan' => '', 'selectedCatatanId' => null];
+        }
+
+        $nilaiRataRata = $this->hitungRataRataNilai($santriData['nilai']);
+        $idKelas = $santriData['santri']['IdKelas'] ?? null;
+        $nilaiHuruf = $this->konversiNilaiKeHuruf($nilaiRataRata);
+        $catatanDefault = $this->generateKriteriaCatatanRapor($nilaiRataRata, $IdTahunAjaran, $IdTpq, $idKelas);
+
+        $idTpqString = (!empty($IdTpq) && $IdTpq != 0) ? (string)$IdTpq : 'default';
+        $idKelasString = (!empty($idKelas) && $idKelas != 0 && $idKelas != '0') ? (string)$idKelas : null;
+
+        $allOpsiCatatan = $this->kriteriaCatatanRaporModel->getAllOpsiCatatanByNilaiHuruf(
+            $nilaiHuruf,
+            $IdTahunAjaran,
+            $idTpqString,
+            $idKelasString
+        );
+
+        $selectedCatatanId = null;
+        if (!empty($allOpsiCatatan)) {
+            foreach ($allOpsiCatatan as $opsi) {
+                if ($opsi['level'] === 'spesifik_kelas') {
+                    $selectedCatatanId = $opsi['id'];
+                    break;
+                } elseif ($opsi['level'] === 'spesifik_tpq' && $selectedCatatanId === null) {
+                    $selectedCatatanId = $opsi['id'];
+                } elseif ($opsi['level'] === 'umum' && $selectedCatatanId === null) {
+                    $selectedCatatanId = $opsi['id'];
+                }
+            }
+        }
+
+        return [
+            'catatan' => $catatanDefault ?? '',
+            'selectedCatatanId' => $selectedCatatanId
+        ];
+    }
+
+    /**
+     * Bulk simpan/aktifkan/nonaktifkan absensi untuk seluruh santri dalam satu kelas.
+     * Ketika ShowAbsensi = 1, otomatis mengenerate rekap absensi dari tbl_absensi_santri.
+     */
+    public function bulkSaveAbsensi()
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Request harus menggunakan AJAX'
+            ]);
+        }
+
+        try {
+            $IdKelas = $this->request->getPost('IdKelas');
+            $semester = $this->request->getPost('Semester');
+            $showAbsensi = $this->request->getPost('ShowAbsensi') ? 1 : 0;
+            $IdTpq = session()->get('IdTpq');
+            $IdTahunAjaran = session()->get('IdTahunAjaran');
+
+            if (empty($IdKelas) || empty($semester) || empty($IdTpq) || empty($IdTahunAjaran)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Parameter kelas, semester, atau sesi tidak lengkap'
+                ]);
+            }
+
+            $summary = $this->getSummaryDataForSantri($IdTpq, [$IdKelas], $IdTahunAjaran, $semester);
+            $santriList = $summary['nilai'] ?? [];
+
+            if (empty($santriList)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Tidak ada data santri di kelas ini'
+                ]);
+            }
+
+            $santriIds = array_values(array_unique(array_map(static fn($row) => $row->IdSantri, $santriList)));
+            $rekapBySantri = [];
+
+            if ($showAbsensi === 1) {
+                [$startDate, $endDate] = $this->getSemesterDateRange($IdTahunAjaran, $semester);
+                $absensiRows = $this->absensiModel
+                    ->whereIn('IdSantri', $santriIds)
+                    ->where('IdTahunAjaran', $IdTahunAjaran)
+                    ->where('Tanggal >=', $startDate)
+                    ->where('Tanggal <=', $endDate)
+                    ->findAll();
+
+                foreach ($absensiRows as $row) {
+                    $sid = $row['IdSantri'];
+                    if (!isset($rekapBySantri[$sid])) {
+                        $rekapBySantri[$sid] = ['izin' => 0, 'alfa' => 0, 'sakit' => 0];
+                    }
+                    $kehadiran = strtolower(trim($row['Kehadiran'] ?? ''));
+                    if (isset($rekapBySantri[$sid][$kehadiran])) {
+                        $rekapBySantri[$sid][$kehadiran]++;
+                    }
+                }
+            }
+
+            $updatedCount = 0;
+            foreach ($santriIds as $idSantri) {
+                $existingData = $this->raportSettingModel->getOrCreateData($idSantri, $IdKelas, $IdTpq, $IdTahunAjaran, $semester);
+
+                if ($showAbsensi === 1) {
+                    $counts = $rekapBySantri[$idSantri] ?? ['izin' => 0, 'alfa' => 0, 'sakit' => 0];
+                    $absensiData = [
+                        'ShowAbsensi' => 1,
+                        'jumlahTidakMasuk' => $counts['izin'] + $counts['alfa'] + $counts['sakit'],
+                        'jumlahIzin' => $counts['izin'],
+                        'jumlahAlfa' => $counts['alfa'],
+                        'jumlahSakit' => $counts['sakit']
+                    ];
+                } else {
+                    $absensiData = [
+                        'ShowAbsensi' => 0,
+                        'jumlahTidakMasuk' => (int)($existingData['JumlahTidakMasuk'] ?? 0),
+                        'jumlahIzin' => (int)($existingData['JumlahIzin'] ?? 0),
+                        'jumlahAlfa' => (int)($existingData['JumlahAlfa'] ?? 0),
+                        'jumlahSakit' => (int)($existingData['JumlahSakit'] ?? 0)
+                    ];
+                }
+
+                if ($this->raportSettingModel->saveAbsensiData($idSantri, $IdTahunAjaran, $semester, $absensiData)) {
+                    $updatedCount++;
+                }
+            }
+
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => $showAbsensi === 1
+                    ? "Absensi berhasil digenerate & diaktifkan untuk {$updatedCount} santri"
+                    : "Absensi berhasil dinonaktifkan untuk {$updatedCount} santri",
+                'updatedCount' => $updatedCount
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'Rapor::bulkSaveAbsensi error: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Bulk simpan/aktifkan/nonaktifkan catatan untuk seluruh santri dalam satu kelas.
+     */
+    public function bulkSaveCatatan()
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Request harus menggunakan AJAX'
+            ]);
+        }
+
+        try {
+            $IdKelas = $this->request->getPost('IdKelas');
+            $semester = $this->request->getPost('Semester');
+            $showCatatan = $this->request->getPost('ShowCatatan') ? 1 : 0;
+            $IdTpq = session()->get('IdTpq');
+            $IdTahunAjaran = session()->get('IdTahunAjaran');
+
+            if (empty($IdKelas) || empty($semester) || empty($IdTpq) || empty($IdTahunAjaran)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Parameter kelas, semester, atau sesi tidak lengkap'
+                ]);
+            }
+
+            $summary = $this->getSummaryDataForSantri($IdTpq, [$IdKelas], $IdTahunAjaran, $semester);
+            $santriList = $summary['nilai'] ?? [];
+
+            if (empty($santriList)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Tidak ada data santri di kelas ini'
+                ]);
+            }
+
+            $santriIds = array_values(array_unique(array_map(static fn($row) => $row->IdSantri, $santriList)));
+            $updatedCount = 0;
+
+            foreach ($santriIds as $idSantri) {
+                $existingData = $this->raportSettingModel->getOrCreateData($idSantri, $IdKelas, $IdTpq, $IdTahunAjaran, $semester);
+                $catatanDefault = $existingData['CatatanDefault'] ?? '';
+                $selectedCatatanId = $existingData['CatatanSource'] ?? null;
+
+                if ($showCatatan === 1 && trim((string)$catatanDefault) === '') {
+                    $resolved = $this->resolveDefaultCatatanForSantri($idSantri, $IdTpq, $IdTahunAjaran, $semester);
+                    $catatanDefault = $resolved['catatan'];
+                    if (empty($selectedCatatanId)) {
+                        $selectedCatatanId = $resolved['selectedCatatanId'];
+                    }
+                }
+
+                $catatanData = [
+                    'ShowCatatan' => $showCatatan,
+                    'catatanDefault' => $catatanDefault,
+                    'catatanKhusus' => $existingData['CatatanKhusus'] ?? '',
+                    'selectedCatatanId' => $selectedCatatanId
+                ];
+
+                if ($this->raportSettingModel->saveCatatanData($idSantri, $IdTahunAjaran, $semester, $catatanData)) {
+                    $updatedCount++;
+                }
+            }
+
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => $showCatatan === 1
+                    ? "Catatan berhasil diaktifkan untuk {$updatedCount} santri"
+                    : "Catatan berhasil dinonaktifkan untuk {$updatedCount} santri",
+                'updatedCount' => $updatedCount
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'Rapor::bulkSaveCatatan error: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
      * Ambil data absensi dari tbl_absensi_santri untuk generate ke rapor setting
      */
     public function getAbsensiFromTable()
@@ -2759,6 +3016,41 @@ class Rapor extends BaseController
     }
 
     /**
+     * Validasi akses dan tentukan IdGuru Wali Kelas untuk tanda tangan/pembatalan bulk.
+     */
+    private function resolveWalasSigner($IdTpq, $IdGuruSession, $IdKelas, $IdTahunAjaran): array
+    {
+        $activeRole = session()->get('active_role');
+        $isOperator = ($activeRole === 'operator') || (empty($activeRole) && in_groups('Operator'));
+
+        if ($isOperator) {
+            $targetIdGuru = $IdGuruSession;
+            $guruKelasList = $this->helpFunctionModel->getDataGuruKelas(
+                IdTpq: $IdTpq,
+                IdKelas: $IdKelas,
+                IdTahunAjaran: $IdTahunAjaran
+            );
+            if (!empty($guruKelasList)) {
+                foreach ($guruKelasList as $gk) {
+                    $gkArr = is_object($gk) ? (array)$gk : $gk;
+                    if (($gkArr['NamaJabatan'] ?? '') === 'Wali Kelas' && !empty($gkArr['IdGuru'])) {
+                        $targetIdGuru = $gkArr['IdGuru'];
+                        break;
+                    }
+                }
+            }
+            return ['allowed' => true, 'idGuru' => $targetIdGuru, 'isOperator' => true];
+        }
+
+        $guruKelasPermission = $this->helpFunctionModel->checkGuruKelasPermission($IdTpq, $IdGuruSession, $IdKelas, $IdTahunAjaran);
+        if (!$guruKelasPermission || $guruKelasPermission['NamaJabatan'] !== 'Wali Kelas') {
+            return ['allowed' => false, 'idGuru' => null, 'isOperator' => false];
+        }
+
+        return ['allowed' => true, 'idGuru' => $IdGuruSession, 'isOperator' => false];
+    }
+
+    /**
      * Handle tanda tangan bulk wali kelas untuk semua santri dalam kelas
      */
     public function ttdBulkWalas()
@@ -2787,15 +3079,15 @@ class Rapor extends BaseController
                 ]);
             }
 
-            // Cek permission: hanya Wali Kelas yang bisa tanda tangan
-            $guruKelasPermission = $this->helpFunctionModel->checkGuruKelasPermission($IdTpq, $IdGuru, $IdKelas, $IdTahunAjaran);
-
-            if (!$guruKelasPermission || $guruKelasPermission['NamaJabatan'] !== 'Wali Kelas') {
+            // Cek permission: Wali Kelas atau Operator
+            $signer = $this->resolveWalasSigner($IdTpq, $IdGuru, $IdKelas, $IdTahunAjaran);
+            if (!$signer['allowed']) {
                 return $this->response->setJSON([
                     'status' => 'error',
                     'message' => 'Anda tidak memiliki permission untuk menandatangani sebagai wali kelas.'
                 ]);
             }
+            $IdGuru = $signer['idGuru'];
 
             // Ambil semua santri di kelas
             $santriList = $this->santriBaruModel->where([
@@ -3070,15 +3362,16 @@ class Rapor extends BaseController
                 ]);
             }
 
-            // Cek permission: hanya Wali Kelas yang bisa cancel
-            $guruKelasPermission = $this->helpFunctionModel->checkGuruKelasPermission($IdTpq, $IdGuru, $IdKelas, $IdTahunAjaran);
-
-            if (!$guruKelasPermission || $guruKelasPermission['NamaJabatan'] !== 'Wali Kelas') {
+            // Cek permission: Wali Kelas atau Operator
+            $signer = $this->resolveWalasSigner($IdTpq, $IdGuru, $IdKelas, $IdTahunAjaran);
+            if (!$signer['allowed']) {
                 return $this->response->setJSON([
                     'status' => 'error',
                     'message' => 'Anda tidak memiliki permission untuk membatalkan tanda tangan sebagai wali kelas.'
                 ]);
             }
+            $IdGuru = $signer['idGuru'];
+            $isOperator = $signer['isOperator'];
 
             // Ambil semua santri di kelas
             $santriList = $this->santriBaruModel->where([
@@ -3102,16 +3395,19 @@ class Rapor extends BaseController
                 $IdSantri = is_object($santri) ? $santri->IdSantri : $santri['IdSantri'];
 
                 // Cari dan hapus signature wali kelas
-                $signature = $this->signatureModel->where([
+                $sigWhere = [
                     'IdSantri' => $IdSantri,
                     'IdTpq' => $IdTpq,
                     'IdTahunAjaran' => $IdTahunAjaran,
-                    'IdGuru' => $IdGuru,
                     'Semester' => $semester,
                     'JenisDokumen' => 'Rapor',
                     'SignatureData' => 'Walas',
                     'StatusValidasi' => 'Valid'
-                ])->first();
+                ];
+                if (!$isOperator && !empty($IdGuru)) {
+                    $sigWhere['IdGuru'] = $IdGuru;
+                }
+                $signature = $this->signatureModel->where($sigWhere)->first();
 
                 if ($signature) {
                     // Hapus file QR code jika ada
