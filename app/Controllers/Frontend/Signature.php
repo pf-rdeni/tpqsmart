@@ -158,10 +158,14 @@ class Signature extends \App\Controllers\BaseController
             $kepalaTpq = $this->helpfunctionModel->getDataKepalaTpqStrukturLembaga($signature['IdGuru'], $signature['IdTpq']);
         }
 
-        // Gabungkan data guru
-        $guru = array_merge($guruKelas, $kepalaTpq);
+        // Prioritaskan jabatan sesuai peran penandatangan pada SignatureData ('Kepsek' vs 'Walas')
+        if (($signature['SignatureData'] ?? '') === 'Kepsek') {
+            $guru = array_merge($kepalaTpq, $guruKelas);
+        } else {
+            $guru = array_merge($guruKelas, $kepalaTpq);
+        }
 
-        // Ambil data guru pertama yang ditemukan (bisa guru kelas atau kepala TPQ)
+        // Ambil data guru pertama yang ditemukan sesuai prioritas SignatureData
         $guruData = !empty($guru) ? $guru[0] : null;
 
         $kelas = null;

@@ -1185,7 +1185,12 @@ class Rapor extends BaseController
             }
 
             $totalSantri = count($listSantri);
-            log_message('info', "Rapor: printPdfBulk - Memproses {$totalSantri} santri untuk kelas {$IdKelas}");
+            $format = strtolower((string) ($this->request->getGet('format') ?? 'pdf'));
+            log_message('info', "Rapor: printPdfBulk - Memproses {$totalSantri} santri untuk kelas {$IdKelas} (format: {$format})");
+
+            if ($format === 'pdf') {
+                return $this->printPdfBulkSingle($listSantri, $IdKelas, $IdTpq, $IdTahunAjaran, $semester, $tanggalCetak, $batasanPeringkat);
+            }
 
             // Gunakan metode zip untuk stabilitas di webserver
             return $this->printPdfBulkZip($listSantri, $IdKelas, $IdTpq, $IdTahunAjaran, $semester, $tanggalCetak, $batasanPeringkat);
@@ -1194,6 +1199,68 @@ class Rapor extends BaseController
             log_message('error', 'Rapor: printPdfBulk - Stack trace: ' . $e->getTraceAsString());
             return redirect()->back()->with('error', 'Gagal membuat PDF: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Print PDF bulk menjadi 1 file PDF gabungan untuk seluruh santri dalam kelas.
+     */
+    private function printPdfBulkSingle($listSantri, $IdKelas, $IdTpq, $IdTahunAjaran, $semester, $tanggalCetak, $batasanPeringkat = null)
+    {
+        $combinedStyles = '';
+        $bodyChunks = [];
+        $namaKelasLabel = 'Kelas_' . $IdKelas;
+
+        foreach ($listSantri as $index => $santri) {
+            try {
+                $santriData = $this->getSantriDataWithNilai($santri['IdSantri'], $IdTpq, $IdTahunAjaran, $semester);
+                if (!$santriData) {
+                    continue;
+                }
+
+                if ($index === 0 && !empty($santriData['santri']['NamaKelas'])) {
+                    $namaKelasLabel = preg_replace('/[^a-zA-Z0-9_-]/', '_', str_replace(' ', '_', $santriData['santri']['NamaKelas']));
+                }
+
+                $data = $this->prepareRaporData($santriData, $IdTpq, $IdTahunAjaran, $semester, $tanggalCetak, $batasanPeringkat);
+                $html = view('backend/rapor/print', $data);
+
+                if ($combinedStyles === '' && preg_match('/<head>(.*?)<\/head>/s', $html, $headMatch)) {
+                    $combinedStyles = $headMatch[1];
+                }
+
+                if (preg_match('/<body[^>]*>(.*?)<\/body>/s', $html, $bodyMatch)) {
+                    $bodyChunks[] = $bodyMatch[1];
+                }
+
+                unset($html, $data, $santriData);
+            } catch (\Exception $e) {
+                log_message('error', "Rapor: printPdfBulkSingle - Error untuk santri {$santri['IdSantri']}: " . $e->getMessage());
+            }
+        }
+
+        if (empty($bodyChunks)) {
+            throw new \Exception('Tidak ada halaman rapor yang berhasil dibuat');
+        }
+
+        $finalHtml = '<!DOCTYPE html><html><head>' . $combinedStyles . '</head><body>';
+        $totalChunks = count($bodyChunks);
+        foreach ($bodyChunks as $idx => $chunk) {
+            $pageBreakStyle = ($idx < $totalChunks - 1) ? 'page-break-after: always;' : '';
+            $finalHtml .= '<div style="' . $pageBreakStyle . '">' . $chunk . '</div>';
+        }
+        $finalHtml .= '</body></html>';
+
+        $dompdf = $this->setupDompdfConfig();
+        $dompdf->loadHtml($finalHtml);
+        $dompdf->setPaper([0, 0, 595.276, 935.433], 'portrait');
+        $dompdf->render();
+
+        $filename = 'Rapor_' . $namaKelasLabel . '_' . $IdTahunAjaran . '_' . $semester . '.pdf';
+
+        return $this->response
+            ->setHeader('Content-Type', 'application/pdf')
+            ->setHeader('Content-Disposition', 'attachment; filename="' . $filename . '"')
+            ->setBody($dompdf->output());
     }
 
     /**

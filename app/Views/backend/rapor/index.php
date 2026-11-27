@@ -320,7 +320,34 @@
                                                                     data-semester="<?= $semester ?>"
                                                                     data-tahun-ajaran="<?= session()->get('IdTahunAjaran') ?>"
                                                                     data-max="<?= $totalSantri ?>"
+                                                                    value="<?= ($totalSantri > 0 && $totalSantri < 10) ? $totalSantri : 10 ?>"
                                                                     placeholder="Jumlah peringkat besar">
+                                                                <div class="btn-group btn-group-xs mt-1 w-100" role="group" aria-label="Opsi cepat peringkat">
+                                                                    <button type="button" class="btn btn-light btn-xs border btn-quick-peringkat" data-kelas="<?= $kelas->IdKelas ?>" data-val="0" title="Tidak ada peringkat di rapor">0 (Tanpa)</button>
+                                                                    <button type="button" class="btn btn-light btn-xs border btn-quick-peringkat" data-kelas="<?= $kelas->IdKelas ?>" data-val="3">3</button>
+                                                                    <button type="button" class="btn btn-light btn-xs border btn-quick-peringkat" data-kelas="<?= $kelas->IdKelas ?>" data-val="5">5</button>
+                                                                    <button type="button" class="btn btn-light btn-xs border btn-quick-peringkat" data-kelas="<?= $kelas->IdKelas ?>" data-val="10">10</button>
+                                                                    <button type="button" class="btn btn-light btn-xs border btn-quick-peringkat" data-kelas="<?= $kelas->IdKelas ?>" data-val="<?= $totalSantri ?>">Semua</button>
+                                                                </div>
+                                                            </div>
+                                                            <div class="form-group text-left mb-2">
+                                                                <label class="small mb-1 d-block"><strong>Format File:</strong></label>
+                                                                <div class="d-flex flex-wrap" style="gap: 12px;">
+                                                                    <div class="custom-control custom-radio">
+                                                                        <input class="custom-control-input format-cetak-bulk" type="radio"
+                                                                            id="formatPdf-<?= $kelas->IdKelas ?>"
+                                                                            name="formatCetakBulk_<?= $kelas->IdKelas ?>"
+                                                                            value="pdf" checked>
+                                                                        <label for="formatPdf-<?= $kelas->IdKelas ?>" class="custom-control-label small">1 File PDF</label>
+                                                                    </div>
+                                                                    <div class="custom-control custom-radio">
+                                                                        <input class="custom-control-input format-cetak-bulk" type="radio"
+                                                                            id="formatZip-<?= $kelas->IdKelas ?>"
+                                                                            name="formatCetakBulk_<?= $kelas->IdKelas ?>"
+                                                                            value="zip">
+                                                                        <label for="formatZip-<?= $kelas->IdKelas ?>" class="custom-control-label small">ZIP (Per Santri)</label>
+                                                                    </div>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                         <div>
@@ -535,6 +562,21 @@
 
 <?= $this->section('scripts') ?>
 <style>
+    /* Radio button Format File warna kuning saat dipilih */
+    .format-cetak-bulk:checked ~ .custom-control-label::before {
+        background-color: #ffc107;
+        border-color: #ffc107;
+    }
+
+    .format-cetak-bulk:focus ~ .custom-control-label::before {
+        box-shadow: 0 0 0 0.2rem rgba(255, 193, 7, 0.35);
+    }
+
+    .format-cetak-bulk:checked ~ .custom-control-label {
+        color: #ffc107;
+        font-weight: 700;
+    }
+
     /* Toggle Switch Container */
     .toggle-switch-container {
         display: flex;
@@ -1374,9 +1416,22 @@
                 if (savedPeringkat) {
                     $(this).val(savedPeringkat);
                 }
+                syncQuickPeringkatActive(IdKelas, $(this).val());
             });
 
         });
+
+        function syncQuickPeringkatActive(kelasId, currentVal) {
+            const valStr = String(currentVal ?? '').trim();
+            $(`.btn-quick-peringkat[data-kelas="${kelasId}"]`).each(function() {
+                const btnVal = String($(this).data('val'));
+                if (valStr !== '' && btnVal === valStr) {
+                    $(this).removeClass('btn-light text-dark').addClass('btn-success text-white font-weight-bold');
+                } else {
+                    $(this).removeClass('btn-success text-white font-weight-bold').addClass('btn-light text-dark');
+                }
+            });
+        }
 
         // Handle perubahan tanggal cetak
         $(document).on('change', '.tanggal-cetak', function() {
@@ -1398,6 +1453,16 @@
                 checkbox.prop('checked', false);
                 localStorage.setItem(storageKeyCheckbox, 'false');
             }
+        });
+
+        // Handle opsi cepat peringkat (3, 5, 10, Semua)
+        $(document).on('click', '.btn-quick-peringkat', function() {
+            const kelasId = $(this).data('kelas');
+            const val = $(this).data('val');
+            const input = $(`#peringatanRapor-${kelasId}`);
+            const max = parseInt(input.data('max'), 10) || 0;
+            const finalVal = (max > 0 && parseInt(val, 10) > max) ? max : val;
+            input.val(finalVal).trigger('input');
         });
 
         // Handle input peringatan rapor - hanya menerima angka
@@ -1432,6 +1497,7 @@
 
             // Update nilai input
             $input.val(value);
+            syncQuickPeringkatActive(IdKelas, value);
 
             // Simpan nilai peringkat ke localStorage
             const storageKey = `peringkatRapor_${IdKelas}_${semester}_${tahunAjaran}`;
@@ -1468,6 +1534,7 @@
 
             // Update nilai input
             $input.val(value);
+            syncQuickPeringkatActive(IdKelas, value);
             $input.removeClass('is-invalid');
 
             // Simpan nilai peringkat ke localStorage
@@ -1485,6 +1552,8 @@
             const tanggal = $(`#tanggalCetak-${kelasId}`).val();
             const checkbox = $(`#confirmTanggal-${kelasId}`);
             const peringkat = $(`#peringatanRapor-${kelasId}`).val();
+            const format = $(`input[name="formatCetakBulk_${kelasId}"]:checked`).val() || 'pdf';
+            const formatLabel = (format === 'pdf') ? 'PDF' : 'ZIP';
 
             // Validasi checkbox harus tercentang
             if (!checkbox.is(':checked')) {
@@ -1520,7 +1589,7 @@
                 html: `
                     <div class="text-center mb-3">
                         <i class="fas fa-spinner fa-spin fa-3x text-primary mb-3"></i>
-                        <p class="mb-2">Sedang membuat file ZIP rapor...</p>
+                        <p class="mb-2">Sedang membuat file ${formatLabel} rapor...</p>
                         <p class="text-muted small" id="progress-status">Memulai proses...</p>
                     </div>
                     <div class="progress" style="height: 30px;">
@@ -1564,7 +1633,7 @@
             }
 
             // Download file menggunakan fetch untuk track progress
-            let url = `<?= base_url('backend/rapor/printPdfBulk') ?>/${kelasId}/${semester}?tanggal=${tanggal}`;
+            let url = `<?= base_url('backend/rapor/printPdfBulk') ?>/${kelasId}/${semester}?tanggal=${tanggal}&format=${format}`;
             if (peringkat && peringkat.trim() !== '') {
                 url += `&peringkat=${peringkat}`;
             }
@@ -1572,14 +1641,14 @@
             fetch(url)
                 .then(response => {
                     if (!response.ok) {
-                        throw new Error('Gagal membuat file ZIP');
+                        throw new Error(`Gagal membuat file ${formatLabel}`);
                     }
                     downloadStarted = true;
-                    updateProgress(95, 'File ZIP siap, sedang mengunduh...', 'Hampir selesai...');
+                    updateProgress(95, `File ${formatLabel} siap, sedang mengunduh...`, 'Hampir selesai...');
 
                     // Ambil nama file dari Content-Disposition header
                     const contentDisposition = response.headers.get('Content-Disposition');
-                    let filename = 'Rapor_Kelas.zip';
+                    let filename = (format === 'pdf') ? 'Rapor_Kelas.pdf' : 'Rapor_Kelas.zip';
                     if (contentDisposition) {
                         const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
                         if (filenameMatch && filenameMatch[1]) {
@@ -1607,7 +1676,7 @@
                     window.URL.revokeObjectURL(blobUrl);
 
                     // Update progress ke 100%
-                    updateProgress(100, 'Download selesai!', 'File ZIP berhasil diunduh');
+                    updateProgress(100, 'Download selesai!', `File ${formatLabel} berhasil diunduh`);
 
                     // Tutup progress dan tampilkan success message
                     setTimeout(() => {
