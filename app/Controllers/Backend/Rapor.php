@@ -484,7 +484,7 @@ class Rapor extends BaseController
     /**
      * Siapkan data untuk view rapor
      */
-    private function prepareRaporData($santriData, $IdTpq, $IdTahunAjaran, $semester, $tanggalCetak = null, $batasanPeringkat = null)
+    private function prepareRaporData($santriData, $IdTpq, $IdTahunAjaran, $semester, $tanggalCetak = null, $batasanPeringkat = null, $ttdWalasMode = 'qr', $ttdKepsekMode = 'qr')
     {
         // Ambil data TPQ
         $tpqRow = $this->helpFunctionModel->getNamaTpqById($IdTpq);
@@ -558,6 +558,20 @@ class Rapor extends BaseController
             semester: $semester,
             typeLembaga: $lembagaType
         );
+
+        // Filter QR signature jika mode TTD dipilih Manual
+        if ($ttdWalasMode === 'manual' || $ttdKepsekMode === 'manual') {
+            $signatures = array_values(array_filter($signatures, static function ($sig) use ($ttdWalasMode, $ttdKepsekMode) {
+                $jabatan = $sig['NamaJabatan'] ?? '';
+                if ($ttdWalasMode === 'manual' && $jabatan === 'Wali Kelas') {
+                    return false;
+                }
+                if ($ttdKepsekMode === 'manual' && in_array($jabatan, ['Kepala TPQ', 'Kepala MDTA', 'Kepala MDA'], true)) {
+                    return false;
+                }
+                return true;
+            }));
+        }
 
         // Ambil IdKelas dari data santri (pastikan ada dan valid)
         $idKelas = null;
@@ -731,6 +745,82 @@ class Rapor extends BaseController
             'nilai' => $summaryData,
             'dataKelas' => $dataKelas
         ];
+    }
+
+    /**
+     * Hitung status kelengkapan pengisian nilai per santri dan per kelas (referensi logika Dashboard).
+     */
+    private function getStatusPengisianNilaiPerKelas($IdTpq, array $listIdKelas, $IdTahunAjaran, string $semester): array
+    {
+        $santriStatus = [];
+        $kelasSummary = [];
+
+        if (empty($IdTpq) || empty($listIdKelas) || empty($IdTahunAjaran) || empty($semester)) {
+            return ['santriStatus' => $santriStatus, 'kelasSummary' => $kelasSummary];
+        }
+
+        $db = \Config\Database::connect();
+        $placeholders = implode(',', array_fill(0, count($listIdKelas), '?'));
+        $params = array_merge([$semester, $IdTahunAjaran, $IdTpq], array_values($listIdKelas));
+
+        $rows = $db->query("
+            SELECT 
+                ks.IdKelas,
+                ks.IdSantri,
+                COALESCE(COUNT(DISTINCT n.IdMateri), 0) AS total_materi,
+                COALESCE(COUNT(DISTINCT CASE WHEN n.Nilai != 0 THEN n.IdMateri END), 0) AS materi_terisi
+            FROM tbl_kelas_santri ks
+            INNER JOIN tbl_santri_baru s ON s.IdSantri = ks.IdSantri AND s.Active = 1
+            LEFT JOIN tbl_nilai n ON n.IdSantri = ks.IdSantri
+                AND n.IdKelas = ks.IdKelas
+                AND n.IdTahunAjaran = ks.IdTahunAjaran
+                AND n.Semester = ?
+            WHERE ks.IdTahunAjaran = ?
+                AND ks.IdTpq = ?
+                AND ks.IdKelas IN ($placeholders)
+            GROUP BY ks.IdKelas, ks.IdSantri
+        ", $params)->getResultArray();
+
+        foreach ($listIdKelas as $kId) {
+            $kelasSummary[$kId] = [
+                'total' => 0,
+                'sudah' => 0,
+                'belum' => 0,
+                'persentase' => 0,
+                'all_complete' => false,
+            ];
+        }
+
+        foreach ($rows as $row) {
+            $idKelas = $row['IdKelas'];
+            $idSantri = $row['IdSantri'];
+            $totalMateri = (int)$row['total_materi'];
+            $materiTerisi = (int)$row['materi_terisi'];
+            $isComplete = ($totalMateri > 0 && $totalMateri === $materiTerisi);
+
+            $santriStatus[$idSantri . '_' . $idKelas] = [
+                'total_materi' => $totalMateri,
+                'materi_terisi' => $materiTerisi,
+                'complete' => $isComplete,
+            ];
+
+            if (!isset($kelasSummary[$idKelas])) {
+                $kelasSummary[$idKelas] = ['total' => 0, 'sudah' => 0, 'belum' => 0, 'persentase' => 0, 'all_complete' => false];
+            }
+            $kelasSummary[$idKelas]['total']++;
+            if ($isComplete) {
+                $kelasSummary[$idKelas]['sudah']++;
+            }
+        }
+
+        foreach ($kelasSummary as $kId => &$sum) {
+            $sum['belum'] = $sum['total'] - $sum['sudah'];
+            $sum['persentase'] = ($sum['total'] > 0) ? (int)round(($sum['sudah'] / $sum['total']) * 100) : 0;
+            $sum['all_complete'] = ($sum['total'] > 0 && $sum['sudah'] === $sum['total']);
+        }
+        unset($sum);
+
+        return ['santriStatus' => $santriStatus, 'kelasSummary' => $kelasSummary];
     }
 
     public function index($semester = null)
@@ -947,6 +1037,9 @@ class Rapor extends BaseController
             ];
         }
 
+        // Hitung status kelengkapan pengisian nilai per santri & per kelas
+        $nilaiStatusData = $this->getStatusPengisianNilaiPerKelas($IdTpq, $listIdKelas, $IdTahunAjaran, $semester);
+
         $data = [
             'page_title' => 'Rapor Santri',
             'dataKelas' => $dataKelas,
@@ -957,7 +1050,9 @@ class Rapor extends BaseController
             'signatureStatus' => $signatureStatus,
             'currentGuruId' => $IdGuru,
             'raportSettingsMap' => $raportSettingsMap,
-            'bulkSignatureStatus' => $bulkSignatureStatus
+            'bulkSignatureStatus' => $bulkSignatureStatus,
+            'santriNilaiStatus' => $nilaiStatusData['santriStatus'],
+            'kelasNilaiSummary' => $nilaiStatusData['kelasSummary'],
         ];
 
         return view('backend/rapor/index', $data);
@@ -1094,6 +1189,30 @@ class Rapor extends BaseController
                 throw new \Exception('Data santri tidak ditemukan');
             }
 
+            // Pengamanan: pastikan nilai santri sudah terisi semua (kecuali mode preview stream)
+            $isStream = $this->request->getGet('stream') === 'true';
+            $ttdWalasMode = strtolower((string) ($this->request->getGet('ttd_walas') ?? ''));
+            $ttdKepsekMode = strtolower((string) ($this->request->getGet('ttd_kepsek') ?? ''));
+            if (!$isStream) {
+                if (($ttdWalasMode !== '' && !in_array($ttdWalasMode, ['qr', 'manual'], true)) ||
+                    ($ttdKepsekMode !== '' && !in_array($ttdKepsekMode, ['qr', 'manual'], true)) ||
+                    ($ttdWalasMode === '' && $ttdKepsekMode === '')
+                ) {
+                    return redirect()->back()->with('error', 'Silakan pilih metode tanda tangan (TTD dengan QR atau TTD Manual) terlebih dahulu sebelum mencetak rapor.');
+                }
+            }
+            $ttdWalasMode = in_array($ttdWalasMode, ['qr', 'manual'], true) ? $ttdWalasMode : 'qr';
+            $ttdKepsekMode = in_array($ttdKepsekMode, ['qr', 'manual'], true) ? $ttdKepsekMode : 'qr';
+
+            if (!$isStream && !empty($santriData['santri']['IdKelas'])) {
+                $idKelasSantri = $santriData['santri']['IdKelas'];
+                $statusCheck = $this->getStatusPengisianNilaiPerKelas($IdTpq, [$idKelasSantri], $IdTahunAjaran, $semester);
+                $st = $statusCheck['santriStatus'][$IdSantri . '_' . $idKelasSantri] ?? null;
+                if (!$st || !$st['complete']) {
+                    return redirect()->back()->with('error', 'Rapor belum dapat dicetak karena nilai santri ini belum terisi lengkap.');
+                }
+            }
+
             // Ambil tanggal dari query parameter
             $tanggalCetak = $this->request->getGet('tanggal');
             if (empty($tanggalCetak)) {
@@ -1106,7 +1225,7 @@ class Rapor extends BaseController
             $batasanPeringkat = !empty($batasanPeringkat) ? (int)$batasanPeringkat : null;
 
             // Siapkan data untuk view rapor dengan tanggal yang sudah ditentukan
-            $data = $this->prepareRaporData($santriData, $IdTpq, $IdTahunAjaran, $semester, $tanggalCetak, $batasanPeringkat);
+            $data = $this->prepareRaporData($santriData, $IdTpq, $IdTahunAjaran, $semester, $tanggalCetak, $batasanPeringkat, $ttdWalasMode, $ttdKepsekMode);
 
             // Load view untuk PDF
             $html = view('backend/rapor/print', $data);
@@ -1180,20 +1299,52 @@ class Rapor extends BaseController
                 'Active' => 1
             ])->findAll();
 
+            // Filter santri terpilih jika parameter santri_ids dikirim
+            $santriIdsParam = $this->request->getGet('santri_ids');
+            if (!empty($santriIdsParam)) {
+                $selectedIds = array_values(array_filter(array_map('trim', explode(',', (string)$santriIdsParam))));
+                $listSantri = array_values(array_filter($listSantri, static function ($s) use ($selectedIds) {
+                    $sid = is_object($s) ? $s->IdSantri : $s['IdSantri'];
+                    return in_array((string)$sid, $selectedIds, true);
+                }));
+            }
+
             if (empty($listSantri)) {
-                throw new \Exception('Tidak ada santri dalam kelas ini');
+                throw new \Exception('Tidak ada santri yang dipilih untuk dicetak');
+            }
+
+            // Pengamanan: pastikan nilai seluruh santri yang akan dicetak sudah terisi lengkap
+            $statusCheck = $this->getStatusPengisianNilaiPerKelas($IdTpq, [$IdKelas], $IdTahunAjaran, $semester);
+            $belumLengkapCount = 0;
+            foreach ($listSantri as $s) {
+                $sid = is_object($s) ? $s->IdSantri : $s['IdSantri'];
+                $st = $statusCheck['santriStatus'][$sid . '_' . $IdKelas] ?? null;
+                if (!$st || !$st['complete']) {
+                    $belumLengkapCount++;
+                }
+            }
+            if ($belumLengkapCount > 0) {
+                throw new \Exception("Rapor belum dapat dicetak karena masih ada {$belumLengkapCount} santri terpilih yang nilainya belum lengkap.");
             }
 
             $totalSantri = count($listSantri);
             $format = strtolower((string) ($this->request->getGet('format') ?? 'pdf'));
+            $ttdWalasMode = strtolower((string) ($this->request->getGet('ttd_walas') ?? ''));
+            $ttdKepsekMode = strtolower((string) ($this->request->getGet('ttd_kepsek') ?? ''));
+            if ($ttdWalasMode === '' && $ttdKepsekMode === '') {
+                throw new \Exception('Silakan pilih metode tanda tangan (TTD dengan QR atau TTD Manual) terlebih dahulu.');
+            }
+            $ttdWalasMode = in_array($ttdWalasMode, ['qr', 'manual'], true) ? $ttdWalasMode : 'qr';
+            $ttdKepsekMode = in_array($ttdKepsekMode, ['qr', 'manual'], true) ? $ttdKepsekMode : 'qr';
+
             log_message('info', "Rapor: printPdfBulk - Memproses {$totalSantri} santri untuk kelas {$IdKelas} (format: {$format})");
 
             if ($format === 'pdf') {
-                return $this->printPdfBulkSingle($listSantri, $IdKelas, $IdTpq, $IdTahunAjaran, $semester, $tanggalCetak, $batasanPeringkat);
+                return $this->printPdfBulkSingle($listSantri, $IdKelas, $IdTpq, $IdTahunAjaran, $semester, $tanggalCetak, $batasanPeringkat, $ttdWalasMode, $ttdKepsekMode);
             }
 
             // Gunakan metode zip untuk stabilitas di webserver
-            return $this->printPdfBulkZip($listSantri, $IdKelas, $IdTpq, $IdTahunAjaran, $semester, $tanggalCetak, $batasanPeringkat);
+            return $this->printPdfBulkZip($listSantri, $IdKelas, $IdTpq, $IdTahunAjaran, $semester, $tanggalCetak, $batasanPeringkat, $ttdWalasMode, $ttdKepsekMode);
         } catch (\Exception $e) {
             log_message('error', 'Rapor: printPdfBulk - Error: ' . $e->getMessage());
             log_message('error', 'Rapor: printPdfBulk - Stack trace: ' . $e->getTraceAsString());
@@ -1204,7 +1355,7 @@ class Rapor extends BaseController
     /**
      * Print PDF bulk menjadi 1 file PDF gabungan untuk seluruh santri dalam kelas.
      */
-    private function printPdfBulkSingle($listSantri, $IdKelas, $IdTpq, $IdTahunAjaran, $semester, $tanggalCetak, $batasanPeringkat = null)
+    private function printPdfBulkSingle($listSantri, $IdKelas, $IdTpq, $IdTahunAjaran, $semester, $tanggalCetak, $batasanPeringkat = null, $ttdWalasMode = 'qr', $ttdKepsekMode = 'qr')
     {
         $combinedStyles = '';
         $bodyChunks = [];
@@ -1221,7 +1372,7 @@ class Rapor extends BaseController
                     $namaKelasLabel = preg_replace('/[^a-zA-Z0-9_-]/', '_', str_replace(' ', '_', $santriData['santri']['NamaKelas']));
                 }
 
-                $data = $this->prepareRaporData($santriData, $IdTpq, $IdTahunAjaran, $semester, $tanggalCetak, $batasanPeringkat);
+                $data = $this->prepareRaporData($santriData, $IdTpq, $IdTahunAjaran, $semester, $tanggalCetak, $batasanPeringkat, $ttdWalasMode, $ttdKepsekMode);
                 $html = view('backend/rapor/print', $data);
 
                 if ($combinedStyles === '' && preg_match('/<head>(.*?)<\/head>/s', $html, $headMatch)) {
@@ -1267,7 +1418,7 @@ class Rapor extends BaseController
      * Print PDF bulk dengan metode zip (satu per satu lalu di-zip)
      * Lebih stabil untuk webserver karena memory usage lebih rendah
      */
-    private function printPdfBulkZip($listSantri, $IdKelas, $IdTpq, $IdTahunAjaran, $semester, $tanggalCetak, $batasanPeringkat = null)
+    private function printPdfBulkZip($listSantri, $IdKelas, $IdTpq, $IdTahunAjaran, $semester, $tanggalCetak, $batasanPeringkat = null, $ttdWalasMode = 'qr', $ttdKepsekMode = 'qr')
     {
         // Buat temporary directory untuk menyimpan PDF
         $tempDir = sys_get_temp_dir() . '/rapor_bulk_' . uniqid();
@@ -1295,7 +1446,7 @@ class Rapor extends BaseController
                     }
 
                     // Siapkan data untuk view rapor
-                    $data = $this->prepareRaporData($santriData, $IdTpq, $IdTahunAjaran, $semester, $tanggalCetak);
+                    $data = $this->prepareRaporData($santriData, $IdTpq, $IdTahunAjaran, $semester, $tanggalCetak, $batasanPeringkat, $ttdWalasMode, $ttdKepsekMode);
 
                     // Load view untuk PDF
                     $html = view('backend/rapor/print', $data);
