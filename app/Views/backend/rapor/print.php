@@ -131,6 +131,16 @@ helper('nilai');
                 max-height: 136px;
             }
         }
+
+        .qr-footer {
+            margin-top: 14px;
+            padding-top: 6px;
+            border-top: 1px solid #ccc;
+            font-size: 8.5px;
+            color: #555;
+            text-align: center;
+            page-break-inside: avoid;
+        }
     </style>
 </head>
 
@@ -483,6 +493,16 @@ helper('nilai');
             <td colspan="5" style="padding: 4px 5px; text-align: center;">( <?= $santri['StatusAyah'] == 'Masih Hidup' ? htmlspecialchars(toTitleCase($santri['NamaAyah'])) : ($santri['NamaWali'] ? htmlspecialchars(toTitleCase($santri['NamaWali'])) : '...........................') ?> )</td>
         </tr>
     </table>
+
+    <?php
+    $hasKepsekQr = !empty($kepsekSignature['QrCode']) && file_exists(FCPATH . 'uploads/qr/' . $kepsekSignature['QrCode']);
+    $hasWalasQr = !empty($walasSignature['QrCode']) && file_exists(FCPATH . 'uploads/qr/' . $walasSignature['QrCode']);
+    if ($hasKepsekQr || $hasWalasQr):
+    ?>
+        <div class="qr-footer">
+            Dokumen ini disahkan secara elektronik melalui sistem <strong>tpqsmart.simpedis.com</strong>. Pindai QR Code untuk memverifikasi keaslian.
+        </div>
+    <?php endif; ?>
 </body>
 
 </html>
