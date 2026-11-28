@@ -51,6 +51,78 @@ class Signature extends BaseController
     }
 
     /**
+     * Verifikasi publik Sertifikat Penghargaan via QR Code.
+     * URL: /signature/verifikasi/{token}
+     */
+    public function verifikasi($token = null)
+    {
+        try {
+            if (empty($token)) {
+                return view('frontend/signature/invalid', [
+                    'type'    => 'danger',
+                    'title'   => 'Token Tidak Valid',
+                    'message' => 'Kode verifikasi tidak ditemukan.',
+                ]);
+            }
+
+            $signature = $this->signatureModel
+                ->where('Token', $token)
+                ->where('JenisDokumen', 'Sertifikat')
+                ->first();
+
+            if (!$signature) {
+                return view('frontend/signature/invalid', [
+                    'type'    => 'danger',
+                    'title'   => 'Sertifikat Tidak Terdaftar',
+                    'message' => 'QR Code verifikasi sertifikat tidak terdaftar dalam sistem.',
+                ]);
+            }
+
+            if (($signature['StatusValidasi'] ?? '') !== 'Valid') {
+                return view('frontend/signature/invalid', [
+                    'type'    => 'warning',
+                    'title'   => 'Tanda Tangan Tidak Valid',
+                    'message' => 'Tanda tangan digital sertifikat ini telah dibatalkan atau dicabut.',
+                ]);
+            }
+
+            $sigMeta    = json_decode((string) ($signature['SignatureData'] ?? '{}'), true) ?: [];
+            $idPenerima = (int) ($sigMeta['IdPenerima'] ?? 0);
+
+            $db       = \Config\Database::connect();
+            $penerima = $db->table('tbl_penghargaan_penerima p')
+                ->select('p.*, s.IdTahunAjaran, s.Semester, s.Momen, s.Status as StatusSertifikat, s.TanggalRelease, j.Kode, j.NamaPenghargaan, sb.NamaSantri, sb.NISN, k.NamaKelas, t.NamaTpq')
+                ->join('tbl_penghargaan_sertifikat s', 's.Id = p.IdSertifikat')
+                ->join('tbl_penghargaan_jenis j', 'j.Id = s.IdJenis', 'left')
+                ->join('tbl_santri_baru sb', 'sb.IdSantri = p.IdSantri', 'left')
+                ->join('tbl_kelas k', 'k.IdKelas = p.IdKelas', 'left')
+                ->join('tbl_tpq t', 't.IdTpq = p.IdTpq', 'left')
+                ->where('p.Id', $idPenerima)
+                ->get()
+                ->getRowArray();
+
+            if (!$penerima || ($penerima['StatusSertifikat'] ?? '') === 'dibatal') {
+                return view('frontend/signature/invalid', [
+                    'type'    => 'warning',
+                    'title'   => 'Sertifikat Dicabut',
+                    'message' => 'Sertifikat penghargaan ini telah dibatalkan atau dicabut oleh lembaga.',
+                ]);
+            }
+
+            return view('frontend/signature/valid_sertifikat', [
+                'signature' => $signature,
+                'sigMeta'   => $sigMeta,
+                'penerima'  => $penerima,
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'Certificate verification failed: ' . $e->getMessage());
+            return view('frontend/signature/invalid', [
+                'message' => 'Terjadi kesalahan saat memverifikasi sertifikat.',
+            ]);
+        }
+    }
+
+    /**
      * Validasi Keaslian Surat via Token Unik 10 Karakter (Clean URL)
      * URL: /signature/v/{token10}
      */

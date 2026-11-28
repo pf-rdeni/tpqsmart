@@ -1080,6 +1080,80 @@
                         </ul>
 
                     </li>
+                    <?php if (in_groups('Admin') || $isActiveOperator || $isActiveKepalaTpq): ?>
+                        <!-- Penghargaan -->
+                        <li class="nav-item no-hover">
+                            <a href="#" class="nav-link">
+                                <i class="nav-icon fas fa-award"></i>
+                                <p>
+                                    Penghargaan
+                                    <i class="right fas fa-angle-left"></i>
+                                </p>
+                            </a>
+                            <ul class="nav nav-treeview" style="display: none;">
+                                <li class="nav-item">
+                                    <a href="<?= base_url('backend/penghargaan/dashboard') ?>" class="nav-link">
+                                        <i class="fas fa-tachometer-alt nav-icon text-info"></i>
+                                        <p>Dashboard</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="<?= base_url('backend/penghargaan/jenis') ?>" class="nav-link">
+                                        <i class="fas fa-tags nav-icon text-info"></i>
+                                        <p>Jenis Penghargaan</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="<?= base_url('backend/penghargaan/kriteria') ?>" class="nav-link">
+                                        <i class="fas fa-sliders-h nav-icon text-info"></i>
+                                        <p>Kriteria & Threshold</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="<?= base_url('backend/penghargaan/jenjang') ?>" class="nav-link">
+                                        <i class="fas fa-layer-group nav-icon text-info"></i>
+                                        <p>Jenjang Kelas</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="<?= base_url('backend/penghargaan/ttd-config') ?>" class="nav-link">
+                                        <i class="fas fa-signature nav-icon text-info"></i>
+                                        <p>Setting TTD</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="<?= base_url('backend/penghargaan/template') ?>" class="nav-link">
+                                        <i class="fas fa-palette nav-icon text-info"></i>
+                                        <p>Template Desain</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="<?= base_url('backend/penghargaan/generate') ?>" class="nav-link">
+                                        <i class="fas fa-magic nav-icon text-success"></i>
+                                        <p>Generate Penghargaan</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="<?= base_url('backend/penghargaan/sertifikat') ?>" class="nav-link">
+                                        <i class="fas fa-certificate nav-icon text-success"></i>
+                                        <p>Daftar Sertifikat</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="<?= base_url('backend/penghargaan/laporan') ?>" class="nav-link">
+                                        <i class="fas fa-chart-pie nav-icon text-info"></i>
+                                        <p>Laporan & Rekap</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="<?= base_url('backend/penghargaan/setting') ?>" class="nav-link">
+                                        <i class="fas fa-cog nav-icon text-secondary"></i>
+                                        <p>Setting Global</p>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                    <?php endif; ?>
                     <?php if (!$isSekretaris): ?>
                     <!-- Extra -->
                     <li class="nav-item">
@@ -1788,6 +1862,36 @@
                                 <?php endif; ?>
                             </ul>
                         </li>
+                        <!-- Penghargaan (Untuk Guru) -->
+                        <li class="nav-item no-hover">
+                            <a href="#" class="nav-link">
+                                <i class="nav-icon fas fa-award"></i>
+                                <p>
+                                    Penghargaan
+                                    <i class="right fas fa-angle-left"></i>
+                                </p>
+                            </a>
+                            <ul class="nav nav-treeview" style="display: none;">
+                                <li class="nav-item">
+                                    <a href="<?= base_url('backend/penghargaan/dashboard') ?>" class="nav-link">
+                                        <i class="fas fa-tachometer-alt nav-icon text-info"></i>
+                                        <p>Dashboard</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="<?= base_url('backend/penghargaan/generate') ?>" class="nav-link">
+                                        <i class="fas fa-magic nav-icon text-success"></i>
+                                        <p>Generate Kelas</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="<?= base_url('backend/penghargaan/sertifikat') ?>" class="nav-link">
+                                        <i class="fas fa-certificate nav-icon text-success"></i>
+                                        <p>Sertifikat Kelas Saya</p>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
                     <?php endif; ?>
 
                     <!-- Menu Ujian MDTA (Untuk Guru) -->
@@ -1882,6 +1986,12 @@
                                 <a href="<?= base_url('backend/santri/showKontakSantri') ?>" class="nav-link">
                                     <i class="fas fa-phone nav-icon text-warning"></i>
                                     <p>Kontak Santri</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="<?= base_url('backend/penghargaan/portal-santri') ?>" class="nav-link">
+                                    <i class="fas fa-award nav-icon text-success"></i>
+                                    <p>Penghargaan Saya</p>
                                 </a>
                             </li>
                         </ul>

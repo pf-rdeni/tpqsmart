@@ -1116,7 +1116,72 @@ $routes->post('backend/administrasi/surat-masuk/delete/(:num)', 'Backend\Adminis
 // Validasi Keaslian Surat Publik (Fase 3) & Token 10 Karakter Bersih
 $routes->get('signature/verify/(:segment)', 'Backend\Signature::verifyToken/$1');
 $routes->get('signature/v/(:segment)', 'Backend\Signature::verifyToken/$1');
+$routes->get('signature/verifikasi/(:segment)', 'Backend\Signature::verifikasi/$1');
 $routes->get('signature/validateSurat/(:num)', 'Backend\Signature::validateSurat/$1');
+
+// ============================================================
+// MODUL SERTIFIKAT & PENGHARGAAN DINAMIS
+// ============================================================
+$routes->get('backend/penghargaan/dashboard', 'Backend\Penghargaan\PenghargaanDashboard::index');
+$routes->get('backend/penghargaan/setting', 'Backend\Penghargaan\PenghargaanDashboard::setting');
+$routes->post('backend/penghargaan/setting/save', 'Backend\Penghargaan\PenghargaanDashboard::saveSetting');
+
+// Jenis Penghargaan
+$routes->get('backend/penghargaan/jenis', 'Backend\Penghargaan\PenghargaanJenis::index');
+$routes->post('backend/penghargaan/jenis/store', 'Backend\Penghargaan\PenghargaanJenis::store');
+$routes->post('backend/penghargaan/jenis/update/(:num)', 'Backend\Penghargaan\PenghargaanJenis::update/$1');
+$routes->post('backend/penghargaan/jenis/toggle/(:num)', 'Backend\Penghargaan\PenghargaanJenis::toggleActive/$1');
+$routes->post('backend/penghargaan/jenis/delete/(:num)', 'Backend\Penghargaan\PenghargaanJenis::delete/$1');
+
+// Kriteria & Threshold
+$routes->get('backend/penghargaan/kriteria', 'Backend\Penghargaan\PenghargaanKriteria::index');
+$routes->post('backend/penghargaan/kriteria/save', 'Backend\Penghargaan\PenghargaanKriteria::save');
+
+// Jenjang Kelas
+$routes->get('backend/penghargaan/jenjang', 'Backend\Penghargaan\PenghargaanJenjang::index');
+$routes->post('backend/penghargaan/jenjang/store', 'Backend\Penghargaan\PenghargaanJenjang::store');
+$routes->post('backend/penghargaan/jenjang/delete/(:num)', 'Backend\Penghargaan\PenghargaanJenjang::delete/$1');
+
+// Generate Penghargaan (Phase 3)
+$routes->get('backend/penghargaan/generate', 'Backend\Penghargaan\PenghargaanGenerate::index');
+$routes->post('backend/penghargaan/generate/preview', 'Backend\Penghargaan\PenghargaanGenerate::preview');
+$routes->post('backend/penghargaan/generate/store', 'Backend\Penghargaan\PenghargaanGenerate::store');
+
+// Setting TTD Penandatangan (Phase 4)
+$routes->get('backend/penghargaan/ttd-config', 'Backend\Penghargaan\PenghargaanTtdConfig::index');
+$routes->get('backend/penghargaan/ttd-config/form/(:num)', 'Backend\Penghargaan\PenghargaanTtdConfig::form/$1');
+$routes->post('backend/penghargaan/ttd-config/save/(:num)', 'Backend\Penghargaan\PenghargaanTtdConfig::save/$1');
+
+// Template Desain Sertifikat (Phase 5)
+$routes->get('backend/penghargaan/template', 'Backend\Penghargaan\PenghargaanTemplate::index');
+$routes->post('backend/penghargaan/template/store', 'Backend\Penghargaan\PenghargaanTemplate::store');
+$routes->get('backend/penghargaan/template/editor/(:num)', 'Backend\Penghargaan\PenghargaanTemplate::editor/$1');
+$routes->post('backend/penghargaan/template/save-fields/(:num)', 'Backend\Penghargaan\PenghargaanTemplate::saveFields/$1');
+$routes->get('backend/penghargaan/template/preview/(:num)', 'Backend\Penghargaan\PenghargaanTemplate::preview/$1');
+$routes->post('backend/penghargaan/template/duplicate/(:num)', 'Backend\Penghargaan\PenghargaanTemplate::duplicate/$1');
+$routes->post('backend/penghargaan/template/select/(:num)', 'Backend\Penghargaan\PenghargaanTemplate::select/$1');
+$routes->post('backend/penghargaan/template/delete/(:num)', 'Backend\Penghargaan\PenghargaanTemplate::delete/$1');
+
+// Daftar, Release & Cetak Sertifikat (Phase 6)
+$routes->get('backend/penghargaan/sertifikat', 'Backend\Penghargaan\PenghargaanSertifikat::index');
+$routes->get('backend/penghargaan/sertifikat/detail/(:num)', 'Backend\Penghargaan\PenghargaanSertifikat::detail/$1');
+$routes->post('backend/penghargaan/sertifikat/set-template/(:num)', 'Backend\Penghargaan\PenghargaanSertifikat::setTemplate/$1');
+$routes->post('backend/penghargaan/sertifikat/set-tanggal/(:num)', 'Backend\Penghargaan\PenghargaanSertifikat::setTanggal/$1');
+$routes->post('backend/penghargaan/sertifikat/release/(:num)', 'Backend\Penghargaan\PenghargaanSertifikat::release/$1');
+$routes->post('backend/penghargaan/sertifikat/cancel/(:num)', 'Backend\Penghargaan\PenghargaanSertifikat::cancel/$1');
+$routes->get('backend/penghargaan/sertifikat/cetak/(:num)', 'Backend\Penghargaan\PenghargaanSertifikat::cetakIndividual/$1');
+$routes->get('backend/penghargaan/sertifikat/cetak-bulk/(:num)', 'Backend\Penghargaan\PenghargaanSertifikat::cetakBulk/$1');
+$routes->get('backend/penghargaan/sertifikat/cetak-zip/(:num)', 'Backend\Penghargaan\PenghargaanSertifikat::cetakZip/$1');
+
+// Portal Santri (Phase 6)
+$routes->get('backend/penghargaan/portal-santri', 'Backend\Penghargaan\PenghargaanSertifikat::portalSantri');
+$routes->get('backend/penghargaan/portal-santri/preview/(:num)', 'Backend\Penghargaan\PenghargaanSertifikat::portalPreview/$1');
+$routes->get('backend/penghargaan/portal-santri/download/(:num)', 'Backend\Penghargaan\PenghargaanSertifikat::portalDownload/$1');
+
+// Laporan, Rekap & Audit (Phase 7)
+$routes->get('backend/penghargaan/laporan', 'Backend\Penghargaan\PenghargaanLaporan::index');
+$routes->get('backend/penghargaan/laporan/export-csv', 'Backend\Penghargaan\PenghargaanLaporan::exportCsv');
+$routes->get('backend/penghargaan/laporan/export-pdf', 'Backend\Penghargaan\PenghargaanLaporan::exportPdf');
 
 $routes->get('logout', 'Dashboard::logout');
 
