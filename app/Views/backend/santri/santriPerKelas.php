@@ -90,8 +90,15 @@
     </div>
 
     <div class="card">
-        <div class="card-header">
-            <h3 class="card-title">List Santri TPQ Per Kelas</h3>
+        <div class="card-header d-flex flex-wrap justify-content-between align-items-center">
+            <h3 class="card-title mb-2 mb-md-0">List Santri TPQ Per Kelas - Semester <?= htmlspecialchars($semester) ?> - Tahun Ajaran <?= convertTahunAjaran(session()->get('IdTahunAjaran')) ?></h3>
+            <div class="d-flex align-items-center ml-auto">
+                <label for="filterSemesterInputNilai" class="mb-0 mr-2 font-weight-normal text-sm">Pilih Semester:</label>
+                <select id="filterSemesterInputNilai" class="form-control form-control-sm" style="width: auto;" onchange="window.location.href='<?= base_url('backend/nilai/showSantriPerKelas') ?>/' + this.value;">
+                    <option value="Ganjil" <?= ($semester === 'Ganjil') ? 'selected' : '' ?>>Semester Ganjil</option>
+                    <option value="Genap" <?= ($semester === 'Genap') ? 'selected' : '' ?>>Semester Genap</option>
+                </select>
+            </div>
         </div>
         <!-- /.card-header -->
         <div class="card-body">

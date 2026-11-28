@@ -105,15 +105,14 @@
     </div>
 
     <div class="card">
-        <div class="card-header">
-            <h3 class="card-title">Rangking Santri Per Kelas - Semester <?= $semester ?></h3>
-            <div class="card-tools">
-                <a href="<?= base_url('backend/nilai/showRanking/Ganjil') ?>" class="btn btn-warning btn-sm <?= $semester == 'Ganjil' ? 'active' : '' ?>">
-                    Semester Ganjil
-                </a>
-                <a href="<?= base_url('backend/nilai/showRanking/Genap') ?>" class="btn btn-info btn-sm <?= $semester == 'Genap' ? 'active' : '' ?>">
-                    Semester Genap
-                </a>
+        <div class="card-header d-flex flex-wrap justify-content-between align-items-center">
+            <h3 class="card-title mb-2 mb-md-0">Rangking Santri Per Kelas - Semester <?= htmlspecialchars($semester) ?> - Tahun Ajaran <?= convertTahunAjaran(session()->get('IdTahunAjaran')) ?></h3>
+            <div class="d-flex align-items-center ml-auto">
+                <label for="filterSemesterRanking" class="mb-0 mr-2 font-weight-normal text-sm">Pilih Semester:</label>
+                <select id="filterSemesterRanking" class="form-control form-control-sm" style="width: auto;" onchange="window.location.href='<?= base_url('backend/nilai/showRanking') ?>/' + this.value;">
+                    <option value="Ganjil" <?= ($semester === 'Ganjil') ? 'selected' : '' ?>>Semester Ganjil</option>
+                    <option value="Genap" <?= ($semester === 'Genap') ? 'selected' : '' ?>>Semester Genap</option>
+                </select>
             </div>
         </div>
         <!-- /.card-header -->

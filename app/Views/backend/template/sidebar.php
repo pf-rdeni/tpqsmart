@@ -1676,80 +1676,22 @@
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a href="#" class="nav-link no-hover">
+                                    <a href="<?= base_url('backend/nilai/showSantriPerKelas') ?>" class="nav-link">
                                         <i class="fas fa-pen nav-icon text-warning"></i>
-                                        <p>Input Nilai
-                                            <i class="right fas fa-angle-left"></i>
-                                        </p>
+                                        <p>Input Nilai</p>
                                     </a>
-                                    <ul class="nav nav-treeview" style="display: none;">
-                                        <li class="nav-item">
-                                            <a href=<?php
-
-                                                    echo base_url('backend/nilai/showSantriPerKelas' . '/' . 'Ganjil') ?> class="nav-link">
-                                                <i class="far fa-dot-circle nav-icon text-warning"></i>
-                                                <p>Semester Ganjil</p>
-                                            </a>
-                                        </li>
-                                        <li class="nav-item">
-                                            <a href=<?php
-
-                                                    echo base_url('backend/nilai/showSantriPerKelas' . '/' . 'Genap') ?> class="nav-link">
-                                                <i class="far fa-dot-circle nav-icon text-info"></i>
-                                                <p>Semester Genap</p>
-                                            </a>
-                                        </li>
-                                    </ul>
                                 </li>
                                 <li class="nav-item">
-                                    <a href="#" class="nav-link no-hover">
+                                    <a href="<?= base_url('backend/nilai/showDetailNilaiSantriPerKelas') ?>" class="nav-link">
                                         <i class="fas fa-list-ol nav-icon text-warning"></i>
-                                        <p>Detail Nilai
-                                            <i class="right fas fa-angle-left"></i>
-                                        </p>
+                                        <p>Detail Nilai</p>
                                     </a>
-                                    <ul class="nav nav-treeview" style="display: none;">
-                                        <li class="nav-item">
-                                            <a href=<?php
-
-                                                    echo base_url('backend/nilai/showDetailNilaiSantriPerKelas' . '/' . 'Ganjil') ?> class="nav-link">
-                                                <i class="far fa-dot-circle nav-icon text-warning"></i>
-                                                <p>Semester Ganjil</p>
-                                            </a>
-                                        </li>
-                                        <li class="nav-item">
-                                            <a href=<?php
-
-                                                    echo base_url('backend/nilai/showDetailNilaiSantriPerKelas' . '/' . 'Genap') ?> class="nav-link">
-                                                <i class="far fa-dot-circle nav-icon text-info"></i>
-                                                <p>Semester Genap</p>
-                                            </a>
-                                        </li>
-                                    </ul>
                                 </li>
                                 <li class="nav-item">
-                                    <a href="#" class="nav-link no-hover">
+                                    <a href="<?= base_url('backend/nilai/showRanking') ?>" class="nav-link">
                                         <i class="fas fa-sort-numeric-down nav-icon text-warning"></i>
-                                        <p>Rangking Kelas
-                                            <i class="right fas fa-angle-left"></i>
-                                        </p>
+                                        <p>Rangking Kelas</p>
                                     </a>
-                                    <ul class="nav nav-treeview" style="display: none;">
-                                        <li class="nav-item">
-                                            <a href=<?php
-                                                    echo base_url('backend/nilai/showRanking' . '/' . 'Ganjil') ?> class="nav-link">
-                                                <i class="far fa-dot-circle nav-icon text-warning"></i>
-                                                <p>Semester Ganjil</p>
-                                            </a>
-                                        </li>
-                                        <li class="nav-item">
-                                            <a href=<?php
-                                                    echo base_url('backend/nilai/showRanking' . '/' . 'Genap') ?> class="nav-link">
-                                                <i class="far fa-dot-circle nav-icon text-info"></i>
-                                                <p>Semester Genap</p>
-                                            </a>
-                                        </li>
-                                    </ul>
                                 </li>
                                 <li class="nav-item">
                                     <a href="#" class="nav-link no-hover">

@@ -233,6 +233,17 @@ class Nilai extends BaseController
 
     public function showSantriPerKelas($semester = null)
     {
+        // Cek query parameter ?semester=Ganjil|Genap jika ada
+        $querySemester = $this->request->getGet('semester');
+        if (in_array($querySemester, ['Ganjil', 'Genap'], true)) {
+            $semester = $querySemester;
+        }
+
+        // Default ke semester saat ini sesuai rentang tanggal jika tidak dipilih manual
+        if (!in_array($semester, ['Ganjil', 'Genap'], true)) {
+            $semester = $this->helpFunction->getSemesterSaatIni();
+        }
+
         $IdGuru = session()->get('IdGuru');
         $IdKelas = session()->get('IdKelas');
         $IdTahunAjaran = session()->get('IdTahunAjaran');
@@ -733,21 +744,17 @@ class Nilai extends BaseController
         ]);
     }
 
-    public function showDetailNilaiSantriPerKelas($semester = null)
+    private function prepareDetailNilaiData($semester)
     {
-        // ambil IdTpq dari session
         $IdKelas = session()->get('IdKelas');
         $IdTahunAjaran = session()->get('IdTahunAjaran');
-
         $IdTpq = $this->IdTpq;
 
-
-        // Buat querry dari tbl_nilai dengan menggabungkan tbl_santri_baru dan tbl_kelas
+        // Buat query dari tbl_nilai dengan menggabungkan tbl_santri_baru dan tbl_kelas
         $datanilai = $this->DataNilai->getDataNilaiPerKelas($IdTpq, $IdKelas, $IdTahunAjaran, $semester);
 
         // Konversi nama kelas menjadi MDA jika sesuai dengan mapping
         $dataKelas = [];
-        $mdaKelasIds = [];
         foreach ($datanilai as $key => $nilai) {
             $namaKelasOriginal = $nilai['Nama Kelas'];
 
@@ -773,34 +780,133 @@ class Nilai extends BaseController
             $dataMateri[$idKelas] = $this->helpFunction->getMateriPelajaranByKelas($IdTpq, $idKelas, $semester);
         }
 
-        // ambil settingan nilai minimun dan maksimal dari session
+        // Ambil settingan nilai minimum dan maksimum dari session
         $settingNilai = (object)[
             'NilaiMin' => session()->get('SettingNilaiMin'),
             'NilaiMax' => session()->get('SettingNilaiMax')
         ];
 
-        // ambil jika settingan nilai alfabetic dari session
+        // Ambil settingan nilai alfabetic dari session
         $nilaiAlphabetEnabled = session()->get('SettingNilaiAlphabet') ?? false;
-
         if ($nilaiAlphabetEnabled) {
-            // Jika alphabet enabled, ambil detail settings
             $settingNilai->NilaiAlphabet = $this->helpFunction->getNilaiAlphabetSettings($this->IdTpq);
         } else {
             $settingNilai->NilaiAlphabet = false;
         }
 
-        // ambil jika nilai settingan angka arabic dari tbl_tools 
+        // Ambil settingan angka arabic dari tbl_tools
         $settingNilai->NilaiArabic = session()->get('SettingNilaiArabic') ?? false;
 
-        $data = [
-            'page_title' => 'Data Nilai Santri Per Kelas',
+        return [
+            'IdTpq' => $IdTpq,
+            'IdTahunAjaran' => $IdTahunAjaran,
             'dataKelas' => $dataKelas,
             'dataNilai' => $datanilai,
             'dataMateri' => $dataMateri,
             'settingNilai' => $settingNilai,
         ];
+    }
+
+    public function showDetailNilaiSantriPerKelas($semester = null)
+    {
+        // Cek query parameter ?semester=Ganjil|Genap jika ada
+        $querySemester = $this->request->getGet('semester');
+        if (in_array($querySemester, ['Ganjil', 'Genap'], true)) {
+            $semester = $querySemester;
+        }
+
+        // Default ke semester saat ini sesuai rentang tanggal jika tidak dipilih manual
+        if (!in_array($semester, ['Ganjil', 'Genap'], true)) {
+            $semester = $this->helpFunction->getSemesterSaatIni();
+        }
+
+        $detailData = $this->prepareDetailNilaiData($semester);
+
+        $data = [
+            'page_title' => 'Data Nilai Santri Per Kelas',
+            'semester' => $semester,
+            'dataKelas' => $detailData['dataKelas'],
+            'dataNilai' => $detailData['dataNilai'],
+            'dataMateri' => $detailData['dataMateri'],
+            'settingNilai' => $detailData['settingNilai'],
+        ];
 
         return view('backend/nilai/nilaiSantriDetailPerKelas', $data);
+    }
+
+    public function exportDetailNilai()
+    {
+        $semester = $this->request->getGet('semester');
+        if (!in_array($semester, ['Ganjil', 'Genap'], true)) {
+            $semester = $this->helpFunction->getSemesterSaatIni();
+        }
+
+        $format = $this->request->getGet('format') === 'excel' ? 'excel' : 'pdf';
+        $model = $this->request->getGet('model') === 'b' ? 'b' : 'a';
+        $paper = strtoupper((string)$this->request->getGet('paper')) === 'A4' ? 'A4' : 'F4';
+        $orientation = $this->request->getGet('orientation') === 'portrait' ? 'portrait' : 'landscape';
+        $kelasFilter = $this->request->getGet('kelas') ?: 'all';
+        $showSummary = $this->request->getGet('show_summary') !== '0';
+        $showNis = $this->request->getGet('show_nis') === '1';
+        $fontSize = (int)($this->request->getGet('font_size') ?: 9);
+
+        $detailData = $this->prepareDetailNilaiData($semester);
+        $selectedKelas = $detailData['dataKelas'];
+        if ($kelasFilter !== 'all' && isset($selectedKelas[$kelasFilter])) {
+            $selectedKelas = [$kelasFilter => $selectedKelas[$kelasFilter]];
+        }
+
+        $tpqRow = $this->db->table('tbl_tpq')->select('NamaTpq')->where('IdTpq', $detailData['IdTpq'])->get()->getRowArray();
+        $namaTpq = $tpqRow['NamaTpq'] ?? '';
+
+        $html = view('backend/nilai/exportDetailNilai', [
+            'semester' => $semester,
+            'format' => $format,
+            'model' => $model,
+            'paper' => $paper,
+            'orientation' => $orientation,
+            'showSummary' => $showSummary,
+            'showNis' => $showNis,
+            'fontSize' => $fontSize,
+            'namaTpq' => $namaTpq,
+            'IdTahunAjaran' => $detailData['IdTahunAjaran'],
+            'selectedKelas' => $selectedKelas,
+            'dataNilai' => $detailData['dataNilai'],
+            'dataMateri' => $detailData['dataMateri'],
+            'settingNilai' => $detailData['settingNilai'],
+        ]);
+
+        $fileBase = 'Detail_Nilai_' . $semester . '_Model_' . strtoupper($model) . '_' . $paper;
+
+        if ($format === 'excel') {
+            return $this->response
+                ->setHeader('Content-Type', 'application/vnd.ms-excel; charset=utf-8')
+                ->setHeader('Content-Disposition', 'attachment; filename="' . $fileBase . '.xls"')
+                ->setHeader('Cache-Control', 'max-age=0')
+                ->setBody("\xEF\xBB\xBF" . $html);
+        }
+
+        $options = new \Dompdf\Options();
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('defaultFont', 'Arial Unicode MS');
+        $options->set('isFontSubsettingEnabled', true);
+        $options->set('defaultMediaType', 'print');
+
+        $dompdf = new \Dompdf\Dompdf($options);
+        $dompdf->loadHtml($html);
+        if ($paper === 'A4') {
+            $dompdf->setPaper('A4', $orientation);
+        } else {
+            // F4 (21cm x 33cm) dalam point
+            $dompdf->setPaper([0, 0, 595.276, 935.433], $orientation);
+        }
+        $dompdf->render();
+
+        if (ob_get_level()) {
+            ob_end_clean();
+        }
+        $dompdf->stream($fileBase . '.pdf', ['Attachment' => false]);
+        exit();
     }
 
     public function update($Edit = false)
@@ -1324,10 +1430,15 @@ class Nilai extends BaseController
         $IdGuru = session()->get('IdGuru');
         $IdTahunAjaran = session()->get('IdTahunAjaran');
 
-        // Jika semester tidak diberikan, default ke semester saat ini
-        if ($semester === null) {
-            $currentMonth = (int)date('m');
-            $semester = ($currentMonth >= 7) ? 'Ganjil' : 'Genap';
+        // Cek query parameter ?semester=Ganjil|Genap jika ada
+        $querySemester = $this->request->getGet('semester');
+        if (in_array($querySemester, ['Ganjil', 'Genap'], true)) {
+            $semester = $querySemester;
+        }
+
+        // Default ke semester saat ini sesuai rentang tanggal jika tidak dipilih manual
+        if (!in_array($semester, ['Ganjil', 'Genap'], true)) {
+            $semester = $this->helpFunction->getSemesterSaatIni();
         }
 
         // Cek apakah user adalah Operator

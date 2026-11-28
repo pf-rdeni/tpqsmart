@@ -69,8 +69,7 @@ foreach ($dataNilai as $santri) {
                     <h5 class="mb-3"><i class="fas fa-list-ol text-primary"></i> Alur Proses:</h5>
                     <ol class="mb-4">
                         <li class="mb-2">
-                            <strong>Pilih Semester:</strong> Gunakan tombol <span class="badge badge-warning">Semester Ganjil</span> atau
-                            <span class="badge badge-info">Semester Genap</span> di pojok kanan atas untuk melihat data nilai per semester.
+                            <strong>Pilih Semester:</strong> Gunakan dropdown <strong>Pilih Semester</strong> di pojok kanan atas untuk berpindah antara Semester Ganjil dan Semester Genap.
                         </li>
                         <li class="mb-2">
                             <strong>Pilih Kelas:</strong> Gunakan tab di atas untuk memilih kelas yang ingin dilihat nilai santrinya.
@@ -109,11 +108,19 @@ foreach ($dataNilai as $santri) {
     </div>
 
     <div class="card">
-        <div class="card-header">
-            <h3 class="card-title">List nilai santri</h3>
-            <div class="card-tools">
-                <a href=<?php echo base_url('backend/nilai/showDetailNilaiSantriPerKelas' . '/' . 'Ganjil') ?> class="btn btn-warning btn-sm">Semester Ganjil</a>
-                <a href=<?php echo base_url('backend/nilai/showDetailNilaiSantriPerKelas' . '/' . 'Genap') ?> class="btn btn-info btn-sm">Semester Genap</a>
+        <div class="card-header d-flex flex-wrap justify-content-between align-items-center">
+            <h3 class="card-title mb-2 mb-md-0">List Nilai Santri - Semester <?= htmlspecialchars($semester) ?> - Tahun Ajaran <?= convertTahunAjaran(session()->get('IdTahunAjaran')) ?></h3>
+            <div class="d-flex flex-wrap align-items-center ml-auto" style="gap: 8px;">
+                <button type="button" class="btn btn-primary btn-sm" id="btnOpenCustomPrintModal">
+                    <i class="fas fa-print"></i> Custom Print (PDF / Excel)
+                </button>
+                <div class="d-flex align-items-center">
+                    <label for="filterSemesterNilai" class="mb-0 mr-2 font-weight-normal text-sm">Pilih Semester:</label>
+                    <select id="filterSemesterNilai" class="form-control form-control-sm" style="width: auto;" onchange="window.location.href='<?= base_url('backend/nilai/showDetailNilaiSantriPerKelas') ?>/' + this.value;">
+                        <option value="Ganjil" <?= ($semester === 'Ganjil') ? 'selected' : '' ?>>Semester Ganjil</option>
+                        <option value="Genap" <?= ($semester === 'Genap') ? 'selected' : '' ?>>Semester Genap</option>
+                    </select>
+                </div>
             </div>
         </div>
         <!-- /.card-header -->
@@ -442,6 +449,120 @@ foreach ($dataNilai as $santri) {
     <?php endforeach; ?>
 <?php endforeach; ?>
 
+<!-- Modal Custom Print PDF / Excel -->
+<div class="modal fade" id="modalCustomPrintDetailNilai" tabindex="-1" role="dialog" aria-labelledby="modalCustomPrintLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="modalCustomPrintLabel"><i class="fas fa-print mr-1"></i> Custom Print Detail Nilai (PDF / Excel)</h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Format File</label>
+                            <select id="cpFormat" class="form-control">
+                                <option value="pdf">PDF (Preview / Cetak)</option>
+                                <option value="excel">Excel (.xls)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Kelas</label>
+                            <select id="cpKelas" class="form-control">
+                                <option value="all">Semua Kelas</option>
+                                <?php foreach ($dataKelas as $kelasId => $kelas): ?>
+                                    <option value="<?= htmlspecialchars($kelasId) ?>"><?= htmlspecialchars($kelas) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Pilih Model Format Tabel</label>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="custom-control custom-radio border rounded p-2 pl-4 mb-2">
+                                <input type="radio" id="cpModelA" name="cpModel" class="custom-control-input" value="a" checked>
+                                <label class="custom-control-label d-block" for="cpModelA">
+                                    <strong>Model A</strong> (Baris = Santri, Kolom = Materi)
+                                    <small class="d-block text-muted mt-1">Nama | Materi 1 | Materi 2 | ...</small>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="custom-control custom-radio border rounded p-2 pl-4 mb-2">
+                                <input type="radio" id="cpModelB" name="cpModel" class="custom-control-input" value="b">
+                                <label class="custom-control-label d-block" for="cpModelB">
+                                    <strong>Model B</strong> (Baris = Materi, Kolom = Santri)
+                                    <small class="d-block text-muted mt-1">Materi | Nama X | Nama Y | ...</small>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>Ukuran Kertas</label>
+                            <select id="cpPaper" class="form-control">
+                                <option value="F4" selected>F4 (21 x 33 cm)</option>
+                                <option value="A4">A4 (21 x 29.7 cm)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>Orientasi Kertas</label>
+                            <select id="cpOrientation" class="form-control">
+                                <option value="landscape" selected>Landscape (Mendatar)</option>
+                                <option value="portrait">Portrait (Tegak)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>Ukuran Font</label>
+                            <select id="cpFontSize" class="form-control">
+                                <option value="8">8 pt (Padat)</option>
+                                <option value="9" selected>9 pt (Standar)</option>
+                                <option value="10">10 pt (Besar)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mt-2">
+                    <div class="col-md-6">
+                        <div class="custom-control custom-checkbox">
+                            <input type="checkbox" class="custom-control-input" id="cpShowSummary" checked>
+                            <label class="custom-control-label" for="cpShowSummary">Tampilkan Total &amp; Rata-Rata</label>
+                        </div>
+                    </div>
+                    <div class="col-md-6" id="cpShowNisWrapper">
+                        <div class="custom-control custom-checkbox">
+                            <input type="checkbox" class="custom-control-input" id="cpShowNis">
+                            <label class="custom-control-label" for="cpShowNis">Tampilkan NIS / ID Santri</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
+                <button type="button" class="btn btn-primary" id="btnEksekusiCustomPrint">
+                    <i class="fas fa-file-export mr-1"></i> Export / Cetak
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <?= $this->endSection(); ?>
 
 <?= $this->section('scripts'); ?>
@@ -666,6 +787,49 @@ foreach ($dataNilai as $santri) {
                 }
             });
         <?php endforeach; ?>
+
+        // Custom Print Modal Handlers
+        $('#btnOpenCustomPrintModal').on('click', function() {
+            const activeTab = $('#kelasTab .nav-link.active');
+            if (activeTab.length) {
+                const activeKelasId = activeTab.attr('id').replace('tab-', '');
+                if ($('#cpKelas option[value="' + activeKelasId + '"]').length) {
+                    $('#cpKelas').val(activeKelasId);
+                }
+            }
+            $('#modalCustomPrintDetailNilai').modal('show');
+        });
+
+        $('input[name="cpModel"]').on('change', function() {
+            if ($(this).val() === 'a') {
+                $('#cpShowNisWrapper').show();
+            } else {
+                $('#cpShowNisWrapper').hide();
+            }
+        });
+
+        $('#btnEksekusiCustomPrint').on('click', function() {
+            const params = new URLSearchParams({
+                semester: '<?= htmlspecialchars($semester) ?>',
+                format: $('#cpFormat').val(),
+                model: $('input[name="cpModel"]:checked').val(),
+                kelas: $('#cpKelas').val(),
+                paper: $('#cpPaper').val(),
+                orientation: $('#cpOrientation').val(),
+                font_size: $('#cpFontSize').val(),
+                show_summary: $('#cpShowSummary').is(':checked') ? '1' : '0',
+                show_nis: $('#cpShowNis').is(':checked') ? '1' : '0'
+            });
+
+            const url = '<?= base_url('backend/nilai/exportDetailNilai') ?>?' + params.toString();
+            if ($('#cpFormat').val() === 'pdf') {
+                window.open(url, '_blank');
+            } else {
+                window.location.href = url;
+            }
+            $('#modalCustomPrintDetailNilai').modal('hide');
+        });
     });
 </script>
+
 <?= $this->endSection(); ?>
