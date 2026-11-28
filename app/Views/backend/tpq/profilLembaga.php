@@ -1049,9 +1049,22 @@
         });
     }
 
+    function getActiveCropperLogo() {
+        if (typeof cropperLogoTpq !== 'undefined' && cropperLogoTpq) return cropperLogoTpq;
+        if (typeof cropperLogoMda !== 'undefined' && cropperLogoMda) return cropperLogoMda;
+        return cropperLogo;
+    }
+
+    function getActiveCropperKop() {
+        if (typeof cropperKopTpq !== 'undefined' && cropperKopTpq) return cropperKopTpq;
+        if (typeof cropperKopMda !== 'undefined' && cropperKopMda) return cropperKopMda;
+        return cropperKop;
+    }
+
     // Function untuk zoom Logo
     function zoomLogo(direction) {
-        if (!cropperLogo) {
+        const activeCropper = getActiveCropperLogo();
+        if (!activeCropper) {
             Swal.fire({
                 icon: 'warning',
                 title: 'Peringatan',
@@ -1060,12 +1073,13 @@
             return;
         }
         const ratio = direction === 'in' ? 0.1 : -0.1;
-        cropperLogo.zoom(ratio);
+        activeCropper.zoom(ratio);
     }
 
     // Function untuk move/geser Logo
     function moveLogo(direction) {
-        if (!cropperLogo) {
+        const activeCropper = getActiveCropperLogo();
+        if (!activeCropper) {
             Swal.fire({
                 icon: 'warning',
                 title: 'Peringatan',
@@ -1092,12 +1106,13 @@
                 break;
         }
 
-        cropperLogo.move(offsetX, offsetY);
+        activeCropper.move(offsetX, offsetY);
     }
 
     // Function untuk zoom Kop
     function zoomKop(direction) {
-        if (!cropperKop) {
+        const activeCropper = getActiveCropperKop();
+        if (!activeCropper) {
             Swal.fire({
                 icon: 'warning',
                 title: 'Peringatan',
@@ -1106,12 +1121,13 @@
             return;
         }
         const ratio = direction === 'in' ? 0.1 : -0.1;
-        cropperKop.zoom(ratio);
+        activeCropper.zoom(ratio);
     }
 
     // Function untuk move/geser Kop
     function moveKop(direction) {
-        if (!cropperKop) {
+        const activeCropper = getActiveCropperKop();
+        if (!activeCropper) {
             Swal.fire({
                 icon: 'warning',
                 title: 'Peringatan',
@@ -1138,7 +1154,7 @@
                 break;
         }
 
-        cropperKop.move(offsetX, offsetY);
+        activeCropper.move(offsetX, offsetY);
     }
 
     // Function untuk menampilkan modal crop Kop Lembaga
@@ -1247,10 +1263,10 @@
                         cropperKop = null;
                     }
 
-                    // Inisialisasi cropper dengan aspect ratio 4:1 untuk kop lembaga (landscape format standar A4)
+                    // Inisialisasi cropper dengan aspect ratio 5:1 untuk kop lembaga (landscape format standar A4/F4)
                     try {
                         cropperKop = new Cropper(imageElement, {
-                            aspectRatio: 4 / 1, // 4:1 untuk kop lembaga (standar untuk print A4)
+                            aspectRatio: 5 / 1, // 5:1 untuk kop lembaga (standar untuk print A4/F4)
                             viewMode: 1,
                             dragMode: 'move',
                             autoCropArea: 0.8,
@@ -1303,10 +1319,10 @@
         }
 
         // Get cropped canvas dengan ukuran standar untuk kop lembaga
-        // Format landscape 4:1 dengan lebar 2000px dan tinggi 500px (optimal untuk print A4)
+        // Format landscape 5:1 dengan lebar 2000px dan tinggi 400px (optimal untuk print A4/F4)
         const canvas = cropperKop.getCroppedCanvas({
             width: 2000,
-            height: 500,
+            height: 400,
             imageSmoothingEnabled: true,
             imageSmoothingQuality: 'high',
         });
@@ -1428,7 +1444,10 @@
                 cropperLogo.destroy();
                 cropperLogo = null;
             }
-            document.getElementById('logo').value = '';
+            const logoInput = document.getElementById('logo');
+            if (logoInput) {
+                logoInput.value = '';
+            }
             selectedFileLogo = null;
         });
 
@@ -1443,7 +1462,10 @@
                 cropperKop.destroy();
                 cropperKop = null;
             }
-            document.getElementById('kop_lembaga').value = '';
+            const kopInput = document.getElementById('kop_lembaga');
+            if (kopInput) {
+                kopInput.value = '';
+            }
             selectedFileKop = null;
         });
     });
@@ -1759,7 +1781,7 @@
                         }
                         try {
                             cropperKopTpq = new Cropper(imageElement, {
-                                aspectRatio: 4 / 1,
+                                aspectRatio: 5 / 1,
                                 viewMode: 1,
                                 dragMode: 'move',
                                 autoCropArea: 0.8,
@@ -1804,7 +1826,7 @@
             }
             const canvas = cropperKopTpq.getCroppedCanvas({
                 width: 2000,
-                height: 500,
+                height: 400,
                 imageSmoothingEnabled: true,
                 imageSmoothingQuality: 'high',
             });
@@ -2201,7 +2223,7 @@
                         }
                         try {
                             cropperKopMda = new Cropper(imageElement, {
-                                aspectRatio: 4 / 1,
+                                aspectRatio: 5 / 1,
                                 viewMode: 1,
                                 dragMode: 'move',
                                 autoCropArea: 0.8,
@@ -2246,7 +2268,7 @@
             }
             const canvas = cropperKopMda.getCroppedCanvas({
                 width: 2000,
-                height: 500,
+                height: 400,
                 imageSmoothingEnabled: true,
                 imageSmoothingQuality: 'high',
             });
@@ -2364,6 +2386,37 @@
                 } else if (cropperKop) {
                     uploadKop(); // Fallback untuk default
                 }
+            });
+
+            // Cleanup cropper logo & kop TPQ/MDA saat modal ditutup
+            $('#modalCropLogo').on('hidden.bs.modal', function() {
+                if (cropperLogoTpq) {
+                    cropperLogoTpq.destroy();
+                    cropperLogoTpq = null;
+                }
+                if (cropperLogoMda) {
+                    cropperLogoMda.destroy();
+                    cropperLogoMda = null;
+                }
+                ['logoTpq', 'logoMda'].forEach(function(id) {
+                    const el = document.getElementById(id);
+                    if (el) el.value = '';
+                });
+            });
+
+            $('#modalCropKop').on('hidden.bs.modal', function() {
+                if (cropperKopTpq) {
+                    cropperKopTpq.destroy();
+                    cropperKopTpq = null;
+                }
+                if (cropperKopMda) {
+                    cropperKopMda.destroy();
+                    cropperKopMda = null;
+                }
+                ['kop_lembaga_tpq', 'kop_lembaga_mda'].forEach(function(id) {
+                    const el = document.getElementById(id);
+                    if (el) el.value = '';
+                });
             });
         });
     <?php endif; ?>

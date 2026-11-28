@@ -11,9 +11,15 @@ helper('nilai');
     <meta charset="UTF-8">
     <title>Rapor Santri</title>
     <style>
+        @page {
+            size: 21cm 33cm;
+            margin: 15mm;
+        }
+
         body {
             font-family: 'Arial Unicode MS', 'Times New Roman', 'DejaVu Sans', Arial, sans-serif;
-            margin: 20px;
+            margin: 0;
+            padding: 0;
         }
 
         /* CSS untuk memastikan karakter Arab tidak terpisah */
@@ -28,7 +34,7 @@ helper('nilai');
 
         .header {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 12px;
         }
 
         /* Kelas bantu untuk teks Arab (RTL) */
@@ -55,21 +61,21 @@ helper('nilai');
 
         .header h2 {
             margin: 0;
-            font-size: 18px;
-        }
-
-        .header h3 {
-            margin: 5px 0;
             font-size: 16px;
         }
 
-        .header p {
-            margin: 5px 0;
+        .header h3 {
+            margin: 3px 0;
             font-size: 14px;
         }
 
+        .header p {
+            margin: 2px 0 0 0;
+            font-size: 12px;
+        }
+
         .data-santri {
-            margin-bottom: 20px;
+            margin-bottom: 10px;
         }
 
         .data-santri table {
@@ -77,19 +83,19 @@ helper('nilai');
         }
 
         .data-santri td {
-            padding: 3px;
+            padding: 2px 3px;
         }
 
         .nilai-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
         }
 
         .nilai-table th,
         .nilai-table td {
             border: 1px solid #000;
-            padding: 5px;
+            padding: 4px 5px;
             text-align: left;
             font-size: 10px;
         }
@@ -101,21 +107,20 @@ helper('nilai');
         .semester-title {
             font-size: 14px;
             font-weight: bold;
-            margin: 10px 0;
+            margin: 6px 0;
         }
 
         /* CSS untuk kop lembaga */
         .kop-lembaga {
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 6px;
         }
 
         .kop-lembaga img {
             max-width: 100%;
-            width: 100%;
-            max-height: 200px;
+            width: auto;
+            max-height: 136px;
             height: auto;
-            object-fit: contain;
             display: block;
             margin: 0 auto;
         }
@@ -123,7 +128,7 @@ helper('nilai');
         /* Media query untuk print */
         @media print {
             .kop-lembaga img {
-                max-height: 150px;
+                max-height: 136px;
             }
         }
     </style>
@@ -205,7 +210,7 @@ helper('nilai');
 
                     $kopBase64 = base64_encode($kopContent);
                     $kopMimeType = mime_content_type($kopPath);
-                    echo '<img src="data:' . $kopMimeType . ';base64,' . $kopBase64 . '" alt="Kop Lembaga" style="width: 100%; max-width: 800px; height: auto; display: block; margin: 0 auto;">';
+                    echo '<img src="data:' . $kopMimeType . ';base64,' . $kopBase64 . '" alt="Kop Lembaga" style="max-width: 100%; max-height: 136px; width: auto; height: auto; display: block; margin: 0 auto;">';
                 } else {
                     echo '<div style="text-align: center; padding: 20px; border: 1px dashed #ccc;">Kop lembaga tidak ditemukan</div>';
                 }
@@ -379,14 +384,14 @@ helper('nilai');
         </table>
     <?php endif; ?>
     <!-- Tanda Tangan Layout Gambar Tabel -->
-    <table style="width: 100%; border-collapse: collapse; margin-top: 50px; font-size: 12px; page-break-inside: avoid;">
+    <table style="width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 12px; page-break-inside: avoid;">
         <tr>
-            <td colspan="5" style="width: 50%; padding: 5px; text-align: right;"> Diberikan di Seri Kuala Lobam Tanggal: <?= $tanggal ?></td>
+            <td colspan="5" style="width: 50%; padding: 3px 5px; text-align: right;"> Diberikan di Seri Kuala Lobam Tanggal: <?= $tanggal ?></td>
         </tr>
         <tr>
-            <td colspan="2" style="width: 50%; padding: 15px 5px; text-align: center;"><?= (($lembagaType ?? 'TPQ') === 'MDA' ? 'Kepala MDTA' : 'Kepala TPQ') ?></td>
-            <td style="width: 50%; padding: 5px;"></td>
-            <td colspan="2" style="width: 50%; padding: 15px 5px; text-align: center;">Wali Kelas</td>
+            <td colspan="2" style="width: 50%; padding: 6px 5px 4px 5px; text-align: center;"><?= (($lembagaType ?? 'TPQ') === 'MDA' ? 'Kepala MDTA' : 'Kepala TPQ') ?></td>
+            <td style="width: 50%; padding: 4px 5px;"></td>
+            <td colspan="2" style="width: 50%; padding: 6px 5px 4px 5px; text-align: center;">Wali Kelas</td>
         </tr>
         <tr>
             <td colspan="2" style="height: 50px; text-align: center;">
@@ -416,7 +421,7 @@ helper('nilai');
                             echo '<a href="' . htmlspecialchars($validationUrl) . '" target="_blank" style="display: inline-block;">';
                         }
 
-                        echo '<img src="data:image/svg+xml;base64,' . base64_encode($qrContent) . '" alt="QR Code Kepala Sekolah" style="width: 80px; height: 80px; cursor: pointer;">';
+                        echo '<img src="data:image/svg+xml;base64,' . base64_encode($qrContent) . '" alt="QR Code Kepala Sekolah" style="width: 72px; height: 72px; cursor: pointer;">';
 
                         if (!empty($validationUrl)) {
                             echo '</a>';
@@ -453,7 +458,7 @@ helper('nilai');
                             echo '<a href="' . htmlspecialchars($validationUrl) . '" target="_blank" style="display: inline-block;">';
                         }
 
-                        echo '<img src="data:image/svg+xml;base64,' . base64_encode($qrContent) . '" alt="QR Code Wali Kelas" style="width: 80px; height: 80px; cursor: pointer;">';
+                        echo '<img src="data:image/svg+xml;base64,' . base64_encode($qrContent) . '" alt="QR Code Wali Kelas" style="width: 72px; height: 72px; cursor: pointer;">';
 
                         if (!empty($validationUrl)) {
                             echo '</a>';
@@ -464,18 +469,18 @@ helper('nilai');
             </td>
         </tr>
         <tr>
-            <td colspan="2" style="width: 50%; padding: 15px 5px;text-align: center;">( <?= htmlspecialchars(formatNamaGuru($tpq['KepalaSekolah'])) ?> )</td>
+            <td colspan="2" style="width: 50%; padding: 4px 5px 8px 5px; text-align: center;">( <?= htmlspecialchars(formatNamaGuru($tpq['KepalaSekolah'])) ?> )</td>
             <td></td>
-            <td colspan="2" style="width: 50%; padding: 15px 5px; text-align: center;">( <?= htmlspecialchars(formatNamaGuru($santri['WaliKelas'])) ?> )</td>
+            <td colspan="2" style="width: 50%; padding: 4px 5px 8px 5px; text-align: center;">( <?= htmlspecialchars(formatNamaGuru($santri['WaliKelas'])) ?> )</td>
         </tr>
         <tr>
-            <td colspan="5" style="padding: 15px 5px; text-align: center;">Mengetahui Orang Tua/Wali Santri</td>
+            <td colspan="5" style="padding: 8px 5px 4px 5px; text-align: center;">Mengetahui Orang Tua/Wali Santri</td>
         </tr>
         <tr>
-            <td colspan="5" style="height: 50px;"></td>
+            <td colspan="5" style="height: 72px;"></td>
         </tr>
         <tr>
-            <td colspan="5" style="padding: 15px 5px; text-align: center;">( <?= $santri['StatusAyah'] == 'Masih Hidup' ? htmlspecialchars(toTitleCase($santri['NamaAyah'])) : ($santri['NamaWali'] ? htmlspecialchars(toTitleCase($santri['NamaWali'])) : '...........................') ?> )</td>
+            <td colspan="5" style="padding: 4px 5px; text-align: center;">( <?= $santri['StatusAyah'] == 'Masih Hidup' ? htmlspecialchars(toTitleCase($santri['NamaAyah'])) : ($santri['NamaWali'] ? htmlspecialchars(toTitleCase($santri['NamaWali'])) : '...........................') ?> )</td>
         </tr>
     </table>
 </body>
