@@ -458,6 +458,7 @@ class PenghargaanSertifikat extends BaseController
      */
     private function createMpdfInstance(array $template): \Mpdf\Mpdf
     {
+        @ini_set('pcre.backtrack_limit', '5000000');
         $format      = ($template['UkuranKertas'] ?? 'A4') . '-' . (($template['Orientasi'] ?? 'landscape') === 'portrait' ? 'P' : 'L');
         $tempDir     = WRITEPATH . 'cache/mpdf';
         if (!is_dir($tempDir)) {
@@ -566,10 +567,9 @@ class PenghargaanSertifikat extends BaseController
         if (!empty($template['BackgroundFile'])) {
             $absBg = FCPATH . ltrim((string) $template['BackgroundFile'], '/');
             if (is_file($absBg)) {
-                $ext       = strtolower(pathinfo($absBg, PATHINFO_EXTENSION));
-                $mime      = $ext === 'svg' ? 'image/svg+xml' : ($ext === 'png' ? 'image/png' : 'image/jpeg');
-                $bgDataUri = 'data:' . $mime . ';base64,' . base64_encode((string) file_get_contents($absBg));
-                $bgCss     = "background-image: url('{$bgDataUri}'); background-image-resize: 6;";
+                // Gunakan path file langsung agar tidak memicu pcre.backtrack_limit pada CssManager::ReadCSS() mPDF
+                $safePath = str_replace('\\', '/', $absBg);
+                $bgCss    = "background-image: url('{$safePath}'); background-image-resize: 6;";
             }
         }
 
